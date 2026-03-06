@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Relatório DISC | InsightDISC</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: #0b1220;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #fff;
+    }
+
+    :root {
+      --ink: #0b1220;
+      --muted: #5b6678;
+      --line: #e6ebf2;
+      --soft: #f6f8fb;
+      --d: #c62828;
+      --i: #b26a00;
+      --s: #1b7f3b;
+      --c: #1d4ed8;
+    }
+
+    .page { page-break-after: always; min-height: 265mm; position: relative; }
+    .page:last-child { page-break-after: auto; }
+
+    .hdr {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 0 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; gap: 10px; align-items: center; }
+    .mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0b1220, #1d4ed8);
+    }
+    .brand b { display: block; font-size: 12px; letter-spacing: .2px; }
+    .brand span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+    .meta { text-align: right; font-size: 10.5px; color: var(--muted); }
+    .meta b { color: var(--ink); }
+
+    .ftr {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 0 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    h1 { font-size: 26px; margin: 16px 0 6px; letter-spacing: -.3px; }
+    h2 { font-size: 16px; margin: 14px 0 8px; letter-spacing: -.2px; }
+    h3 {
+      font-size: 11px;
+      margin: 14px 0 6px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .9px;
+    }
+    p { margin: 0 0 8px; color: #1f2937; line-height: 1.5; font-size: 12.2px; }
+    .muted { color: var(--muted); }
+    .lead { font-size: 13px; color: #111827; }
+
+    .grid2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .box.soft { background: linear-gradient(180deg, #fff, var(--soft)); }
+    .kpi {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .kpi b { color: var(--ink); font-size: 12px; }
+
+    figure { margin: 0; }
+    .fig {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      background: #fff;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    figcaption {
+      margin-top: 8px;
+      font-size: 10.5px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .fig-title { font-weight: 800; color: var(--ink); }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); font-size: 11.5px; }
+    th { text-align: left; background: #f7f9fd; color: var(--muted); font-weight: 800; }
+    tr:last-child td { border-bottom: 0; }
+
+    .tag {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      background: #fff;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 999px; }
+    .d { background: var(--d); }
+    .i { background: var(--i); }
+    .s { background: var(--s); }
+    .c { background: var(--c); }
+
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 0 0 6px; color: #1f2937; font-size: 12px; }
+
+    .bar-row { display: grid; grid-template-columns: 24px 1fr 56px; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .track { position: relative; height: 10px; border-radius: 999px; background: #edf2f8; overflow: hidden; }
+    .fill-natural { position: absolute; left: 0; top: 0; bottom: 0; background: #1d4ed8; border-radius: 999px; }
+    .fill-adapted { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(11, 18, 32, .35); border-radius: 999px; }
+
+    .note { font-size: 10.5px; color: var(--muted); }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+  window.REPORT_DATA = window.REPORT_DATA || {
+    brand: "InsightDISC",
+    subtitle: "Plataforma de Análise Comportamental",
+    participant: { name: "Participante", email: "user@example.com", date: "2026-03-05", reportId: "assessment-2" },
+    scores: {
+      natural: { D: 45, I: 72, S: 58, C: 35 },
+      adapted: { D: 48, I: 68, S: 55, C: 40 }
+    },
+    profile: {
+      name: "Influenciador com apoio de Estabilidade",
+      primary: "I",
+      secondary: "S",
+      archetype: "Conector Estratégico"
+    },
+    exec: {
+      bullets: [
+        "Alta Influência sugere energia social, persuasão e foco em relacionamento.",
+        "O apoio de Estabilidade adiciona consistência e previsibilidade na execução.",
+        "Sob pressão, o principal ganho vem de fechar acordos com critérios e prazos.",
+        "Ajustes em disciplina de decisão aumentam performance sem elevar desgaste."
+      ]
+    }
+  };
+
+  const d = window.REPORT_DATA;
+  const nat = d.scores?.natural || { D: 0, I: 0, S: 0, C: 0 };
+  const adp = d.scores?.adapted || { D: 0, I: 0, S: 0, C: 0 };
+
+  const pct = (n) => `${Math.max(0, Math.min(100, Number(n) || 0))}%`;
+  const delta = (a, b) => `${a - b >= 0 ? "+" : ""}${(a || 0) - (b || 0)} pts`;
+
+  function header(pageTitle) {
+    return `
+      <div class="hdr">
+        <div class="brand">
+          <div class="mark"></div>
+          <div>
+            <b>${d.brand || "InsightDISC"}</b>
+            <span>${d.subtitle || "Plataforma de Análise Comportamental"}</span>
+          </div>
+        </div>
+        <div class="meta">
+          <div><b>${pageTitle}</b></div>
+          <div>ID: <b>${d.participant?.reportId || "-"}</b> • Data: <b>${d.participant?.date || "-"}</b></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function footer(pageNum) {
+    return `
+      <div class="ftr">
+        <div>Confidencial • Uso interno</div>
+        <div>Página ${pageNum}</div>
+      </div>
+    `;
+  }
+
+  function radarSVG(scores) {
+    const size = 240;
+    const cx = 120;
+    const cy = 120;
+    const r = 86;
+    const axes = [["D", -90], ["I", 0], ["S", 90], ["C", 180]];
+    const xy = (val, deg) => {
+      const a = deg * Math.PI / 180;
+      const rr = r * (val / 100);
+      return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+    };
+
+    const rings = [25, 50, 75, 100].map((p) => {
+      const pts = axes.map((ax) => xy(p, ax[1]).map((n) => n.toFixed(1)).join(",")).join(" ");
+      return `<polygon points="${pts}" fill="none" stroke="rgba(11,18,32,.10)" stroke-width="1"/>`;
+    }).join("");
+
+    const poly = axes.map((ax) => xy(scores[ax[0]] || 0, ax[1]).map((n) => n.toFixed(1)).join(",")).join(" ");
+    const labels = axes.map((ax) => {
+      const [x, y] = xy(110, ax[1]);
+      return `<text x="${x}" y="${y}" font-size="12" font-weight="800" fill="#0b1220" text-anchor="middle">${ax[0]}</text>`;
+    }).join("");
+
+    return `
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        ${rings}
+        <polygon points="${poly}" fill="rgba(29,78,216,.14)" stroke="rgba(29,78,216,.70)" stroke-width="2"/>
+        ${labels}
+      </svg>
+    `;
+  }
+
+  function barsFigure(title, caption) {
+    return `
+      <figure class="fig">
+        <div class="fig-title">${title}</div>
+        <div style="margin-top:10px">
+          ${["D", "I", "S", "C"].map((k) => `
+            <div class="bar-row">
+              <div><b>${k}</b></div>
+              <div class="track">
+                <div class="fill-adapted" style="width:${pct(adp[k])}"></div>
+                <div class="fill-natural" style="width:${pct(nat[k])}"></div>
+              </div>
+              <div class="note">N ${pct(nat[k])} • A ${pct(adp[k])}</div>
+            </div>
+          `).join("")}
+        </div>
+        <figcaption>${caption}</figcaption>
+      </figure>
+    `;
+  }
+
+  function quadrantFigure() {
+    const pos = {
+      D: [130, 42],
+      I: [248, 128],
+      S: [130, 214],
+      C: [30, 128]
+    };
+    const p = pos[d.profile?.primary] || [130, 128];
+    const s = pos[d.profile?.secondary] || [130, 128];
+
+    return `
+      <figure class="fig">
+        <div class="fig-title">Figura • Mapa DISC (Quadrante)</div>
+        <svg width="100%" height="260" viewBox="0 0 280 260" style="margin-top:8px">
+          <rect x="10" y="10" width="260" height="240" rx="14" fill="#fff" stroke="rgba(11,18,32,.12)"/>
+          <line x1="140" y1="22" x2="140" y2="238" stroke="rgba(11,18,32,.14)"/>
+          <line x1="22" y1="130" x2="258" y2="130" stroke="rgba(11,18,32,.14)"/>
+          <text x="140" y="20" text-anchor="middle" font-size="10" fill="#5b6678">D</text>
+          <text x="140" y="253" text-anchor="middle" font-size="10" fill="#5b6678">S</text>
+          <text x="18" y="133" font-size="10" fill="#5b6678">C</text>
+          <text x="262" y="133" text-anchor="end" font-size="10" fill="#5b6678">I</text>
+          <circle cx="${s[0]}" cy="${s[1]}" r="9" fill="rgba(11,18,32,.2)" stroke="rgba(11,18,32,.55)"/>
+          <text x="${s[0]}" y="${s[1] + 3}" text-anchor="middle" font-size="9" fill="#111">${d.profile?.secondary || "S"}</text>
+          <circle cx="${p[0]}" cy="${p[1]}" r="11" fill="rgba(29,78,216,.2)" stroke="rgba(29,78,216,.75)"/>
+          <text x="${p[0]}" y="${p[1] + 3}" text-anchor="middle" font-size="9" fill="#1d4ed8">${d.profile?.primary || "I"}</text>
+        </svg>
+        <figcaption>Posicionamento relativo do fator primário e secundário no quadrante DISC.</figcaption>
+      </figure>
+    `;
+  }
+
+  function tableFactorRows() {
+    return ["D", "I", "S", "C"].map((k) => `
+      <tr>
+        <td><b>${k}</b></td>
+        <td>${pct(nat[k])}</td>
+        <td>${pct(adp[k])}</td>
+        <td>${delta(adp[k], nat[k])}</td>
+      </tr>
+    `).join("");
+  }
+
+  const pages = [
+    {
+      title: "Capa",
+      render: () => `
+        <h1>Relatório DISC Profissional</h1>
+        <p class="lead muted">Diagnóstico comportamental completo com recomendações práticas.</p>
+        <div class="grid2" style="margin-top:12px">
+          <div class="box soft">
+            <h3>Participante</h3>
+            <div class="kpi"><span>Nome</span><b>${d.participant?.name || "-"}</b></div>
+            <div class="kpi"><span>Email</span><b>${d.participant?.email || "-"}</b></div>
+            <div class="kpi"><span>ID do Relatório</span><b>${d.participant?.reportId || "-"}</b></div>
+            <div style="margin-top:8px" class="tag"><span class="dot i"></span>Primário: <b style="color:var(--ink)">${d.profile?.primary || "I"}</b></div>
+            <div style="margin-top:6px" class="tag"><span class="dot s"></span>Secundário: <b style="color:var(--ink)">${d.profile?.secondary || "S"}</b></div>
+            <p class="note" style="margin-top:12px">Selo: confidencial • uso profissional.</p>
+          </div>
+          <div class="box">
+            <figure class="fig">
+              <div class="fig-title">Figura 1 • Radar (Natural)</div>
+              ${radarSVG(nat)}
+              <figcaption>Quanto mais distante do centro, maior a expressão do fator.</figcaption>
+            </figure>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Carta ao participante",
+      render: () => `
+        <h1>Carta ao participante</h1>
+        <p>Este relatório foi elaborado para oferecer uma leitura objetiva do seu padrão comportamental DISC, com foco em aplicação prática no trabalho e no desenvolvimento de carreira.</p>
+        <p>O conteúdo foi estruturado em linguagem editorial e com figuras técnicas para facilitar decisões em comunicação, liderança e colaboração. Os resultados não representam diagnóstico clínico, e sim tendências de comportamento observáveis em contexto profissional.</p>
+        <p>Recomendamos leitura sequencial, aplicação de um ajuste por vez e revisão periódica de evolução. Pequenas melhorias consistentes geram ganhos substanciais de performance no médio prazo.</p>
+        <p>Ao final, você encontrará planos de 30 e 90 dias para transformar insight em rotina.</p>
+      `
+    },
+    {
+      title: "Executive Summary",
+      render: () => `
+        <h1>Executive Summary</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Principais achados</h3>
+            <ul>
+              ${(d.exec?.bullets || []).map((b) => `<li>${b}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="box">
+            <figure class="fig">
+              <div class="fig-title">Figura 2 • Radar Natural</div>
+              ${radarSVG(nat)}
+              <figcaption>Perfil espontâneo de resposta comportamental.</figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="box" style="margin-top:12px">
+          ${barsFigure("Figura 3 • Barras Natural vs Adaptado", "Comparativo direto por fator com leitura em percentuais.")}
+        </div>
+      `
+    },
+    {
+      title: "Metodologia DISC",
+      render: () => `
+        <h1>Metodologia DISC</h1>
+        <p>O modelo DISC organiza tendências comportamentais em quatro fatores: Dominância (D), Influência (I), Estabilidade (S) e Conformidade (C). Nenhum fator é melhor que outro; o valor está na adequação ao contexto.</p>
+        <div class="grid2">
+          <div class="box">
+            <h3>Natural x Adaptado</h3>
+            <p><b>Natural:</b> padrão espontâneo, com menor esforço de autorregulação.</p>
+            <p><b>Adaptado:</b> ajustes ao ambiente, demandas e expectativas atuais.</p>
+            <p>Diferenças entre os perfis indicam flexibilidade e custo de energia comportamental.</p>
+          </div>
+          <div class="box">
+            <h3>Como interpretar</h3>
+            <ul>
+              <li>Observe tendências, não rótulos absolutos.</li>
+              <li>Considere função, cultura e momento de carreira.</li>
+              <li>Use o plano de desenvolvimento para consolidar mudanças.</li>
+            </ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Resultados (Natural)",
+      render: () => `
+        <h1>Resultados (Natural)</h1>
+        <div class="grid2">
+          <div class="box">
+            <figure class="fig">
+              <div class="fig-title">Figura 1 • Radar do Perfil Natural</div>
+              ${radarSVG(nat)}
+              <figcaption>Distribuição percentual do perfil natural.</figcaption>
+            </figure>
+          </div>
+          <div class="box">
+            ${barsFigure("Figura 2 • Barras por fator", "Cheio: Natural • Sombra: Adaptado")}
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Resultados (Adaptado)",
+      render: () => `
+        <h1>Resultados (Adaptado)</h1>
+        <div class="grid2">
+          <div class="box">
+            <figure class="fig">
+              <div class="fig-title">Figura 3 • Radar do Perfil Adaptado</div>
+              ${radarSVG(adp)}
+              <figcaption>Ajustes percebidos em relação ao contexto atual.</figcaption>
+            </figure>
+          </div>
+          <div class="box">
+            <h3>Delta table</h3>
+            <table>
+              <thead><tr><th>Fator</th><th>Natural</th><th>Adaptado</th><th>Δ</th></tr></thead>
+              <tbody>${tableFactorRows()}</tbody>
+            </table>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Mapa DISC",
+      render: () => `
+        <h1>Mapa DISC</h1>
+        <div class="grid2">
+          <div class="box">
+            ${quadrantFigure()}
+          </div>
+          <div class="box">
+            <h3>Leitura do posicionamento</h3>
+            <p>Fator primário: <b>${d.profile?.primary || "I"}</b>. Fator secundário: <b>${d.profile?.secondary || "S"}</b>.</p>
+            <p>Esse arranjo tende a favorecer influência interpessoal com sustentação de ritmo e previsibilidade.</p>
+            <p class="note">Use esse mapa para calibrar comunicação e alocação de responsabilidades no time.</p>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Síntese do Perfil",
+      render: () => `
+        <h1>Síntese do Perfil</h1>
+        <div class="box soft">
+          <h2>${d.profile?.archetype || d.profile?.name || "Perfil Comportamental"}</h2>
+          <p>Predominância em <b>${d.profile?.primary || "I"}</b> com apoio de <b>${d.profile?.secondary || "S"}</b>. O estilo combina energia social, mobilização de pessoas e capacidade de manter estabilidade na execução.</p>
+          <p>Em contextos de pressão, o principal ganho vem de critérios claros de decisão e fechamento com prazos definidos.</p>
+        </div>
+        <div class="grid3" style="margin-top:12px">
+          <div class="box"><h3>Força central</h3><p>Influência e construção de relacionamento.</p></div>
+          <div class="box"><h3>Risco típico</h3><p>Dispersão quando faltam critérios de priorização.</p></div>
+          <div class="box"><h3>Ação imediata</h3><p>Fechar cada reunião com decisão, prazo e responsável.</p></div>
+        </div>
+      `
+    },
+    {
+      title: "D — Dominância",
+      render: () => `
+        <h1>D — Dominância</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Forças</h3>
+            <ul><li>Agilidade para decidir sob pressão.</li><li>Foco em metas e resultado.</li><li>Assertividade em momentos críticos.</li></ul>
+          </div>
+          <div class="box">
+            <h3>Riscos e ações</h3>
+            <ul><li>Risco: impaciência. Ação: escuta ativa antes da decisão.</li><li>Risco: controle excessivo. Ação: delegação com checkpoints curtos.</li><li>Risco: confronto improdutivo. Ação: alinhar critérios objetivos.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "I — Influência",
+      render: () => `
+        <h1>I — Influência</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Forças</h3>
+            <ul><li>Conexão social e persuasão.</li><li>Capacidade de engajar e mobilizar.</li><li>Comunicação otimista e acessível.</li></ul>
+          </div>
+          <div class="box">
+            <h3>Riscos e ações</h3>
+            <ul><li>Risco: dispersão. Ação: limitar prioridades semanais.</li><li>Risco: excesso de otimismo. Ação: definir métricas de execução.</li><li>Risco: fechamento fraco. Ação: formalizar próximos passos.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "S — Estabilidade",
+      render: () => `
+        <h1>S — Estabilidade</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Forças</h3>
+            <ul><li>Consistência e confiabilidade.</li><li>Escuta ativa e suporte ao time.</li><li>Boa gestão de ritmo e rotina.</li></ul>
+          </div>
+          <div class="box">
+            <h3>Riscos e ações</h3>
+            <ul><li>Risco: evitar conflitos. Ação: preparar conversas difíceis.</li><li>Risco: resistência a mudanças bruscas. Ação: comunicar impacto e transição.</li><li>Risco: acomodação. Ação: metas de melhoria contínua.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "C — Conformidade",
+      render: () => `
+        <h1>C — Conformidade</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Forças</h3>
+            <ul><li>Análise e precisão.</li><li>Qualidade e aderência a critérios.</li><li>Decisão orientada por dados.</li></ul>
+          </div>
+          <div class="box">
+            <h3>Riscos e ações</h3>
+            <ul><li>Risco: perfeccionismo. Ação: definir critério de pronto.</li><li>Risco: excesso de análise. Ação: trabalhar com hipóteses.</li><li>Risco: rigidez. Ação: equilibrar rigor e velocidade.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Comunicação",
+      render: () => `
+        <h1>Comunicação</h1>
+        <div class="box">
+          <h3>Como falar com cada perfil</h3>
+          <table>
+            <thead><tr><th>Perfil</th><th>Abordagem recomendada</th><th>Script rápido</th></tr></thead>
+            <tbody>
+              <tr><td><b>D</b></td><td>Objetividade, impacto e decisão.</td><td>"Objetivo, opção, decisão e prazo."</td></tr>
+              <tr><td><b>I</b></td><td>Conexão, energia e visão de impacto.</td><td>"Contexto, benefício e convite para ação."</td></tr>
+              <tr><td><b>S</b></td><td>Calma, previsibilidade e suporte.</td><td>"Passo a passo, segurança e alinhamento."</td></tr>
+              <tr><td><b>C</b></td><td>Dados, critérios e clareza técnica.</td><td>"Premissa, evidência, decisão e risco."</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `
+    },
+    {
+      title: "Tomada de decisão",
+      render: () => `
+        <h1>Tomada de decisão</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Gatilhos e vieses comuns</h3>
+            <ul><li>Pressa sem critério explícito.</li><li>Preferência por consenso sem fechamento.</li><li>Análise excessiva em decisões reversíveis.</li></ul>
+          </div>
+          <div class="box">
+            <h3>Checklist de decisão</h3>
+            <ul><li>Qual problema será resolvido?</li><li>Quais critérios definem sucesso?</li><li>Qual risco é aceitável?</li><li>Quem é responsável e qual prazo?</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Liderança",
+      render: () => `
+        <h1>Liderança</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Estilo e impactos</h3>
+            <p>Liderança orientada a influência e engajamento, com potencial de alta mobilização do time.</p>
+            <p>Para elevar performance, combine energia relacional com cadência de execução e acompanhamento.</p>
+          </div>
+          <div class="box">
+            <h3>Delegação e feedback</h3>
+            <ul><li>Delegar com objetivo, escopo e marco de controle.</li><li>Dar feedback curto, frequente e específico.</li><li>Reconhecer progresso e corrigir rota cedo.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Ambiente ideal",
+      render: () => `
+        <h1>Ambiente ideal</h1>
+        <div class="box">
+          <h3>Energiza x Drena</h3>
+          <table>
+            <thead><tr><th>Energiza</th><th>Drena</th></tr></thead>
+            <tbody>
+              <tr><td>Interação social e colaboração</td><td>Isolamento e comunicação fria</td></tr>
+              <tr><td>Reconhecimento e autonomia</td><td>Falta de feedback e ambiguidade</td></tr>
+              <tr><td>Ritmo com variedade</td><td>Rotina rígida sem flexibilidade</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `
+    },
+    {
+      title: "Conflitos",
+      render: () => `
+        <h1>Conflitos</h1>
+        <div class="grid2">
+          <div class="box">
+            <h3>Reação típica</h3>
+            <p>Em tensão, pode surgir resposta mais emocional e foco em convencimento rápido.</p>
+            <p>Se houver baixa clareza de responsabilidades, aumenta a chance de ruído.</p>
+          </div>
+          <div class="box">
+            <h3>Estratégia de resolução</h3>
+            <ul><li>Separar fato, interpretação e decisão.</li><li>Definir acordo objetivo com prazo.</li><li>Registrar responsável por cada ação.</li></ul>
+          </div>
+        </div>
+      `
+    },
+    {
+      title: "Plano 30 dias",
+      render: () => `
+        <h1>Plano 30 dias</h1>
+        <div class="box">
+          <table>
+            <thead><tr><th>Semana</th><th>Objetivo</th><th>Métrica</th></tr></thead>
+            <tbody>
+              <tr><td><b>1</b></td><td>Definir comportamento foco</td><td>1 ação aplicada por dia</td></tr>
+              <tr><td><b>2</b></td><td>Coletar feedback de 2 pessoas</td><td>2 feedbacks registrados</td></tr>
+              <tr><td><b>3</b></td><td>Repetir ajuste em 3 contextos</td><td>3 evidências práticas</td></tr>
+              <tr><td><b>4</b></td><td>Consolidar rotina</td><td>Checklist semanal ativo</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `
+    },
+    {
+      title: "Plano 90 dias",
+      render: () => `
+        <h1>Plano 90 dias</h1>
+        <div class="grid3">
+          <div class="box"><h3>Mês 1</h3><p>Calibrar comunicação e fechamento.</p></div>
+          <div class="box"><h3>Mês 2</h3><p>Padronizar critérios de decisão e delegação.</p></div>
+          <div class="box"><h3>Mês 3</h3><p>Escalar rotina com indicadores de performance.</p></div>
+        </div>
+        <div class="box" style="margin-top:12px">
+          <h3>Hábitos críticos</h3>
+          <ul><li>Planejamento semanal de 20 minutos.</li><li>Revisão quinzenal de feedback.</li><li>Encerramento formal de decisões importantes.</li></ul>
+        </div>
+      `
+    },
+    {
+      title: "LGPD + Glossário",
+      render: () => `
+        <h1>LGPD + Glossário</h1>
+        <div class="box">
+          <h3>Aviso LGPD</h3>
+          <p>Este relatório contém dados pessoais e deve ser utilizado apenas para fins de desenvolvimento, respeitando consentimento, finalidade e segurança da informação.</p>
+          <p class="note">Contato: suporte@insightdisc.app</p>
+        </div>
+        <div class="box" style="margin-top:12px">
+          <h3>Glossário</h3>
+          <table>
+            <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
+            <tbody>
+              <tr><td><b>Perfil Natural</b></td><td>Padrão espontâneo de comportamento.</td></tr>
+              <tr><td><b>Perfil Adaptado</b></td><td>Ajuste comportamental ao contexto atual.</td></tr>
+              <tr><td><b>Fator dominante</b></td><td>Fator com maior intensidade relativa.</td></tr>
+              <tr><td><b>Delta</b></td><td>Diferença entre Adaptado e Natural.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `
+    }
+  ];
+
+  const html = pages.map((section, index) => {
+    return `
+      <section class="page">
+        ${header(section.title)}
+        ${section.render()}
+        ${footer(index + 1)}
+      </section>
+    `;
+  }).join("");
+
+  document.getElementById("app").innerHTML = html;
+</script>
+</body>
+</html>

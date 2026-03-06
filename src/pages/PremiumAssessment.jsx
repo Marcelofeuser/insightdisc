@@ -1,0 +1,500 @@
+import React, { useMemo, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Shield,
+  Clock,
+  CheckCircle2,
+  Sparkles,
+  AlertTriangle,
+  WifiOff,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { createPageUrl } from '@/utils';
+import QuestionCard from '@/components/disc/QuestionCard';
+import AssessmentProgress from '@/components/disc/AssessmentProgress';
+import AssessmentAchievements from '@/components/disc/AssessmentAchievements';
+import AnswerFeedback from '@/components/disc/AnswerFeedback';
+import { FULL_QUESTION_BANK, calculateDISCResults } from '@/components/disc/discEngine';
+import { base44 } from '@/api/base44Client';
+import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+
+const DRAFT_KEY = (id) => `disc_draft_${id}`;
+const TOTAL_QUESTIONS = 40;
+
+function normalizeAnswer(answer) {
+  if (!answer) return null;
+  const questionId = answer.question_id || answer.questionId;
+  if (!questionId || !answer.most || !answer.least) return null;
+  return {
+    question_id: String(questionId),
+    most: String(answer.most),
+    least: String(answer.least),
+    answered_at: answer.answered_at || answer.answeredAt || new Date().toISOString(),
+  };
+}
+
+function normalizeAnswerList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(normalizeAnswer).filter(Boolean);
+}
+
+function optionIndexFromLegacyId(optionId) {
+  const match = String(optionId || '')
+    .toLowerCase()
+    .match(/([a-d])$/);
+  if (!match) return -1;
+  return { a: 0, b: 1, c: 2, d: 3 }[match[1]] ?? -1;
+}
+
+function mergeAnswerLists(importedAnswers = [], mappedAnswers = []) {
+  const merged = new Map();
+  [...importedAnswers, ...mappedAnswers]
+    .map(normalizeAnswer)
+    .filter(Boolean)
+    .forEach((answer) => {
+      merged.set(answer.question_id, answer);
+    });
+  return Array.from(merged.values());
+}
+
+function parseDraft(raw) {
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    return {
+      savedAnswers:
+        parsed?.savedAnswers && typeof parsed.savedAnswers === 'object'
+          ? parsed.savedAnswers
+          : {},
+      savedQuestion:
+        typeof parsed?.savedQuestion === 'number' ? parsed.savedQuestion : null,
+    };
+  } catch {
+    return { savedAnswers: {}, savedQuestion: null };
+  }
+}
+
+export default function PremiumAssessment() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const token = searchParams.get('token');
+  const prefetchedId = searchParams.get('assessment_id');
+  const resumeMode = searchParams.get('resume') === '1';
+  const queryAnsweredCount = Number(searchParams.get('answeredCount') || 0);
+  const apiBaseUrl = getApiBaseUrl();
+
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [importedAnswers, setImportedAnswers] = useState([]);
+  const [resumeFloor, setResumeFloor] = useState(0);
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assessmentId, setAssessmentId] = useState(prefetchedId || null);
+  const [initError, setInitError] = useState(null);
+  const [feedbackTrigger, setFeedbackTrigger] = useState(0);
+  const [isProgressReady, setIsProgressReady] = useState(false);
+
+  const questions = useMemo(() => FULL_QUESTION_BANK.slice(0, TOTAL_QUESTIONS), []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTimeSpent((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (prefetchedId) {
+      setAssessmentId(prefetchedId);
+      return;
+    }
+    initAssessment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefetchedId]);
+
+  useEffect(() => {
+    if (!assessmentId) return;
+
+    let mounted = true;
+
+    const hydrateProgress = async () => {
+      setIsProgressReady(false);
+      const questionIds = new Set(questions.map((question) => question.id));
+
+      let existingAnswers = [];
+      let respondentName = '';
+      let respondentEmail = '';
+
+      if (apiBaseUrl && token) {
+        try {
+          const payload = await apiRequest(
+            `/assessment/report-by-token?token=${encodeURIComponent(token)}`
+          );
+          existingAnswers = normalizeAnswerList(payload?.answers || []);
+          respondentName = payload?.assessment?.candidateName || '';
+          respondentEmail = payload?.assessment?.candidateEmail || '';
+        } catch {
+          // fallback below
+        }
+      }
+
+      if (existingAnswers.length === 0) {
+        try {
+          const local = await base44.entities.Assessment.filter({ id: assessmentId });
+          if (local?.length) {
+            existingAnswers = normalizeAnswerList(local[0]?.answers || []);
+            respondentName =
+              local[0]?.respondent_name || local[0]?.candidateName || respondentName;
+            respondentEmail =
+              local[0]?.respondent_email || local[0]?.candidateEmail || respondentEmail;
+          }
+        } catch {
+          // ignore local fallback errors
+        }
+      }
+
+      if (respondentName) {
+        sessionStorage.setItem('candidate_name', respondentName);
+      }
+      if (respondentEmail) {
+        sessionStorage.setItem('candidate_email', respondentEmail);
+      }
+
+      const mappedExisting = {};
+      const importedExtra = [];
+      let legacyCursor = 0;
+      existingAnswers.forEach((answer) => {
+        if (questionIds.has(answer.question_id)) {
+          mappedExisting[answer.question_id] = answer;
+        } else {
+          const targetQuestion = questions[legacyCursor];
+          const mostIdx = optionIndexFromLegacyId(answer.most);
+          const leastIdx = optionIndexFromLegacyId(answer.least);
+
+          if (
+            targetQuestion &&
+            mostIdx >= 0 &&
+            leastIdx >= 0 &&
+            targetQuestion.options?.[mostIdx]?.id &&
+            targetQuestion.options?.[leastIdx]?.id
+          ) {
+            mappedExisting[targetQuestion.id] = {
+              question_id: targetQuestion.id,
+              most: targetQuestion.options[mostIdx].id,
+              least: targetQuestion.options[leastIdx].id,
+              answered_at: answer.answered_at || new Date().toISOString(),
+            };
+            legacyCursor += 1;
+          } else {
+            importedExtra.push(answer);
+          }
+        }
+      });
+
+      const draftRaw = localStorage.getItem(DRAFT_KEY(assessmentId));
+      const { savedAnswers, savedQuestion } = parseDraft(draftRaw);
+
+      const mergedMap = { ...mappedExisting, ...savedAnswers };
+      const inferredAnsweredCount = importedExtra.length + Object.keys(mergedMap).length;
+      const resumeStart = resumeMode
+        ? Math.min(
+            questions.length - 1,
+            Math.max(queryAnsweredCount || 0, inferredAnsweredCount)
+          )
+        : 0;
+
+      if (!mounted) return;
+
+      setImportedAnswers(importedExtra);
+      setAnswers(mergedMap);
+      setResumeFloor(resumeStart);
+
+      if (savedQuestion !== null) {
+        const clamped = Math.max(0, Math.min(questions.length - 1, savedQuestion));
+        setCurrentQuestion(resumeMode ? Math.max(clamped, resumeStart) : clamped);
+      } else {
+        setCurrentQuestion(resumeStart);
+      }
+
+      setIsProgressReady(true);
+    };
+
+    hydrateProgress();
+
+    return () => {
+      mounted = false;
+    };
+  }, [assessmentId, apiBaseUrl, token, resumeMode, queryAnsweredCount, questions]);
+
+  const initAssessment = async () => {
+    try {
+      const isAuth = await base44.auth.isAuthenticated();
+      if (!isAuth) {
+        base44.auth.redirectToLogin(window.location.href);
+        return;
+      }
+      const user = await base44.auth.me();
+      const assessment = await base44.entities.Assessment.create({
+        user_id: user.id,
+        type: 'premium',
+        status: 'in_progress',
+        access_token: token || null,
+        started_at: new Date().toISOString(),
+      });
+      setAssessmentId(assessment.id);
+    } catch {
+      setInitError('Não foi possível iniciar a avaliação. Verifique sua conexão.');
+    }
+  };
+
+  const handleAnswer = (answer) => {
+    const normalized = normalizeAnswer(answer);
+    if (!normalized) return;
+
+    const nextAnswers = { ...answers, [normalized.question_id]: normalized };
+    setAnswers(nextAnswers);
+
+    if (assessmentId) {
+      localStorage.setItem(
+        DRAFT_KEY(assessmentId),
+        JSON.stringify({
+          savedAnswers: nextAnswers,
+          savedQuestion: currentQuestion,
+        })
+      );
+    }
+
+    setFeedbackTrigger((prev) => prev + 1);
+
+    if (currentQuestion < questions.length - 1) {
+      setTimeout(() => setCurrentQuestion((prev) => prev + 1), 450);
+    }
+  };
+
+  const answeredCount = importedAnswers.length + Object.keys(answers).length;
+  const isComplete = answeredCount >= questions.length;
+  const currentQuestionId = questions[currentQuestion]?.id;
+  const currentAnswered =
+    currentQuestion < resumeFloor || Boolean(answers[currentQuestionId]);
+  const minQuestionIndex = resumeMode ? resumeFloor : 0;
+  const canGoBack = currentQuestion > minQuestionIndex;
+
+  const handleSubmit = async () => {
+    if (!assessmentId) return;
+
+    const answerList = mergeAnswerLists(importedAnswers, Object.values(answers));
+    if (answerList.length < questions.length) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    const results = calculateDISCResults(answerList, questions);
+
+    try {
+      if (apiBaseUrl && token) {
+        const payload = await apiRequest('/assessment/submit', {
+          method: 'POST',
+          body: {
+            token,
+            respondentName: sessionStorage.getItem('candidate_name') || 'Participante',
+            respondentEmail:
+              sessionStorage.getItem('candidate_email') || 'participante@example.com',
+            answers: answerList.map((answer) => ({
+              questionId: answer.question_id || answer.questionId,
+              most: answer.most,
+              least: answer.least,
+            })),
+          },
+        });
+        if (!payload?.ok) {
+          throw new Error(payload?.error || payload?.reason || 'Falha ao enviar respostas.');
+        }
+
+        localStorage.removeItem(DRAFT_KEY(assessmentId));
+        const resolvedAssessmentId = payload.assessmentId || assessmentId;
+        const reportPath =
+          token && location.pathname.startsWith('/c')
+            ? `/c/report?id=${encodeURIComponent(resolvedAssessmentId)}&token=${encodeURIComponent(token)}`
+            : `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`;
+        navigate(reportPath);
+        return;
+      }
+
+      await base44.entities.Assessment.update(assessmentId, {
+        status: 'completed',
+        answers: answerList,
+        results,
+        respondent_name: sessionStorage.getItem('candidate_name') || 'Participante',
+        respondent_email:
+          sessionStorage.getItem('candidate_email') || 'participante@example.com',
+        candidateName: sessionStorage.getItem('candidate_name') || 'Participante',
+        candidateEmail:
+          sessionStorage.getItem('candidate_email') || 'participante@example.com',
+        completed_at: new Date().toISOString(),
+        time_spent_seconds: timeSpent,
+        report_unlocked: true,
+      });
+
+      localStorage.removeItem(DRAFT_KEY(assessmentId));
+
+      const reportPath =
+        token && location.pathname.startsWith('/c')
+          ? `/c/report?id=${encodeURIComponent(assessmentId)}&token=${encodeURIComponent(token)}`
+          : `${createPageUrl('Report')}?id=${encodeURIComponent(assessmentId)}`;
+      navigate(reportPath);
+    } catch (error) {
+      console.error('Submit failed:', error);
+      setIsSubmitting(false);
+    }
+  };
+
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="text-center text-white">
+          <WifiOff className="w-16 h-16 mx-auto mb-4 text-red-400" />
+          <h2 className="text-xl font-bold mb-2">Erro ao iniciar</h2>
+          <p className="text-white/70 mb-6">{initError}</p>
+          <Button onClick={initAssessment} className="bg-indigo-600 hover:bg-indigo-700">
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isProgressReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="text-center text-white">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-10 h-10 border-2 border-white border-t-transparent rounded-full mx-auto mb-3"
+          />
+          <p className="text-sm text-white/70">Carregando seu progresso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-6"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur text-white text-sm font-medium mb-3">
+            <Sparkles className="w-4 h-4" />
+            Avaliação Premium DISC
+          </div>
+          <div className="flex items-center justify-center gap-4 text-white/60 text-sm">
+            <span className="flex items-center gap-1">
+              <Clock className="w-4 h-4" /> ~15 min
+            </span>
+            <span className="flex items-center gap-1">
+              <Shield className="w-4 h-4" /> Dados protegidos
+            </span>
+          </div>
+        </motion.div>
+
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-4 mb-6 space-y-3">
+          <AssessmentProgress current={answeredCount} total={questions.length} timeSpent={timeSpent} />
+          <div className="flex items-center justify-between">
+            <AssessmentAchievements answered={answeredCount} total={questions.length} />
+            <AnswerFeedback trigger={feedbackTrigger} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+          <AnimatePresence mode="wait">
+            <QuestionCard
+              key={currentQuestion}
+              question={questions[currentQuestion]}
+              questionNumber={currentQuestion + 1}
+              totalQuestions={questions.length}
+              onAnswer={handleAnswer}
+              initialAnswer={answers[currentQuestionId]}
+            />
+          </AnimatePresence>
+        </div>
+
+        <div className="flex items-center justify-between mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentQuestion((prev) => prev - 1)}
+            disabled={!canGoBack}
+            className="rounded-xl bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
+          </Button>
+
+          {currentQuestion < questions.length - 1 ? (
+            <Button
+              onClick={() => setCurrentQuestion((prev) => prev + 1)}
+              disabled={!currentAnswered}
+              className="rounded-xl bg-white text-indigo-900 hover:bg-white/90 font-semibold"
+            >
+              Próxima <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={!isComplete || isSubmitting}
+              className="rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-bold hover:from-amber-500 hover:to-orange-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full mr-2"
+                  />
+                  Gerando Relatório...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" /> Finalizar e Ver Relatório
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex justify-center gap-1.5 mt-6 flex-wrap max-w-sm mx-auto">
+          {questions.map((question, index) => {
+            const isAnswered = index < resumeFloor || Boolean(answers[question.id]);
+            const isLocked = resumeMode && index < resumeFloor;
+
+            return (
+              <button
+                key={question.id}
+                onClick={() => {
+                  if (!isLocked) setCurrentQuestion(index);
+                }}
+                title={`Questão ${index + 1}`}
+                className={`w-3 h-3 rounded-full transition-all ${
+                  index === currentQuestion
+                    ? 'bg-white scale-125'
+                    : isAnswered
+                      ? 'bg-indigo-400'
+                      : 'bg-white/20'
+                } ${isLocked ? 'cursor-default' : ''}`}
+              />
+            );
+          })}
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-white/40 text-xs">
+          <AlertTriangle className="w-3 h-3" />
+          Progresso salvo automaticamente. Não feche até finalizar.
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,82 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "workspace_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do time/equipe"
+    },
+    "description": {
+      "type": "string"
+    },
+    "members": {
+      "type": "array",
+      "description": "Membros do time",
+      "items": {
+        "type": "object",
+        "properties": {
+          "assessment_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "description": "An\u00e1lise consolidada do time",
+      "properties": {
+        "team_profile": {
+          "type": "object",
+          "properties": {
+            "D": {
+              "type": "number"
+            },
+            "I": {
+              "type": "number"
+            },
+            "S": {
+              "type": "number"
+            },
+            "C": {
+              "type": "number"
+            }
+          }
+        },
+        "strengths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

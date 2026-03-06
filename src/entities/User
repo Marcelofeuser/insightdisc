@@ -1,0 +1,46 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant do usuario; pode ser nulo para SUPER_ADMIN global"
+    },
+    "global_role": {
+      "type": "string",
+      "enum": [
+        "SUPER_ADMIN",
+        "PLATFORM_ADMIN"
+      ]
+    },
+    "tenant_role": {
+      "type": "string",
+      "enum": [
+        "TENANT_ADMIN",
+        "TENANT_USER",
+        "END_CUSTOMER"
+      ]
+    },
+    "entitlements": {
+      "type": "array",
+      "description": "Capacidades extras independentes de role",
+      "items": {
+        "type": "string"
+      }
+    },
+    "active_workspace_id": {
+      "type": "string",
+      "description": "Compatibilidade com estrutura atual"
+    }
+  },
+  "required": [
+    "email"
+  ]
+}
+

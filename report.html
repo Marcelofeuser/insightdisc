@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Relatório InsightDISC</title>
+
+  <style>
+    /* ===== PRINT / PDF BASE ===== */
+    @page { size: A4; margin: 14mm 12mm 16mm 12mm; }
+    html, body { background:#f6f7fb; margin:0; padding:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#0f172a; }
+    * { box-sizing: border-box; }
+    .page { page-break-after: always; background:#fff; border-radius: 18px; overflow:hidden; position:relative; min-height: 270mm; box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+    .page:last-child{ page-break-after:auto; }
+    .wrap { padding: 18mm 14mm 18mm 14mm; }
+
+    /* Header/Footer repeated (works best with PDF engines that support running elements; fallback: per-page block) */
+    .hdr { position:absolute; top:0; left:0; right:0; padding: 10mm 14mm 6mm 14mm; display:flex; align-items:center; justify-content:space-between; border-bottom: 1px solid rgba(15,23,42,.08); }
+    .ftr { position:absolute; bottom:0; left:0; right:0; padding: 6mm 14mm 10mm 14mm; display:flex; align-items:center; justify-content:space-between; border-top: 1px solid rgba(15,23,42,.08); color:#475569; font-size: 10.5px; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brandMark { width: 34px; height:34px; border-radius: 10px; background: radial-gradient(circle at 30% 30%, #60a5fa, #7c3aed); }
+    .brandText b { display:block; font-size: 13px; letter-spacing:.2px; }
+    .brandText span { display:block; font-size: 10.5px; color:#64748b; margin-top:1px; }
+
+    h1 { font-size: 28px; margin: 0 0 10px 0; letter-spacing:-.3px; }
+    h2 { font-size: 18px; margin: 0 0 10px 0; }
+    h3 { font-size: 13px; margin: 0 0 8px 0; color:#0f172a; }
+    p { margin: 0 0 10px 0; line-height: 1.45; color:#1f2937; }
+    .muted { color:#64748b; }
+
+    .grid { display:grid; gap: 12px; }
+    .g2 { grid-template-columns: 1.1fr .9fr; }
+    .g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    .card {
+      border: 1px solid rgba(15,23,42,.08);
+      background: linear-gradient(180deg, rgba(15,23,42,.02), rgba(15,23,42,0));
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .pill {
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 7px 10px; border-radius:999px;
+      background: rgba(124,58,237,.08);
+      border: 1px solid rgba(124,58,237,.18);
+      color:#4c1d95; font-size: 11px; font-weight:600;
+    }
+    .kpi { display:flex; gap:10px; align-items:flex-start; }
+    .kpi .icon { width: 34px; height:34px; border-radius: 12px; display:flex; align-items:center; justify-content:center; background: rgba(59,130,246,.10); border:1px solid rgba(59,130,246,.22); }
+    .kpi .icon svg { width:18px; height:18px; }
+    .kpi b { display:block; font-size: 12.5px; margin-bottom:2px; }
+    .kpi span { display:block; font-size: 11px; color:#64748b; line-height:1.35; }
+
+    table { width:100%; border-collapse: separate; border-spacing:0; font-size: 11px; }
+    th, td { padding: 9px 10px; border-bottom:1px solid rgba(15,23,42,.08); vertical-align: top; }
+    th { text-align:left; color:#334155; font-weight:700; background: rgba(15,23,42,.03); }
+    tr:last-child td { border-bottom: none; }
+    .row2 { display:flex; gap: 12px; }
+    .row2 > .card { flex: 1; }
+
+    /* Disc colors */
+    .cD{ color:#b91c1c; } .bD{ background:rgba(185,28,28,.10); border-color:rgba(185,28,28,.20); }
+    .cI{ color:#b45309; } .bI{ background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.22); }
+    .cS{ color:#15803d; } .bS{ background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.22); }
+    .cC{ color:#1d4ed8; } .bC{ background:rgba(59,130,246,.10); border-color:rgba(59,130,246,.22); }
+
+    /* Prevent ugly splits */
+    .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Cover */
+    .cover {
+      background: radial-gradient(1200px 600px at 20% 10%, rgba(124,58,237,.18), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(59,130,246,.20), transparent 60%),
+                  linear-gradient(180deg, #0b1220, #111827);
+      color:#fff;
+    }
+    .cover .wrap { padding-top: 28mm; }
+    .cover h1 { font-size: 34px; color:#fff; }
+    .cover p { color: rgba(255,255,255,.85); }
+    .cover .badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 12px; border-radius: 999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      font-size: 11px; font-weight: 600;
+    }
+    .coverGrid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: 18px; }
+    .coverCard {
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .tiny { font-size: 10.5px; color:#94a3b8; }
+
+    /* Charts */
+    .chartBox { display:flex; gap: 12px; align-items:center; }
+    .bars { width:100%; }
+    .barRow { display:grid; grid-template-columns: 38px 1fr 44px; gap:10px; align-items:center; margin: 8px 0; }
+    .track { height: 10px; border-radius: 999px; background: rgba(15,23,42,.06); position:relative; overflow:hidden; }
+    .fill { height:100%; border-radius:999px; width: 0%; }
+    .fill.secondary { opacity:.45; position:absolute; top:0; left:0; }
+
+    /* Page titles */
+    .sectionTitle { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom: 10px; }
+    .sectionTitle .right { font-size: 11px; color:#64748b; }
+
+    /* TOC */
+    .tocItem { display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dashed rgba(15,23,42,.15); font-size: 12px; }
+    .tocItem:last-child { border-bottom:none; }
+
+    /* Small icon set */
+    .ico { width: 16px; height:16px; display:inline-block; }
+  </style>
+</head>
+
+<body>
+<script>
+  // ===== 1) INJETAR AQUI SEU JSON (backend pode substituir por string) =====
+  window.REPORT_DATA = window.REPORT_DATA || null;
+</script>
+
+<div id="app"></div>
+
+<script>
+/* ========= UTIL ========= */
+const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+const fmtDateBR = (iso)=> {
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { year:'numeric', month:'2-digit', day:'2-digit' });
+  }catch{ return iso || ''; }
+};
+
+function iconSvg(name){
+  // minimal inline icons (no external libs)
+  const icons = {
+    spark: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 6.2L20 10l-6.4 1.8L12 18l-1.6-6.2L4 10l6.4-1.8L12 2Z" stroke="currentColor" stroke-width="1.7"/></svg>`,
+    user: `<svg viewBox="0 0 24 24" fill="none"><path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 13a5 5 0 1 0-5-5 5 5 0 0 0 5 5Z" stroke="currentColor" stroke-width="1.7"/></svg>`,
+    chart: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M8 16v-5M12 16V7M16 16v-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+    target: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 19v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M2 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M19 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 18a6 6 0 1 0-6-6 6 6 0 0 0 6 6Z" stroke="currentColor" stroke-width="1.7"/><path d="M12 15a3 3 0 1 0-3-3 3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.7"/></svg>`,
+    talk: `<svg viewBox="0 0 24 24" fill="none"><path d="M20 14a4 4 0 0 1-4 4H9l-5 3V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`,
+    shield: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`
+  };
+  return icons[name] || icons.spark;
+}
+
+/* ========= CHARTS (SVG) ========= */
+function radarSvg(scores){
+  // scores: {D,I,S,C} in 0..100
+  const size = 220, cx = 110, cy = 110, r = 86;
+  const axes = [
+    {k:'D', ang:-90},
+    {k:'I', ang:0},
+    {k:'S', ang:90},
+    {k:'C', ang:180},
+  ];
+  const toXY = (val, angDeg)=>{
+    const a = (Math.PI/180) * angDeg;
+    const rr = r * (val/100);
+    return [cx + rr*Math.cos(a), cy + rr*Math.sin(a)];
+  };
+
+  const poly = axes.map(a=>{
+    const v = clamp(scores[a.k]||0,0,100);
+    const [x,y] = toXY(v, a.ang);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const rings = [25,50,75,100].map(p=>{
+    const pts = axes.map(a=>{
+      const [x,y]=toXY(p,a.ang);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="rgba(15,23,42,.10)" stroke-width="1"/>`;
+  }).join('');
+
+  const labels = axes.map(a=>{
+    const [x,y] = toXY(110, a.ang);
+    const dx = (a.k==='I'? 10 : a.k==='C'? -10 : 0);
+    const dy = (a.k==='S'? 14 : a.k==='D'? -6 : 4);
+    return `<text x="${x+dx}" y="${y+dy}" font-size="12" font-weight="700" fill="#0f172a">${a.k}</text>`;
+  }).join('');
+
+  const axesLines = axes.map(a=>{
+    const [x,y] = toXY(100,a.ang);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(15,23,42,.12)" stroke-width="1"/>`;
+  }).join('');
+
+  return `
+  <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    ${rings}
+    ${axesLines}
+    <polygon points="${poly}" fill="rgba(124,58,237,.18)" stroke="rgba(124,58,237,.65)" stroke-width="2"/>
+    <circle cx="${cx}" cy="${cy}" r="2.5" fill="rgba(15,23,42,.35)"/>
+    ${labels}
+  </svg>`;
+}
+
+function discQuadrantSvg(primary, secondary){
+  const p = primary || '';
+  const s = secondary || '';
+  const map = { D:[150,60], I:[260,130], S:[150,220], C:[40,130] }; // simple positions
+  const pt = map[p] || [150,130];
+  const st = map[s] || [150,130];
+
+  return `
+  <svg width="320" height="260" viewBox="0 0 320 260">
+    <rect x="10" y="10" width="300" height="240" rx="18" fill="rgba(15,23,42,.02)" stroke="rgba(15,23,42,.10)"/>
+    <line x1="160" y1="25" x2="160" y2="235" stroke="rgba(15,23,42,.10)"/>
+    <line x1="25" y1="130" x2="295" y2="130" stroke="rgba(15,23,42,.10)"/>
+    <text x="160" y="22" text-anchor="middle" font-size="11" fill="#64748b">DOMINÂNCIA</text>
+    <text x="160" y="255" text-anchor="middle" font-size="11" fill="#64748b">ESTABILIDADE</text>
+    <text x="18" y="133" font-size="11" fill="#64748b">CONFORMIDADE</text>
+    <text x="302" y="133" text-anchor="end" font-size="11" fill="#64748b">INFLUÊNCIA</text>
+
+    <circle cx="${st[0]}" cy="${st[1]}" r="10" fill="rgba(59,130,246,.18)" stroke="rgba(59,130,246,.55)" stroke-width="2"/>
+    <text x="${st[0]}" y="${st[1]+4}" text-anchor="middle" font-size="10" fill="#1d4ed8" font-weight="700">${s || '-'}</text>
+
+    <circle cx="${pt[0]}" cy="${pt[1]}" r="12" fill="rgba(124,58,237,.22)" stroke="rgba(124,58,237,.65)" stroke-width="2"/>
+    <text x="${pt[0]}" y="${pt[1]+4}" text-anchor="middle" font-size="10" fill="#4c1d95" font-weight="800">${p || '-'}</text>
+  </svg>`;
+}
+
+/* ========= RENDER ========= */
+function render(data){
+  if(!data){
+    document.getElementById('app').innerHTML = `
+      <div style="max-width:980px;margin:40px auto;padding:18px;font-family:Inter,system-ui">
+        <h2>Sem dados</h2>
+        <p>Defina <code>window.REPORT_DATA</code> com o JSON do relatório.</p>
+      </div>`;
+    return;
+  }
+
+  const nat = data.scores?.natural || {};
+  const adp = data.scores?.adapted || {};
+  const primary = data.profile?.primary || '';
+  const secondary = data.profile?.secondary || '';
+  const participant = data.participant || {};
+  const meta = data.meta || {};
+  const ins = data.insights || {};
+  const comm = data.communication || {};
+  const env = data.environment || {};
+  const car = data.careerLeadership || {};
+  const plan = data.plan30days || [];
+  const lgpd = data.lgpd || {};
+
+  const diff = {
+    D: (adp.D||0)-(nat.D||0),
+    I: (adp.I||0)-(nat.I||0),
+    S: (adp.S||0)-(nat.S||0),
+    C: (adp.C||0)-(nat.C||0),
+  };
+
+  const toc = [
+    ["Visão geral & metodologia", 2],
+    ["Resultados & gráficos", 3],
+    ["Perfil Natural", 4],
+    ["Perfil Adaptado", 5],
+    ["Comparativo Natural vs Adaptado", 6],
+    ["Dominância (D): forças e ajustes", 7],
+    ["Influência (I): forças e ajustes", 8],
+    ["Estabilidade (S): forças e ajustes", 9],
+    ["Conformidade (C): forças e ajustes", 10],
+    ["Comunicação prática", 11],
+    ["Ambiente ideal e motivadores", 12],
+    ["Liderança e carreira", 13],
+    ["Plano de desenvolvimento (30 dias)", 14],
+    ["Encerramento & LGPD", 15]
+  ];
+
+  const page = (content, opts={}) => {
+    const showHdr = opts.header !== false;
+    const showFtr = opts.footer !== false;
+    const header = showHdr ? `
+      <div class="hdr">
+        <div class="brand">
+          <div class="brandMark"></div>
+          <div class="brandText">
+            <b>${meta.brand || 'InsightDISC'}</b>
+            <span>Plataforma de Análise Comportamental</span>
+          </div>
+        </div>
+        <div class="muted" style="font-size:10.5px">
+          <div><b style="color:#0f172a">${meta.reportTitle || 'Relatório DISC'}</b></div>
+          <div>${fmtDateBR(meta.generatedAt)}</div>
+        </div>
+      </div>` : '';
+
+    const footer = showFtr ? `
+      <div class="ftr">
+        <div>${meta.reportId ? `ID: ${meta.reportId}` : ''}</div>
+        <div class="muted">Confidencial • Uso interno</div>
+      </div>` : '';
+
+    return `<section class="page ${opts.className||''}">${header}<div class="wrap">${content}</div>${footer}</section>`;
+  };
+
+  const bars = (label, k, className) => {
+    const v1 = clamp(nat[k]||0,0,100);
+    const v2 = clamp(adp[k]||0,0,100);
+    return `
+      <div class="barRow">
+        <div style="font-weight:800" class="${className}">${k}</div>
+        <div class="track">
+          <div class="fill secondary ${className}" style="width:${v2}%; background: currentColor"></div>
+          <div class="fill ${className}" style="width:${v1}%; background: currentColor"></div>
+        </div>
+        <div class="muted" style="text-align:right">${v1}%</div>
+      </div>`;
+  };
+
+  const strengthCard = (k, title, items, cls) => `
+    <div class="card avoid-break">
+      <div class="pill ${cls}" style="margin-bottom:10px"><span class="ico">${iconSvg('spark')}</span>${title}</div>
+      <ul style="margin:0;padding-left:18px; color:#1f2937; line-height:1.45">
+        ${(items||[]).map(t=>`<li>${t}</li>`).join('')}
+      </ul>
+    </div>`;
+
+  const attentionCard = (k, title, rows, cls) => `
+    <div class="card avoid-break">
+      <div class="pill ${cls}" style="margin-bottom:10px"><span class="ico">${iconSvg('target')}</span>${title}</div>
+      <table>
+        <thead><tr><th>Risco sob pressão</th><th>Ajuste recomendado</th></tr></thead>
+        <tbody>
+          ${(rows||[]).map(r=>`<tr><td>${r.risk}</td><td>${r.adjust}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // ===== PAGES =====
+  const cover = page(`
+    <div class="badge"><span class="ico">${iconSvg('spark')}</span>Relatório nível internacional</div>
+    <h1 style="margin-top:14px">${meta.reportTitle || 'Relatório DISC Profissional'}</h1>
+    <p style="max-width:540px">${meta.reportSubtitle || 'Diagnóstico comportamental completo com recomendações práticas'}</p>
+
+    <div class="coverGrid">
+      <div class="coverCard">
+        <h2 style="color:#fff;margin-bottom:8px">Participante</h2>
+        <div class="grid" style="gap:8px">
+          <div class="kpi">
+            <div class="icon" style="background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.18);color:#fff">${iconSvg('user')}</div>
+            <div>
+              <b style="color:#fff">${participant.name || '-'}</b>
+              <span style="color:rgba(255,255,255,.75)">${participant.role || ''} ${participant.company ? '• '+participant.company : ''}</span>
+            </div>
+          </div>
+          <div class="tiny">E-mail: ${participant.email || '-'}<br/>ID da avaliação: ${participant.assessmentId || meta.reportId || '-'}</div>
+        </div>
+        <div style="margin-top:12px" class="pill" style="background:rgba(255,255,255,.10)">${data.profile?.label || ''}</div>
+        <p class="tiny" style="margin-top:10px">Dominante atual: <b>${primary || '-'}</b> • Secundário: <b>${secondary || '-'}</b></p>
+      </div>
+
+      <div class="coverCard">
+        <h2 style="color:#fff;margin-bottom:8px">Resumo visual</h2>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:10px">
+          ${radarSvg(nat)}
+        </div>
+        <p class="tiny" style="margin-top:10px">
+          Este radar representa seu perfil <b>Natural</b>. A leitura do perfil <b>Adaptado</b> mostra ajustes ao contexto atual.
+        </p>
+      </div>
+    </div>
+  `, { className:'cover', header:false, footer:false });
+
+  const tocPage = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Sumário</h2>
+        <p class="muted">Visão das seções principais do relatório</p>
+      </div>
+      <div class="right">Total: 20+ páginas</div>
+    </div>
+    <div class="card">
+      ${toc.map(([t,p])=>`<div class="tocItem"><div>${t}</div><div class="muted">p. ${p}</div></div>`).join('')}
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <h3>Como usar este relatório</h3>
+        <p class="muted">Use os insights para comunicação, liderança e tomada de decisão. Evite rótulos rígidos: contexto influencia comportamento.</p>
+      </div>
+      <div class="card">
+        <h3>Perfis</h3>
+        <p class="muted"><b>Natural:</b> padrão espontâneo. <br/><b>Adaptado:</b> ajustes percebidos no ambiente atual.</p>
+      </div>
+    </div>
+  `);
+
+  const overview = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Visão geral</h2>
+        <p class="muted">Leitura estruturada do seu padrão comportamental</p>
+      </div>
+      <div class="right">Metodologia DISC</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Resumo executivo</h3>
+        ${(ins.executiveSummary||[]).map(s=>`<p>• ${s}</p>`).join('')}
+        <div class="pill" style="margin-top:8px"><span class="ico">${iconSvg('talk')}</span>${data.profile?.tagline || ''}</div>
+      </div>
+
+      <div class="card">
+        <h3>Distribuição (Natural)</h3>
+        <div class="chartBox">
+          <div style="width:240px">${radarSvg(nat)}</div>
+          <div class="bars">
+            ${bars('D','D','cD')}
+            ${bars('I','I','cI')}
+            ${bars('S','S','cS')}
+            ${bars('C','C','cC')}
+            <p class="muted" style="margin-top:10px;font-size:10.5px">
+              Barras: Natural (cheio) e Adaptado (sombra). Valores em %.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:12px">
+      <div class="card">
+        <div class="kpi">
+          <div class="icon">${iconSvg('chart')}</div>
+          <div><b>O que o DISC mede</b><span>Tendências em D, I, S e C (não mede inteligência/competência técnica).</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="kpi">
+          <div class="icon">${iconSvg('target')}</div>
+          <div><b>Quando o perfil muda</b><span>Ambiente, papel, pressão, incentivos e maturidade podem alterar o “Adaptado”.</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="kpi">
+          <div class="icon">${iconSvg('spark')}</div>
+          <div><b>Como gerar evolução</b><span>Defina 1 ajuste por vez, repita em 3 contextos e consolide ritual quinzenal.</span></div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const results = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Resultados e gráficos</h2>
+        <p class="muted">Leitura comparativa e posicionamento no mapa DISC</p>
+      </div>
+      <div class="right">Natural vs Adaptado</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card avoid-break">
+        <h3>Quadrante DISC (visual)</h3>
+        <p class="muted" style="font-size:11px;margin-bottom:10px">
+          Marcador roxo: dominante • azul: secundário
+        </p>
+        ${discQuadrantSvg(primary, secondary)}
+      </div>
+
+      <div class="card avoid-break">
+        <h3>Comparativo por fator</h3>
+        <table>
+          <thead><tr><th>Fator</th><th>Natural</th><th>Adaptado</th><th>Variação</th></tr></thead>
+          <tbody>
+            ${['D','I','S','C'].map(k=>`
+              <tr>
+                <td><b>${k}</b></td>
+                <td>${nat[k]||0}%</td>
+                <td>${adp[k]||0}%</td>
+                <td>${diff[k]>=0?'+':''}${diff[k]} pts</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <p class="muted" style="margin-top:10px;font-size:10.5px">
+          Variações moderadas são esperadas; observe sustentabilidade do desempenho ao longo do tempo.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Leitura objetiva (Natural)</h3>
+      <div class="grid g2">
+        <div>
+          <p><span class="pill bD"><b class="cD">D</b> Dominância</span> <span class="muted">• ${nat.D||0}%</span></p>
+          <p><span class="pill bI"><b class="cI">I</b> Influência</span> <span class="muted">• ${nat.I||0}%</span></p>
+        </div>
+        <div>
+          <p><span class="pill bS"><b class="cS">S</b> Estabilidade</span> <span class="muted">• ${nat.S||0}%</span></p>
+          <p><span class="pill bC"><b class="cC">C</b> Conformidade</span> <span class="muted">• ${nat.C||0}%</span></p>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const profileNatural = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Perfil Natural</h2>
+        <p class="muted">Como você tende a agir de forma espontânea</p>
+      </div>
+      <div class="right">Perfil base</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Síntese</h3>
+        <p>Seu padrão natural indica predominância em <b>${primary}</b> com apoio de <b>${secondary}</b>.</p>
+        <p class="muted">Esse padrão aparece com mais clareza em autonomia e baixa pressão externa.</p>
+        <div style="margin-top:10px" class="pill"><span class="ico">${iconSvg('spark')}</span>${data.profile?.label || ''}</div>
+      </div>
+
+      <div class="card">
+        <h3>Radar (Natural)</h3>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div>${radarSvg(nat)}</div>
+          <div class="muted" style="font-size:11px">
+            <p><b class="cI">Alta I</b> tende a aumentar conexão, persuasão e energia social.</p>
+            <p><b class="cS">S</b> adiciona consistência, escuta e estabilidade.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:12px">
+      ${strengthCard('I', 'Forças de Influência (I)', ins.strengths?.I, 'bI')}
+      ${strengthCard('S', 'Forças de Estabilidade (S)', ins.strengths?.S, 'bS')}
+      ${strengthCard('D', 'Forças de Dominância (D)', ins.strengths?.D, 'bD')}
+    </div>
+  `);
+
+  const profileAdapted = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Perfil Adaptado</h2>
+        <p class="muted">Como você ajusta seu estilo ao contexto atual</p>
+      </div>
+      <div class="right">Ajustes de ambiente</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Radar (Adaptado)</h3>
+        ${radarSvg(adp)}
+        <p class="muted" style="font-size:11px;margin-top:10px">
+          Diferenças podem sinalizar custo de energia e necessidade de ajuste de prioridades.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Variações (Natural → Adaptado)</h3>
+        <table>
+          <thead><tr><th>Fator</th><th>Variação</th><th>Leitura</th></tr></thead>
+          <tbody>
+            ${['D','I','S','C'].map(k=>{
+              const d = diff[k];
+              const txt =
+                d>0 ? "Aumento: mais exigência/ênfase no fator." :
+                d<0 ? "Redução: menos ênfase no fator no contexto atual." :
+                "Estável: padrão consistente.";
+              return `<tr><td><b>${k}</b></td><td>${d>=0?'+':''}${d} pts</td><td>${txt}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <p class="muted" style="font-size:10.5px;margin-top:10px">
+          Interprete diferenças como ajustes de contexto (não como “melhor/pior”).
+        </p>
+      </div>
+    </div>
+
+    <div class="row2" style="margin-top:12px">
+      <div class="card">
+        <h3>Recomendação prática</h3>
+        <p>Quando o Adaptado exige mais energia, seu melhor caminho é <b>simplificar decisões</b> e criar <b>rituais de execução</b>.</p>
+        <p class="muted" style="font-size:11px">Sugestão: 1 check-in semanal com 3 prioridades + 1 feedback quinzenal.</p>
+      </div>
+      <div class="card">
+        <h3>Indicador de “custo de energia”</h3>
+        <p class="muted" style="font-size:11px">Se você sente cansaço, procrastinação ou irritação frequente, normalmente é sinal de desalinhamento entre estilo e contexto.</p>
+      </div>
+    </div>
+  `);
+
+  const comp = page(`
+    <div class="sectionTitle">
+      <div>
+        <h2>Comparativo Natural vs Adaptado</h2>
+        <p class="muted">Diferenças comportamentais por fator</p>
+      </div>
+      <div class="right">Sustentabilidade do desempenho</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Barras comparativas</h3>
+        <div class="bars">
+          ${bars('D','D','cD')}
+          ${bars('I','I','cI')}
+          ${bars('S','S','cS')}
+          ${bars('C','C','cC')}
+        </div>
+        <p class="muted" style="font-size:10.5px;margin-top:10px">Cheio = Natural • Sombra = Adaptado</p>
+      </div>
+      <div class="card">
+        <h3>O que observar</h3>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          <li>Se o Adaptado se mantém por longos períodos, pode virar novo padrão.</li>
+          <li>Se o Adaptado “puxa” demais o estilo, ajuste rotina/expectativas para evitar desgaste.</li>
+          <li>Use o plano de 30 dias para calibrar 1 comportamento por vez.</li>
+        </ul>
+        <div class="pill" style="margin-top:12px"><span class="ico">${iconSvg('target')}</span>Foco: consistência + execução</div>
+      </div>
+    </div>
+  `);
+
+  const Dpage = page(`
+    <div class="sectionTitle">
+      <div><h2>Dominância (D)</h2><p class="muted">Direção, agilidade e foco em resultado</p></div>
+      <div class="right">Forças e ajustes</div>
+    </div>
+    <div class="grid g2">
+      ${strengthCard('D','Pontos fortes', ins.strengths?.D, 'bD')}
+      ${attentionCard('D','Pontos de atenção', ins.attentionPoints?.D, 'bD')}
+    </div>
+  `);
+
+  const Ipage = page(`
+    <div class="sectionTitle">
+      <div><h2>Influência (I)</h2><p class="muted">Conexão social, energia e impacto interpessoal</p></div>
+      <div class="right">Forças e ajustes</div>
+    </div>
+    <div class="grid g2">
+      ${strengthCard('I','Pontos fortes', ins.strengths?.I, 'bI')}
+      ${attentionCard('I','Pontos de atenção', ins.attentionPoints?.I, 'bI')}
+    </div>
+  `);
+
+  const Spage = page(`
+    <div class="sectionTitle">
+      <div><h2>Estabilidade (S)</h2><p class="muted">Ritmo, confiança e previsibilidade</p></div>
+      <div class="right">Forças e ajustes</div>
+    </div>
+    <div class="grid g2">
+      ${strengthCard('S','Pontos fortes', ins.strengths?.S, 'bS')}
+      ${attentionCard('S','Pontos de atenção', ins.attentionPoints?.S, 'bS')}
+    </div>
+  `);
+
+  const Cpage = page(`
+    <div class="sectionTitle">
+      <div><h2>Conformidade (C)</h2><p class="muted">Rigor, método e decisão baseada em dados</p></div>
+      <div class="right">Forças e ajustes</div>
+    </div>
+    <div class="grid g2">
+      ${strengthCard('C','Pontos fortes', ins.strengths?.C, 'bC')}
+      ${attentionCard('C','Pontos de atenção', ins.attentionPoints?.C, 'bC')}
+    </div>
+  `);
+
+  const commPage = page(`
+    <div class="sectionTitle">
+      <div><h2>Comunicação prática</h2><p class="muted">${comm.headline || ''}</p></div>
+      <div class="right">Como adaptar mensagem</div>
+    </div>
+
+    <div class="card avoid-break">
+      <h3>Abordagem recomendada por perfil</h3>
+      <table>
+        <thead><tr><th>Perfil</th><th>Como falar</th></tr></thead>
+        <tbody>
+          ${(comm.byProfile||[]).map(r=>`
+            <tr>
+              <td><b>${r.key}</b></td>
+              <td>${r.howTo}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g3" style="margin-top:12px">
+      <div class="card">
+        <h3>Frase modelo (1:1)</h3>
+        <p class="muted">“Vamos alinhar o objetivo, combinar o prazo e decidir o próximo passo.”</p>
+      </div>
+      <div class="card">
+        <h3>Frase modelo (time)</h3>
+        <p class="muted">“Pontos principais, impacto esperado e como mediremos execução nesta semana.”</p>
+      </div>
+      <div class="card">
+        <h3>Erro comum</h3>
+        <p class="muted">Entusiasmo alto sem fechamento de acordos: finalize com prazo e responsável.</p>
+      </div>
+    </div>
+  `);
+
+  const envPage = page(`
+    <div class="sectionTitle">
+      <div><h2>Ambiente ideal e motivadores</h2><p class="muted">O que tende a energizar vs desgastar</p></div>
+      <div class="right">Performance sustentável</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>O que tende a energizar</h3>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          ${(env.energizes||[]).map(x=>`<li>${x}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="card">
+        <h3>O que tende a desgastar</h3>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          ${(env.drains||[]).map(x=>`<li>${x}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Intervenção rápida (prática)</h3>
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="icon">${iconSvg('target')}</div>
+          <div><b>Rotina mínima</b><span>3 prioridades semanais + 1 check-in curto.</span></div>
+        </div>
+        <div class="kpi">
+          <div class="icon">${iconSvg('talk')}</div>
+          <div><b>Feedback</b><span>Ritual quinzenal: 1 ponto forte + 1 ajuste.</span></div>
+        </div>
+        <div class="kpi">
+          <div class="icon">${iconSvg('spark')}</div>
+          <div><b>Autonomia</b><span>Espaço para criar conexões e mover decisões.</span></div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const leadPage = page(`
+    <div class="sectionTitle">
+      <div><h2>Liderança e carreira</h2><p class="muted">Aplicações práticas para evolução profissional</p></div>
+      <div class="right">Tomada de decisão</div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Estilo predominante</h3>
+        <p><b>${car.leadStyle || ''}</b></p>
+        <p class="muted" style="font-size:11px">Quando bem calibrado, esse estilo aumenta engajamento e velocidade de execução.</p>
+        <div class="pill" style="margin-top:10px"><span class="ico">${iconSvg('spark')}</span>Impacto: inspirar + mobilizar</div>
+      </div>
+
+      <div class="card">
+        <h3>Focos de desenvolvimento</h3>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          ${(car.devFocus||[]).map(x=>`<li>${x}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Contribuições de carreira</h3>
+      <div class="grid g3">
+        ${(car.careerContrib||[]).map(x=>`
+          <div class="card" style="background:#fff">
+            <div class="kpi">
+              <div class="icon">${iconSvg('chart')}</div>
+              <div><b>${x}</b><span>Aplicação prática para objetivos e relações.</span></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `);
+
+  const planPage = page(`
+    <div class="sectionTitle">
+      <div><h2>Plano de desenvolvimento (30 dias)</h2><p class="muted">Ações objetivas para as próximas 4 semanas</p></div>
+      <div class="right">Execução</div>
+    </div>
+
+    <div class="card avoid-break">
+      <h3>Roadmap semanal</h3>
+      <table>
+        <thead><tr><th>Semana</th><th>Objetivo</th><th>Detalhe</th></tr></thead>
+        <tbody>
+          ${plan.map(w=>`<tr><td><b>${w.week}</b></td><td>${w.title}</td><td>${w.detail}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <h3>Métrica de acompanhamento</h3>
+        <p class="muted">${(data.tracking?.note)||''}</p>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          ${(data.tracking?.weeklyMetricExamples||[]).map(x=>`<li>${x}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ritual recomendado</h3>
+        <ul style="margin:0;padding-left:18px;color:#1f2937;line-height:1.45">
+          <li><b>Segunda:</b> definir 3 prioridades e 1 “comportamento foco”.</li>
+          <li><b>Quarta:</b> check-in de 10 minutos (status + bloqueios).</li>
+          <li><b>Sexta:</b> revisão: o que funcionou + próximo ajuste.</li>
+        </ul>
+        <div class="pill" style="margin-top:10px"><span class="ico">${iconSvg('target')}</span>Consistência vence intensidade</div>
+      </div>
+    </div>
+  `);
+
+  const closePage = page(`
+    <div class="sectionTitle">
+      <div><h2>Encerramento</h2><p class="muted">Síntese final e LGPD</p></div>
+      <div class="right">Segurança da informação</div>
+    </div>
+
+    <div class="card">
+      <h3>Síntese final</h3>
+      <p>O DISC oferece direção prática para escolhas de comportamento. O ganho real ocorre ao transformar insight em rotina, com ações pequenas e consistentes.</p>
+      <div class="pill" style="margin-top:10px"><span class="ico">${iconSvg('spark')}</span>Próximo passo: aplicar 1 ajuste por 30 dias</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Aviso LGPD</h3>
+      <div class="kpi">
+        <div class="icon">${iconSvg('shield')}</div>
+        <div>
+          <b>Confidencialidade e finalidade</b>
+          <span>${lgpd.notice || ''}</span>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:10px;font-size:11px">
+        Contato: <b>${lgpd.contact || ''}</b>
+      </p>
+    </div>
+  `);
+
+  // Mount
+  document.getElementById('app').innerHTML = [
+    cover,
+    tocPage,
+    overview,
+    results,
+    profileNatural,
+    profileAdapted,
+    comp,
+    Dpage,
+    Ipage,
+    Spage,
+    Cpage,
+    commPage,
+    envPage,
+    leadPage,
+    planPage,
+    closePage
+  ].join('');
+}
+
+render(window.REPORT_DATA);
+</script>
+</body>
+</html>

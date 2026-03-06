@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum UserRole {
+  ADMIN
+  PRO
+  CANDIDATE
+}
+
+enum AssessmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum InviteStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  passwordHash String               @map("password_hash")
+  name         String
+  role         UserRole             @default(PRO)
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  organizationsOwned Organization[]  @relation("OrganizationOwner")
+  memberships        OrganizationMember[]
+  credits            Credit[]
+  assessmentsCreated Assessment[]    @relation("AssessmentCreator")
+  candidateAssessments Assessment[]  @relation("AssessmentCandidate")
+  payments           Payment[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  companyName String?            @map("company_name")
+  logoUrl   String?              @map("logo_url")
+  brandPrimaryColor String?      @map("brand_primary_color")
+  brandSecondaryColor String?    @map("brand_secondary_color")
+  reportFooterText String?       @map("report_footer_text")
+  ownerId   String               @map("owner_id")
+  createdAt DateTime             @default(now()) @map("created_at")
+
+  owner       User               @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships OrganizationMember[]
+  assessments Assessment[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  userId         String       @map("user_id")
+  role           MemberRole   @default(MEMBER)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model Credit {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  balance   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("credits")
+}
+
+model Assessment {
+  id              String           @id @default(cuid())
+  organizationId  String           @map("organization_id")
+  createdBy       String           @map("created_by")
+  candidateUserId String?          @map("candidate_user_id")
+  accessTokenHash String?          @map("access_token_hash")
+  status          AssessmentStatus @default(PENDING)
+  candidateName   String?          @map("candidate_name")
+  candidateEmail  String?          @map("candidate_email")
+  completedAt     DateTime?        @map("completed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation("AssessmentCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  candidateUser User?       @relation("AssessmentCandidate", fields: [candidateUserId], references: [id], onDelete: SetNull)
+  invites      Invite[]
+  response     Response?
+  report       Report?
+
+  @@index([organizationId])
+  @@index([candidateUserId])
+  @@map("assessments")
+}
+
+model Invite {
+  id           String      @id @default(cuid())
+  assessmentId String      @map("assessment_id")
+  tokenHash    String      @unique @map("token_hash")
+  expiresAt    DateTime    @map("expires_at")
+  usedAt       DateTime?   @map("used_at")
+  status       InviteStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("invites")
+}
+
+model Response {
+  id           String   @id @default(cuid())
+  assessmentId String   @unique @map("assessment_id")
+  answersJson  Json     @map("answers_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("responses")
+}
+
+model Report {
+  id           String   @id @default(cuid())
+  assessmentId String   @unique @map("assessment_id")
+  discProfile  Json     @map("disc_profile")
+  pdfUrl       String?  @map("pdf_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  userId        String        @map("user_id")
+  creditsAdded  Int           @map("credits_added")
+  amount        Int
+  stripeSession String        @unique @map("stripe_session")
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}

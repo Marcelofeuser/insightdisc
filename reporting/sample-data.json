@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "brand": "InsightDISC",
+    "reportTitle": "Relatorio DISC Premium",
+    "reportSubtitle": "Diagnostico comportamental completo com recomendacoes praticas",
+    "generatedAt": "2026-03-06",
+    "reportId": "assessment-luana-001",
+    "version": "4.0",
+    "responsibleName": "Marcelo Feuser",
+    "responsibleRole": "Especialista DISC"
+  },
+  "participant": {
+    "name": "Luana Faleiro Santos",
+    "email": "luana.santos@example.com",
+    "assessmentId": "assessment-luana-001",
+    "role": "Executiva Comercial",
+    "company": "InsightDISC"
+  },
+  "branding": {
+    "company_name": "InsightDISC",
+    "logo_url": "/brand/insightdisc-logo.svg",
+    "brand_primary_color": "#0b1f3b",
+    "brand_secondary_color": "#f7b500",
+    "report_footer_text": "InsightDISC - Plataforma de Analise Comportamental"
+  },
+  "scores": {
+    "natural": {
+      "D": 69,
+      "I": 65,
+      "S": 42,
+      "C": 23
+    },
+    "adapted": {
+      "D": 66,
+      "I": 62,
+      "S": 48,
+      "C": 31
+    }
+  }
+}

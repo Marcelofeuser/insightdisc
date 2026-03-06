@@ -1,0 +1,66 @@
+{
+  "brand": {
+    "name": "InsightDISC",
+    "subtitle": "Plataforma de Análise Comportamental"
+  },
+  "participant": {
+    "name": "Marcelo Feuser",
+    "email": "marcelo@example.com",
+    "date": "2026-03-05",
+    "reportId": "assessment-2"
+  },
+  "scores": {
+    "natural": { "D": 45, "I": 72, "S": 58, "C": 35 },
+    "adapted": { "D": 48, "I": 68, "S": 55, "C": 40 }
+  },
+  "profile": {
+    "primary": "I",
+    "secondary": "S",
+    "name": "Influenciador com apoio de Estabilidade",
+    "archetype": "Conector Estratégico"
+  },
+  "insights": {
+    "strengths": [
+      "Conexão social e persuasão",
+      "Comunicação clara com energia",
+      "Capacidade de engajar times"
+    ],
+    "risks": [
+      "Dispersão em múltiplas frentes",
+      "Excesso de otimismo sem fechamento",
+      "Baixa disciplina de follow-up"
+    ],
+    "communication": {
+      "headline": "Comunicação aberta e orientada a relacionamento.",
+      "tips": [
+        "Concluir conversas com ação e prazo",
+        "Ajustar profundidade para perfis analíticos",
+        "Usar síntese antes de finalizar"
+      ]
+    },
+    "leadership": {
+      "style": "Liderança inspiradora com foco em mobilização.",
+      "tips": [
+        "Definir critérios de sucesso no início",
+        "Estabelecer checkpoints semanais",
+        "Delegar com clareza de responsabilidade"
+      ]
+    },
+    "stress": {
+      "pattern": "Sob pressão, acelera a fala e reduz detalhamento.",
+      "mitigation": [
+        "Checklist de decisão",
+        "Pausa de 2 minutos antes de fechar",
+        "Validação de risco com pares"
+      ]
+    },
+    "motivators": {
+      "drivers": [
+        "Reconhecimento",
+        "Autonomia",
+        "Ambiente colaborativo",
+        "Desafios com impacto"
+      ]
+    }
+  }
+}

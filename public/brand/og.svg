@@ -1,0 +1,20 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="insightdisc_og_bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF2FF" />
+      <stop offset="1" stop-color="#EDE9FE" />
+    </linearGradient>
+    <linearGradient id="insightdisc_og_badge" x1="130" y1="160" x2="350" y2="380" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#insightdisc_og_bg)" />
+  <rect x="130" y="160" width="220" height="220" rx="64" fill="url(#insightdisc_og_badge)" />
+  <circle cx="240" cy="270" r="62" fill="white" fill-opacity="0.15" />
+  <text x="240" y="295" text-anchor="middle" font-size="84" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#FFFFFF">ID</text>
+  <text x="390" y="280" font-size="96" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#0F172A">InsightDISC</text>
+  <text x="390" y="350" font-size="38" font-family="Inter, Arial, sans-serif" font-weight="500" fill="#475569">
+    Plataforma de Analise Comportamental
+  </text>
+</svg>

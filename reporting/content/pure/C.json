@@ -1,0 +1,85 @@
+{
+  "title": "Foco Dominante em C",
+  "executiveSummary": [
+    "Predominância de análise, método e qualidade.",
+    "Perfil de alta precisão e controle de risco.",
+    "Ideal para decisões técnicas e contextos regulados.",
+    "Evolui quando equilibra profundidade analítica e velocidade."
+  ],
+  "strengths": [
+    "Precisão",
+    "Rigor técnico",
+    "Pensamento crítico",
+    "Qualidade de decisão",
+    "Organização",
+    "Conformidade de processo"
+  ],
+  "risks": [
+    "Perfeccionismo",
+    "Paralisia por análise",
+    "Comunicação excessivamente técnica",
+    "Baixa tolerância à ambiguidade",
+    "Ritmo lento em urgência",
+    "Dificuldade em delegar sem padrão"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Sintetizar recomendação com dados",
+      "Explicar critérios de decisão",
+      "Definir risco e mitigação",
+      "Ajustar profundidade ao contexto",
+      "Fechar com plano objetivo"
+    ],
+    "dont": [
+      "Detalhar além do necessário",
+      "Postergar decisão de baixa criticidade",
+      "Cobrar perfeição em tudo",
+      "Ignorar dimensão relacional",
+      "Centralizar revisões indefinidamente"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança técnica e estruturada.",
+    "Garante qualidade e governança em cenários complexos.",
+    "Forte aderência a padrões e conformidade."
+  ],
+  "stressPattern": [
+    "Eleva controle e revisão",
+    "Reduz tolerância a erro",
+    "Aumenta cautela em mudanças"
+  ],
+  "motivators": [
+    "Excelência técnica",
+    "Autonomia analítica",
+    "Critérios claros",
+    "Reconhecimento por qualidade"
+  ],
+  "idealEnvironment": [
+    "Dados confiáveis",
+    "Processos definidos",
+    "Tempo para análise proporcional",
+    "Equipe técnica madura"
+  ],
+  "conflictStyle": [
+    "Argumentação baseada em evidência",
+    "Busca solução estruturada",
+    "Evita improviso"
+  ],
+  "coachingTips": [
+    "Definir limite de análise por criticidade",
+    "Comunicar em formato executivo",
+    "Delegar validações de baixo risco",
+    "Balancear precisão e prazo",
+    "Treinar flexibilidade em incerteza"
+  ],
+  "recommendedRoles": [
+    "Qualidade",
+    "Compliance",
+    "Planejamento",
+    "BI",
+    "Engenharia de processos",
+    "Auditoria",
+    "Risco e governança",
+    "PMO técnico"
+  ]
+}

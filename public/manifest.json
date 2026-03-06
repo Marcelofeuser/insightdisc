@@ -1,0 +1,16 @@
+{
+  "name": "InsightDISC",
+  "short_name": "InsightDISC",
+  "description": "Plataforma de avaliacoes comportamentais DISC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/brand/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

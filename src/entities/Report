@@ -1,0 +1,41 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string"
+    },
+    "attempt_id": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "visibility_tier": {
+      "type": "string",
+      "enum": [
+        "free",
+        "pro"
+      ],
+      "default": "free"
+    },
+    "shared_with_user_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pdf_url": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "visibility_tier"
+  ]
+}
+

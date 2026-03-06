@@ -1,0 +1,33 @@
+{
+  "factorBands": {
+    "low": {
+      "min": 0,
+      "max": 33
+    },
+    "mid": {
+      "min": 34,
+      "max": 66
+    },
+    "high": {
+      "min": 67,
+      "max": 100
+    }
+  },
+  "adaptationBand": {
+    "low": {
+      "maxExclusive": 8
+    },
+    "mid": {
+      "minInclusive": 8,
+      "maxInclusive": 15
+    },
+    "high": {
+      "minExclusive": 15
+    }
+  },
+  "top2Selection": {
+    "pureThreshold": 18,
+    "tieBehavior": "pure",
+    "source": "natural"
+  }
+}

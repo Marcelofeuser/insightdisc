@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>InsightDISC — Relatório Internacional</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm 14mm 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #0b1220;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #fff;
+    }
+    .page {
+      position: relative;
+      min-height: 267mm;
+      page-break-after: always;
+      break-after: page;
+    }
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    .hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0b1220, #1d4ed8);
+    }
+    .brand-name { font-size: 12px; font-weight: 700; letter-spacing: .2px; }
+    .brand-sub { font-size: 10px; color: #64748b; margin-top: 1px; }
+    .meta { text-align: right; font-size: 10px; color: #64748b; }
+    .meta b { color: #0b1220; }
+
+    .content { padding: 10px 0 20px; }
+
+    .footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    h1 { font-size: 24px; margin: 0 0 8px; letter-spacing: -.3px; }
+    h2 { font-size: 16px; margin: 0 0 8px; }
+    h3 {
+      margin: 0 0 6px;
+      color: #475569;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    p { margin: 0 0 8px; font-size: 12px; line-height: 1.5; color: #1e293b; }
+    ul { margin: 0; padding-left: 16px; }
+    li { margin: 0 0 6px; font-size: 12px; color: #1e293b; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .table th,
+    .table td {
+      font-size: 11px;
+      text-align: left;
+      padding: 7px 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+    }
+    .table tr:last-child td { border-bottom: none; }
+
+    .caption {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .cover {
+      background:
+        radial-gradient(900px 400px at 10% 10%, rgba(29,78,216,.15), transparent 60%),
+        radial-gradient(900px 400px at 80% 0%, rgba(124,58,237,.12), transparent 60%);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .score-row { display: grid; grid-template-columns: 20px 1fr 42px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .track { height: 9px; border-radius: 999px; background: #eef2f7; position: relative; overflow: hidden; }
+    .fill-a { position: absolute; inset: 0 auto 0 0; background: rgba(15,23,42,.32); border-radius: 999px; }
+    .fill-n { position: absolute; inset: 0 auto 0 0; background: #1d4ed8; border-radius: 999px; }
+
+    .small { font-size: 11px; color: #64748b; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+  window.REPORT_DATA = __REPORT_DATA__;
+
+  const report = window.REPORT_DATA || {};
+  const natural = report?.scores?.natural || { D: 0, I: 0, S: 0, C: 0 };
+  const adapted = report?.scores?.adapted || { D: 0, I: 0, S: 0, C: 0 };
+
+  const SECTION_TITLES = [
+    'Cover',
+    'Executive Summary',
+    'DISC Methodology',
+    'Natural Profile Overview',
+    'Adapted Profile Overview',
+    'Natural vs Adapted Delta',
+    'DISC Radar',
+    'DISC Quadrant Map',
+    'Dominance Deep Dive I',
+    'Dominance Deep Dive II',
+    'Influence Deep Dive I',
+    'Influence Deep Dive II',
+    'Steadiness Deep Dive I',
+    'Steadiness Deep Dive II',
+    'Conformity Deep Dive I',
+    'Conformity Deep Dive II',
+    'Communication Playbook',
+    'Leadership Style',
+    'Team Dynamics',
+    'Conflict Patterns',
+    'Stress Behavior',
+    'Motivators & Rewards',
+    'Ideal Environment',
+    'Career Recommendations',
+    'Development Plan 30 Days',
+    'Development Plan 90 Days',
+    'Glossary',
+    'LGPD & Privacy',
+    'Appendix Tables',
+    'Back Cover'
+  ];
+
+  const percent = (value) => `${Math.max(0, Math.min(100, Number(value || 0)))}%`;
+
+  function header(title) {
+    return `
+      <div class="hdr">
+        <div class="brand">
+          <div class="badge"></div>
+          <div>
+            <div class="brand-name">${report?.brand?.name || 'InsightDISC'}</div>
+            <div class="brand-sub">${report?.brand?.subtitle || 'Plataforma de Análise Comportamental'}</div>
+          </div>
+        </div>
+        <div class="meta">
+          <div><b>${title}</b></div>
+          <div>ID: <b>${report?.participant?.reportId || '-'}</b> • Data: <b>${report?.participant?.date || '-'}</b></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function footer(page) {
+    return `<div class="footer"><span>Confidencial • InsightDISC</span><span>Página ${page}/30</span></div>`;
+  }
+
+  function radarSvg(scores) {
+    const size = 220;
+    const cx = 110;
+    const cy = 110;
+    const r = 78;
+    const axis = [['D', -90], ['I', 0], ['S', 90], ['C', 180]];
+    const point = (v, deg) => {
+      const a = (deg * Math.PI) / 180;
+      const rr = r * (Math.max(0, Math.min(100, Number(v || 0))) / 100);
+      return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+    };
+
+    const rings = [25, 50, 75, 100].map((lvl) => {
+      const pts = axis.map(([_, d]) => point(lvl, d).map((n) => n.toFixed(1)).join(',')).join(' ');
+      return `<polygon points="${pts}" fill="none" stroke="rgba(15,23,42,.12)" stroke-width="1"/>`;
+    }).join('');
+
+    const polygon = axis.map(([k, d]) => point(scores[k], d).map((n) => n.toFixed(1)).join(',')).join(' ');
+
+    return `
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        ${rings}
+        <polygon points="${polygon}" fill="rgba(29,78,216,.15)" stroke="rgba(29,78,216,.7)" stroke-width="2"/>
+        ${axis.map(([k, d]) => {
+          const [x, y] = point(110, d);
+          return `<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">${k}</text>`;
+        }).join('')}
+      </svg>
+    `;
+  }
+
+  function bars() {
+    return ['D', 'I', 'S', 'C'].map((factor) => `
+      <div class="score-row">
+        <div><b>${factor}</b></div>
+        <div class="track">
+          <div class="fill-a" style="width:${percent(adapted[factor])}"></div>
+          <div class="fill-n" style="width:${percent(natural[factor])}"></div>
+        </div>
+        <div class="small">${percent(natural[factor])}</div>
+      </div>
+    `).join('');
+  }
+
+  function deltaRows() {
+    return ['D', 'I', 'S', 'C'].map((factor) => {
+      const n = Number(natural[factor] || 0);
+      const a = Number(adapted[factor] || 0);
+      const delta = a - n;
+      return `<tr><td><b>${factor}</b></td><td>${percent(n)}</td><td>${percent(a)}</td><td>${delta >= 0 ? '+' : ''}${delta} pts</td></tr>`;
+    }).join('');
+  }
+
+  function genericSectionContent(title) {
+    const strengths = report?.insights?.strengths || [];
+    const risks = report?.insights?.risks || [];
+    const commTips = report?.insights?.communication?.tips || [];
+    const leadTips = report?.insights?.leadership?.tips || [];
+
+    const map = {
+      'Cover': `
+        <div class="cover">
+          <h1>Relatório DISC Internacional</h1>
+          <p>${report?.brand?.subtitle || ''}</p>
+          <div class="grid-2" style="margin-top:10px">
+            <div class="card">
+              <h3>Participante</h3>
+              <p><b>Nome:</b> ${report?.participant?.name || '-'}</p>
+              <p><b>Email:</b> ${report?.participant?.email || '-'}</p>
+              <p><b>Perfil:</b> ${report?.profile?.name || '-'}</p>
+            </div>
+            <div class="card">
+              <h3>Resumo Visual</h3>
+              ${radarSvg(natural)}
+              <div class="caption">Figura 1 — Radar do perfil natural.</div>
+            </div>
+          </div>
+        </div>
+      `,
+      'Executive Summary': `
+        <h1>Executive Summary</h1>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Principais pontos</h3>
+            <ul>
+              ${(report?.insights?.strengths || ['Comunicação', 'Engajamento', 'Execução']).map((item) => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Riscos principais</h3>
+            <ul>
+              ${(report?.insights?.risks || ['Dispersão', 'Pressa', 'Falta de fechamento']).map((item) => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `,
+      'DISC Methodology': `
+        <h1>Metodologia DISC</h1>
+        <p>O modelo DISC descreve tendências comportamentais em quatro fatores: Dominância, Influência, Estabilidade e Conformidade.</p>
+        <div class="grid-2">
+          <div class="card"><h3>Perfil Natural</h3><p>Representa seu comportamento espontâneo.</p></div>
+          <div class="card"><h3>Perfil Adaptado</h3><p>Representa ajustes ao contexto atual.</p></div>
+        </div>
+      `,
+      'Natural Profile Overview': `
+        <h1>Perfil Natural</h1>
+        <div class="grid-2">
+          <div class="card">${radarSvg(natural)}<div class="caption">Figura 2 — Radar natural.</div></div>
+          <div class="card"><h3>Barras</h3>${bars()}<div class="caption">Cheio: natural • sombra: adaptado.</div></div>
+        </div>
+      `,
+      'Adapted Profile Overview': `
+        <h1>Perfil Adaptado</h1>
+        <div class="grid-2">
+          <div class="card">${radarSvg(adapted)}<div class="caption">Figura 3 — Radar adaptado.</div></div>
+          <div class="card"><h3>Leitura de Ajuste</h3><p>Diferenças moderadas indicam adaptação saudável ao ambiente.</p></div>
+        </div>
+      `,
+      'Natural vs Adapted Delta': `
+        <h1>Natural vs Adaptado</h1>
+        <div class="card">
+          <table class="table">
+            <thead><tr><th>Fator</th><th>Natural</th><th>Adaptado</th><th>Delta</th></tr></thead>
+            <tbody>${deltaRows()}</tbody>
+          </table>
+        </div>
+      `,
+      'DISC Radar': `
+        <h1>DISC Radar</h1>
+        <div class="grid-2">
+          <div class="card">${radarSvg(natural)}<div class="caption">Figura 4 — Natural.</div></div>
+          <div class="card">${radarSvg(adapted)}<div class="caption">Figura 5 — Adaptado.</div></div>
+        </div>
+      `,
+      'DISC Quadrant Map': `
+        <h1>Mapa Quadrante DISC</h1>
+        <div class="card">
+          <p>Perfil dominante: <b>${report?.profile?.primary || '-'}</b> • Secundário: <b>${report?.profile?.secondary || '-'}</b>.</p>
+          <p>Use o posicionamento para ajustar comunicação e tomada de decisão.</p>
+        </div>
+      `,
+      'Communication Playbook': `
+        <h1>Communication Playbook</h1>
+        <div class="card">
+          <h3>Scripts recomendados</h3>
+          <ul>${(commTips.length ? commTips : ['Objetivo + prazo + responsável', 'Dados + contexto + decisão']).map((t) => `<li>${t}</li>`).join('')}</ul>
+        </div>
+      `,
+      'Leadership Style': `
+        <h1>Leadership Style</h1>
+        <div class="card">
+          <p>${report?.insights?.leadership?.style || 'Liderança adaptativa com foco em execução e engajamento.'}</p>
+          <ul>${(leadTips.length ? leadTips : ['Definir critérios de sucesso', 'Acompanhar por checkpoints']).map((t) => `<li>${t}</li>`).join('')}</ul>
+        </div>
+      `,
+      'Stress Behavior': `
+        <h1>Stress Behavior</h1>
+        <div class="card">
+          <p>${report?.insights?.stress?.pattern || 'Sob pressão, pode acelerar sem concluir alinhamentos.'}</p>
+          <ul>${(report?.insights?.stress?.mitigation || ['Checklist de decisão', 'Pausa antes do fechamento']).map((item) => `<li>${item}</li>`).join('')}</ul>
+        </div>
+      `,
+      'Motivators & Rewards': `
+        <h1>Motivadores e Recompensas</h1>
+        <div class="card">
+          <ul>${(report?.insights?.motivators?.drivers || ['Autonomia', 'Reconhecimento', 'Colaboração']).map((item) => `<li>${item}</li>`).join('')}</ul>
+        </div>
+      `,
+      'Back Cover': `
+        <div class="cover">
+          <h1>Encerramento</h1>
+          <p>Este relatório é confidencial e destinado ao desenvolvimento comportamental.</p>
+          <p class="small">InsightDISC • Plataforma de Análise Comportamental</p>
+        </div>
+      `,
+    };
+
+    if (map[title]) return map[title];
+
+    return `
+      <h1>${title}</h1>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Análise principal</h3>
+          <p>Perfil: <b>${report?.profile?.name || 'Perfil comportamental'}</b>.</p>
+          <p>Dominante: <b>${report?.profile?.primary || '-'}</b> • Secundário: <b>${report?.profile?.secondary || '-'}</b>.</p>
+          <ul>${(strengths.length ? strengths : ['Clareza de comunicação', 'Capacidade de adaptação', 'Foco em resultado']).slice(0, 3).map((item) => `<li>${item}</li>`).join('')}</ul>
+        </div>
+        <div class="card">
+          <h3>Pontos de atenção</h3>
+          <ul>${(risks.length ? risks : ['Dispersão', 'Sobrecarga', 'Baixa priorização']).slice(0, 3).map((item) => `<li>${item}</li>`).join('')}</ul>
+          <div class="caption">Seção preenchida automaticamente com fallback para evitar páginas vazias.</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h3>Indicadores DISC</h3>
+        ${bars()}
+      </div>
+    `;
+  }
+
+  const html = SECTION_TITLES.map((title, index) => `
+    <section class="page">
+      ${header(title)}
+      <div class="content">
+        ${genericSectionContent(title)}
+      </div>
+      ${footer(index + 1)}
+    </section>
+  `).join('');
+
+  document.getElementById('app').innerHTML = html;
+</script>
+</body>
+</html>

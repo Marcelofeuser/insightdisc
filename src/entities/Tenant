@@ -1,0 +1,46 @@
+{
+  "name": "Tenant",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da conta/empresa"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Identificador amigavel para URL"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "blocked",
+        "suspended",
+        "trial"
+      ],
+      "default": "active"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "pro",
+        "enterprise"
+      ],
+      "default": "free"
+    },
+    "credits_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "settings": {
+      "type": "object",
+      "description": "Branding, integracoes e politicas internas do tenant"
+    }
+  },
+  "required": [
+    "name",
+    "status"
+  ]
+}
+
