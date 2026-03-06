@@ -20,11 +20,19 @@ const ROLE_PRESETS = Object.freeze({
     role: 'user',
     tenantId: 'workspace-1',
   },
+  SUPER_ADMIN: {
+    email: 'superadmin@example.com',
+    name: 'Super Admin E2E',
+    role: 'admin',
+    appRole: 'SUPER_ADMIN',
+    tenantId: 'workspace-1',
+  },
 });
 
 function normalizeRole(role = 'PROFESSIONAL') {
   const raw = String(role || '').trim().toLowerCase();
   if (['admin', 'administrador'].includes(raw)) return 'ADMIN';
+  if (['super_admin', 'superadmin'].includes(raw)) return 'SUPER_ADMIN';
   if (['profissional', 'professional', 'pro'].includes(raw)) return 'PROFESSIONAL';
   if (['usuario', 'usuário', 'user', 'tenant_user'].includes(raw)) return 'USER';
   return 'PROFESSIONAL';
@@ -40,7 +48,7 @@ export async function setMockSession(page, overrides = {}) {
   const session = {
     email: String(overrides.email || preset.email).toLowerCase(),
     name: String(overrides.name || preset.name),
-    role: String(overrides.appRole || preset.role),
+    role: String(overrides.appRole || preset.appRole || preset.role),
     tenantId: String(overrides.tenantId || preset.tenantId),
   };
 
@@ -94,6 +102,10 @@ export async function loginAsProfessional(page) {
 
 export async function loginAsUser(page) {
   await loginAs(page, 'USER');
+}
+
+export async function loginAsSuperAdmin(page) {
+  await loginAs(page, 'SUPER_ADMIN');
 }
 
 export async function ensureAuthenticated(page, role = 'PROFESSIONAL') {

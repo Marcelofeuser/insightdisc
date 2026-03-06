@@ -13,6 +13,7 @@ import paymentsRoutes from './routes/payments.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
 import leadsRoutes from './routes/leads.routes.js';
+import superAdminRoutes from './routes/super-admin.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,7 @@ export function createApp() {
   app.use('/branding', brandingRoutes);
   app.use('/payments', paymentsRoutes);
   app.use('/api/leads', leadsRoutes);
+  app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
     res.status(200).json({
@@ -71,6 +73,9 @@ export function createApp() {
         createLead: 'POST /api/leads',
         listLeads: 'GET /api/leads',
         exportLeadsCsv: 'GET /api/leads/export/csv',
+        superAdminLogin: 'POST /auth/super-admin-login',
+        superAdminSession: 'GET /auth/super-admin/me',
+        superAdminOverview: 'GET /super-admin/overview',
       },
     });
   });

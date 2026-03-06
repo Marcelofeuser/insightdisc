@@ -1,43 +1,196 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { createPageUrl } from '@/utils';
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { apiRequest, getApiBaseUrl, setApiSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { createPageUrl } from '@/utils';
+
+function sanitizeNextPath(nextPath) {
+  const raw = String(nextPath || '').trim();
+  if (!raw.startsWith('/')) return '/super-admin';
+  if (raw.startsWith('//')) return '/super-admin';
+  return raw;
+}
+
+function mapErrorMessage(error) {
+  const reason = String(error?.payload?.error || error?.message || '').toUpperCase();
+  if (reason.includes('INVALID_CREDENTIALS')) {
+    return 'Credenciais inválidas.';
+  }
+  if (reason.includes('SUPER_ADMIN_ONLY')) {
+    return 'Acesso restrito: usuário sem role SUPER_ADMIN.';
+  }
+  if (reason.includes('INVALID_MASTER_KEY')) {
+    return 'Chave administrativa inválida.';
+  }
+  if (reason.includes('TOO_MANY_ATTEMPTS')) {
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  }
+  if (reason.includes('SUPER_ADMIN_DISABLED')) {
+    return 'Login de super admin desabilitado no backend.';
+  }
+  return error?.payload?.error || error?.message || 'Falha ao autenticar super admin.';
+}
 
 export default function SuperAdminLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { checkAppState } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const apiBaseUrl = getApiBaseUrl();
 
-  const handleSuperAdminLogin = async () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [masterKey, setMasterKey] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const nextPath = useMemo(
+    () => sanitizeNextPath(searchParams.get('next')),
+    [searchParams],
+  );
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!apiBaseUrl) {
+      setError('Backend indisponível. Configure VITE_API_URL para autenticação super admin.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await base44.auth.login({ email: 'superadmin@example.com' });
+      const payload = await apiRequest('/auth/super-admin-login', {
+        method: 'POST',
+        body: {
+          email: email.trim().toLowerCase(),
+          password,
+          masterKey,
+        },
+      });
+
+      if (!payload?.token) {
+        throw new Error('Resposta sem token de sessão.');
+      }
+
+      setApiSession({
+        token: payload.token,
+        email: payload?.user?.email || email.trim().toLowerCase(),
+      });
+
+      setMasterKey('');
       await checkAppState();
-      navigate(createPageUrl('AdminDashboard'));
+      navigate(nextPath, { replace: true });
+    } catch (submitError) {
+      setError(mapErrorMessage(submitError));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-lg shadow-sm">
-        <CardContent className="p-8 space-y-4">
-          <h1 className="text-2xl font-semibold text-slate-900">Acesso da Plataforma</h1>
-          <p className="text-slate-600 text-sm">
-            Acesso restrito para administração global da plataforma.
-          </p>
+    <div className="min-h-screen bg-slate-950">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,.22),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(14,165,233,.16),transparent_38%)]" />
+      <div className="relative min-h-screen flex items-center justify-center p-6">
+        <Card className="w-full max-w-xl border-slate-800 bg-slate-900/95 text-white shadow-2xl">
+          <CardContent className="p-8 md:p-10 space-y-6">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-200">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Acesso dedicado SUPER_ADMIN
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight">Entrar como Super Admin</h1>
+              <p className="text-sm text-slate-300">
+                Autenticação exclusiva para administração global da plataforma InsightDISC.
+              </p>
+            </div>
 
-          <div className="grid gap-3">
-            <Button disabled={loading} onClick={handleSuperAdminLogin}>
-              Entrar na Administração Global
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            {error ? (
+              <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                {error}
+              </div>
+            ) : null}
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="super-admin-email" className="text-slate-200">
+                  E-mail
+                </Label>
+                <Input
+                  id="super-admin-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="admin@insightdisc.app"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-400"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="super-admin-password" className="text-slate-200">
+                  Senha
+                </Label>
+                <Input
+                  id="super-admin-password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-400"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="super-admin-key" className="text-slate-200">
+                  Chave administrativa
+                </Label>
+                <Input
+                  id="super-admin-key"
+                  type="password"
+                  autoComplete="off"
+                  placeholder="SUPER_ADMIN_MASTER_KEY"
+                  value={masterKey}
+                  onChange={(event) => setMasterKey(event.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-400"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading || !email.trim() || !password || !masterKey}
+                className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white"
+              >
+                {loading ? (
+                  'Validando acesso...'
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    Entrar como Super Admin
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="text-sm text-slate-400 flex flex-wrap gap-3">
+              <Link to={createPageUrl('Login')} className="hover:text-slate-200 transition-colors">
+                Login público
+              </Link>
+              <Link to={createPageUrl('Pricing')} className="hover:text-slate-200 transition-colors">
+                Ver planos
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

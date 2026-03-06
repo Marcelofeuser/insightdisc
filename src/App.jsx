@@ -17,11 +17,15 @@ import CandidateReport from '@/pages/candidate/CandidateReport';
 import CandidatePortal from '@/pages/candidate/CandidatePortal';
 import CandidateUpgrade from '@/pages/candidate/CandidateUpgrade';
 import InsightChatWidget from '@/components/InsightChatWidget';
+import SuperAdminLogin from '@/pages/SuperAdminLogin';
+import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
+import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const PublicReportPage = Pages.PublicReport;
+const EXCLUDED_AUTO_ROUTES = new Set(['SuperAdmin', 'SuperAdminLogin', 'SuperAdminDashboard']);
 
 const APP_ALIAS_ROUTES = [
   { path: '/app/dashboard', pageName: 'Dashboard' },
@@ -98,6 +102,24 @@ const AuthenticatedApp = () => {
       {renderProtectedPage('/avaliacoes', 'Avaliacoes', Pages.Avaliacoes)}
 
       <Route
+        path="/super-admin-login"
+        element={
+          <ProtectedRoute pageName="SuperAdminLogin" policy={getPagePolicy('SuperAdminLogin')}>
+            <SuperAdminLogin />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/super-admin"
+        element={
+          <SuperAdminRoute>
+            <SuperAdminDashboard />
+          </SuperAdminRoute>
+        }
+      />
+
+      <Route
         path="/"
         element={
           <ProtectedRoute pageName={mainPageKey} policy={getPagePolicy(mainPageKey)}>
@@ -108,7 +130,9 @@ const AuthenticatedApp = () => {
         }
       />
 
-      {Object.entries(Pages).map(([path, Page]) => (
+      {Object.entries(Pages)
+        .filter(([path]) => !EXCLUDED_AUTO_ROUTES.has(path))
+        .map(([path, Page]) => (
         <Route
           key={path}
           path={`/${path}`}

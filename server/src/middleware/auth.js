@@ -26,7 +26,13 @@ export async function requireAuth(req, res, next) {
             },
           });
         }
-        req.auth = { userId: user.id, email: user.email, source: 'dev-email-header' };
+        req.auth = {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          scope: 'dev-email-header',
+          source: 'dev-email-header',
+        };
         return next();
       }
     }
@@ -41,7 +47,13 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
 
-    req.auth = { userId: user.id, email: user.email };
+    req.auth = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      scope: String(payload?.scope || 'app'),
+      source: 'jwt',
+    };
     return next();
   } catch (error) {
     return res.status(401).json({ ok: false, error: error?.message || 'Unauthorized' });

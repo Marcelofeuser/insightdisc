@@ -36,7 +36,7 @@ const PUBLIC_PAGES = [
   'PublicReport',
   'Signup',
   'StartFree',
-  'SuperAdmin',
+  'SuperAdminLogin',
   'Privacy',
   'Terms',
   'Lgpd',
@@ -172,12 +172,6 @@ export default function Layout({ children, currentPageName }) {
 
         <footer className="py-6 text-center space-y-2">
           <div className="text-xs text-slate-400">© {new Date().getFullYear()} InsightDISC</div>
-          <Link
-            to={createPageUrl('SuperAdmin')}
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            Admin da Plataforma
-          </Link>
         </footer>
       </div>
     );

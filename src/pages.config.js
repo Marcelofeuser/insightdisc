@@ -72,7 +72,6 @@ import Report from './pages/Report';
 import SendAssessment from './pages/SendAssessment';
 import Signup from './pages/Signup';
 import StartFree from './pages/StartFree';
-import SuperAdminLogin from './pages/SuperAdminLogin';
 import TeamMapping from './pages/TeamMapping';
 import Terms from './pages/Terms';
 import __Layout from './Layout.jsx';
@@ -104,7 +103,6 @@ export const PAGES = {
     "SendAssessment": SendAssessment,
     "Signup": Signup,
     "StartFree": StartFree,
-    "SuperAdmin": SuperAdminLogin,
     "TeamMapping": TeamMapping,
     "Terms": Terms,
 }

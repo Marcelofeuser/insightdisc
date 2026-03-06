@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "seed:super-admin": "node scripts/seed-super-admin.js"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

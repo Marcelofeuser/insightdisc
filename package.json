@@ -17,12 +17,14 @@
     "test:public-report": "playwright test tests/e2e/public-report.spec.js",
     "test:portal-claim": "playwright test tests/e2e/portal-claim.spec.js",
     "test:job-matching": "playwright test tests/e2e/job-matching.spec.js",
+    "test:super-admin": "playwright test tests/e2e/super-admin.spec.js",
     "test:leads": "playwright test tests/e2e/leads-dashboard.spec.js",
     "preview": "vite preview",
     "report:sample": "node reporting/generatePdf.js reporting/sample-data.json",
     "report:build": "node reporting/generatePdf.js",
     "report:smoke": "node reporting/smoke.js",
-    "smoke:invite": "node scripts/smoke-invite-flow.mjs"
+    "smoke:invite": "node scripts/smoke-invite-flow.mjs",
+    "seed:super-admin": "node server/scripts/seed-super-admin.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.18",

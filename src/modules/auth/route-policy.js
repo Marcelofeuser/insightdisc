@@ -14,7 +14,7 @@ export const PUBLIC_PAGES = new Set([
   'PublicReport',
   'Signup',
   'StartFree',
-  'SuperAdmin',
+  'SuperAdminLogin',
   'Privacy',
   'Terms',
   'Lgpd',
@@ -70,6 +70,9 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  SuperAdminDashboard: {
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN],
   },
 });
 
