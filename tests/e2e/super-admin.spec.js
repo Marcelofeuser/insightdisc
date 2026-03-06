@@ -25,5 +25,10 @@ test.describe('Super Admin Access', () => {
     await page.goto('/super-admin', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await expect(page.getByText(/Sessão super admin validada/i)).toBeVisible();
+    await expect(page.getByTestId('super-admin-overview-cards')).toBeVisible();
+    await expect(page.getByTestId('super-admin-leads-table')).toBeVisible();
+    await expect(page.getByTestId('super-admin-demo-tools')).toBeVisible();
+    await expect(page.getByText('Vendas / Pagamentos')).toBeVisible();
+    await expect(page.getByText('Workspaces / Tenants')).toBeVisible();
   });
 });

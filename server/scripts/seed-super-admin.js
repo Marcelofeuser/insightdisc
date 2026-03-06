@@ -63,6 +63,20 @@ async function main() {
   );
   // eslint-disable-next-line no-console
   console.log('  master key env: SUPER_ADMIN_MASTER_KEY');
+  // eslint-disable-next-line no-console
+  console.log('----------------------------------------');
+  // eslint-disable-next-line no-console
+  console.log('SUPER ADMIN READY');
+  // eslint-disable-next-line no-console
+  console.log('URL: http://localhost:5173/super-admin-login');
+  // eslint-disable-next-line no-console
+  console.log(`EMAIL: ${email}`);
+  // eslint-disable-next-line no-console
+  console.log(`PASSWORD: ${password}`);
+  // eslint-disable-next-line no-console
+  console.log('MASTER KEY: use value from server/.env');
+  // eslint-disable-next-line no-console
+  console.log('----------------------------------------');
 }
 
 main()
