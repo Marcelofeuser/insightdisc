@@ -1,7 +1,7 @@
 const FACTORS = ['D', 'I', 'S', 'C'];
 const FACTOR_META = {
-  D: { label: 'Dominancia', color: '#e74c3c' },
-  I: { label: 'Influencia', color: '#f1c40f' },
+  D: { label: 'Dominância', color: '#e74c3c' },
+  I: { label: 'Influência', color: '#f1c40f' },
   S: { label: 'Estabilidade', color: '#2ecc71' },
   C: { label: 'Conformidade', color: '#3498db' },
 };
@@ -410,6 +410,69 @@ function adherenceRowsHtml(scores = {}) {
     .join('');
 }
 
+function scorePillsHtml(scores = {}, profile = {}, adaptation = {}) {
+  const pillars = [
+    { factor: 'D', label: 'Direção' },
+    { factor: 'I', label: 'Influência' },
+    { factor: 'S', label: 'Estabilidade' },
+    { factor: 'C', label: 'Qualidade' },
+  ];
+
+  return `
+    <div class="kpi-grid">
+      ${pillars
+        .map((pillar) => {
+          const value = clamp(scores?.natural?.[pillar.factor]);
+          return `
+            <div class="kpi-pill">
+              <div class="kpi-chip" style="background:${FACTOR_META[pillar.factor].color}1a;border-color:${FACTOR_META[pillar.factor].color}66;">
+                ${pillar.factor}
+              </div>
+              <div class="kpi-copy">
+                <span>${esc(pillar.label)}</span>
+                <strong>${value}%</strong>
+              </div>
+            </div>
+          `;
+        })
+        .join('')}
+      <div class="kpi-pill kpi-pill-wide">
+        <div class="kpi-copy">
+          <span>Custo de adaptação</span>
+          <strong>${esc(safeText(adaptation?.label, 'MODERADO'))}</strong>
+          <small>Delta médio: ${esc(Number(adaptation?.avgAbsDelta || 0).toFixed(2))}</small>
+        </div>
+      </div>
+      <div class="kpi-pill kpi-pill-wide">
+        <div class="kpi-copy">
+          <span>Assinatura comportamental</span>
+          <strong>${esc(`${profile?.primary || 'D'} + ${profile?.secondary || 'I'}`)}</strong>
+          <small>${esc(safeText(profile?.title, 'Composição de perfil DISC'))}</small>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function executiveDivider(title, subtitle = '') {
+  return `
+    <div class="executive-divider">
+      <h3>${esc(title)}</h3>
+      ${subtitle ? `<p>${esc(subtitle)}</p>` : ''}
+    </div>
+  `;
+}
+
+function strategicNote(title, text, extra = '') {
+  return `
+    <div class="strategic-note">
+      <h4>${esc(title)}</h4>
+      <p>${esc(text)}</p>
+      ${extra ? `<p class="muted-note">${esc(extra)}</p>` : ''}
+    </div>
+  `;
+}
+
 function stripHtml(value) {
   return String(value || '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -423,14 +486,18 @@ function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
   return `
-    <div class="grid two">
+    <div class="grid three">
       ${enrichmentCard(
         'Exemplo de aplicacao',
-        `Em um cenario real de ${scope.toLowerCase()}, observe como o comportamento se expressa em reunioes de alinhamento, priorizacao de tarefas e tomada de decisao sob prazo.`
+        `Em um cenário real de ${scope.toLowerCase()}, observe como o comportamento se expressa em reuniões de alinhamento, priorização de tarefas e tomada de decisão sob prazo.`
       )}
       ${enrichmentCard(
         'Leitura do gestor',
-        `Para ${detail.toLowerCase()}, combine metas claras, feedback observavel e revisoes curtas para transformar insight comportamental em consistencia de entrega.`
+        `Para ${detail.toLowerCase()}, combine metas claras, feedback observável e revisões curtas para transformar insight comportamental em consistência de entrega.`
+      )}
+      ${enrichmentCard(
+        'Risco de exagero do perfil',
+        `Sem calibragem de contexto, padrões dominantes podem gerar perda de qualidade relacional e queda de previsibilidade na execução.`
       )}
     </div>
   `;
@@ -452,8 +519,8 @@ function buildPage({ number, totalPages, title, subtitle, content, cover = false
           ${content}
         </div>
         <footer class="footer cover-footer">
-          <span>InsightDISC • Relatorio Confidencial</span>
-          <span>Pagina 1 de ${totalPages}</span>
+          <span>InsightDISC • Relatório Confidencial</span>
+          <span>Página 1 de ${totalPages}</span>
         </footer>
       </section>
     `;
@@ -477,7 +544,7 @@ function buildPage({ number, totalPages, title, subtitle, content, cover = false
       </main>
       <footer class="footer">
         <span>${esc(branding.report_footer_text)}</span>
-        <span>Pagina ${number} de ${totalPages}</span>
+        <span>Página ${number} de ${totalPages}</span>
       </footer>
     </section>
   `;
@@ -489,15 +556,15 @@ export function renderReportHtml(input = {}) {
   ensureCriticalData(report);
 
   const meta = {
-    reportTitle: safeText(report?.meta?.reportTitle, 'Relatorio de Analise Comportamental DISC'),
+    reportTitle: safeText(report?.meta?.reportTitle, 'Relatório de Análise Comportamental DISC'),
     reportSubtitle: safeText(
       report?.meta?.reportSubtitle,
-      'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento'
+      'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
     ),
     generatedAt: formatDate(report?.meta?.generatedAt),
     reportId: safeText(report?.meta?.reportId, `report-${Date.now()}`),
     responsibleName: safeText(report?.meta?.responsibleName, 'Especialista InsightDISC'),
-    responsibleRole: safeText(report?.meta?.responsibleRole, 'Especialista em Analise Comportamental'),
+    responsibleRole: safeText(report?.meta?.responsibleRole, 'Especialista em Análise Comportamental'),
     totalPages: 30,
   };
 
@@ -574,17 +641,23 @@ export function renderReportHtml(input = {}) {
       cover: true,
       branding,
       content: `
+        <p class="cover-brand-name">${esc(branding.company_name)}</p>
         <div class="cover-rule"></div>
-        <h1 class="cover-title">RELATORIO DE PERFIL COMPORTAMENTAL</h1>
+        ${
+          branding.logo_contains_tagline
+            ? ''
+            : '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>'
+        }
+        <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
         <p class="cover-name">${esc(participant.name)}</p>
-        <p class="cover-subtitle">Analise comportamental baseada na metodologia DISC</p>
+        <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
         <div class="cover-participant-box">
           <div><strong>Empresa:</strong> ${esc(participant.company)}</div>
           <div><strong>Data:</strong> ${esc(meta.generatedAt)}</div>
           <div><strong>E-mail:</strong> ${esc(participant.email)}</div>
           <div><strong>Perfil predominante:</strong> ${esc(profile.primary)}${esc(profile.secondary ? ` + ${profile.secondary}` : '')}</div>
-          <div><strong>Responsavel:</strong> ${esc(meta.responsibleName)}</div>
-          <div><strong>ID da avaliacao:</strong> ${esc(participant.assessmentId)}</div>
+          <div><strong>Responsável:</strong> ${esc(meta.responsibleName)}</div>
+          <div><strong>ID da avaliação:</strong> ${esc(participant.assessmentId)}</div>
         </div>
       `,
     })
@@ -594,10 +667,11 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 2,
       totalPages: meta.totalPages,
-      title: 'Apresentacao Executiva',
+      title: 'Apresentação Executiva',
       subtitle: 'Como utilizar este relatorio com foco em resultado',
       branding,
       content: `
+        ${executiveDivider('Como extrair valor deste relatório', 'Leitura executiva para líderes, RH e desenvolvimento')}
         <div class="grid two">
           <div class="card">${paragraphsHtml(methodologyOverview)}</div>
           <div class="card">${listHtml(methodologyUse)}</div>
@@ -616,14 +690,14 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 3,
       totalPages: meta.totalPages,
-      title: 'O Que e DISC',
-      subtitle: 'Modelo, limites de uso e leitura responsavel',
+      title: 'O Que é DISC',
+      subtitle: 'Modelo, limites de uso e leitura responsável',
       branding,
       content: `
         <div class="card">
-          <p>O DISC e um modelo comportamental que organiza tendencias de resposta em quatro fatores: Dominancia, Influencia, Estabilidade e Conformidade.</p>
-          <p>O modelo apoia desenvolvimento, comunicacao, lideranca e desenho de ambiente de trabalho. Nao mede carater nem competencia tecnica de forma isolada.</p>
-          <p>Aplicacao correta exige leitura de contexto, historico de desempenho e maturidade da funcao.</p>
+          <p>O DISC é um modelo comportamental que organiza tendências de resposta em quatro fatores: Dominância, Influência, Estabilidade e Conformidade.</p>
+          <p>O modelo apoia desenvolvimento, comunicação, liderança e desenho de ambiente de trabalho. Não mede caráter nem competência técnica de forma isolada.</p>
+          <p>Aplicação correta exige leitura de contexto, histórico de desempenho e maturidade da função.</p>
         </div>
         <div class="grid two">
           <div class="card">
@@ -643,8 +717,8 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 4,
       totalPages: meta.totalPages,
-      title: 'Visao Geral dos 4 Fatores',
-      subtitle: 'D, I, S, C com forcas e riscos tipicos',
+      title: 'Visão Geral dos 4 Fatores',
+      subtitle: 'D, I, S, C com forças e riscos típicos',
       branding,
       content: `
         <div class="grid two">
@@ -675,25 +749,28 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 5,
       totalPages: meta.totalPages,
-      title: 'Sintese Executiva do Perfil',
-      subtitle: 'Leitura geral, arquetipo e custo de adaptacao',
+      title: 'Síntese Executiva do Perfil',
+      subtitle: 'Leitura geral, arquétipo e custo de adaptação',
       branding,
       content: `
-        <div class="card">
+        ${executiveDivider('Panorama executivo do comportamento', 'Visão de liderança para tomada de decisão, comunicação e desenvolvimento')}
+        ${scorePillsHtml(scores, profile, adaptation)}
+        <div class="card executive-hero">
           <p><strong>Perfil identificado:</strong> ${esc(profile.key)} (${esc(profile.mode)})</p>
-          <p><strong>Perfil primario:</strong> ${esc(profile.primary)} • <strong>Perfil secundario:</strong> ${esc(profile.secondary)}</p>
-          <p><strong>Arquetipo:</strong> ${esc(profile.archetype)}</p>
-          <p><strong>Custo de adaptacao:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
+          <p><strong>Perfil primário:</strong> ${esc(profile.primary)} • <strong>Perfil secundário:</strong> ${esc(profile.secondary)}</p>
+          <p><strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
+          <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
           <p>${esc(adaptation.interpretation)}</p>
         </div>
         <div class="grid two">
           <div class="card">
             <h3>Resumo executivo</h3>
-            ${listHtml(profileContent?.executiveSummary, ['Leitura executiva do perfil com foco em aplicacao de negocio.'])}
+            ${listHtml(profileContent?.executiveSummary, ['Leitura executiva do perfil com foco em aplicação de negócio.'])}
           </div>
           <div class="card">
             <h3>Leitura geral</h3>
-            ${paragraphsHtml(narratives?.summaryParagraphs, [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forcas naturais com rotina de calibragem.')])}
+            ${paragraphsHtml(narratives?.summaryParagraphs, [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
+            ${strategicNote('Recomendação executiva', 'Priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais.', 'Esse ajuste aumenta percepção de senioridade, previsibilidade de entrega e influência no time.')}
           </div>
         </div>
       `,
@@ -704,7 +781,7 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 6,
       totalPages: meta.totalPages,
-      title: 'Graficos DISC',
+      title: 'Gráficos DISC',
       subtitle: 'Perfil natural, adaptado e leitura comparativa',
       branding,
       content: `
@@ -713,11 +790,14 @@ export function renderReportHtml(input = {}) {
           ${barsHtml(scores.adapted, 'Perfil Adaptado')}
         </div>
         <div class="card">
-          <h3>Leitura executiva dos scores</h3>
+          <h3>Leitura executiva dos índices</h3>
           ${scoresTable(scores)}
-          <p>Este grafico mostra a intensidade relativa dos quatro fatores comportamentais. A predominancia de <strong>${esc(profile.primary)}</strong> com apoio de <strong>${esc(profile.secondary)}</strong> indica o eixo principal de resposta no ambiente profissional.</p>
-          <p>${esc(safeText(insights?.practicalByPage?.dynamics, 'Compare natural e adaptado para entender onde ha maior esforco de ajuste comportamental.'))}</p>
-          ${enrichmentCard('Aplicacao pratica', `Quando ${profile.primary} e ${profile.secondary} aparecem acima dos demais fatores, a pessoa tende a influenciar o ritmo da equipe por esse estilo dominante.`)}
+          <p>Este gráfico demonstra a intensidade relativa dos quatro fatores comportamentais. A predominância de <strong>${esc(profile.primary)}</strong> com apoio de <strong>${esc(profile.secondary)}</strong> indica o eixo central de resposta no contexto profissional.</p>
+          <p>${esc(safeText(insights?.practicalByPage?.dynamics, 'Compare natural e adaptado para entender onde há maior esforço de ajuste comportamental.'))}</p>
+          <div class="grid two">
+            ${strategicNote('Implicação no ambiente de trabalho', `Quando ${profile.primary} e ${profile.secondary} aparecem acima dos demais fatores, a pessoa tende a influenciar o ritmo da equipe por esse estilo dominante.`)}
+            ${strategicNote('Leitura do gestor', 'Observe onde o perfil está operando mais distante do natural; esses pontos costumam concentrar desgaste e ruído de comunicação.')}
+          </div>
         </div>
       `,
     })
@@ -728,22 +808,22 @@ export function renderReportHtml(input = {}) {
       number: 7,
       totalPages: meta.totalPages,
       title: 'Radar Comportamental',
-      subtitle: 'Equilibrio dos eixos D, I, S, C',
+      subtitle: 'Equilíbrio dos eixos D, I, S, C',
       branding,
       content: `
         <div class="grid two">
           <div class="card radar-card">${radarSvg(scores.natural)}</div>
           <div class="card">
-            <h3>Interpretacao dos eixos</h3>
-            <p>O radar traduz a distribuicao relativa dos fatores em uma visao unica. Areas mais extensas indicam maior ativacao no perfil natural.</p>
+            <h3>Interpretação dos eixos</h3>
+            <p>O radar traduz a distribuição relativa dos fatores em uma visão única. Áreas mais extensas indicam maior ativação no perfil natural.</p>
             ${listHtml([
-              `Eixo D-I: combina decisao e influencia para gerar tracao no contexto atual.`,
-              `Eixo S-C: regula consistencia, previsibilidade e qualidade operacional.`,
-              `Fator primario (${profile.primary}) orienta a resposta inicial em situacoes criticas.`,
-              `Fator secundario (${profile.secondary}) ajusta o estilo para colaboracao e entrega.`
+              `Eixo D-I: combina decisão e influência para gerar tração no contexto atual.`,
+              `Eixo S-C: regula consistência, previsibilidade e qualidade operacional.`,
+              `Fator primário (${profile.primary}) orienta a resposta inicial em situações críticas.`,
+              `Fator secundário (${profile.secondary}) ajusta o estilo para colaboração e entrega.`
             ])}
-            ${enrichmentCard('Leitura executiva', safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Use o radar para alinhar distribuicao de responsabilidade e estilo de lideranca no time.')))}
-            ${enrichmentCard('Exemplo de aplicacao', `Em projetos com alta pressao, o eixo ${profile.primary}-${profile.secondary} tende a definir como a pessoa negocia prioridade, comunica urgencia e fecha compromissos.`)}
+            ${enrichmentCard('Leitura executiva', safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Use o radar para alinhar distribuição de responsabilidade e estilo de liderança no time.')))}
+            ${enrichmentCard('Cenário profissional ilustrativo', `Em projetos com alta pressão, o eixo ${profile.primary}-${profile.secondary} tende a definir como a pessoa negocia prioridade, comunica urgência e fecha compromissos.`)}
           </div>
         </div>
       `,
@@ -755,9 +835,10 @@ export function renderReportHtml(input = {}) {
       number: 8,
       totalPages: meta.totalPages,
       title: 'Benchmark do Perfil',
-      subtitle: 'Comparacao do participante com faixa tipica',
+      subtitle: 'Comparação do participante com faixa típica',
       branding,
       content: `
+        ${executiveDivider('Leitura comparativa de aderência', 'Análise de posição relativa por fator e por contexto de negócio')}
         <div class="card">
           <table class="table">
             <thead>
@@ -796,9 +877,10 @@ export function renderReportHtml(input = {}) {
             ${listHtml(benchmark?.interpretation, ['Acima da faixa: intensidade alta do fator.', 'Dentro da faixa: alinhamento esperado.', 'Abaixo da faixa: requer compensacao contextual.'])}
           </div>
           <div class="card">
-            <h3>Aplicacao pratica</h3>
+            <h3>Aplicação prática</h3>
             <p>${esc(safeText(insights?.practicalByPage?.decision, 'Use benchmark para calibrar plano de desenvolvimento sem rotular de forma fixa.'))}</p>
-            ${enrichmentCard('Risco de exagero', safeText(insights?.behavioralRisk, 'Excesso de um unico fator pode elevar risco relacional e reduzir sustentabilidade de resultado.'))}
+            ${enrichmentCard('Risco de exagero', safeText(insights?.behavioralRisk, 'Excesso de um único fator pode elevar risco relacional e reduzir sustentabilidade de resultado.'))}
+            ${strategicNote('Leitura organizacional', 'A diferença entre faixa típica e score atual deve orientar coaching, não julgamento estático do potencial profissional.')}
           </div>
         </div>
       `,
@@ -999,24 +1081,25 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 14,
       totalPages: meta.totalPages,
-      title: 'Comunicacao',
+      title: 'Comunicação',
       subtitle: 'Como este perfil se comunica e como deve ser abordado',
       branding,
       content: `
+        ${executiveDivider('Arquitetura de comunicação do perfil', 'Leitura aplicada para líderes, pares e clientes internos')}
         <div class="grid two">
           <div class="card">
-            <h3>Estilo de comunicacao</h3>
-            ${listHtml(narratives?.communicationStyle, ['Comunicacao com foco em clareza, ritmo e objetivo de negocio.'])}
+            <h3>Estilo de comunicação</h3>
+            ${listHtml(narratives?.communicationStyle, ['Comunicação com foco em clareza, ritmo e objetivo de negócio.'])}
           </div>
           <div class="card">
-            <h3>Necessidades de comunicacao</h3>
-            ${listHtml(narratives?.communicationNeeds, ['Definicao explicita de prioridade, dono e proximo passo.'])}
+            <h3>Necessidades de comunicação</h3>
+            ${listHtml(narratives?.communicationNeeds, ['Definição explícita de prioridade, dono e próximo passo.'])}
           </div>
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Boas praticas</h3>
-            ${listHtml(profileContent?.communicationDo, ['Comunicar objetivo, impacto e proximo passo com clareza.'])}
+            <h3>Boas práticas</h3>
+            ${listHtml(profileContent?.communicationDo, ['Comunicar objetivo, impacto e próximo passo com clareza.'])}
           </div>
           <div class="card">
             <h3>Evitar</h3>
@@ -1025,15 +1108,16 @@ export function renderReportHtml(input = {}) {
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Principios de comunicacao</h3>
-            ${listHtml(narratives?.communicationPrinciples, ['Ajustar profundidade por publico e risco de decisao.'])}
+            <h3>Princípios de comunicação</h3>
+            ${listHtml(narratives?.communicationPrinciples, ['Ajustar profundidade por público e risco de decisão.'])}
           </div>
           <div class="card">
             <h3>Como abordar este perfil</h3>
-            ${listHtml(narratives?.communicationManagerNotes, ['Dar feedback observavel e fechar com compromisso de acao.'])}
+            ${listHtml(narratives?.communicationManagerNotes, ['Dar feedback observável e fechar com compromisso de ação.'])}
           </div>
         </div>
-        ${enrichmentCard(enrichment.insight, safeText(insights?.executiveByPage?.communication, 'Comunicar com metodo aumenta velocidade de resposta e qualidade da colaboracao.'))}
+        ${enrichmentCard(enrichment.insight, safeText(insights?.executiveByPage?.communication, 'Comunicar com método aumenta velocidade de resposta e qualidade da colaboração.'))}
+        ${strategicNote('Expressão prática do comportamento', 'Em reuniões decisivas, esse perfil responde melhor a mensagens curtas, contextualizadas e orientadas para decisão com dono definido.')}
       `,
     })
   );
@@ -1042,27 +1126,30 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 15,
       totalPages: meta.totalPages,
-      title: 'Estilo de Lideranca',
-      subtitle: 'Potencial de gestao, forcas e riscos como lider',
+      title: 'Estilo de Liderança',
+      subtitle: 'Potencial de gestão, forças e riscos como líder',
       branding,
       content: `
         <div class="card">
-          ${paragraphsHtml(profileContent?.leadershipStyle, ['Estilo de lideranca orientado ao contexto do perfil e a maturidade da equipe.'])}
+          ${paragraphsHtml(profileContent?.leadershipStyle, ['Estilo de liderança orientado ao contexto do perfil e à maturidade da equipe.'])}
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Forcas de gestao</h3>
+            <h3>Forças de gestão</h3>
             ${listHtml(
               [...safeArray(narratives?.leadershipStrengths, []), ...safeArray(narratives?.leadershipPrinciples, [])].slice(0, 10),
-              ['Direcao, contexto e acompanhamento curto aumentam resultado.']
+              ['Direção, contexto e acompanhamento curto aumentam resultado.']
             )}
           </div>
           <div class="card">
-            <h3>Riscos de lideranca</h3>
-            ${listHtml(profileContent?.leadershipRisks, ['Monitorar centralizacao, tom e ritmo de cobranca em alta pressao.'])}
+            <h3>Riscos de liderança</h3>
+            ${listHtml(profileContent?.leadershipRisks, ['Monitorar centralização, tom e ritmo de cobrança em alta pressão.'])}
           </div>
         </div>
-        ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.leadership, 'Lideranca eficaz neste perfil depende de criterio claro, feedback recorrente e ajuste de estilo por contexto.'))}
+        <div class="grid two">
+          ${strategicNote('Leitura de gestão aplicada', safeText(insights?.practicalByPage?.leadership, 'Liderança eficaz neste perfil depende de critério claro, feedback recorrente e ajuste de estilo por contexto.'))}
+          ${strategicNote('Observação de desenvolvimento', 'O salto de senioridade aparece quando o líder combina direção firme com calibragem de escuta e qualidade relacional.')}
+        </div>
       `,
     })
   );
@@ -1112,46 +1199,47 @@ export function renderReportHtml(input = {}) {
       number: 17,
       totalPages: meta.totalPages,
       title: 'Resposta ao Estresse',
-      subtitle: 'Sinais de alerta e estrategia de recuperacao',
+      subtitle: 'Sinais de alerta e estratégia de recuperação',
       branding,
       content: `
         <div class="grid two">
           <div class="card">
-            <h3>Padrao de estresse do perfil</h3>
-            ${listHtml(profileContent?.stressPattern, ['Sinais comportamentais de pressao que afetam clareza e colaboracao.'])}
+            <h3>Padrão de estresse do perfil</h3>
+            ${listHtml(profileContent?.stressPattern, ['Sinais comportamentais de pressão que afetam clareza e colaboração.'])}
           </div>
           <div class="card">
             <h3>Sinais de alerta universais</h3>
             ${listHtml(
               [...safeArray(narratives?.stressSignals, []), ...safeArray(narratives?.stressSignalsShared, [])].slice(0, 10),
-              ['Reatividade, queda de clareza e oscilacao de consistencia.']
+              ['Reatividade, queda de clareza e oscilação de consistência.']
             )}
           </div>
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Reacoes emocionais provaveis</h3>
+            <h3>Reações emocionais prováveis</h3>
             ${listHtml([
-              `Sob pressao, o fator ${profile.primary} tende a aumentar a intensidade de resposta.`,
-              'A percepcao de perda de controle pode gerar comunicacao mais curta e defensiva.',
-              'Quando nao ha alinhamento de prioridade, cresce o risco de tensao com pares e lideranca.',
-              'A falta de retorno rapido amplia desgaste e reduz qualidade de colaboracao.'
+              `Sob pressão, o fator ${profile.primary} tende a aumentar a intensidade de resposta.`,
+              'A percepção de perda de controle pode gerar comunicação mais curta e defensiva.',
+              'Quando não há alinhamento de prioridade, cresce o risco de tensão com pares e liderança.',
+              'A falta de retorno rápido amplia desgaste e reduz qualidade de colaboração.'
             ])}
           </div>
           <div class="card">
             <h3>Impacto no ambiente de trabalho</h3>
             ${listHtml([
-              'Pode ocorrer queda de escuta em reunioes criticas.',
-              'Retrabalho cresce quando o time nao tem checkpoint de risco.',
+              'Pode ocorrer queda de escuta em reuniões críticas.',
+              'Retrabalho cresce quando o time não tem checkpoint de risco.',
               'Conflitos latentes tendem a escalar sem ritual de alinhamento.',
-              'A performance se recupera quando ha clareza de dono, prazo e criterio.'
+              'A performance se recupera quando há clareza de dono, prazo e critério.'
             ])}
           </div>
         </div>
         <div class="card">
-          <h3>Como recuperar equilibrio</h3>
-          ${listHtml(profileContent?.recoveryStrategy, ['Repriorizar, reduzir ruido e retomar rotina de acompanhamento.'])}
+          <h3>Como recuperar equilíbrio</h3>
+          ${listHtml(profileContent?.recoveryStrategy, ['Repriorizar, reduzir ruído e retomar rotina de acompanhamento.'])}
           ${enrichmentCard('Leitura do gestor', safeText(insights?.practicalByPage?.stress, 'Gestores devem atuar cedo quando sinais de estresse aparecem para evitar escalada de conflito e queda de performance.'))}
+          ${strategicNote('Atenção comportamental', 'Sob pressão prolongada, esse perfil tende a repetir o fator dominante. Intervenções rápidas preservam qualidade de decisão e relacionamento.')}
         </div>
       `,
     })
@@ -1224,23 +1312,32 @@ export function renderReportHtml(input = {}) {
       number: 20,
       totalPages: meta.totalPages,
       title: 'Sinergia com Outros Perfis DISC',
-      subtitle: 'Combinacoes complementares e pontos de atrito',
+      subtitle: 'Combinações complementares e pontos de atrito',
       branding,
       content: `
         <div class="grid two">
           <div class="card">
             <h3>Perfis complementares</h3>
-            ${listHtml(profileContent?.bestMatches, ['Perfil complementar para equilibrar decisao e relacionamento.'])}
-            <p>Perfis complementares ampliam resultado quando ha acordo claro de papeis e criterio de colaboracao.</p>
+            ${listHtml(profileContent?.bestMatches, ['Perfil complementar para equilibrar decisão e relacionamento.'])}
+            <p>Perfis complementares ampliam resultado quando há acordo claro de papéis e critério de colaboração.</p>
           </div>
           <div class="card">
             <h3>Perfis com atrito potencial</h3>
-            ${listHtml(profileContent?.frictionMatches, ['Atrito tende a surgir quando ritmo e criterio divergem sem alinhamento.'])}
-            <p>Conflitos diminuem com contratos de convivio, objetivo comum e rituais curtos de alinhamento.</p>
+            ${listHtml(profileContent?.frictionMatches, ['Atrito tende a surgir quando ritmo e critério divergem sem alinhamento.'])}
+            <p>Conflitos diminuem com contratos de convívio, objetivo comum e rituais curtos de alinhamento.</p>
           </div>
         </div>
-        ${enrichmentCard(enrichment.application, 'Diferenca de perfil nao e problema; problema e falta de combinados claros sobre decisao, prazo e qualidade.')}
-        ${enrichmentCard(enrichment.managerLens, safeText(insights?.managerLens, 'Leitura do gestor para compor equipes complementares com acordos claros de colaboracao.'))}
+        <div class="card">
+          <h3>Leitura relacional aplicada</h3>
+          ${listHtml([
+            'Combinações com alta complementaridade funcionam melhor quando a fronteira de decisão é explícita.',
+            'Perfis de atrito não devem ser evitados, e sim calibrados por contrato de comunicação.',
+            'Equipes maduras usam diversidade comportamental para ampliar velocidade e qualidade simultaneamente.',
+            'Gestores eficazes ajustam rituais conforme combinação de perfis predominantes.',
+          ])}
+        </div>
+        ${enrichmentCard(enrichment.application, 'Diferença de perfil não é problema; problema é falta de combinados claros sobre decisão, prazo e qualidade.')}
+        ${enrichmentCard(enrichment.managerLens, safeText(insights?.managerLens, 'Leitura do gestor para compor equipes complementares com acordos claros de colaboração.'))}
       `,
     })
   );
@@ -1275,25 +1372,35 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 22,
       totalPages: meta.totalPages,
-      title: 'Aderencia a Funcoes e Carreira',
-      subtitle: 'Areas recomendadas e baixa aderencia',
+      title: 'Aderência a Funções e Carreira',
+      subtitle: 'Áreas recomendadas e baixa aderência',
       branding,
       content: `
         <div class="grid two">
           <div class="card">
-            <h3>Funcoes recomendadas</h3>
-            ${listHtml(profileContent?.recommendedRoles, ['Funcao com aderencia comportamental alta ao perfil identificado.'])}
+            <h3>Funções recomendadas</h3>
+            ${listHtml(profileContent?.recommendedRoles, ['Função com aderência comportamental alta ao perfil identificado.'])}
           </div>
           <div class="card">
-            <h3>Funcoes de menor aderencia</h3>
-            ${listHtml(profileContent?.lowFitRoles, ['Funcao que pode gerar desgaste sem ajuste de contexto e suporte.'])}
+            <h3>Funções de menor aderência</h3>
+            ${listHtml(profileContent?.lowFitRoles, ['Função que pode gerar desgaste sem ajuste de contexto e suporte.'])}
           </div>
         </div>
         <div class="card">
           <h3>Framework de crescimento</h3>
-          ${listHtml(narratives?.careerFramework, ['Evolucao de carreira combina contexto adequado e desenvolvimento intencional.'])}
-          ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.career, 'Aderencia de carreira melhora quando forca natural e exigencia da funcao estao em equilibrio.'))}
-          ${enrichmentCard('Observacao de carreira', safeText(insights?.careerCallout, 'Aderencia de carreira melhora quando forca natural e exigencia da funcao estao em equilibrio.'))}
+          ${listHtml(narratives?.careerFramework, ['Evolução de carreira combina contexto adequado e desenvolvimento intencional.'])}
+          <table class="table compact">
+            <thead>
+              <tr><th>Eixo</th><th>Leitura</th><th>Prioridade</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Potencial técnico</td><td>Compatível com padrões de qualidade e consistência esperados.</td><td>Média</td></tr>
+              <tr><td>Potencial relacional</td><td>Depende da calibragem entre comunicação, influência e escuta ativa.</td><td>Alta</td></tr>
+              <tr><td>Potencial de liderança</td><td>Escala quando há clareza de contexto e rotina de feedback observável.</td><td>Alta</td></tr>
+            </tbody>
+          </table>
+          ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.career, 'Aderência de carreira melhora quando força natural e exigência da função estão em equilíbrio.'))}
+          ${enrichmentCard('Observação de carreira', safeText(insights?.careerCallout, 'Aderência de carreira melhora quando força natural e exigência da função estão em equilíbrio.'))}
         </div>
       `,
     })
@@ -1335,7 +1442,7 @@ export function renderReportHtml(input = {}) {
       number: 24,
       totalPages: meta.totalPages,
       title: 'Pontos de Desenvolvimento',
-      subtitle: 'Areas de maturidade para reduzir risco de exagero',
+      subtitle: 'Áreas de maturidade para reduzir risco de exagero',
       branding,
       content: `
         <div class="card">
@@ -1344,13 +1451,14 @@ export function renderReportHtml(input = {}) {
         <div class="grid two">
           <div class="card">
             <h3>Risco de exagero do perfil</h3>
-            <p>${esc(safeText(insights?.riskOfExcess, safeText(insights?.behavioralRisk, 'Exagero de fator primario sem calibragem pode gerar queda de qualidade relacional e impacto em performance sustentavel.')))}</p>
-            ${listHtml(narratives?.developmentRisks, ['Exagero comportamental sem revisao de contexto pode reduzir performance sustentavel.'])}
+            <p>${esc(safeText(insights?.riskOfExcess, safeText(insights?.behavioralRisk, 'Exagero de fator primário sem calibragem pode gerar queda de qualidade relacional e impacto em performance sustentável.')))}</p>
+            ${listHtml(narratives?.developmentRisks, ['Exagero comportamental sem revisão de contexto pode reduzir performance sustentável.'])}
           </div>
           <div class="card">
             <h3>Impacto na carreira</h3>
-            <p>Tratar os pontos de desenvolvimento com rotina e medicao reduz gargalo de progressao e aumenta confiabilidade de entrega em contextos complexos.</p>
-            ${enrichmentCard(enrichment.developmentLens, safeText(insights?.developmentLens, 'Consolidar habitos de melhoria acelera maturidade de carreira.'))}
+            <p>Tratar os pontos de desenvolvimento com rotina e medição reduz gargalo de progressão e aumenta confiabilidade de entrega em contextos complexos.</p>
+            ${enrichmentCard(enrichment.developmentLens, safeText(insights?.developmentLens, 'Consolidar hábitos de melhoria acelera maturidade de carreira.'))}
+            ${strategicNote('Coaching executivo', 'Transforme cada ponto de desenvolvimento em hábito observável com prazo, evidência e revisão quinzenal.')}
           </div>
         </div>
       `,
@@ -1385,29 +1493,30 @@ export function renderReportHtml(input = {}) {
       number: 26,
       totalPages: meta.totalPages,
       title: 'Como Liderar Este Perfil',
-      subtitle: 'Guia para gestores: feedback, cobranca, delegacao e engajamento',
+      subtitle: 'Guia para gestores: feedback, cobrança, delegação e engajamento',
       branding,
       content: `
         <div class="card">
-          ${listHtml(profileContent?.managerGuidance, ['Diretriz de lider para aumentar aderencia, ritmo e qualidade de entrega.'])}
+          ${listHtml(profileContent?.managerGuidance, ['Diretriz de líder para aumentar aderência, ritmo e qualidade de entrega.'])}
         </div>
         <div class="grid two">
           <div class="card">
             <h3>Como dar feedback</h3>
             ${listHtml([
               'Use fato, impacto e ajuste esperado.',
-              'Traga exemplo observavel e contexto de negocio.',
-              'Feche com acao e prazo de revisao.',
-              'Evite feedback generico ou sem criterio.',
-              'Reconheca evolucao com evidencia concreta.'
+              'Traga exemplo observável e contexto de negócio.',
+              'Feche com ação e prazo de revisão.',
+              'Evite feedback genérico ou sem critério.',
+              'Reconheça evolução com evidência concreta.'
             ])}
           </div>
           <div class="card">
             <h3>Como engajar</h3>
-            <p>${esc(safeText(insights?.managerCallout, 'Engajamento cresce quando o lider combina autonomia, clareza de expectativa e acompanhamento objetivo.'))}</p>
-            ${enrichmentCard(enrichment.managerLens, safeText(insights?.managerLens, 'Leitura do gestor para aumentar aderencia, ritmo e qualidade de entrega.'))}
+            <p>${esc(safeText(insights?.managerCallout, 'Engajamento cresce quando o líder combina autonomia, clareza de expectativa e acompanhamento objetivo.'))}</p>
+            ${enrichmentCard(enrichment.managerLens, safeText(insights?.managerLens, 'Leitura do gestor para aumentar aderência, ritmo e qualidade de entrega.'))}
           </div>
         </div>
+        ${strategicNote('Contexto ideal de gestão', 'Esse perfil entrega melhor quando recebe desafio claro, critérios objetivos de qualidade e liberdade responsável para executar.')}
       `,
     })
   );
@@ -1417,29 +1526,30 @@ export function renderReportHtml(input = {}) {
       number: 27,
       totalPages: meta.totalPages,
       title: 'Como Este Perfil Deve Liderar',
-      subtitle: 'Guia de autolideranca para o participante',
+      subtitle: 'Guia de autoliderança para o participante',
       branding,
       content: `
         <div class="card">
-          ${listHtml(profileContent?.selfLeadershipGuidance, ['Diretriz de autolideranca para ampliar impacto com equilibrio comportamental.'])}
+          ${listHtml(profileContent?.selfLeadershipGuidance, ['Diretriz de autoliderança para ampliar impacto com equilíbrio comportamental.'])}
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Armadilhas de lideranca</h3>
-            ${listHtml(narratives?.leadershipPitfalls, ['Armadilha recorrente quando o estilo nao e calibrado ao contexto.'])}
+            <h3>Armadilhas de liderança</h3>
+            ${listHtml(narratives?.leadershipPitfalls, ['Armadilha recorrente quando o estilo não é calibrado ao contexto.'])}
           </div>
           <div class="card">
-            <h3>Roteiro de evolucao</h3>
+            <h3>Roteiro de evolução</h3>
             ${listHtml([
-              'Definir intencao de lideranca por ciclo semanal.',
-              'Revisar linguagem e tom em conversas criticas.',
+              'Definir intenção de liderança por ciclo semanal.',
+              'Revisar linguagem e tom em conversas críticas.',
               'Delegar com checkpoints claros.',
               'Criar rotina de feedback bilateral.',
               'Consolidar aprendizado em plano trimestral.'
             ])}
-            ${enrichmentCard(enrichment.developmentLens, safeText(insights?.developmentLens, 'Autolideranca evolui quando insight vira rotina semanal com medicao observavel.'))}
+            ${enrichmentCard(enrichment.developmentLens, safeText(insights?.developmentLens, 'Autoliderança evolui quando insight vira rotina semanal com medição observável.'))}
           </div>
         </div>
+        ${strategicNote('Leitura de maturidade', 'A evolução mais relevante ocorre quando este perfil aprende a equilibrar força natural com adaptação consciente ao contexto da equipe.')}
       `,
     })
   );
@@ -1448,32 +1558,32 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 28,
       totalPages: meta.totalPages,
-      title: 'Plano de Acao 30/60/90 Dias',
-      subtitle: 'Roteiro pratico com indicadores de acompanhamento',
+      title: 'Plano de Ação 30/60/90 Dias',
+      subtitle: 'Roteiro prático com indicadores de acompanhamento',
       branding,
       content: `
         <div class="grid three">
-          <div class="card">
+          <div class="card action-plan-card">
             <h3>30 dias</h3>
             ${listHtml(plans?.days30, ['Definir foco comportamental e rotina de checkpoint semanal.'])}
           </div>
-          <div class="card">
+          <div class="card action-plan-card">
             <h3>60 dias</h3>
-            ${listHtml(plans?.days60, ['Consolidar ajuste de comunicacao e decisao em contexto real.'])}
+            ${listHtml(plans?.days60, ['Consolidar ajuste de comunicação e decisão em contexto real.'])}
           </div>
-          <div class="card">
+          <div class="card action-plan-card">
             <h3>90 dias</h3>
-            ${listHtml(plans?.days90, ['Escalar rotina de alta performance sustentavel com feedback estruturado.'])}
+            ${listHtml(plans?.days90, ['Escalar rotina de alta performance sustentável com feedback estruturado.'])}
           </div>
         </div>
         <div class="card">
           <h3>Indicadores recomendados</h3>
           ${listHtml([
             'Qualidade de fechamento de acordos por semana.',
-            'Reducao de retrabalho por falta de alinhamento.',
-            'Consistencia de follow-up em temas criticos.',
-            'Percepcao de clareza de comunicacao pelo time.',
-            'Evolucao de autonomia com responsabilidade.'
+            'Redução de retrabalho por falta de alinhamento.',
+            'Consistência de follow-up em temas críticos.',
+            'Percepção de clareza de comunicação pelo time.',
+            'Evolução de autonomia com responsabilidade.'
           ])}
         </div>
       `,
@@ -1484,51 +1594,31 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 29,
       totalPages: meta.totalPages,
-      title: 'Sintese Executiva do Perfil',
-      subtitle: 'Resumo para lideranca, desenvolvimento e tomada de decisao',
+      title: 'Glossário e Leitura Técnica',
+      subtitle: 'Conceitos-chave para interpretação responsável',
       branding,
       content: `
-        <div class="grid two">
-          <div class="card">
-            <h3>Principais forcas</h3>
-            ${listHtml(profileContent?.naturalStrengths, ['Forcas naturais com alto impacto no ambiente profissional.'])}
-          </div>
-          <div class="card">
-            <h3>Possiveis desafios</h3>
-            ${listHtml(profileContent?.developmentPoints, ['Desafios de maturidade para ganho de consistencia e escala.'])}
-          </div>
-        </div>
-        <div class="grid two">
-          <div class="card">
-            <h3>Estilo de trabalho</h3>
-            ${paragraphsHtml(
-              profileContent?.identityDynamics,
-              ['Estilo de atuacao orientado por fatores dominantes do perfil e contexto de performance.']
-            )}
-          </div>
-          <div class="card">
-            <h3>Ambiente ideal e recomendacao geral</h3>
-            ${listHtml(profileContent?.idealEnvironment, ['Contexto com clareza de prioridade, autonomia e responsabilidade compartilhada.'])}
-            ${enrichmentCard('Aplicacao pratica', safeText(insights?.executiveByPage?.environment, safeText(insights?.executive, 'A sintese executiva apoia lideres a decidir alocacao, desenvolvimento e ajustes de contexto.')))}
-          </div>
-        </div>
         <div class="card">
-          <h3>Glossario tecnico (resumo)</h3>
+          <h3>Glossário técnico</h3>
           <table class="table compact">
-            <thead><tr><th>Termo</th><th>Definicao</th></tr></thead>
+            <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
             <tbody>
               ${safeArray(report?.glossary?.items, [
-                { term: 'Perfil Natural', definition: 'Tendencia espontanea de comportamento.' },
+                { term: 'Perfil Natural', definition: 'Tendência espontânea de comportamento.' },
                 { term: 'Perfil Adaptado', definition: 'Ajuste comportamental exigido pelo contexto.' },
-                { term: 'Benchmark', definition: 'Comparacao com faixa tipica de referencia.' },
+                { term: 'Benchmark', definition: 'Comparação com faixa típica de referência.' },
               ])
-                .slice(0, 5)
+                .slice(0, 10)
                 .map(
                   (item) => `<tr><td>${esc(item.term)}</td><td>${esc(item.definition)}</td></tr>`
                 )
                 .join('')}
             </tbody>
           </table>
+        </div>
+        <div class="grid two">
+          ${strategicNote('Diferença entre natural e adaptado', 'O natural representa a expressão espontânea. O adaptado revela como o contexto atual pede ajustes comportamentais.')}
+          ${strategicNote('Leitura de benchmark', 'Benchmark não é rótulo. É referência para orientar decisões de desenvolvimento e calibragem de papel.')}
         </div>
       `,
     })
@@ -1539,26 +1629,26 @@ export function renderReportHtml(input = {}) {
       number: 30,
       totalPages: meta.totalPages,
       title: 'Fechamento Executivo',
-      subtitle: 'Sintese final, LGPD e assinatura institucional',
+      subtitle: 'Síntese final, LGPD e assinatura institucional',
       branding,
       content: `
         <div class="card">
-          <h3>Conclusao</h3>
-          <p>O perfil analisado revela caracteristicas comportamentais que influenciam diretamente a forma como a pessoa percebe desafios, interage com outras pessoas e toma decisoes.</p>
-          <p>Compreender essas tendencias permite criar ambientes de trabalho mais produtivos, equipes mais equilibradas e estrategias de desenvolvimento mais eficazes.</p>
+          <h3>Conclusão</h3>
+          <p>O perfil analisado revela características comportamentais que influenciam diretamente a forma como a pessoa percebe desafios, interage com outras pessoas e toma decisões.</p>
+          <p>Compreender essas tendências permite criar ambientes de trabalho mais produtivos, equipes mais equilibradas e estratégias de desenvolvimento mais eficazes.</p>
           <p>O InsightDISC tem como objetivo fornecer uma leitura clara e aplicada do comportamento humano no contexto profissional.</p>
           ${paragraphsHtml(
             profileContent?.executiveClosing || narratives?.executiveClosing,
             [
-              safeText(profileContent?.closingSummary, 'Este perfil gera alto valor quando transforma consciencia comportamental em rotina de execucao com ajuste continuo.'),
-              safeText(insights?.executiveByPage?.career, safeText(insights?.executive, 'A aplicacao pratica deste relatorio deve ser acompanhada por metas observaveis e revisao recorrente de comportamento.')),
+              safeText(profileContent?.closingSummary, 'Este perfil gera alto valor quando transforma consciência comportamental em rotina de execução com ajuste contínuo.'),
+              safeText(insights?.executiveByPage?.career, safeText(insights?.executive, 'A aplicação prática deste relatório deve ser acompanhada por metas observáveis e revisão recorrente de comportamento.')),
             ]
           )}
         </div>
         <div class="grid two">
           <div class="card">
             <h3>Confidencialidade e LGPD</h3>
-            <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e principios da LGPD.'))}</p>
+            <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
             <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, 'suporte@insightdisc.app'))}</p>
           </div>
           <div class="card">
@@ -1569,6 +1659,7 @@ export function renderReportHtml(input = {}) {
             <p>${esc(branding.report_footer_text)}</p>
           </div>
         </div>
+        ${strategicNote('Encerramento premium', 'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina e contexto.')}
       `,
     })
   );
@@ -1703,12 +1794,12 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-content {
-      padding: 22mm 20mm 28mm;
+      padding: 20mm 20mm 26mm;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 8mm;
+      gap: 6.5mm;
     }
 
     .cover-logo-block {
@@ -1725,6 +1816,24 @@ export function renderReportHtml(input = {}) {
       max-height: 42mm;
       object-fit: contain;
       display: block;
+    }
+
+    .cover-brand-name {
+      text-align: center;
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #23324f;
+      font-weight: 700;
+    }
+
+    .cover-platform-tagline {
+      text-align: center;
+      margin: 0;
+      font-size: 12px;
+      color: #55627b;
+      letter-spacing: 0.28px;
     }
 
     .cover-tagline {
@@ -1746,12 +1855,12 @@ export function renderReportHtml(input = {}) {
       margin: 0;
       text-align: center;
       color: var(--primary);
-      font-size: 33px;
+      font-size: 34px;
       line-height: 1.08;
       letter-spacing: 0.4px;
       font-weight: 800;
       text-transform: uppercase;
-      max-width: 154mm;
+      max-width: 162mm;
       margin-inline: auto;
     }
 
@@ -1766,10 +1875,10 @@ export function renderReportHtml(input = {}) {
 
     .cover-subtitle {
       margin: 0 auto 1mm;
-      max-width: 160mm;
+      max-width: 165mm;
       text-align: center;
       color: #334155;
-      font-size: 15.5px;
+      font-size: 15px;
       line-height: 1.45;
     }
 
@@ -1791,6 +1900,30 @@ export function renderReportHtml(input = {}) {
 
     .cover-participant-box strong {
       color: #0f172a;
+    }
+
+    .executive-hero {
+      border: 1px solid #ccd9eb;
+      background: linear-gradient(180deg, #f9fbff, #ffffff);
+      box-shadow: 0 8px 26px rgba(19, 42, 95, 0.08);
+    }
+
+    .executive-divider {
+      border-left: 4px solid var(--secondary);
+      padding-left: 10px;
+      margin-bottom: 10px;
+    }
+
+    .executive-divider h3 {
+      margin-bottom: 4px;
+      color: #0f2b55;
+      font-size: 17px;
+    }
+
+    .executive-divider p {
+      margin: 0;
+      font-size: 12.4px;
+      color: #4a5b76;
     }
 
     .cover-footer {
@@ -1840,6 +1973,92 @@ export function renderReportHtml(input = {}) {
       border-radius: var(--radius);
       padding: 15px;
       box-shadow: 0 3px 14px rgba(15, 23, 42, 0.038);
+    }
+
+    .strategic-note {
+      background: #ffffff;
+      border: 1px solid #d5deec;
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+      margin-top: 10px;
+    }
+
+    .strategic-note h4 {
+      margin-bottom: 4px;
+      color: #112d5c;
+    }
+
+    .strategic-note p {
+      margin-bottom: 0;
+      font-size: 12.7px;
+      line-height: 1.52;
+    }
+
+    .strategic-note .muted-note {
+      margin-top: 6px;
+      color: #51637f;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .kpi-pill {
+      background: #ffffff;
+      border: 1px solid #dce3ef;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .kpi-pill-wide {
+      grid-column: span 3;
+      justify-content: space-between;
+      padding-inline: 12px;
+    }
+
+    .kpi-chip {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 12px;
+      border: 1px solid #d7deea;
+      flex-shrink: 0;
+    }
+
+    .kpi-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .kpi-copy span {
+      font-size: 11px;
+      color: #59667a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .kpi-copy strong {
+      font-size: 16px;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .kpi-copy small {
+      font-size: 11px;
+      color: #5f6f89;
     }
 
     .callout-box {
@@ -1956,6 +2175,11 @@ export function renderReportHtml(input = {}) {
     .table.compact th {
       padding: 7px 8px;
       font-size: 12px;
+    }
+
+    .action-plan-card {
+      border-top: 4px solid var(--secondary);
+      background: linear-gradient(180deg, #fffdf7, #ffffff);
     }
 
     .bar-row {
