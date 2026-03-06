@@ -16,6 +16,7 @@ import CandidateAssessment from '@/pages/candidate/CandidateAssessment';
 import CandidateReport from '@/pages/candidate/CandidateReport';
 import CandidatePortal from '@/pages/candidate/CandidatePortal';
 import CandidateUpgrade from '@/pages/candidate/CandidateUpgrade';
+import WhatsappButton from './components/WhatsappButton';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -147,6 +148,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <WhatsappButton />
       </QueryClientProvider>
     </AuthProvider>
   );
