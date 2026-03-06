@@ -8,10 +8,11 @@ const FACTOR_META = {
 
 const DEFAULT_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
-  logo_url: '/brand/insightdisc-logo.svg',
+  logo_url: '/brand/insightdisc-report-logo.png',
+  cover_url: '',
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
-  report_footer_text: 'InsightDISC - Plataforma de Analise Comportamental',
+  report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
 });
 
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
@@ -66,6 +67,7 @@ function normalizeBranding(branding = {}, meta = {}) {
   return {
     company_name: safeText(branding?.company_name || meta?.brand, DEFAULT_BRANDING.company_name),
     logo_url: safeText(branding?.logo_url, DEFAULT_BRANDING.logo_url),
+    cover_url: safeText(branding?.cover_url, DEFAULT_BRANDING.cover_url),
     brand_primary_color: normalizeHexColor(
       branding?.brand_primary_color,
       DEFAULT_BRANDING.brand_primary_color
@@ -224,21 +226,19 @@ function pageTemplate({
   branding,
   pageNumber,
   totalPages,
-  title,
-  subtitle,
   content,
   cover = false,
 }) {
   if (cover) {
     return `
       <section class="page cover-page">
-        <div class="cover-bg"></div>
-        <div class="cover-content">
+        <div class="cover-clean-overlay"></div>
+<div class="cover-content">
           <div class="cover-logo-wrap">
             <img src="${esc(branding.logo_url)}" class="cover-logo" alt="${esc(branding.company_name)}" />
           </div>
-          <div class="cover-kicker">Relatorio White-Label Premium</div>
-          <h1 class="cover-title">Relatorio de Analise Comportamental <span>DISC</span></h1>
+          
+          <h1 class="cover-title">Relatorio de Análise Comportamental <span>DISC</span></h1>
           <p class="cover-subtitle">Diagnostico completo com benchmark, mapa comportamental, plano de acao e recomendacoes de lideranca.</p>
           ${content}
         </div>
@@ -249,19 +249,6 @@ function pageTemplate({
 
   return `
     <section class="page">
-      <header class="header">
-        <div class="logo-wrap">
-          <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="logo" />
-          <div>
-            <div class="brand-title">${esc(branding.company_name)}</div>
-            <div class="brand-subtitle">Plataforma de Analise Comportamental</div>
-          </div>
-        </div>
-        <div class="header-meta">
-          <div><strong>${esc(title)}</strong></div>
-          <div>${esc(subtitle)}</div>
-        </div>
-      </header>
       <main class="content">${content}</main>
       <footer class="footer">
         <span>${esc(branding.report_footer_text)}</span>
@@ -276,10 +263,10 @@ export function renderReportHtml(input = {}) {
 
   const meta = {
     brand: safeText(report?.meta?.brand, DEFAULT_BRANDING.company_name),
-    reportTitle: safeText(report?.meta?.reportTitle, 'Relatorio DISC Premium'),
+    reportTitle: safeText(report?.meta?.reportTitle, 'Relatório DISC Premium'),
     reportSubtitle: safeText(
       report?.meta?.reportSubtitle,
-      'Diagnostico comportamental com orientacoes praticas para performance, lideranca e carreira'
+      'Diagnóstico comportamental com orientacoes praticas para performance, lideranca e carreira'
     ),
     generatedAt: formatDate(report?.meta?.generatedAt),
     reportId: safeText(report?.meta?.reportId, `report-${Date.now()}`),
@@ -350,10 +337,7 @@ export function renderReportHtml(input = {}) {
           <p><strong>Data:</strong> ${esc(meta.generatedAt)}</p>
           <p><strong>Perfil predominante:</strong> ${esc(profile.primary)} + ${esc(profile.secondary)}</p>
         </div>
-        <div class="cover-meta">
-          <p>Responsavel: <strong>${esc(meta.responsibleName)}</strong> (${esc(meta.responsibleRole)})</p>
-          <p>ID do relatorio: <strong>${esc(meta.reportId)}</strong></p>
-        </div>
+        
       `,
     })
   );
@@ -896,29 +880,89 @@ export function renderReportHtml(input = {}) {
     }
     .page { width: 210mm; min-height: 297mm; margin: 10mm auto; background: #fff; border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; position: relative; page-break-after: always; }
     .page:last-child { page-break-after: auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 10mm 12mm 5mm; border-bottom: 1px solid var(--line); margin-bottom: 8mm; }
-    .logo-wrap { display: flex; align-items: center; gap: 12px; }
-    .logo { width: 52px; height: 52px; object-fit: contain; border-radius: 10px; background: #fff; }
-    .brand-title { font-weight: 800; font-size: 20px; color: var(--navy); line-height: 1.1; }
-    .brand-subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .header-meta { text-align: right; font-size: 11px; color: var(--muted); line-height: 1.5; }
-    .header-meta strong { color: var(--text); }
     .footer { position: absolute; left: 12mm; right: 12mm; bottom: 8mm; border-top: 1px solid var(--line); padding-top: 4mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); }
     .footer strong { color: var(--text); }
-    .content { padding: 0 12mm 16mm; }
-    .cover-page { min-height: 297mm; position: relative; overflow: hidden; background: linear-gradient(180deg, #071429 0%, var(--navy) 55%, #0d2345 100%); color: #fff; }
-    .cover-bg { position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(255,255,255,.12), transparent 35%), radial-gradient(circle at left center, rgba(255,255,255,.08), transparent 25%); }
-    .cover-content { position: relative; z-index: 1; padding: 22mm; }
+    .content {
+      padding: 9mm 12mm 12mm;
+    }
+    .cover-page {
+      min-height: 297mm;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top right, rgba(247,181,0,.10), transparent 28%),
+        radial-gradient(circle at left center, rgba(255,255,255,.08), transparent 24%),
+        linear-gradient(180deg, #071429 0%, var(--navy) 58%, #0d2345 100%);
+      color: #fff;
+    }
+    .cover-bg-image { position: absolute; inset: 0; background-position: center; background-repeat: no-repeat; background-size: cover; }
+    .cover-bg-overlay { position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 35%), radial-gradient(circle at left center, rgba(255,255,255,.12), transparent 25%), linear-gradient(180deg, rgba(7,20,41,.55), rgba(11,31,59,.72)); }
+    .cover-clean-overlay {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(7,20,41,.16), rgba(11,31,59,.30));
+      }
+
+      .cover-content {
+      position: relative;
+      z-index: 1;
+      padding: 20mm 22mm 18mm;
+    }
     .cover-logo-wrap { display: flex; justify-content: center; margin-bottom: 14mm; }
-    .cover-logo { max-width: 120mm; max-height: 30mm; object-fit: contain; }
-    .cover-kicker { text-align: center; font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,.8); margin-bottom: 8mm; }
-    .cover-title { text-align: center; font-size: 34px; line-height: 1.15; margin: 0; font-weight: 800; color: #fff; }
+    .cover-logo {
+      width: 170mm;
+      max-width: 92%;
+      max-height: 95mm;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,.22));
+    }
+    .cover-kicker {
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.76);
+      margin-bottom: 7mm;
+    }
+    .cover-title {
+      text-align: center;
+      font-size: 42px;
+      line-height: 1.08;
+      margin: 0;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.8px;
+    }
     .cover-title span { color: var(--gold); }
-    .cover-subtitle { text-align: center; font-size: 16px; color: rgba(255,255,255,.88); margin: 8mm auto 10mm; max-width: 150mm; }
-    .cover-card { max-width: 172mm; margin: 0 auto; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 16px 20px; text-align: center; }
+    .cover-subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: rgba(255,255,255,.92);
+      margin: 7mm auto 9mm;
+      max-width: 160mm;
+      line-height: 1.45;
+    }
+    .cover-card {
+      max-width: 172mm;
+      margin: 0 auto;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      padding: 18px 24px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
     .cover-card p { margin: 6px 0; font-size: 14px; color: rgba(255,255,255,.92); }
     .cover-card strong { color: #fff; }
-    .cover-meta { margin-top: 10mm; text-align: center; color: rgba(255,255,255,.85); }
+    .cover-meta {
+      margin-top: 10mm;
+      text-align: center;
+      color: rgba(255,255,255,.86);
+      font-size: 14px;
+    }
     .cover-meta p { margin: 4px 0; color: inherit; }
     .cover-footer { position: absolute; bottom: 8mm; left: 22mm; right: 22mm; text-align: center; font-size: 12px; color: rgba(255,255,255,.75); }
     h2.section-title { font-size: 24px; color: var(--navy); margin: 0 0 7mm; padding-left: 12px; border-left: 4px solid var(--gold); line-height: 1.2; }
@@ -928,11 +972,26 @@ export function renderReportHtml(input = {}) {
     .muted { color: var(--muted); }
     .small { font-size: 12px; }
     .panel { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 12px 0; }
-    .panel-white { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 12px 0; box-shadow: 0 2px 10px rgba(0,0,0,.03); }
+    .panel-white {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 10px 0;
+      box-shadow: 0 8px 24px rgba(15,23,42,.05);
+    }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     .disc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 8px; }
-    .disc-card { min-height: 122px; border-radius: 14px; padding: 14px; color: #fff; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+    .disc-card {
+      min-height: 132px;
+      border-radius: 16px;
+      padding: 16px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
     .disc-card strong { display: block; font-size: 17px; margin-bottom: 8px; line-height: 1.2; }
     .disc-card p { color: inherit; font-size: 13.5px; margin: 0; }
     .d-card { background: linear-gradient(135deg, #e74c3c, #c0392b); }
@@ -949,7 +1008,13 @@ export function renderReportHtml(input = {}) {
     ul.clean li { position: relative; padding-left: 20px; margin-bottom: 8px; font-size: 14px; }
     ul.clean li::before { content: "•"; position: absolute; left: 0; top: 0; color: var(--gold); font-weight: 800; font-size: 18px; line-height: 1; }
     .table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .table th, .table td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; font-size: 13px; vertical-align: top; }
+    .table th, .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      font-size: 13.5px;
+      vertical-align: top;
+    }
     .table th { background: var(--soft); color: var(--navy); font-weight: 700; }
     .chart-wrap { display: flex; align-items: center; justify-content: center; min-height: 330px; }
     .signature-box { display: flex; justify-content: space-between; gap: 20px; margin-top: 18px; }
