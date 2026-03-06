@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { clearAuth, ensureAuthenticated } from './helpers/auth';
+import { clearAuth, loginAsAdmin } from './helpers/auth';
 import { waitForApp } from './helpers/waitForApp';
 
 async function ensureLeadWithPhone(page) {
@@ -32,7 +32,7 @@ async function ensureLeadWithPhone(page) {
 test.describe('Leads Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await clearAuth(page);
-    await ensureAuthenticated(page, 'Admin');
+    await loginAsAdmin(page);
   });
 
   test('chatbot captura lead e dashboard lista', async ({ page }) => {

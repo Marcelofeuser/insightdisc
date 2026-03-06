@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { loginAsAdmin, loginAsProfessional, loginAsUser } from './helpers/auth';
 
 test('Home CTA leva para StartFree', async ({ page }) => {
   await page.goto('/');
@@ -68,11 +69,10 @@ test('Links legais do footer abrem páginas públicas', async ({ page }) => {
 });
 
 test('Admin mock consegue abrir report do mesmo workspace sem acesso negado', async ({ page }) => {
-  await page.goto('/Login');
-  await page.getByRole('button', { name: /Entrar como Admin/i }).click();
-  await expect(page).toHaveURL(/\/Dashboard(?:\?|$)/);
+  await loginAsAdmin(page);
 
-  await page.goto('/Report?id=assessment-2');
+  await page.goto('/MyAssessments');
+  await page.getByRole('link', { name: /Ver relatório/i }).first().click();
   await expect(page.getByRole('heading', { name: 'Relatório DISC', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Acesso negado/i })).toHaveCount(0);
 });
@@ -81,9 +81,7 @@ test('TeamMapping adicionar membro abre modal e salva', async ({ page }) => {
   const uniqueName = `Membro E2E ${Date.now()}`;
   const uniqueEmail = `membro.e2e.${Date.now()}@example.com`;
 
-  await page.goto('/Login');
-  await page.getByRole('button', { name: /Entrar como Profissional/i }).click();
-  await expect(page).toHaveURL(/\/Dashboard(?:\?|$)/);
+  await loginAsProfessional(page);
 
   await page.goto('/TeamMapping');
   await page.getByText('Time Comercial').first().click();
@@ -99,18 +97,18 @@ test('TeamMapping adicionar membro abre modal e salva', async ({ page }) => {
   await expect(page.getByText(uniqueName).first()).toBeVisible();
 });
 
-test('CheckoutSuccess mock libera report e redireciona', async ({ page }) => {
-  await page.goto('/CheckoutSuccess?session_id=mock_e2e_checkout&assessmentId=assessment-2');
-  await expect(page).toHaveURL(/\/r\/.+/);
-  await expect(page.getByRole('heading', { name: /Relatório DISC Público/i })).toBeVisible();
+test('CheckoutSuccess mock mantém página estável e abre fluxo público quando solicitado', async ({ page }) => {
+  await page.goto('/CheckoutSuccess?session_id=mock_e2e_checkout&assessmentId=assessment-2&token=tok-2&flow=candidate');
+  await expect(page.getByRole('heading', { name: /Relatório liberado/i })).toBeVisible();
+  await page.getByRole('button', { name: /Abrir relatório/i }).click();
+  await expect(page).toHaveURL(/\/c\/upgrade|\/c\/assessment|\/c\/report/);
 });
 
 test('Respondente consegue abrir o próprio report', async ({ page }) => {
-  await page.goto('/Login');
-  await page.getByRole('button', { name: /Entrar como Usuário/i }).click();
-  await expect(page).toHaveURL(/\/Dashboard(?:\?|$)/);
+  await loginAsUser(page);
 
-  await page.goto('/Report?id=assessment-2');
+  await page.goto('/MyAssessments');
+  await page.getByRole('link', { name: /Ver relatório/i }).first().click();
   await expect(page.getByRole('heading', { name: 'Relatório DISC', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: /Acesso negado/i })).toHaveCount(0);
 });
