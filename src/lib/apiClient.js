@@ -1,5 +1,7 @@
 const API_TOKEN_KEYS = ['insightdisc_api_token', 'insight_api_token', 'server_api_token'];
 const API_EMAIL_KEYS = ['insightdisc_api_email', 'disc_mock_user_email'];
+const PRIMARY_API_TOKEN_KEY = API_TOKEN_KEYS[0];
+const PRIMARY_API_EMAIL_KEY = API_EMAIL_KEYS[0];
 
 export function getApiBaseUrl() {
   const raw = String(import.meta.env.VITE_API_URL || '').trim();
@@ -28,6 +30,41 @@ export function getApiUserEmail() {
   return getFromStorage(API_EMAIL_KEYS);
 }
 
+export function setApiSession({ token = '', email = '' } = {}) {
+  if (typeof window === 'undefined') return;
+
+  if (token) {
+    window.localStorage.setItem(PRIMARY_API_TOKEN_KEY, token);
+  }
+
+  if (email) {
+    window.localStorage.setItem(PRIMARY_API_EMAIL_KEY, String(email).toLowerCase());
+  }
+}
+
+export function clearApiSession() {
+  if (typeof window === 'undefined') return;
+
+  [...API_TOKEN_KEYS, ...API_EMAIL_KEYS].forEach((key) => {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  });
+}
+
+export function getApiAuthHeaders({
+  token = getApiToken(),
+  userEmail = getApiUserEmail(),
+} = {}) {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  if (userEmail) {
+    headers['x-insight-user-email'] = userEmail;
+  }
+  return headers;
+}
+
 export async function apiRequest(path, options = {}) {
   const baseUrl = options.baseUrl || getApiBaseUrl();
   if (!baseUrl && !String(path || '').startsWith('http')) {
@@ -53,13 +90,7 @@ export async function apiRequest(path, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (userEmail) {
-    headers['x-insight-user-email'] = userEmail;
-  }
+  Object.assign(headers, getApiAuthHeaders({ token, userEmail }));
 
   const response = await fetch(url, {
     method: options.method || 'GET',

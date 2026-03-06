@@ -178,3 +178,25 @@ model Payment {
 
   @@map("payments")
 }
+
+model Lead {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  source     String   @default("chatbot")
+  name       String
+  email      String
+  phone      String?
+  company    String?
+  interest   String?
+  message    String?
+  status     String   @default("new")
+  tags       String[] @default([])
+  page       String?
+  assignedTo String?  @map("assigned_to")
+  notes      String?
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@map("leads")
+}

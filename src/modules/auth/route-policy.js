@@ -8,9 +8,11 @@ export const PUBLIC_PAGES = new Set([
   'FreeResults',
   'CandidateOnboarding',
   'CheckoutSuccess',
+  'ForgotPassword',
   'Login',
   'Pricing',
   'PublicReport',
+  'Signup',
   'StartFree',
   'SuperAdmin',
   'Privacy',
@@ -34,6 +36,11 @@ const PAGE_POLICIES = Object.freeze({
     requiresAuth: true,
   },
   JobMatching: {
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  LeadsDashboard: {
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],

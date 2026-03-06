@@ -140,8 +140,10 @@ export const insightChatbotFlow = {
         fields: [
           { name: 'name', label: 'Nome', type: 'text', required: true },
           { name: 'email', label: 'E-mail', type: 'email', required: true },
+          { name: 'phone', label: 'Telefone/WhatsApp', type: 'text', required: false },
           { name: 'company', label: 'Empresa', type: 'text', required: false },
-          { name: 'goal', label: 'Objetivo', type: 'textarea', required: false },
+          { name: 'interest', label: 'Interesse', type: 'text', required: false },
+          { name: 'message', label: 'Mensagem / Objetivo', type: 'textarea', required: false },
         ],
         onSubmitNext: 'lead_capture_general_success',
       },
@@ -161,7 +163,9 @@ export const insightChatbotFlow = {
         fields: [
           { name: 'name', label: 'Nome', type: 'text', required: true },
           { name: 'email', label: 'E-mail', type: 'email', required: true },
+          { name: 'phone', label: 'Telefone/WhatsApp', type: 'text', required: false },
           { name: 'company', label: 'Empresa', type: 'text', required: true },
+          { name: 'interest', label: 'Interesse principal', type: 'text', required: false },
           {
             name: 'teamSize',
             label: 'Tamanho da equipe',
@@ -170,7 +174,7 @@ export const insightChatbotFlow = {
             options: ['1-10', '11-50', '51-200', '200+'],
           },
           {
-            name: 'goal',
+            name: 'message',
             label: 'O que você quer resolver?',
             type: 'textarea',
             required: false,

@@ -29,6 +29,7 @@ const APP_ALIAS_ROUTES = [
   { path: '/app/send-assessment', pageName: 'SendAssessment' },
   { path: '/app/team-mapping', pageName: 'TeamMapping' },
   { path: '/app/job-matching', pageName: 'JobMatching' },
+  { path: '/app/leads', pageName: 'LeadsDashboard' },
   { path: '/app/credits', pageName: 'Credits' },
   { path: '/app/branding', pageName: 'BrandingSettings' },
   { path: '/app/admin', pageName: 'AdminDashboard' },

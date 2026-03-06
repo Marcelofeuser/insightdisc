@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import insightChatbotFlow from '@/modules/chatbot/insightChatbotFlow';
+import { getApiBaseUrl } from '@/lib/apiClient';
 
 const LEADS_STORAGE_KEY = 'insightdisc_chatbot_leads';
 
@@ -66,6 +67,7 @@ export function useInsightChatbot() {
   const navigate = useNavigate();
   const config = useMemo(() => insightChatbotFlow.chatbot, []);
   const storageKey = config.settings.storageKey || 'insightdisc_chatbot_session';
+  const apiBaseUrl = getApiBaseUrl();
 
   const [session, setSession] = useState(() => {
     const base = getInitialSession(config);
@@ -83,6 +85,7 @@ export function useInsightChatbot() {
   });
 
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submissionNotice, setSubmissionNotice] = useState(null);
 
   const currentNode = config.nodes[session.currentNodeId] || config.nodes[config.settings.startNode];
   const currentFormValues = session.formValuesByNode[session.currentNodeId] || {};
@@ -125,6 +128,7 @@ export function useInsightChatbot() {
       isOpen: prev.isOpen,
     }));
     setFieldErrors({});
+    setSubmissionNotice(null);
   };
 
   const handleAction = (option) => {
@@ -199,7 +203,7 @@ export function useInsightChatbot() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const submitLeadForm = () => {
+  const submitLeadForm = async () => {
     const node = currentNode;
     if (node?.type !== 'lead_form') return;
     if (!validateLeadForm()) return;
@@ -209,14 +213,42 @@ export function useInsightChatbot() {
       payload[field.name] = String(currentFormValues[field.name] || '').trim();
     }
 
-    const leads = loadJson(LEADS_STORAGE_KEY, []);
-    const nextLeads = Array.isArray(leads) ? leads : [];
-    nextLeads.push({
-      createdAt: getNowIso(),
+    const leadRecord = {
       source: 'chatbot',
-      payload,
-    });
-    saveJson(LEADS_STORAGE_KEY, nextLeads);
+      name: payload.name || '',
+      email: payload.email || '',
+      phone: payload.phone || '',
+      company: payload.company || '',
+      interest: payload.interest || payload.goal || '',
+      message: payload.message || payload.goal || '',
+      page: isBrowser() ? window.location.pathname : '',
+      tags: payload.teamSize ? [`team:${payload.teamSize}`] : [],
+    };
+
+    let sentToApi = false;
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(leadRecord),
+        });
+        sentToApi = response.ok;
+      } catch {
+        sentToApi = false;
+      }
+    }
+
+    if (!sentToApi) {
+      const leads = loadJson(LEADS_STORAGE_KEY, []);
+      const nextLeads = Array.isArray(leads) ? leads : [];
+      nextLeads.push({
+        createdAt: getNowIso(),
+        source: 'chatbot',
+        payload: leadRecord,
+      });
+      saveJson(LEADS_STORAGE_KEY, nextLeads);
+    }
 
     setSession((prev) => ({
       ...prev,
@@ -225,6 +257,15 @@ export function useInsightChatbot() {
         makeMessage('user', 'Dados enviados com sucesso.', prev.currentNodeId),
       ],
     }));
+
+    setSubmissionNotice({
+      type: 'success',
+      message: sentToApi
+        ? 'Recebemos seus dados. Nosso time comercial entrará em contato.'
+        : 'Recebemos seus dados localmente e vamos sincronizar quando a API estiver disponível.',
+      sentToApi,
+      at: Date.now(),
+    });
 
     if (node.onSubmitNext) {
       goToNode(node.onSubmitNext);
@@ -245,6 +286,8 @@ export function useInsightChatbot() {
     updateFormValue,
     submitLeadForm,
     resetConversation,
+    submissionNotice,
+    clearSubmissionNotice: () => setSubmissionNotice(null),
   };
 }
 

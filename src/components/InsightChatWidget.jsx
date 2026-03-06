@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MessageCircle, RotateCcw, Send, X } from 'lucide-react';
 import { useInsightChatbot } from '@/modules/chatbot/useInsightChatbot';
+import { useToast } from '@/components/ui/use-toast';
 
 function fieldInput(field, value, onChange, error) {
   const baseClass =
@@ -49,6 +50,7 @@ function fieldInput(field, value, onChange, error) {
 }
 
 export default function InsightChatWidget() {
+  const { toast } = useToast();
   const {
     config,
     currentNode,
@@ -62,7 +64,18 @@ export default function InsightChatWidget() {
     updateFormValue,
     submitLeadForm,
     resetConversation,
+    submissionNotice,
+    clearSubmissionNotice,
   } = useInsightChatbot();
+
+  useEffect(() => {
+    if (!submissionNotice?.message) return;
+    toast({
+      title: 'Lead registrado',
+      description: submissionNotice.message,
+    });
+    clearSubmissionNotice();
+  }, [clearSubmissionNotice, submissionNotice, toast]);
 
   if (!config?.settings?.showOnAllPages) return null;
 

@@ -55,10 +55,12 @@ import CreditCenter from './pages/CreditCenter';
 import Dashboard from './pages/Dashboard';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import BrandingSettings from './pages/BrandingSettings';
+import ForgotPassword from './pages/ForgotPassword';
 import FreeAssessment from './pages/FreeAssessment';
 import FreeResults from './pages/FreeResults';
 import Home from './pages/Home';
 import JobMatching from './pages/JobMatching';
+import LeadsDashboard from './pages/LeadsDashboard';
 import Lgpd from './pages/Lgpd';
 import Login from './pages/Login';
 import MyAssessments from './pages/MyAssessments';
@@ -68,6 +70,7 @@ import Pricing from './pages/Pricing';
 import PublicReport from './pages/PublicReport';
 import Report from './pages/Report';
 import SendAssessment from './pages/SendAssessment';
+import Signup from './pages/Signup';
 import StartFree from './pages/StartFree';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import TeamMapping from './pages/TeamMapping';
@@ -84,10 +87,12 @@ export const PAGES = {
     "CheckoutSuccess": CheckoutSuccess,
     "Credits": CreditCenter,
     "Dashboard": Dashboard,
+    "ForgotPassword": ForgotPassword,
     "FreeAssessment": FreeAssessment,
     "FreeResults": FreeResults,
     "Home": Home,
     "JobMatching": JobMatching,
+    "LeadsDashboard": LeadsDashboard,
     "Lgpd": Lgpd,
     "Login": Login,
     "MyAssessments": MyAssessments,
@@ -97,6 +102,7 @@ export const PAGES = {
     "PublicReport": PublicReport,
     "Report": Report,
     "SendAssessment": SendAssessment,
+    "Signup": Signup,
     "StartFree": StartFree,
     "SuperAdmin": SuperAdminLogin,
     "TeamMapping": TeamMapping,

@@ -4,6 +4,7 @@ import {
   Briefcase,
   CreditCard,
   LayoutDashboard,
+  MessageSquare,
   Palette,
   Send,
   Settings,
@@ -29,9 +30,11 @@ const PUBLIC_PAGES = [
   'FreeResults',
   'CandidateOnboarding',
   'CheckoutSuccess',
+  'ForgotPassword',
   'Login',
   'Pricing',
   'PublicReport',
+  'Signup',
   'StartFree',
   'SuperAdmin',
   'Privacy',
@@ -47,6 +50,7 @@ const PAGE_TITLES = {
   AdminDashboard: { title: 'Admin Console', subtitle: 'Gestão global da plataforma' },
   TeamMapping: { title: 'Mapeamento de Equipes', subtitle: 'Dinâmica e distribuição comportamental' },
   JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
+  LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
   SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },
 };
 
@@ -151,13 +155,9 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 ) : (
                   <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => base44.auth.redirectToLogin()}
-                      className="hidden md:inline-flex"
-                    >
-                      Entrar
-                    </Button>
+                    <Link to={createPageUrl('Login')} className="hidden md:inline-flex">
+                      <Button variant="ghost">Entrar</Button>
+                    </Link>
                     <Link to={createPageUrl('StartFree')}>
                       <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">Teste Grátis</Button>
                     </Link>
@@ -212,6 +212,7 @@ export default function Layout({ children, currentPageName }) {
       ? [
           { icon: Users, label: 'Equipes', page: 'TeamMapping', to: createPageUrl('TeamMapping') },
           { icon: Briefcase, label: 'Job Matching', page: 'JobMatching', to: createPageUrl('JobMatching') },
+          { icon: MessageSquare, label: 'Leads', page: 'LeadsDashboard', to: createPageUrl('LeadsDashboard') },
         ]
       : []),
     ...(canViewCredits || canManageCredits

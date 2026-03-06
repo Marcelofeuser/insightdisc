@@ -12,6 +12,7 @@ import reportRoutes from './routes/report.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
+import leadsRoutes from './routes/leads.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,8 @@ export function createApp() {
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '2mb' }));
 
+  app.use('/brand', express.static(path.resolve(__dirname, '../../public/brand')));
+  app.use('/report-assets', express.static(path.resolve(__dirname, '../../public/report-assets')));
   app.use('/reports', express.static(path.resolve(__dirname, '../generated/reports')));
   app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
@@ -34,6 +37,7 @@ export function createApp() {
   app.use('/report', reportRoutes);
   app.use('/branding', brandingRoutes);
   app.use('/payments', paymentsRoutes);
+  app.use('/api/leads', leadsRoutes);
 
   app.get('/', (_req, res) => {
     res.status(200).json({
@@ -46,6 +50,7 @@ export function createApp() {
         createAssessment: 'POST /assessments/create',
         generateLink: 'POST /assessments/generate-link',
         validateToken: 'GET /assessment/validate-token?token=...',
+        reportPdfByToken: 'GET /assessment/report-pdf-by-token?token=...',
         consumeInvite: 'POST /assessment/consume',
         submitAssessment: 'POST /assessment/submit',
         reportByToken: 'GET /assessment/report-by-token?token=...',
@@ -62,6 +67,10 @@ export function createApp() {
         uploadLogo: 'POST /branding/:workspaceId/logo',
         getReport: 'GET /report/:id',
         createCheckout: 'POST /payments/create-checkout',
+        confirmCheckout: 'POST /payments/confirm',
+        createLead: 'POST /api/leads',
+        listLeads: 'GET /api/leads',
+        exportLeadsCsv: 'GET /api/leads/export/csv',
       },
     });
   });
