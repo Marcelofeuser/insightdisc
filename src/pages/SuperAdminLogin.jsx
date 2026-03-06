@@ -18,20 +18,23 @@ function sanitizeNextPath(nextPath) {
 
 function mapErrorMessage(error) {
   const reason = String(error?.payload?.error || error?.message || '').toUpperCase();
+  if (reason.includes('SUPER_ADMIN_NOT_FOUND')) {
+    return 'Usuário super admin não encontrado. Execute o seed inicial no backend.';
+  }
   if (reason.includes('INVALID_CREDENTIALS')) {
     return 'Credenciais inválidas.';
   }
-  if (reason.includes('SUPER_ADMIN_ONLY')) {
-    return 'Acesso restrito: usuário sem role SUPER_ADMIN.';
-  }
   if (reason.includes('INVALID_MASTER_KEY')) {
     return 'Chave administrativa inválida.';
+  }
+  if (reason.includes('FORBIDDEN')) {
+    return 'Acesso não autorizado.';
   }
   if (reason.includes('TOO_MANY_ATTEMPTS')) {
     return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   }
   if (reason.includes('SUPER_ADMIN_DISABLED')) {
-    return 'Login de super admin desabilitado no backend.';
+    return 'Login de super admin indisponível: SUPER_ADMIN_MASTER_KEY não configurada.';
   }
   return error?.payload?.error || error?.message || 'Falha ao autenticar super admin.';
 }

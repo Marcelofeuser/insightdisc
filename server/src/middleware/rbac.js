@@ -25,7 +25,7 @@ export function requireRole(...roles) {
 export function requireSuperAdmin(req, res, next) {
   const role = String(req.user?.role || req.auth?.role || '').toUpperCase();
   const scope = String(req.auth?.scope || '').toLowerCase();
-  if (role !== 'SUPER_ADMIN' || scope !== 'super_admin') {
+  if (role !== 'SUPER_ADMIN' && scope !== 'super_admin') {
     return res.status(403).json({ error: 'FORBIDDEN' });
   }
   return next();

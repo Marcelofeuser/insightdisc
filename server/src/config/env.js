@@ -4,6 +4,13 @@ dotenv.config();
 
 const vitePort = Number(process.env.VITE_PORT || 5173);
 const defaultAppUrl = `http://localhost:${vitePort}`;
+const superAdminMasterKey = String(process.env.SUPER_ADMIN_MASTER_KEY || '').trim();
+export const hasSuperAdminKey = Boolean(superAdminMasterKey);
+
+if (!hasSuperAdminKey && process.env.NODE_ENV !== 'test') {
+  // eslint-disable-next-line no-console
+  console.warn('[SUPER_ADMIN] SUPER_ADMIN_MASTER_KEY não configurada');
+}
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -18,5 +25,6 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripePriceCredits: process.env.STRIPE_PRICE_ID_CREDITS || '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-  superAdminMasterKey: process.env.SUPER_ADMIN_MASTER_KEY || '',
+  superAdminMasterKey,
+  hasSuperAdminKey,
 };

@@ -5,6 +5,7 @@ import { hashPassword, signJwt, verifyPassword } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { env } from '../config/env.js';
+import { findSeedSuperAdminUser } from '../modules/auth/super-admin-bootstrap.js';
 
 const router = Router();
 
@@ -181,7 +182,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/super-admin-login', async (req, res) => {
   try {
-    if (!env.superAdminMasterKey) {
+    if (!env.hasSuperAdminKey) {
       return res.status(503).json({ ok: false, error: 'SUPER_ADMIN_DISABLED' });
     }
 
@@ -207,6 +208,11 @@ router.post('/super-admin-login', async (req, res) => {
 
     if (!user) {
       registerFailedSuperAdminAttempt(key);
+      const seededSuperAdmin = await findSeedSuperAdminUser(prisma);
+      const seededRole = String(seededSuperAdmin?.role || '').toUpperCase();
+      if (!seededSuperAdmin || seededRole !== 'SUPER_ADMIN') {
+        return res.status(404).json({ ok: false, error: 'SUPER_ADMIN_NOT_FOUND' });
+      }
       return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
     }
 
@@ -218,7 +224,7 @@ router.post('/super-admin-login', async (req, res) => {
 
     if (String(user.role || '').toUpperCase() !== 'SUPER_ADMIN') {
       registerFailedSuperAdminAttempt(key);
-      return res.status(403).json({ ok: false, error: 'SUPER_ADMIN_ONLY' });
+      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
 
     if (input.masterKey !== env.superAdminMasterKey) {
