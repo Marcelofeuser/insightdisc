@@ -16,7 +16,7 @@ import CandidateAssessment from '@/pages/candidate/CandidateAssessment';
 import CandidateReport from '@/pages/candidate/CandidateReport';
 import CandidatePortal from '@/pages/candidate/CandidatePortal';
 import CandidateUpgrade from '@/pages/candidate/CandidateUpgrade';
-import WhatsappFloatingButton from "./components/WhatsappFloatingButton";
+import InsightChatWidget from '@/components/InsightChatWidget';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -146,9 +146,9 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthenticatedApp />
+          <InsightChatWidget />
         </Router>
         <Toaster />
-        <WhatsappFloatingButton />
       </QueryClientProvider>
     </AuthProvider>
   );
