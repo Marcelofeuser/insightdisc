@@ -665,10 +665,16 @@ function buildPage({
     return `
       <section class="page cover-page">
         <div class="cover-content">
-          <div class="cover-logo-block">
-            <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-logo" />
+          <div class="cover-main-zone">
+            <div class="cover-logo-block">
+              <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-logo" />
+            </div>
+            ${content}
           </div>
-          ${content}
+          <div class="cover-bottom-lockup">
+            <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-mini-logo" />
+            <p class="cover-bottom-label">${esc(coverBrandName)}</p>
+          </div>
         </div>
         <footer class="footer cover-footer">
           <span>InsightDISC • Relatório Confidencial</span>
@@ -810,30 +816,32 @@ export function renderReportHtml(input = {}) {
       cover: true,
       branding,
       content: `
-        <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
-        ${showCoverLockupText ? '<p class="cover-brand-name">InsightDISC</p>' : ''}
-        ${showCoverLockupText ? '<div class="cover-rule"></div>' : ''}
-        ${showCoverLockupText ? '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>' : ''}
-        <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
-        <p class="cover-name">${esc(participant.name)}</p>
-        <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
-        <div class="cover-disc-band">
-          ${FACTORS.map(
-            (factor) => `
-              <div class="cover-disc-chip" style="--disc:${FACTOR_META[factor].color}">
-                <span>${factor}</span>
-                <small>${FACTOR_META[factor].label}</small>
-              </div>
-            `
-          ).join('')}
-        </div>
-        <div class="cover-participant-box">
-          <div><strong>Empresa:</strong> ${esc(participant.company)}</div>
-          <div><strong>Data:</strong> ${esc(meta.generatedAt)}</div>
-          <div><strong>E-mail:</strong> ${esc(participant.email)}</div>
-          <div><strong>Perfil predominante:</strong> ${esc(profile.primary)}${esc(profile.secondary ? ` + ${profile.secondary}` : '')}</div>
-          <div><strong>Responsável:</strong> ${esc(meta.responsibleName)}</div>
-          <div><strong>ID da avaliação:</strong> ${esc(participant.assessmentId)}</div>
+        <div class="cover-main-copy">
+          <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
+          ${showCoverLockupText ? '<p class="cover-brand-name">InsightDISC</p>' : ''}
+          ${showCoverLockupText ? '<div class="cover-rule"></div>' : ''}
+          ${showCoverLockupText ? '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>' : ''}
+          <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
+          <p class="cover-name">${esc(participant.name)}</p>
+          <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
+          <div class="cover-disc-band">
+            ${FACTORS.map(
+              (factor) => `
+                <div class="cover-disc-chip" style="--disc:${FACTOR_META[factor].color}">
+                  <span>${factor}</span>
+                  <small>${FACTOR_META[factor].label}</small>
+                </div>
+              `
+            ).join('')}
+          </div>
+          <div class="cover-participant-box">
+            <div><strong>Empresa:</strong> ${esc(participant.company)}</div>
+            <div><strong>Data:</strong> ${esc(meta.generatedAt)}</div>
+            <div><strong>E-mail:</strong> ${esc(participant.email)}</div>
+            <div><strong>Perfil predominante:</strong> ${esc(profile.primary)}${esc(profile.secondary ? ` + ${profile.secondary}` : '')}</div>
+            <div><strong>Responsável:</strong> ${esc(meta.responsibleName)}</div>
+            <div><strong>ID da avaliação:</strong> ${esc(participant.assessmentId)}</div>
+          </div>
         </div>
       `,
     })
@@ -2098,13 +2106,23 @@ export function renderReportHtml(input = {}) {
     .cover-content {
       position: relative;
       z-index: 1;
-      padding: 16mm 16mm 27mm;
+      padding: 16mm 16mm 24mm;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 3.8mm;
+      gap: 4.4mm;
       overflow: hidden;
+    }
+
+    .cover-main-zone {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4mm;
     }
 
     .cover-logo-block {
@@ -2112,7 +2130,15 @@ export function renderReportHtml(input = {}) {
       flex-direction: column;
       align-items: center;
       gap: 2.6mm;
-      margin-top: 1mm;
+      margin-top: 0;
+    }
+
+    .cover-main-copy {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3.3mm;
     }
 
     .cover-logo {
@@ -2128,7 +2154,7 @@ export function renderReportHtml(input = {}) {
       text-align: center;
       margin: 0;
       font-size: 11px;
-      letter-spacing: 1.2px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.76);
       font-weight: 600;
@@ -2138,7 +2164,7 @@ export function renderReportHtml(input = {}) {
       text-align: center;
       margin: 0;
       font-size: 13px;
-      letter-spacing: 1.4px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.94);
       font-weight: 700;
@@ -2249,6 +2275,35 @@ export function renderReportHtml(input = {}) {
 
     .cover-participant-box strong {
       color: #f8e3a3;
+    }
+
+    .cover-bottom-lockup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2mm;
+      padding-top: 2.4mm;
+      margin-bottom: 1.6mm;
+    }
+
+    .cover-mini-logo {
+      width: 56mm;
+      max-width: 56mm;
+      max-height: 14mm;
+      object-fit: contain;
+      opacity: 0.74;
+      display: block;
+      filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.26));
+    }
+
+    .cover-bottom-label {
+      margin: 0;
+      font-size: 10.5px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: 0.75px;
+      color: rgba(255, 255, 255, 0.72);
+      text-align: center;
     }
 
     .executive-hero {
