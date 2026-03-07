@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Sparkles, Lock, CreditCard, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 
 const FEATURES = [
   'Relatório completo de 20+ páginas',
@@ -12,7 +13,12 @@ const FEATURES = [
   'Exportação em PDF de alta qualidade'
 ];
 
-export default function PaywallModal({ isOpen, onClose, onPurchase, price = 'R$ 49,90' }) {
+export default function PaywallModal({
+  isOpen,
+  onClose,
+  onPurchase,
+  price = formatPriceBRL(PRODUCTS.REPORT_UNLOCK.price),
+}) {
   if (!isOpen) return null;
 
   return (

@@ -14,6 +14,7 @@ import { createPageUrl } from '@/utils';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import DISCFactorCard from '@/components/disc/DISCFactorCard';
 import { base44 } from '@/api/base44Client';
+import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 
 const RELATION_LABELS = Object.freeze({
@@ -159,6 +160,7 @@ export default function FreeResults() {
   const assessmentToken = assessment?.access_token || '';
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
   const upgradeUrl = `/c/upgrade?assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}`;
+  const reportUnlockPriceLabel = formatPriceBRL(PRODUCTS.REPORT_UNLOCK.price);
   const compareRelation = searchParams.get('relation') || '';
   const compareFromName = searchParams.get('fromName') || '';
   const currentName = assessment?.respondent_name || assessment?.lead_name || searchParams.get('name') || 'Você';
@@ -298,6 +300,9 @@ export default function FreeResults() {
                     Desbloquear Relatório Completo
                   </Button>
                 </Link>
+                <p className="mt-3 text-sm text-slate-500">
+                  Desbloqueio por {reportUnlockPriceLabel}
+                </p>
               </div>
             </div>
           )}
@@ -383,6 +388,11 @@ export default function FreeResults() {
               </Link>
             )}
           </div>
+          {!isUnlocked ? (
+            <p className="mt-4 text-sm text-indigo-100">
+              Valor do desbloqueio completo: {reportUnlockPriceLabel}
+            </p>
+          ) : null}
         </motion.div>
 
         <motion.div

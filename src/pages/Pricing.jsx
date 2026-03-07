@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -37,7 +38,7 @@ const SOCIAL_OFFERS = Object.freeze([
   {
     id: 'single',
     title: 'Professional',
-    price: 'R$ 79',
+    price: formatPriceBRL(PRODUCTS.SINGLE_PRO.price),
     subtitle: '1 avaliação premium completa',
     cta: 'Comprar 1 Avaliação',
     features: [
@@ -50,7 +51,7 @@ const SOCIAL_OFFERS = Object.freeze([
   {
     id: 'gift',
     title: 'Gift',
-    price: 'R$ 79',
+    price: formatPriceBRL(PRODUCTS.GIFT.price),
     subtitle: 'Compre 1 avaliação para outra pessoa',
     cta: 'Comprar presente',
     features: [
@@ -65,33 +66,33 @@ const CREDIT_PACKS = Object.freeze([
   {
     id: 'credits_10',
     name: '10 avaliações',
-    credits: 10,
-    price: 'R$ 290',
-    perUnit: 'R$ 29 por avaliação',
+    credits: PRODUCTS.PACK_10.credits,
+    price: formatPriceBRL(PRODUCTS.PACK_10.price),
+    perUnit: `${formatPriceBRL(PRODUCTS.PACK_10.price / PRODUCTS.PACK_10.credits)} por avaliação`,
     highlight: 'Ideal para squads pequenos e consultorias.',
     cta: 'Comprar 10 Avaliações',
-    checkoutProduct: 'pack-10',
+    checkoutProduct: PRODUCTS.PACK_10.id,
   },
   {
     id: 'credits_50',
     name: '50 avaliações',
-    credits: 50,
-    price: 'R$ 1.190',
-    perUnit: 'R$ 23 por avaliação',
+    credits: PRODUCTS.PACK_50.credits,
+    price: formatPriceBRL(PRODUCTS.PACK_50.price),
+    perUnit: `${formatPriceBRL(PRODUCTS.PACK_50.price / PRODUCTS.PACK_50.credits)} por avaliação`,
     highlight: 'Melhor equilíbrio para operação recorrente.',
     cta: 'Comprar 50 Avaliações',
     popular: true,
-    checkoutProduct: 'pack-50',
+    checkoutProduct: PRODUCTS.PACK_50.id,
   },
   {
     id: 'credits_100',
     name: '100 avaliações',
-    credits: 100,
-    price: 'R$ 1.990',
-    perUnit: 'R$ 19,90 por avaliação',
+    credits: PRODUCTS.PACK_100.credits,
+    price: formatPriceBRL(PRODUCTS.PACK_100.price),
+    perUnit: `${formatPriceBRL(PRODUCTS.PACK_100.price / PRODUCTS.PACK_100.credits)} por avaliação`,
     highlight: 'Escala com maior eficiência de custo.',
     cta: 'Comprar 100 Avaliações',
-    checkoutProduct: 'pack-100',
+    checkoutProduct: PRODUCTS.PACK_100.id,
   },
 ]);
 
@@ -99,7 +100,7 @@ const BUSINESS_PLANS = Object.freeze([
   {
     id: 'business_monthly',
     name: 'Plano Business Mensal',
-    price: 'R$ 199/mês',
+    price: `${formatPriceBRL(PRODUCTS.BUSINESS_MONTHLY.price)}/${PRODUCTS.BUSINESS_MONTHLY.billingPeriod}`,
     audience: 'Profissionais e equipes em operação contínua',
     cta: 'Assinar Plano Business',
     ctaKind: 'checkout',

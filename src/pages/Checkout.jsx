@@ -3,66 +3,27 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { PRODUCTS, formatPriceBRL, getProductById } from '@/config/pricing';
 import { createPageUrl } from '@/utils';
 
-const PRODUCTS = Object.freeze({
-  single: {
-    title: '1 Avaliação Avulsa',
-    price: 'R$ 79,00',
-    summary: 'Relatório DISC completo para uso individual.',
-  },
-  gift: {
-    title: 'Presente DISC',
-    price: 'R$ 79,00',
-    summary: 'Compre agora e personalize o presente após a confirmação do pagamento.',
-  },
-  'pack-10': {
-    title: 'Pacote 10 Avaliações',
-    price: 'R$ 290,00',
-    summary: 'Ideal para squads pequenos e consultorias.',
-  },
-  'pack-50': {
-    title: 'Pacote 50 Avaliações',
-    price: 'R$ 1.190,00',
-    summary: 'Escala com melhor custo por avaliação.',
-  },
-  'pack-100': {
-    title: 'Pacote 100 Avaliações',
-    price: 'R$ 1.990,00',
-    summary: 'Volume alto para operação recorrente e RH em escala.',
-  },
-  'business-monthly': {
-    title: 'Assinatura Business Mensal',
-    price: 'R$ 199,00 / mês',
-    summary: 'Plano contínuo para operação profissional com painel SaaS.',
-  },
-  business: {
-    title: 'Assinatura Business Mensal',
-    price: 'R$ 199,00 / mês',
-    summary: 'Plano contínuo para operação profissional com painel SaaS.',
-  },
-  'report-unlock': {
-    title: 'Desbloquear Relatório Completo',
-    price: 'R$ 49,90',
-    summary: 'Libera o relatório completo da avaliação já realizada.',
-  },
-  report: {
-    title: 'Desbloquear Relatório Completo',
-    price: 'R$ 49,90',
-    summary: 'Libera o relatório completo da avaliação já realizada.',
-  },
-});
+function buildCheckoutProduct(rawProductKey) {
+  const fallbackProduct = PRODUCTS.SINGLE_PRO;
+  const resolvedProduct = getProductById(rawProductKey) || fallbackProduct;
 
-const PRODUCT_ALIASES = Object.freeze({
-  business: 'business-monthly',
-  report: 'report-unlock',
-});
+  const basePrice = formatPriceBRL(resolvedProduct.price);
+  const price = resolvedProduct.billingPeriod ? `${basePrice} / ${resolvedProduct.billingPeriod}` : basePrice;
+
+  return {
+    title: resolvedProduct.name,
+    summary: resolvedProduct.description,
+    price,
+  };
+}
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const rawProductKey = (searchParams.get('product') || searchParams.get('produto') || 'single').trim();
-  const productKey = PRODUCT_ALIASES[rawProductKey] || rawProductKey;
-  const product = PRODUCTS[productKey] || PRODUCTS.single;
+  const product = buildCheckoutProduct(rawProductKey);
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">

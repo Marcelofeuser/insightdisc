@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { env } from '../config/env.js';
+import { PRODUCTS, getProductById, resolveProductId as resolveCatalogProductId } from '../config/pricing.js';
 import { requireAuth } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -22,13 +23,30 @@ function getStripeClient() {
   return new Stripe(env.stripeSecretKey, { apiVersion: '2024-12-18.acacia' });
 }
 
+function resolveProductIdFromPayload(productType, credits) {
+  if (productType === 'single_assessment') return PRODUCTS.SINGLE_PRO.id;
+  if (productType === 'gift_assessment') return PRODUCTS.GIFT.id;
+  if (productType === 'business_subscription') return PRODUCTS.BUSINESS_MONTHLY.id;
+  if (productType === 'report_unlock') return PRODUCTS.REPORT_UNLOCK.id;
+  if (productType === 'credit_pack') {
+    const normalizedCredits = Number(credits || 0);
+    if (normalizedCredits === PRODUCTS.PACK_10.credits) return PRODUCTS.PACK_10.id;
+    if (normalizedCredits === PRODUCTS.PACK_50.credits) return PRODUCTS.PACK_50.id;
+    if (normalizedCredits === PRODUCTS.PACK_100.credits) return PRODUCTS.PACK_100.id;
+  }
+  return '';
+}
+
 router.post('/create-checkout', requireAuth, async (req, res) => {
   try {
     const schema = z.object({
       assessmentId: z.string().optional(),
       token: z.string().optional(),
       flow: z.string().optional(),
-      productType: z.enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription']).optional(),
+      productType: z
+        .enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription', 'report_unlock'])
+        .optional(),
+      product: z.string().trim().optional(),
       credits: z.number().int().positive().optional(),
       mode: z.enum(['payment', 'subscription']).optional(),
       priceEnvKey: z.string().trim().min(1).optional(),
@@ -38,9 +56,21 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
     });
 
     const input = schema.parse(req.body || {});
-    const resolvedMode = input.mode || (input.productType === 'business_subscription' ? 'subscription' : 'payment');
+    const resolvedProductId = resolveCatalogProductId(
+      input.product || resolveProductIdFromPayload(input.productType, input.credits)
+    );
+    const resolvedProduct = getProductById(resolvedProductId);
+
+    const resolvedMode =
+      input.mode
+      || (input.productType === 'business_subscription' || resolvedProductId === PRODUCTS.BUSINESS_MONTHLY.id
+        ? 'subscription'
+        : 'payment');
+
     const resolvedCredits = Number(
-      input.credits || (input.productType === 'business_subscription' ? 5 : 1)
+      input.credits
+      || resolvedProduct?.credits
+      || (input.productType === 'business_subscription' || resolvedProductId === PRODUCTS.BUSINESS_MONTHLY.id ? 5 : 1)
     );
     const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
     const resolvedPriceId = explicitPriceId || env.stripePriceCredits;
@@ -64,7 +94,15 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
         giftToken: input.giftToken || '',
         credits: resolvedCredits,
       });
-      return res.status(200).json({ ok: true, mocked: true, id: mockSessionId, url });
+      return res.status(200).json({
+        ok: true,
+        mocked: true,
+        id: mockSessionId,
+        url,
+        product: resolvedProductId || '',
+        amount: Number(resolvedProduct?.price || 0),
+        currency: resolvedProduct?.currency || 'BRL',
+      });
     }
 
     if (resolvedMode === 'subscription' && !explicitPriceId) {
@@ -93,6 +131,8 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
         flow: input.flow || '',
         giftToken: input.giftToken || '',
         productType: input.productType || '',
+        product: resolvedProductId || '',
+        productName: resolvedProduct?.name || '',
         priceEnvKey: input.priceEnvKey || '',
         credits: String(resolvedCredits),
       },
