@@ -28,40 +28,60 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
       assessmentId: z.string().optional(),
       token: z.string().optional(),
       flow: z.string().optional(),
-      credits: z.number().int().positive().default(1),
+      productType: z.enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription']).optional(),
+      credits: z.number().int().positive().optional(),
+      mode: z.enum(['payment', 'subscription']).optional(),
+      priceEnvKey: z.string().trim().min(1).optional(),
+      giftToken: z.string().optional(),
       successUrl: z.string().url().optional(),
       cancelUrl: z.string().url().optional(),
     });
 
     const input = schema.parse(req.body || {});
+    const resolvedMode = input.mode || (input.productType === 'business_subscription' ? 'subscription' : 'payment');
+    const resolvedCredits = Number(
+      input.credits || (input.productType === 'business_subscription' ? 5 : 1)
+    );
+    const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
+    const resolvedPriceId = explicitPriceId || env.stripePriceCredits;
     const resolvedSuccessUrl = appendQuery(
       input.successUrl || `${env.appUrl}/CheckoutSuccess?session_id={CHECKOUT_SESSION_ID}`,
       {
         assessmentId: input.assessmentId || '',
         token: input.token || '',
         flow: input.flow || '',
+        giftToken: input.giftToken || '',
       }
     );
 
     const stripe = getStripeClient();
-    if (!stripe || !env.stripePriceCredits) {
+    if (!stripe || !resolvedPriceId) {
       const mockSessionId = `mock_${Date.now()}`;
       const url = appendQuery(`${env.appUrl}/CheckoutSuccess?session_id=${mockSessionId}`, {
         assessmentId: input.assessmentId || '',
         token: input.token || '',
         flow: input.flow || '',
-        credits: input.credits,
+        giftToken: input.giftToken || '',
+        credits: resolvedCredits,
       });
       return res.status(200).json({ ok: true, mocked: true, id: mockSessionId, url });
     }
 
+    if (resolvedMode === 'subscription' && !explicitPriceId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'BUSINESS_PRICE_NOT_CONFIGURED',
+        message: 'Preço da assinatura Business não configurado no backend.',
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: resolvedMode,
       payment_method_types: ['card'],
       line_items: [
         {
-          price: env.stripePriceCredits,
-          quantity: input.credits,
+          price: resolvedPriceId,
+          quantity: explicitPriceId ? 1 : resolvedCredits,
         },
       ],
       success_url: resolvedSuccessUrl,
@@ -71,7 +91,10 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
         assessmentId: input.assessmentId || '',
         token: input.token || '',
         flow: input.flow || '',
-        credits: String(input.credits),
+        giftToken: input.giftToken || '',
+        productType: input.productType || '',
+        priceEnvKey: input.priceEnvKey || '',
+        credits: String(resolvedCredits),
       },
     });
 

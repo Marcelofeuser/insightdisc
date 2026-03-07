@@ -11,12 +11,23 @@ import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import {
   buildGiftLink,
   markGiftOrderPaid,
+  normalizeGiftPayload,
   resolveGiftPayload,
+  saveGiftOrder,
 } from '@/modules/billing/gift-utils';
+
+const DEFAULT_GIFT_MESSAGE =
+  'Você recebeu uma avaliação DISC do InsightDISC. Aproveite para descobrir seu perfil comportamental completo.';
+
+function buildGiftWhatsappShareLink(giftUrl) {
+  const message = `Você recebeu um presente InsightDISC. Acesse seu teste por este link: ${giftUrl}`;
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const { access: authAccess } = useAuth();
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [assessmentId, setAssessmentId] = useState(searchParams.get('assessmentId') || '');
@@ -26,9 +37,19 @@ export default function CheckoutSuccess() {
   const [availablePdfUrl, setAvailablePdfUrl] = useState(searchParams.get('pdfUrl') || '');
   const [confirmedCredits, setConfirmedCredits] = useState(0);
   const [balanceAfterCheckout, setBalanceAfterCheckout] = useState(0);
+
   const [giftPayload, setGiftPayload] = useState(null);
   const [giftLink, setGiftLink] = useState('');
+  const [giftFormError, setGiftFormError] = useState('');
   const [copiedGiftLink, setCopiedGiftLink] = useState(false);
+  const [giftForm, setGiftForm] = useState({
+    senderName: '',
+    senderEmail: '',
+    recipientName: '',
+    recipientEmail: '',
+    message: '',
+    useDefaultMessage: true,
+  });
 
   const apiBaseUrl = getApiBaseUrl();
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
@@ -85,13 +106,25 @@ export default function CheckoutSuccess() {
 
       if (fallbackGiftToken) {
         const giftData = resolveGiftPayload({ token: fallbackGiftToken, searchParams });
-        setGiftPayload(giftData.payload);
+        const initialPayload = giftData.payload || {};
+
+        setGiftPayload(initialPayload);
         setGiftLink(
           buildGiftLink({
             token: fallbackGiftToken,
-            payload: giftData.payload,
+            payload: initialPayload,
           })
         );
+
+        setGiftForm((prev) => ({
+          ...prev,
+          senderName: initialPayload.senderName || '',
+          senderEmail: initialPayload.senderEmail || '',
+          recipientName: initialPayload.recipientName || '',
+          recipientEmail: initialPayload.recipientEmail || '',
+          message: initialPayload.message || '',
+          useDefaultMessage: !initialPayload.message,
+        }));
       }
 
       setCandidateToken(fallbackToken);
@@ -270,8 +303,55 @@ export default function CheckoutSuccess() {
   })();
 
   const canOpenPdf = Boolean(availablePdfUrl) && Boolean(canExportReport);
-  const recipientDisplay =
-    giftPayload?.recipientName || giftPayload?.recipientEmail || 'destinatário';
+
+  const setGiftField = (field, value) => {
+    setGiftForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const generateGiftLink = () => {
+    if (!queryGiftToken) {
+      setGiftFormError('Token do presente não encontrado.');
+      return;
+    }
+
+    const payload = normalizeGiftPayload({
+      senderName: giftForm.senderName,
+      senderEmail: giftForm.senderEmail,
+      recipientName: giftForm.recipientName,
+      recipientEmail: giftForm.recipientEmail,
+      message: giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message,
+    });
+
+    if (!payload.senderName) {
+      setGiftFormError('Informe o nome de quem está enviando o presente.');
+      return;
+    }
+
+    if (!payload.recipientName) {
+      setGiftFormError('Informe o nome de quem vai receber o presente.');
+      return;
+    }
+
+    saveGiftOrder({
+      token: queryGiftToken,
+      payload,
+      status: 'paid',
+      sessionId: searchParams.get('session_id') || '',
+    });
+
+    const nextGiftLink = buildGiftLink({
+      token: queryGiftToken,
+      payload,
+    });
+
+    setGiftPayload(payload);
+    setGiftLink(nextGiftLink);
+    setGiftFormError('');
+    setCopiedGiftLink(false);
+  };
 
   const copyGiftLinkToClipboard = async () => {
     if (!giftLandingUrl) return;
@@ -284,9 +364,15 @@ export default function CheckoutSuccess() {
     }
   };
 
+  const shareGiftOnWhatsapp = () => {
+    if (!giftLandingUrl) return;
+    const url = buildGiftWhatsappShareLink(giftLandingUrl);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-xl">
+      <Card className="w-full max-w-2xl">
         <CardContent className="p-8 space-y-5">
           {isLoading ? (
             <div className="flex items-center gap-3 text-slate-700">
@@ -316,7 +402,7 @@ export default function CheckoutSuccess() {
 
               <p className="text-sm text-slate-600">
                 {isGiftFlow
-                  ? 'Seu presente foi processado com sucesso. Agora envie o link personalizado para a pessoa presenteada iniciar a avaliação.'
+                  ? 'Agora personalize o presente e gere o link exclusivo para compartilhar.'
                   : 'Seu acesso PRO foi liberado com sucesso.'}
               </p>
 
@@ -328,31 +414,90 @@ export default function CheckoutSuccess() {
 
               {isGiftFlow ? (
                 <>
-                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800">
-                    Link pronto para <strong>{recipientDisplay}</strong>.
+                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
+                    Personalização pós-compra: informe os nomes e, opcionalmente, ajuste mensagem e e-mails.
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={giftForm.senderName}
+                        onChange={(event) => setGiftField('senderName', event.target.value)}
+                        placeholder="Nome de quem envia *"
+                        className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={giftForm.recipientName}
+                        onChange={(event) => setGiftField('recipientName', event.target.value)}
+                        placeholder="Nome de quem recebe *"
+                        className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={giftForm.senderEmail}
+                        onChange={(event) => setGiftField('senderEmail', event.target.value)}
+                        placeholder="E-mail de quem envia (opcional)"
+                        className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={giftForm.recipientEmail}
+                        onChange={(event) => setGiftField('recipientEmail', event.target.value)}
+                        placeholder="E-mail de quem recebe (opcional)"
+                        className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 text-xs text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={giftForm.useDefaultMessage}
+                        onChange={(event) => setGiftField('useDefaultMessage', event.target.checked)}
+                      />
+                      Usar mensagem pronta do InsightDISC
+                    </label>
+
+                    <textarea
+                      value={giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message}
+                      onChange={(event) => setGiftField('message', event.target.value)}
+                      disabled={giftForm.useDefaultMessage}
+                      placeholder="Mensagem personalizada (opcional)"
+                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm min-h-24"
+                    />
+
+                    {giftFormError ? (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{giftFormError}</div>
+                    ) : null}
+
+                    <Button onClick={generateGiftLink} className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700">
+                      Gerar link do presente
+                    </Button>
                   </div>
 
                   {giftLandingUrl ? (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs break-all text-slate-600">
-                      {giftLandingUrl}
-                    </div>
+                    <>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs break-all text-slate-600">
+                        {giftLandingUrl}
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        <a href={giftLandingUrl} target="_blank" rel="noreferrer">
+                          <Button className="bg-indigo-600 hover:bg-indigo-700">Abrir landing do presente</Button>
+                        </a>
+                        <Button variant="outline" onClick={copyGiftLinkToClipboard}>
+                          {copiedGiftLink ? 'Link copiado' : 'Copiar link de presente'}
+                        </Button>
+                        <Button variant="outline" onClick={shareGiftOnWhatsapp}>
+                          Compartilhar no WhatsApp
+                        </Button>
+                      </div>
+                    </>
                   ) : null}
 
-                  <div className="flex flex-wrap gap-3">
-                    {giftLandingUrl ? (
-                      <a href={giftLandingUrl} target="_blank" rel="noreferrer">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700">Abrir landing do presente</Button>
-                      </a>
-                    ) : null}
-                    {giftLandingUrl ? (
-                      <Button variant="outline" onClick={copyGiftLinkToClipboard}>
-                        {copiedGiftLink ? 'Link copiado' : 'Copiar link de presente'}
-                      </Button>
-                    ) : null}
-                    <Link to={createPageUrl('Pricing')}>
-                      <Button variant="outline">Voltar para preços</Button>
-                    </Link>
-                  </div>
+                  <Link to={createPageUrl('Pricing')}>
+                    <Button variant="outline">Voltar para preços</Button>
+                  </Link>
                 </>
               ) : (
                 <>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { MessageCircle, RotateCcw, Send, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useInsightChatbot } from '@/modules/chatbot/useInsightChatbot';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -50,6 +51,7 @@ function fieldInput(field, value, onChange, error) {
 }
 
 export default function InsightChatWidget() {
+  const location = useLocation();
   const { toast } = useToast();
   const {
     config,
@@ -79,8 +81,11 @@ export default function InsightChatWidget() {
 
   if (!config?.settings?.showOnAllPages) return null;
 
+  const isPricingPage = location.pathname === '/Pricing';
+  const floatingOffsetClass = isPricingPage ? 'bottom-24 sm:bottom-20' : 'bottom-5';
+
   return (
-    <div className="fixed bottom-5 right-5 z-[45] flex flex-col items-end gap-3">
+    <div className={`fixed ${floatingOffsetClass} right-5 z-[45] flex flex-col items-end gap-3`}>
       {isOpen ? (
         <section className="w-[min(92vw,380px)] rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.22)] overflow-hidden">
           <header className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-white">

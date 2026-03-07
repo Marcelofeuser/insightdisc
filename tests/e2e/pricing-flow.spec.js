@@ -9,7 +9,7 @@ test('Pricing separa trilhas Social e Business com CTAs corretos', async ({ page
 
   await expect(page.getByRole('button', { name: 'Fazer Teste Grátis' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Comprar 1 Avaliação' }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Presentear alguém' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Comprar presente' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Comprar 10 Avaliações' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Comprar 50 Avaliações' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Comprar 100 Avaliações' })).toBeVisible();
@@ -24,4 +24,3 @@ test('Landing de presente /gift/:token exibe mensagem personalizada', async ({ p
   await expect(page.getByText(/Mensagem personalizada de teste/i)).toBeVisible();
   await expect(page.getByRole('button', { name: /Realizar meu teste/i })).toBeVisible();
 });
-

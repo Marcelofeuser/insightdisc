@@ -18,18 +18,10 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
-import {
-  createGiftToken,
-  findGiftOrder,
-  normalizeGiftPayload,
-  saveGiftOrder,
-} from '@/modules/billing/gift-utils';
+import { createGiftToken, saveGiftOrder } from '@/modules/billing/gift-utils';
 
 const SALES_WHATSAPP_URL =
   'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
-
-const DEFAULT_GIFT_MESSAGE =
-  'Quero te presentear com uma avaliação DISC do InsightDISC para apoiar seu autoconhecimento e desenvolvimento profissional.';
 
 const SOCIAL_OFFERS = Object.freeze([
   {
@@ -64,11 +56,11 @@ const SOCIAL_OFFERS = Object.freeze([
     title: 'Presentear alguém',
     price: 'R$ 79',
     subtitle: 'Compre 1 avaliação para outra pessoa',
-    cta: 'Presentear alguém',
+    cta: 'Comprar presente',
     features: [
-      'Mensagem personalizada de presente',
-      'Link exclusivo /gift/:token',
-      'Experiência emocional e profissional',
+      'Link exclusivo de presente',
+      'Personalização somente após pagamento',
+      'Compartilhamento fácil por link e WhatsApp',
     ],
   },
 ]);
@@ -142,7 +134,7 @@ const SOCIAL_COMPARISON = Object.freeze([
     feature: 'Resultado imediato',
     free: 'Sim',
     single: 'Sim',
-    gift: 'Sim (quando o presente é ativado)',
+    gift: 'Sim (após ativação do presente)',
   },
   {
     feature: 'Perfil dominante',
@@ -302,7 +294,7 @@ const FAQ_ITEMS = Object.freeze([
   },
   {
     q: 'Como funciona o presente?',
-    a: 'Você preenche os dados de quem envia e de quem recebe, conclui a compra e recebe um link personalizado para enviar.',
+    a: 'Você compra primeiro e personaliza depois: gera o link exclusivo, adiciona mensagem e compartilha quando quiser.',
   },
 ]);
 
@@ -333,20 +325,9 @@ export default function Pricing() {
 
   const [user, setUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
-  const [creditLoading, setCreditLoading] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
-
-  const [giftForm, setGiftForm] = useState({
-    senderName: '',
-    senderEmail: '',
-    recipientName: '',
-    recipientEmail: '',
-    message: '',
-    useDefaultMessage: true,
-  });
-  const [giftError, setGiftError] = useState('');
 
   const assessmentId = searchParams.get('assessmentId') || '';
   const leadEmail = searchParams.get('email') || '';
@@ -374,6 +355,7 @@ export default function Pricing() {
 
         const authenticatedUser = await base44.auth.me();
         setUser(authenticatedUser);
+
         if (authenticatedUser?.active_workspace_id) {
           const workspaceResult = await base44.entities.Workspace.filter({
             id: authenticatedUser.active_workspace_id,
@@ -390,6 +372,26 @@ export default function Pricing() {
     loadData();
   }, [apiBaseUrl, authUser]);
 
+  useEffect(() => {
+    const scrollToHashSection = () => {
+      const hash = window.location.hash;
+      if (!hash || hash === '#') return;
+
+      const target = document.querySelector(hash);
+      if (!target) return;
+
+      const top = target.getBoundingClientRect().top + window.scrollY - 108;
+      window.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    const frame = requestAnimationFrame(scrollToHashSection);
+    window.addEventListener('hashchange', scrollToHashSection);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('hashchange', scrollToHashSection);
+    };
+  }, []);
+
   const goToLogin = () => {
     const next = `${createPageUrl('Pricing')}${window.location.search || ''}`;
     navigate(`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`);
@@ -399,102 +401,40 @@ export default function Pricing() {
     window.open(SALES_WHATSAPP_URL, '_blank', 'noopener,noreferrer');
   };
 
-  const handleCreditPackPurchase = async (pack) => {
+  const startCheckout = async ({
+    checkoutKey,
+    productType,
+    credits,
+    mode = 'payment',
+    priceEnvKey,
+    flow,
+    successParams = {},
+    cancelHash = '',
+    name,
+    email,
+    giftToken,
+  }) => {
     if (!user) {
       goToLogin();
       return;
     }
 
-    if (apiBaseUrl) {
-      const token = getApiToken();
-      if (!token) {
-        goToLogin();
-        return;
-      }
-
-      setCreditLoading(pack.id);
-      setCheckoutError('');
-      setSuccessMessage('');
-
-      try {
-        const response = await apiRequest('/payments/create-checkout', {
-          method: 'POST',
-          requireAuth: true,
-          body: {
-            credits: pack.credits,
-            successUrl: `${window.location.origin}${createPageUrl('CheckoutSuccess')}`,
-            cancelUrl: `${window.location.origin}${createPageUrl('Pricing')}#b2b`,
-          },
-        });
-
-        if (!response?.url) {
-          throw new Error('Falha ao iniciar checkout de créditos.');
-        }
-
-        window.location.href = response.url;
-      } catch (error) {
-        setCheckoutError(error?.message || 'Não foi possível iniciar a compra de créditos.');
-      } finally {
-        setCreditLoading('');
-      }
+    if (!apiBaseUrl) {
+      setCheckoutError('Não foi possível iniciar o checkout agora. Verifique se a API está ativa.');
       return;
     }
 
-    setCreditLoading(pack.id);
-    setCheckoutError('');
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-      if (workspace?.id) {
-        const currentBalance = Number(workspace?.credits_balance || 0);
-        const nextBalance = currentBalance + pack.credits;
-
-        await base44.entities.Transaction.create({
-          user_id: user.id,
-          workspace_id: workspace.id,
-          type: 'credit_pack',
-          product: pack.id,
-          amount: Number(pack.price.replace(/\D/g, '')),
-          currency: 'BRL',
-          status: 'completed',
-          payment_method: 'credit_card',
-          credits_added: pack.credits,
-          metadata: { pack_name: pack.name },
-        });
-
-        await base44.entities.Workspace.update(workspace.id, {
-          credits_balance: nextBalance,
-        });
-
-        setWorkspace((prev) => ({ ...prev, credits_balance: nextBalance }));
-      }
-
-      setSuccessMessage(`${pack.credits} créditos adicionados com sucesso.`);
-    } catch (error) {
-      setCheckoutError(error?.message || 'Não foi possível concluir a compra.');
-    } finally {
-      setCreditLoading('');
+    const authToken = getApiToken();
+    if (!authToken) {
+      goToLogin();
+      return;
     }
-  };
 
-  const handleWebCheckout = async ({
-    priceEnvKey,
-    mode = 'payment',
-    flowOverride = '',
-    successParams = {},
-    cancelHash = '',
-    emailOverride = '',
-    nameOverride = '',
-  }) => {
+    setCheckoutLoading(checkoutKey || productType || 'checkout');
     setCheckoutError('');
     setSuccessMessage('');
-    setCheckoutLoading(priceEnvKey || 'checkout');
 
-    let timeoutId;
     try {
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 12000);
-
       const successUrl = new URL(`${window.location.origin}${createPageUrl('CheckoutSuccess')}`);
       Object.entries(successParams || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -508,129 +448,114 @@ export default function Pricing() {
       }
 
       const payload = {
+        productType,
         mode,
+        credits,
         priceEnvKey,
-        email: emailOverride || leadEmail || user?.email || '',
-        name: nameOverride || leadName || user?.full_name || '',
+        flow,
         assessmentId: assessmentId || undefined,
         token: candidateToken || undefined,
-        flow: flowOverride || checkoutFlow || undefined,
+        giftToken: giftToken || undefined,
         successUrl: successUrl.toString(),
         cancelUrl: cancelUrl.toString(),
+        name: name || leadName || user?.full_name || '',
+        email: email || leadEmail || user?.email || '',
       };
 
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await apiRequest('/payments/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
+        requireAuth: true,
+        body: payload,
       });
 
-      clearTimeout(timeoutId);
-      const data = await response.json();
-
-      if (!response.ok || !data?.url) {
-        throw new Error(data?.error || 'Falha ao criar sessão de checkout.');
+      if (!response?.url) {
+        throw new Error('Não foi possível iniciar o checkout.');
       }
 
-      window.location.href = data.url;
+      window.location.href = response.url;
     } catch (error) {
-      if (base44?.__isMock && assessmentId) {
-        const fallback = new URL(`${window.location.origin}${createPageUrl('CheckoutSuccess')}`);
-        fallback.searchParams.set('session_id', `mock_${Date.now()}`);
-        fallback.searchParams.set('assessmentId', assessmentId);
-        if (candidateToken) fallback.searchParams.set('token', candidateToken);
-        if (checkoutFlow) fallback.searchParams.set('flow', checkoutFlow);
-        if (leadEmail) fallback.searchParams.set('email', leadEmail);
-        if (leadName) fallback.searchParams.set('name', leadName);
-        window.location.href = fallback.toString();
-        return;
+      const code = String(error?.message || '').toUpperCase();
+      if (code.includes('API_BASE_URL_NOT_CONFIGURED')) {
+        setCheckoutError('Não foi possível iniciar o checkout agora. Verifique se a API está ativa.');
+      } else if (code.includes('API_AUTH_MISSING')) {
+        goToLogin();
+      } else if (code.includes('BUSINESS_PRICE_NOT_CONFIGURED')) {
+        setCheckoutError('Plano Business indisponível no momento. Fale com vendas para ativação.');
+      } else {
+        setCheckoutError(error?.message || 'Não foi possível iniciar o checkout agora. Tente novamente.');
       }
-
-      setCheckoutError(
-        error?.name === 'AbortError'
-          ? 'O checkout demorou para responder. Tente novamente em instantes.'
-          : error?.message || 'Não foi possível iniciar o checkout.'
-      );
     } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       setCheckoutLoading('');
     }
   };
 
   const handleBuySingleAssessment = () => {
-    handleWebCheckout({
-      priceEnvKey: 'STRIPE_PRICE_PRO',
+    startCheckout({
+      checkoutKey: 'single_assessment',
+      productType: 'single_assessment',
+      credits: 1,
       mode: 'payment',
-      flowOverride: checkoutFlow || (isCandidateUnlock ? 'candidate' : ''),
+      flow: checkoutFlow || (isCandidateUnlock ? 'candidate' : 'single_assessment'),
       successParams: isCandidateUnlock
         ? {
             assessmentId,
             token: candidateToken,
             flow: checkoutFlow || 'candidate',
           }
-        : {},
+        : { flow: 'single_assessment' },
       cancelHash: 'social',
     });
   };
 
-  const handleGiftPurchase = async () => {
-    const normalizedGift = normalizeGiftPayload({
-      senderName: giftForm.senderName,
-      senderEmail: giftForm.senderEmail,
-      recipientName: giftForm.recipientName,
-      recipientEmail: giftForm.recipientEmail,
-      message: giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message,
-    });
-
-    if (!normalizedGift.senderName) {
-      setGiftError('Informe o nome de quem está enviando o presente.');
-      return;
-    }
-
-    if (!normalizedGift.recipientName && !normalizedGift.recipientEmail) {
-      setGiftError('Informe o nome ou e-mail de quem vai receber o presente.');
-      return;
-    }
-
+  const handleGiftPurchase = () => {
     const giftToken = createGiftToken();
     saveGiftOrder({
       token: giftToken,
-      payload: normalizedGift,
+      payload: {},
       status: 'pending',
     });
 
-    const preview = findGiftOrder(giftToken);
-    const giftPayload = preview?.payload || normalizedGift;
-
-    setGiftError('');
-
-    await handleWebCheckout({
-      priceEnvKey: 'STRIPE_PRICE_PRO',
+    startCheckout({
+      checkoutKey: 'gift_assessment',
+      productType: 'gift_assessment',
+      credits: 1,
       mode: 'payment',
-      flowOverride: 'gift',
+      flow: 'gift',
+      giftToken,
       successParams: {
         flow: 'gift',
         giftToken,
-        from: giftPayload.senderName,
-        senderEmail: giftPayload.senderEmail,
-        to: giftPayload.recipientName,
-        recipientEmail: giftPayload.recipientEmail,
-        msg: giftPayload.message,
       },
       cancelHash: 'social',
-      emailOverride: giftPayload.senderEmail || leadEmail || user?.email || '',
-      nameOverride: giftPayload.senderName || leadName || user?.full_name || '',
     });
   };
 
-  const setGiftField = (field, value) => {
-    setGiftForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleCreditPackPurchase = (pack) => {
+    startCheckout({
+      checkoutKey: pack.id,
+      productType: 'credit_pack',
+      credits: pack.credits,
+      mode: 'payment',
+      flow: 'credit_pack',
+      successParams: {
+        flow: 'credit_pack',
+        credits: pack.credits,
+      },
+      cancelHash: 'b2b',
+    });
+  };
+
+  const handleBusinessSubscription = () => {
+    startCheckout({
+      checkoutKey: 'business_monthly',
+      productType: 'business_subscription',
+      credits: 5,
+      mode: 'subscription',
+      priceEnvKey: 'STRIPE_PRICE_B2B',
+      flow: 'business_subscription',
+      successParams: { flow: 'business_subscription' },
+      cancelHash: 'b2b',
+    });
   };
 
   const activeBalance = Number(workspace?.credits_balance || 0);
@@ -661,7 +586,7 @@ export default function Pricing() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+      <main className="max-w-7xl mx-auto px-6 pt-10 pb-32 space-y-10">
         {unlockRequired ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             Seu acesso ainda está bloqueado. Escolha uma opção de compra para desbloquear o painel completo.
@@ -687,7 +612,8 @@ export default function Pricing() {
               Pricing estruturado por jornada
             </p>
             <h2 className="mt-4 text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-              Escolha a trilha certa para você: <span className="text-indigo-600">Social / Individual</span> ou <span className="text-violet-600">Business / Empresas</span>
+              Escolha a trilha certa para você: <span className="text-indigo-600">Social / Individual</span> ou{' '}
+              <span className="text-violet-600">Business / Empresas</span>
             </h2>
             <p className="mt-4 text-slate-600 leading-relaxed">
               Aqui você encontra exatamente o que cada oferta entrega: o que é gratuito, o que é avulso, o que é presenteável,
@@ -702,7 +628,7 @@ export default function Pricing() {
               </Button>
             </a>
             <a href="#b2b">
-              <Button variant="outline" className="h-12 rounded-2xl px-6 border-slate-300">
+              <Button variant="outline" className="h-12 rounded-2xl px-6 border-slate-300 text-slate-900">
                 Business / Empresas
               </Button>
             </a>
@@ -740,8 +666,8 @@ export default function Pricing() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            <Card className="border-2 border-slate-200">
-              <CardContent className="p-6 space-y-4">
+            <Card className="h-full border-2 border-slate-200">
+              <CardContent className="p-6 h-full flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
@@ -751,10 +677,12 @@ export default function Pricing() {
                     {SOCIAL_OFFERS[0].badge}
                   </span>
                 </div>
+
                 <div>
                   <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[0].price}</span>
                 </div>
-                <ul className="space-y-2 text-sm text-slate-700">
+
+                <ul className="space-y-2 text-sm text-slate-700 flex-1">
                   {SOCIAL_OFFERS[0].features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
@@ -762,7 +690,8 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link to={SOCIAL_OFFERS[0].ctaHref}>
+
+                <Link to={SOCIAL_OFFERS[0].ctaHref} className="mt-auto">
                   <Button className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950">
                     {SOCIAL_OFFERS[0].cta}
                   </Button>
@@ -770,22 +699,25 @@ export default function Pricing() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]">
-              <CardContent className="p-6 space-y-4">
+            <Card className="h-full border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]">
+              <CardContent className="p-6 h-full flex flex-col gap-4">
                 <div>
                   <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
                   <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
                 </div>
+
                 <div className="flex items-end gap-2">
                   <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[1].price}</span>
                   <span className="text-sm text-slate-500 pb-1">pagamento único</span>
                 </div>
+
                 {isCandidateUnlock ? (
                   <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
                     Você veio de um resultado gratuito. Esta compra libera o relatório completo desta avaliação.
                   </div>
                 ) : null}
-                <ul className="space-y-2 text-sm text-slate-700">
+
+                <ul className="space-y-2 text-sm text-slate-700 flex-1">
                   {SOCIAL_OFFERS[1].features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
@@ -793,18 +725,19 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
+
                 <Button
                   onClick={handleBuySingleAssessment}
                   disabled={Boolean(checkoutLoading)}
-                  className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
+                  className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {checkoutLoading === 'STRIPE_PRICE_PRO' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
+                  {checkoutLoading === 'single_assessment' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-violet-200">
-              <CardContent className="p-6 space-y-4">
+            <Card className="h-full border-2 border-violet-200">
+              <CardContent className="p-6 h-full flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
@@ -818,7 +751,7 @@ export default function Pricing() {
                   <span className="text-sm text-slate-500 pb-1">por presente</span>
                 </div>
 
-                <ul className="space-y-2 text-sm text-slate-700">
+                <ul className="space-y-2 text-sm text-slate-700 flex-1">
                   {SOCIAL_OFFERS[2].features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
@@ -827,60 +760,16 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <div className="grid gap-3">
-                  <input
-                    value={giftForm.senderName}
-                    onChange={(event) => setGiftField('senderName', event.target.value)}
-                    placeholder="Nome de quem envia"
-                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
-                  />
-                  <input
-                    value={giftForm.senderEmail}
-                    onChange={(event) => setGiftField('senderEmail', event.target.value)}
-                    placeholder="E-mail de quem envia (opcional)"
-                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
-                  />
-                  <input
-                    value={giftForm.recipientName}
-                    onChange={(event) => setGiftField('recipientName', event.target.value)}
-                    placeholder="Nome de quem recebe"
-                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
-                  />
-                  <input
-                    value={giftForm.recipientEmail}
-                    onChange={(event) => setGiftField('recipientEmail', event.target.value)}
-                    placeholder="E-mail de quem recebe (opcional)"
-                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
-                  />
-
-                  <label className="flex items-center gap-2 text-xs text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={giftForm.useDefaultMessage}
-                      onChange={(event) => setGiftField('useDefaultMessage', event.target.checked)}
-                    />
-                    Usar mensagem pronta do InsightDISC
-                  </label>
-
-                  <textarea
-                    value={giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message}
-                    onChange={(event) => setGiftField('message', event.target.value)}
-                    disabled={giftForm.useDefaultMessage}
-                    placeholder="Mensagem personalizada (opcional)"
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm min-h-24"
-                  />
+                <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
+                  A personalização do presente acontece após o pagamento confirmado.
                 </div>
-
-                {giftError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-2 text-xs text-red-700">{giftError}</div>
-                ) : null}
 
                 <Button
                   onClick={handleGiftPurchase}
                   disabled={Boolean(checkoutLoading)}
-                  className="w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
+                  className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
                 >
-                  {checkoutLoading === 'STRIPE_PRICE_PRO' ? 'Abrindo checkout...' : 'Presentear alguém'}
+                  {checkoutLoading === 'gift_assessment' ? 'Abrindo checkout...' : 'Comprar presente'}
                 </Button>
               </CardContent>
             </Card>
@@ -918,8 +807,7 @@ export default function Pricing() {
               <p className="text-xs uppercase tracking-[0.12em] text-violet-700 font-semibold">Business / Empresarial</p>
               <h3 className="text-3xl font-black text-slate-900">Pacotes de avaliações, SaaS mensal e Enterprise</h3>
               <p className="text-slate-600 mt-2 max-w-3xl">
-                Diferença clara: pacotes avulsos entregam volume imediato de avaliações; assinatura mensal entrega operação contínua com quantidade incluída;
-                Enterprise é desenho personalizado para escala corporativa.
+                Diferença clara: pacotes avulsos entregam volume imediato de avaliações; assinatura mensal entrega operação contínua com quantidade incluída; Enterprise é desenho personalizado para escala corporativa.
               </p>
             </div>
           </div>
@@ -928,7 +816,7 @@ export default function Pricing() {
             {CREDIT_PACKS.map((pack) => (
               <motion.div key={pack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-[0_18px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-6 h-full flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
@@ -942,7 +830,7 @@ export default function Pricing() {
                       <div className="text-sm text-slate-500">{pack.perUnit}</div>
                     </div>
 
-                    <ul className="space-y-2 text-sm text-slate-700">
+                    <ul className="space-y-2 text-sm text-slate-700 flex-1">
                       {[
                         `${pack.credits} avaliações incluídas`,
                         'Validade de 12 meses',
@@ -958,10 +846,10 @@ export default function Pricing() {
 
                     <Button
                       onClick={() => handleCreditPackPurchase(pack)}
-                      disabled={creditLoading === pack.id}
-                      className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950"
+                      disabled={checkoutLoading === pack.id}
+                      className="mt-auto w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950"
                     >
-                      {creditLoading === pack.id ? 'Processando...' : pack.cta}
+                      {checkoutLoading === pack.id ? 'Abrindo checkout...' : pack.cta}
                     </Button>
                   </CardContent>
                 </Card>
@@ -971,8 +859,8 @@ export default function Pricing() {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {BUSINESS_PLANS.map((plan) => (
-              <Card key={plan.id} className="border-2 border-violet-200">
-                <CardContent className="p-6 space-y-4">
+              <Card key={plan.id} className="h-full border-2 border-violet-200">
+                <CardContent className="p-6 h-full flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
@@ -990,7 +878,7 @@ export default function Pricing() {
                     </div>
                   </div>
 
-                  <ul className="space-y-2 text-sm text-slate-700">
+                  <ul className="space-y-2 text-sm text-slate-700 flex-1">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2">
                         <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
@@ -1001,22 +889,17 @@ export default function Pricing() {
 
                   {plan.ctaKind === 'checkout' ? (
                     <Button
-                      onClick={() =>
-                        handleWebCheckout({
-                          priceEnvKey: 'STRIPE_PRICE_B2B',
-                          mode: 'subscription',
-                          flowOverride: 'business_subscription',
-                          successParams: { flow: 'business_subscription' },
-                          cancelHash: 'b2b',
-                        })
-                      }
+                      onClick={handleBusinessSubscription}
                       disabled={Boolean(checkoutLoading)}
-                      className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
+                      className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
                     >
-                      {checkoutLoading === 'STRIPE_PRICE_B2B' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
+                      {checkoutLoading === 'business_monthly' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
                     </Button>
                   ) : (
-                    <Button onClick={openSales} className="w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700">
+                    <Button
+                      onClick={openSales}
+                      className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
+                    >
                       Falar com Vendas
                     </Button>
                   )}
@@ -1082,14 +965,18 @@ export default function Pricing() {
               </p>
               <div className="grid gap-2">
                 <Link to={createPageUrl('StartFree')}>
-                  <Button className="w-full h-11 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50">
+                  <Button className="w-full h-11 rounded-xl bg-white !text-slate-900 border border-white/80 hover:bg-slate-100 shadow-sm">
                     Fazer Teste Grátis
                   </Button>
                 </Link>
                 <Button onClick={handleBuySingleAssessment} className="w-full h-11 rounded-xl bg-indigo-950 hover:bg-indigo-900">
                   Comprar 1 Avaliação
                 </Button>
-                <Button onClick={openSales} variant="outline" className="w-full h-11 rounded-xl border-white/40 text-white hover:bg-white/10">
+                <Button
+                  onClick={openSales}
+                  variant="outline"
+                  className="w-full h-11 rounded-xl border-white/50 bg-white/12 text-white hover:bg-white/20"
+                >
                   <MessageSquareText className="w-4 h-4 mr-2" />
                   Falar com Vendas
                 </Button>
@@ -1098,7 +985,7 @@ export default function Pricing() {
           </Card>
         </section>
 
-        <p className="text-center text-xs text-slate-400 pb-4">
+        <p className="text-center text-xs text-slate-400">
           Preços em BRL. Créditos não utilizados permanecem disponíveis durante a validade contratada.
         </p>
       </main>
