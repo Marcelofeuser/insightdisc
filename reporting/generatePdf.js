@@ -92,7 +92,7 @@ export async function generatePdfFromData(rawData, options = {}) {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
     if (typeof page.emulateMediaType === 'function') {
-      await page.emulateMediaType('screen');
+      await page.emulateMediaType('print');
     }
 
     await page.pdf({
@@ -100,10 +100,10 @@ export async function generatePdfFromData(rawData, options = {}) {
       format: 'A4',
       printBackground: true,
       margin: {
-        top: '12mm',
-        right: '10mm',
-        bottom: '12mm',
-        left: '10mm',
+        top: '0mm',
+        right: '0mm',
+        bottom: '0mm',
+        left: '0mm',
       },
       preferCSSPageSize: true,
     });
@@ -140,4 +140,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
-

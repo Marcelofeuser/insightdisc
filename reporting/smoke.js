@@ -156,6 +156,8 @@ function validateHtml(model, html) {
   );
   assert(!html.includes('/brand/insightdisc-logo-transparent.png'), 'Logo antiga ainda encontrada.');
   assert(html.includes(REQUIRED_LOGO), 'Logo oficial nao encontrada no HTML.');
+  const coverTitleMatches = [...html.matchAll(/class="cover-title"/g)];
+  assert(coverTitleMatches.length === 1, `Titulo principal da capa duplicado (${coverTitleMatches.length}).`);
   assert(html.includes('>Sumário<') || html.includes('>Sumario<'), 'Pagina de sumario nao encontrada.');
   assert(html.includes('Conclusão Estratégica do Perfil') || html.includes('Conclusao Estrategica do Perfil'), 'Pagina final premium nao encontrada.');
   assert(
@@ -195,6 +197,13 @@ function validateHtml(model, html) {
   assert(model?.profileContent?.recommendedRoles?.length >= 6, 'Carreira sem recomendacoes suficientes.');
   assert(model?.profileContent?.naturalStrengths?.length >= 6, 'Forcas naturais insuficientes.');
   assert(model?.profileContent?.developmentPoints?.length >= 6, 'Pontos de desenvolvimento insuficientes.');
+  assert(!html.includes('Painel visual de apoio'), 'Bloco de enriquecimento agressivo ainda ativo.');
+}
+
+async function countPhysicalPdfPages(pdfPath) {
+  const raw = await fs.readFile(pdfPath, 'latin1');
+  const pageMatches = raw.match(/\/Type\s*\/Page\b/g) || [];
+  return pageMatches.length;
 }
 
 async function validateProfileLibrary() {
@@ -240,8 +249,13 @@ async function run() {
     validateHtml(reportModel, html);
 
     const result = await generatePdfFromData(scenario, { outputDir });
+    const physicalPages = await countPhysicalPdfPages(result.outputPath);
+    assert(
+      physicalPages === reportModel.meta.totalPages,
+      `${scenario.meta.reportId}: esperado ${reportModel.meta.totalPages} paginas fisicas, encontrado ${physicalPages}.`
+    );
     // eslint-disable-next-line no-console
-    console.log(`${scenario.meta.reportId}: ${result.outputRelative}`);
+    console.log(`${scenario.meta.reportId}: ${result.outputRelative} (${physicalPages} páginas físicas)`);
   }
 
   // eslint-disable-next-line no-console

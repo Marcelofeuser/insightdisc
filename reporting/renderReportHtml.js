@@ -567,30 +567,6 @@ function stripHtml(value) {
     .trim();
 }
 
-function hashCode(value) {
-  let hash = 0;
-  const input = String(value || '');
-  for (let index = 0; index < input.length; index += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function pseudoScore(seed, offset) {
-  const hash = hashCode(`${seed}-${offset}`);
-  return 36 + (hash % 56);
-}
-
-function enrichmentMetrics(title, subtitle) {
-  const seed = `${title}|${subtitle}`;
-  return FACTORS.map((factor, index) => ({
-    factor,
-    label: FACTOR_META[factor].label,
-    score: pseudoScore(seed, index),
-  }));
-}
-
 function resolveSectionIconKey(title) {
   const value = safeText(title).toLowerCase();
   if (!value) return 'default';
@@ -655,9 +631,8 @@ function finalConclusionBlocks({ participant, profile, profileContent, insights,
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
-  const metrics = enrichmentMetrics(title, subtitle);
   return `
-    <div class="grid three">
+    <div class="grid two compact-enrichment">
       ${enrichmentCard(
         'Exemplo de aplicacao',
         `Em um cenário real de ${scope.toLowerCase()}, observe como o comportamento se expressa em reuniões de alinhamento, priorização de tarefas e tomada de decisão sob prazo.`
@@ -666,39 +641,9 @@ function automaticEnrichment(title, subtitle) {
         'Leitura do gestor',
         `Para ${detail.toLowerCase()}, combine metas claras, feedback observável e revisões curtas para transformar insight comportamental em consistência de entrega.`
       )}
-      ${enrichmentCard(
-        'Risco de exagero do perfil',
-        `Sem calibragem de contexto, padrões dominantes podem gerar perda de qualidade relacional e queda de previsibilidade na execução.`
-      )}
     </div>
-    <div class="visual-panel">
-      <div class="visual-panel-header">
-        <h4>Painel visual de apoio</h4>
-        <span>Leitura complementar para preencher contexto decisorio</span>
-      </div>
-      <div class="visual-signal-grid">
-        ${metrics
-          .map(
-            (metric) => `
-              <div class="visual-signal-card">
-                <div class="visual-signal-head">
-                  <span class="visual-dot" style="background:${FACTOR_META[metric.factor].color}"></span>
-                  <strong>${metric.factor}</strong>
-                  <small>${esc(metric.label)}</small>
-                </div>
-                <div class="visual-track">
-                  <div class="visual-fill" style="width:${metric.score}%;background:${FACTOR_META[metric.factor].color}"></div>
-                </div>
-                <p>${metric.score}% de intensidade contextual para ${esc(scope.toLowerCase())}.</p>
-              </div>
-            `
-          )
-          .join('')}
-      </div>
-      <div class="visual-panel-notes">
-        <p><strong>Aplicacao no dia a dia:</strong> vincule os sinais acima com exemplos concretos de rotina, reunioes, feedbacks e tomada de decisao.</p>
-        <p><strong>Leitura de lideranca:</strong> para ${esc(detail.toLowerCase())}, use esse painel para equilibrar ritmo, qualidade e colaboracao entre perfis diversos.</p>
-      </div>
+    <div class="card compact-density-note">
+      <p><strong>Aplicação prática:</strong> conecte estes pontos com situações reais da rotina e revise o ajuste em ciclos curtos.</p>
     </div>
   `;
 }
@@ -715,14 +660,13 @@ function buildPage({
   hideInternalBranding = false,
 }) {
   if (cover) {
-    const coverBrandName = DEFAULT_BRANDING.company_name;
-    const coverLogoUrl = DEFAULT_BRANDING.logo_url;
+    const coverBrandName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
+    const coverLogoUrl = safeText(branding?.logo_url, DEFAULT_BRANDING.logo_url);
     return `
       <section class="page cover-page">
         <div class="cover-content">
           <div class="cover-logo-block">
             <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-logo" />
-            <div class="cover-tagline">Plataforma de Análise Comportamental</div>
           </div>
           ${content}
         </div>
@@ -737,7 +681,7 @@ function buildPage({
   const parityClass = number % 2 === 0 ? 'page-even' : 'page-odd';
   const densityChars = stripHtml(content).length;
   const contentWithDensity =
-    enforceDensity && densityChars < 1700
+    enforceDensity && densityChars < 950
       ? `${content}\n${automaticEnrichment(title, subtitle)}`
       : content;
 
@@ -857,6 +801,7 @@ export function renderReportHtml(input = {}) {
   ]);
 
   const pages = [];
+  const showCoverLockupText = !branding.logo_contains_tagline;
 
   pages.push(
     buildPage({
@@ -866,9 +811,9 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
-        <p class="cover-brand-name">InsightDISC</p>
-        <div class="cover-rule"></div>
-        <p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>
+        ${showCoverLockupText ? '<p class="cover-brand-name">InsightDISC</p>' : ''}
+        ${showCoverLockupText ? '<div class="cover-rule"></div>' : ''}
+        ${showCoverLockupText ? '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>' : ''}
         <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
         <p class="cover-name">${esc(participant.name)}</p>
         <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
@@ -1945,7 +1890,7 @@ export function renderReportHtml(input = {}) {
 
     @page {
       size: A4;
-      margin: 12mm 10mm 14mm;
+      margin: 0;
     }
 
     @media print {
@@ -1954,24 +1899,35 @@ export function renderReportHtml(input = {}) {
       }
 
       .page {
-        margin: 0;
-        width: 100%;
-        min-height: auto;
-        box-shadow: none;
-        border-radius: 0;
+        margin: 0 !important;
+        width: 210mm !important;
+        height: 296mm !important;
+        min-height: 296mm !important;
+        max-height: 296mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
       }
     }
 
     .page {
       width: 210mm;
-      min-height: 297mm;
-      margin: 10mm auto;
+      height: 296mm;
+      min-height: 296mm;
+      max-height: 296mm;
+      margin: 8mm auto;
       background: var(--paper);
       border-radius: 10px;
       overflow: hidden;
       position: relative;
       box-shadow: var(--shadow);
-      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
       border: 1px solid #e7ebf1;
     }
 
@@ -1986,7 +1942,7 @@ export function renderReportHtml(input = {}) {
     }
 
     .page:last-child {
-      page-break-after: auto;
+      break-after: auto;
     }
 
     .page-even {
@@ -2000,7 +1956,9 @@ export function renderReportHtml(input = {}) {
     .content {
       position: relative;
       z-index: 1;
-      padding: 8.5mm 10.5mm 18mm;
+      padding: 7.5mm 10mm 20mm;
+      height: 100%;
+      overflow: hidden;
     }
 
     .page-brand-strip {
@@ -2008,9 +1966,9 @@ export function renderReportHtml(input = {}) {
       justify-content: flex-start;
       align-items: center;
       gap: 12px;
-      margin-bottom: 3mm;
-      padding: 8px 12px;
-      min-height: 54px;
+      margin-bottom: 2.4mm;
+      padding: 7px 11px;
+      min-height: 50px;
       border: 1px solid #d8e1ee;
       border-radius: 12px;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 255, 0.95));
@@ -2044,9 +2002,9 @@ export function renderReportHtml(input = {}) {
       justify-content: space-between;
       align-items: baseline;
       gap: 16px;
-      margin-bottom: 4.5mm;
+      margin-bottom: 3.6mm;
       border-bottom: 1px solid var(--line);
-      padding-bottom: 2.8mm;
+      padding-bottom: 2.2mm;
     }
 
     .section-head-title {
@@ -2082,7 +2040,7 @@ export function renderReportHtml(input = {}) {
     .section-head h2 {
       margin: 0;
       color: var(--primary);
-      font-size: 25px;
+      font-size: 23px;
       line-height: 1.16;
       letter-spacing: -0.35px;
       font-weight: 750;
@@ -2099,7 +2057,7 @@ export function renderReportHtml(input = {}) {
     }
 
     .section-head span {
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--muted);
       text-align: right;
       max-width: 72mm;
@@ -2107,11 +2065,11 @@ export function renderReportHtml(input = {}) {
 
     .footer {
       position: absolute;
-      bottom: 7mm;
+      bottom: 5.5mm;
       left: 11mm;
       right: 11mm;
       border-top: 1px solid var(--line);
-      padding-top: 3mm;
+      padding-top: 2.2mm;
       display: flex;
       justify-content: space-between;
       gap: 12px;
@@ -2140,12 +2098,13 @@ export function renderReportHtml(input = {}) {
     .cover-content {
       position: relative;
       z-index: 1;
-      padding: 18mm 18mm 24mm;
+      padding: 16mm 16mm 27mm;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 5mm;
+      gap: 3.8mm;
+      overflow: hidden;
     }
 
     .cover-logo-block {
@@ -2157,12 +2116,12 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-logo {
-      width: 146mm;
+      width: 142mm;
       max-width: 100%;
-      max-height: 38mm;
+      max-height: 34mm;
       object-fit: contain;
       display: block;
-      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.35));
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.28));
     }
 
     .cover-kicker {
@@ -2212,19 +2171,18 @@ export function renderReportHtml(input = {}) {
       margin: 0;
       text-align: center;
       color: #ffffff;
-      font-size: 35px;
-      line-height: 1.08;
+      font-size: 30px;
+      line-height: 1.1;
       letter-spacing: 0.2px;
-      font-weight: 840;
+      font-weight: 800;
       text-transform: uppercase;
       max-width: 162mm;
       margin-inline: auto;
-      text-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     .cover-name {
       margin: 0 auto;
-      font-size: 22px;
+      font-size: 20px;
       line-height: 1.16;
       font-weight: 650;
       color: #f8e3a3;
@@ -2236,14 +2194,14 @@ export function renderReportHtml(input = {}) {
       max-width: 165mm;
       text-align: center;
       color: rgba(255, 255, 255, 0.88);
-      font-size: 15.2px;
-      line-height: 1.45;
+      font-size: 14px;
+      line-height: 1.36;
     }
 
     .cover-disc-band {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
+      gap: 6px;
       margin: 2mm auto 1mm;
       max-width: 162mm;
     }
@@ -2278,12 +2236,12 @@ export function renderReportHtml(input = {}) {
       max-width: 165mm;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
       border: 1px solid rgba(255, 255, 255, 0.24);
-      border-radius: 18px;
-      padding: 17px 18px;
+      border-radius: 16px;
+      padding: 13px 14px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 9px 18px;
-      font-size: 12.8px;
+      gap: 7px 14px;
+      font-size: 12px;
       color: rgba(255, 255, 255, 0.94);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
       backdrop-filter: blur(8px);
@@ -2325,14 +2283,14 @@ export function renderReportHtml(input = {}) {
 
     p {
       margin: 0 0 10px;
-      font-size: 13.6px;
+      font-size: 12.9px;
       color: #1f2937;
-      line-height: 1.58;
+      line-height: 1.48;
     }
 
     h3 {
-      margin: 0 0 8px;
-      font-size: 16.3px;
+      margin: 0 0 6px;
+      font-size: 15.4px;
       color: var(--primary);
       line-height: 1.24;
       letter-spacing: -0.15px;
@@ -2349,7 +2307,7 @@ export function renderReportHtml(input = {}) {
 
     .grid {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .grid.two {
@@ -2364,10 +2322,12 @@ export function renderReportHtml(input = {}) {
       background: var(--card);
       border: 1px solid #d9e0ea;
       border-radius: var(--radius);
-      padding: 15px;
+      padding: 12px;
       box-shadow: 0 3px 14px rgba(15, 23, 42, 0.038);
       position: relative;
       overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .card::after {
@@ -2470,9 +2430,22 @@ export function renderReportHtml(input = {}) {
 
     .callout-box {
       border-radius: 12px;
-      padding: 12px 14px;
+      padding: 10px 12px;
       margin-top: 10px;
       border-left: 4px solid transparent;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .compact-enrichment .callout-box {
+      margin-top: 0;
+    }
+
+    .compact-density-note {
+      margin-top: 8px;
+      padding: 9px 11px;
+      background: #f8fbff;
+      border-color: #d6e1f0;
     }
 
     .callout-insight {
@@ -2725,7 +2698,7 @@ export function renderReportHtml(input = {}) {
     .table th,
     .table td {
       border-bottom: 1px solid #dee5ee;
-      padding: 9px 10px;
+      padding: 7px 8px;
       text-align: left;
       vertical-align: top;
     }
@@ -2795,7 +2768,7 @@ export function renderReportHtml(input = {}) {
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 330px;
+      min-height: 250px;
     }
 
     .radar {
@@ -2811,6 +2784,8 @@ export function renderReportHtml(input = {}) {
       align-items: center;
       border-top: 3px solid rgba(247, 181, 0, 0.62);
       background: linear-gradient(180deg, #ffffff, #f8fbff);
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .final-lockup-logo {
