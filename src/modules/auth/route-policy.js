@@ -41,6 +41,14 @@ const PAGE_POLICIES = Object.freeze({
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',
   },
+  Dossier: {
+    requiresAuth: true,
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
   MyAssessments: {
     requiresAuth: true,
     allowedLifecycle: PREMIUM_LIFECYCLE,

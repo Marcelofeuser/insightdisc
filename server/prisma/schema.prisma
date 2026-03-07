@@ -55,6 +55,8 @@ model User {
   assessmentsCreated Assessment[]    @relation("AssessmentCreator")
   candidateAssessments Assessment[]  @relation("AssessmentCandidate")
   payments           Payment[]
+  candidateDossiers  BehavioralDossier[] @relation("BehavioralDossierCandidate")
+  createdDossiers    BehavioralDossier[] @relation("BehavioralDossierCreator")
 
   @@map("users")
 }
@@ -73,6 +75,7 @@ model Organization {
   owner       User               @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   memberships OrganizationMember[]
   assessments Assessment[]
+  behavioralDossiers BehavioralDossier[]
 
   @@map("organizations")
 }
@@ -200,4 +203,79 @@ model Lead {
   @@index([status, createdAt])
   @@index([email])
   @@map("leads")
+}
+
+model BehavioralDossier {
+  id          String   @id @default(cuid())
+  candidateId String   @map("candidate_id")
+  workspaceId String   @map("workspace_id")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  notes     DossierNote[]
+  insights  DossierInsight[]
+  plans     DevelopmentPlan[]
+  reminders ReassessmentReminder[]
+
+  candidate User         @relation("BehavioralDossierCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  creator   User         @relation("BehavioralDossierCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  workspace Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, workspaceId])
+  @@index([workspaceId, createdAt])
+  @@index([candidateId, createdAt])
+  @@map("behavioral_dossiers")
+}
+
+model DossierNote {
+  id        String   @id @default(cuid())
+  dossierId String   @map("dossier_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("dossier_notes")
+}
+
+model DossierInsight {
+  id        String   @id @default(cuid())
+  dossierId String   @map("dossier_id")
+  authorId  String   @map("author_id")
+  insight   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("dossier_insights")
+}
+
+model DevelopmentPlan {
+  id          String   @id @default(cuid())
+  dossierId   String   @map("dossier_id")
+  goal        String
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("development_plans")
+}
+
+model ReassessmentReminder {
+  id        String   @id @default(cuid())
+  dossierId String   @map("dossier_id")
+  date      DateTime
+  note      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, date])
+  @@map("reassessment_reminders")
 }

@@ -53,6 +53,7 @@ import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import CandidateOnboarding from './pages/CandidateOnboarding';
 import CreditCenter from './pages/CreditCenter';
 import Dashboard from './pages/Dashboard';
+import Dossier from './pages/Dossier';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import BrandingSettings from './pages/BrandingSettings';
 import ForgotPassword from './pages/ForgotPassword';
@@ -86,6 +87,7 @@ export const PAGES = {
     "CheckoutSuccess": CheckoutSuccess,
     "Credits": CreditCenter,
     "Dashboard": Dashboard,
+    "Dossier": Dossier,
     "ForgotPassword": ForgotPassword,
     "FreeAssessment": FreeAssessment,
     "FreeResults": FreeResults,

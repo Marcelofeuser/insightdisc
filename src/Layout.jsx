@@ -5,6 +5,7 @@ import {
   CreditCard,
   LayoutDashboard,
   MessageSquare,
+  NotebookPen,
   Palette,
   Send,
   Settings,
@@ -14,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import AppShell from '@/components/shell/AppShell';
+import MainNavigation from '@/components/layout/MainNavigation';
 import { useAuth } from '@/lib/AuthContext';
 import {
   canAccessPremiumSaas,
@@ -37,6 +39,7 @@ const PUBLIC_PAGES = [
   'GiftLanding',
   'Signup',
   'StartFree',
+  'DossieComportamentalLanding',
   'SuperAdminLogin',
   'Privacy',
   'Terms',
@@ -53,6 +56,7 @@ const PAGE_TITLES = {
   JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
   SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },
+  Dossier: { title: 'Dossiê Comportamental', subtitle: 'Histórico comportamental completo dos avaliados' },
 };
 
 export default function Layout({ children, currentPageName }) {
@@ -100,36 +104,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               </Link>
 
-              <nav className="hidden md:flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => goHomeHash('#top')}
-                  className="text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  Início
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/avaliacoes')}
-                  className="text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  Avaliações
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goHomeHash('#features')}
-                  className="text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  Recursos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goHomeHash('#pricing')}
-                  className="text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  Preços
-                </button>
-              </nav>
+              <MainNavigation goHomeHash={goHomeHash} navigate={navigate} />
 
               <div className="flex items-center gap-4">
                 {isAuthenticated ? (
@@ -173,6 +148,8 @@ export default function Layout({ children, currentPageName }) {
       hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF));
   const canSeeTenantAnalytics =
     canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
+  const canAccessDossier =
+    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
   const canViewCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_VIEW);
   const canManageCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
   const canAccessPlatformAdmin = hasAnyGlobalRole(access, [
@@ -193,6 +170,9 @@ export default function Layout({ children, currentPageName }) {
           { icon: Users, label: 'Equipes', page: 'TeamMapping', to: createPageUrl('TeamMapping') },
           { icon: Briefcase, label: 'Job Matching', page: 'JobMatching', to: createPageUrl('JobMatching') },
           { icon: MessageSquare, label: 'Leads', page: 'LeadsDashboard', to: createPageUrl('LeadsDashboard') },
+          ...(canAccessDossier
+            ? [{ icon: NotebookPen, label: 'Dossiê', page: 'Dossier', to: createPageUrl('Dossier') }]
+            : []),
         ]
       : []),
     ...(canViewCredits || canManageCredits

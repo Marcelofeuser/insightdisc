@@ -8,6 +8,7 @@ import {
   Clock3,
   CreditCard,
   FileText,
+  NotebookPen,
   ShoppingCart,
   Sparkles,
   Users,
@@ -16,6 +17,7 @@ import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { trackEvent } from '@/lib/analytics';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +50,38 @@ function getRespondentLabel(assessment) {
     assessment?.user_id ||
     'Respondente'
   );
+}
+
+function loadLocalDossierSummary(workspaceId = '') {
+  if (typeof window === 'undefined') {
+    return { activeDossiers: 0, scheduledThisMonth: 0 };
+  }
+
+  try {
+    const raw = JSON.parse(window.localStorage.getItem('insightdisc_behavioral_dossiers') || '{}');
+    const keyPrefix = `${String(workspaceId || 'default-workspace').trim()}:`;
+    const records = Object.entries(raw || {}).filter(([key]) => key.startsWith(keyPrefix));
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+
+    const scheduledThisMonth = records.reduce((total, [, value]) => {
+      const reminders = Array.isArray(value?.dossier?.reminders) ? value.dossier.reminders : [];
+      const count = reminders.filter((item) => {
+        const date = new Date(item?.date);
+        return date >= monthStart && date < nextMonth;
+      }).length;
+      return total + count;
+    }, 0);
+
+    return {
+      activeDossiers: records.length,
+      scheduledThisMonth,
+    };
+  } catch {
+    return { activeDossiers: 0, scheduledThisMonth: 0 };
+  }
 }
 
 export default function Dashboard() {
@@ -121,6 +155,29 @@ export default function Dashboard() {
     enabled: Boolean(access?.userId || access?.email),
   });
 
+  const { data: dossierSummary } = useQuery({
+    queryKey: ['dashboard-dossier-summary', apiBaseUrl, workspace?.id],
+    enabled: Boolean(canManageAssessments),
+    queryFn: async () => {
+      const effectiveWorkspaceId = workspace?.id || access?.tenantId || '';
+      if (apiBaseUrl) {
+        const payload = await apiRequest(
+          `/api/dossier/reminders/summary?workspaceId=${encodeURIComponent(effectiveWorkspaceId)}`,
+          {
+            method: 'GET',
+            requireAuth: true,
+          }
+        );
+        return {
+          activeDossiers: Number(payload?.summary?.activeDossiers || 0),
+          scheduledThisMonth: Number(payload?.summary?.scheduledThisMonth || 0),
+        };
+      }
+
+      return loadLocalDossierSummary(effectiveWorkspaceId);
+    },
+  });
+
   const handleStartSelfAssessment = async () => {
     if (isStartingSelfAssessment) return;
 
@@ -178,8 +235,10 @@ export default function Dashboard() {
       pendingCount: pending.length,
       credits: hasSuperAdminBypass ? 'Ilimitado' : Number(workspace?.credits_balance ?? 0) || 0,
       conversionRate,
+      activeDossiers: Number(dossierSummary?.activeDossiers || 0),
+      remindersThisMonth: Number(dossierSummary?.scheduledThisMonth || 0),
     };
-  }, [assessments, workspace, hasSuperAdminBypass]);
+  }, [assessments, workspace, hasSuperAdminBypass, dossierSummary]);
 
   const recentCompleted = useMemo(
     () => assessments.filter((assessment) => assessment?.status === 'completed').slice(0, 5),
@@ -215,6 +274,16 @@ export default function Dashboard() {
       icon: Sparkles,
       iconClassName: 'bg-indigo-100',
     },
+    ...(canManageAssessments
+      ? [
+          {
+            title: 'Dossiês ativos',
+            value: kpis.activeDossiers,
+            icon: NotebookPen,
+            iconClassName: 'bg-sky-100',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -298,6 +367,51 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </section>
+
+      <Card className="rounded-2xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Dossiê Comportamental</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-600">
+            Registre insights, observações e acompanhe a evolução comportamental dos avaliados.
+          </p>
+          <Link
+            to="/dossie-comportamental"
+            onClick={() =>
+              trackEvent('dossier_cta_click', {
+                source: 'dashboard_card',
+                path: '/dossie-comportamental',
+              })
+            }
+          >
+            <Button variant="outline">Abrir módulo</Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+      {canManageAssessments ? (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardContent className="p-5 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+                <CalendarClock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">
+                  {kpis.remindersThisMonth} reavaliações programadas para este mês
+                </p>
+                <p className="text-xs text-slate-500">
+                  Acompanhe os agendamentos no Dossiê Comportamental.
+                </p>
+              </div>
+            </div>
+            <Link to={createPageUrl('Dossier')}>
+              <Button variant="outline">Abrir Dossiê</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <TableShell title="Atividade recente">
         {isLoading ? (

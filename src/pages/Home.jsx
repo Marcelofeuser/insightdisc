@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
+import { trackEvent } from '@/lib/analytics';
 
 const DISC_FACTORS = [
   { key: 'D', name: 'Dominância', color: 'bg-red-500', light: 'bg-red-50 border-red-200', text: 'text-red-600', emoji: '🦁', desc: 'Orientado a resultados, direto, decidido e competitivo.' },
@@ -102,6 +103,12 @@ const FAQ = [
 export default function Home() {
   const [openFaq, setOpenFaq] = useState(null);
   const sampleProfile = { D: 72, I: 45, S: 28, C: 55 };
+  const handleDossierCtaClick = () => {
+    trackEvent('dossier_cta_click', {
+      source: 'home_feature_highlight',
+      path: '/dossie-comportamental',
+    });
+  };
 
   return (
     <div id="top" className="min-h-screen bg-white overflow-x-hidden">
@@ -199,6 +206,26 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="feature-highlight py-16 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 p-8 md:p-10 shadow-sm">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">Dossiê Comportamental</h2>
+            <p className="mt-3 text-lg text-slate-600">
+              Transforme avaliações DISC em histórico estratégico de desenvolvimento.
+            </p>
+            <Link
+              to="/dossie-comportamental"
+              className="btn-primary inline-flex mt-6"
+              onClick={handleDossierCtaClick}
+            >
+              <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+                Conhecer o Dossiê
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

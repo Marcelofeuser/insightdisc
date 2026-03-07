@@ -638,6 +638,28 @@ function finalConclusionBlocks({ participant, profile, profileContent, insights,
   ];
 }
 
+function buildBackCoverPage(branding = {}) {
+  const companyName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
+  const supportEmail = safeText(branding?.support_email, 'contato@insightdisc.app');
+  const website = safeText(branding?.website, 'www.insightdisc.app');
+
+  return `
+    <section class="back-cover-page" aria-label="Contracapa do relatório">
+      <div class="back-cover">
+        <img src="/assets/logo-insightdisc.png" alt="${esc(companyName)}" class="back-cover-logo" />
+        <div class="back-cover-title">${esc(companyName)}</div>
+        <div class="back-cover-subtitle">Plataforma de Análise Comportamental</div>
+        <div class="back-cover-info">
+          Relatório de Análise DISC<br />
+          Gerado automaticamente pela plataforma ${esc(companyName)}<br />
+          ${esc(website)}<br />
+          ${esc(supportEmail)}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
@@ -1912,6 +1934,8 @@ export function renderReportHtml(input = {}) {
     })
   );
 
+  const backCoverPage = buildBackCoverPage(branding);
+
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -2778,10 +2802,85 @@ export function renderReportHtml(input = {}) {
       line-height: 1.5;
       color: #1f2f46;
     }
+
+    .back-cover-page {
+      width: 210mm;
+      height: 296mm;
+      min-height: 296mm;
+      max-height: 296mm;
+      margin: 8mm auto;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 1px solid #e7ebf1;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      break-after: auto;
+      overflow: hidden;
+    }
+
+    .back-cover {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 24mm 18mm;
+      background: #ffffff;
+    }
+
+    .back-cover-logo {
+      width: 280px;
+      max-width: 74mm;
+      height: auto;
+      margin-bottom: 12mm;
+      object-fit: contain;
+    }
+
+    .back-cover-title {
+      font-size: 40px;
+      font-weight: 700;
+      color: #0b1f3b;
+      line-height: 1.08;
+      letter-spacing: -0.4px;
+    }
+
+    .back-cover-subtitle {
+      margin-top: 20px;
+      font-size: 22px;
+      color: #334155;
+      line-height: 1.25;
+    }
+
+    .back-cover-info {
+      margin-top: 60px;
+      font-size: 16px;
+      color: #64748b;
+      line-height: 1.55;
+    }
+
+    @media print {
+      .back-cover-page {
+        margin: 0 !important;
+        width: 210mm !important;
+        height: 296mm !important;
+        min-height: 296mm !important;
+        max-height: 296mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+      }
+    }
   </style>
 </head>
 <body>
   ${pages.join('\n')}
+  ${backCoverPage}
 </body>
 </html>`;
 }

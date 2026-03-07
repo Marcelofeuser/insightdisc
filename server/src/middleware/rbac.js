@@ -72,6 +72,46 @@ export function requireActiveCustomer(req, res, next) {
   });
 }
 
+const PREMIUM_PLANS = new Set([
+  'professional',
+  'business',
+  'enterprise',
+  'premium',
+  'pro',
+]);
+
+export function hasPremiumFeatureAccess(user = {}) {
+  const role = String(user?.role || '').toUpperCase();
+  if (isSuperAdminUser(user) || role === 'SUPER_ADMIN') return true;
+
+  const declaredPlan = String(
+    user?.plan || user?.workspacePlan || user?.workspace_plan || ''
+  )
+    .trim()
+    .toLowerCase();
+  if (PREMIUM_PLANS.has(declaredPlan)) return true;
+
+  if (role === 'ADMIN') return true;
+
+  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  const paidPayments = Number(user?.payments?.length || 0);
+  return creditsBalance > 0 || paidPayments > 0;
+}
+
+export function requirePremiumFeature(errorCode = 'PREMIUM_REQUIRED') {
+  return (req, res, next) => {
+    if (hasPremiumFeatureAccess(req.user || req.auth || {})) {
+      return next();
+    }
+
+    return res.status(403).json({
+      ok: false,
+      error: errorCode,
+      message: 'Recurso disponível apenas para planos premium.',
+    });
+  };
+}
+
 export async function canAccessOrganization(userId, organizationId) {
   if (!userId || !organizationId) return false;
 

@@ -21,6 +21,11 @@ function normalizeLifecycle(rawValue) {
   return null;
 }
 
+function normalizePlan(rawValue) {
+  const raw = String(rawValue || '').trim().toLowerCase();
+  return raw || 'free';
+}
+
 function toNumber(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
@@ -133,6 +138,9 @@ export function createAccessContext(user = null) {
     Boolean(safeUser?.hasPaidPurchase) ||
     toNumber(safeUser?.payments_count) > 0 ||
     toNumber(safeUser?.paymentsCount) > 0;
+  const plan = normalizePlan(
+    safeUser?.plan || safeUser?.workspace_plan || safeUser?.subscription_plan
+  );
 
   return {
     user: safeUser,
@@ -146,6 +154,7 @@ export function createAccessContext(user = null) {
     lifecycleStatus,
     creditsBalance,
     hasPaidPurchase,
+    plan,
   };
 }
 
@@ -216,6 +225,52 @@ export function canAccessPremiumSaas(access) {
     lifecycle === USER_LIFECYCLE.CUSTOMER_ACTIVE ||
     lifecycle === USER_LIFECYCLE.SUPER_ADMIN
   );
+}
+
+export function showUpgradeModal(message = 'Recurso premium') {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('insightdisc:upgrade-required', {
+      detail: {
+        message,
+      },
+    })
+  );
+}
+
+const DOSSIER_PREMIUM_PLANS = new Set(['professional', 'business', 'enterprise']);
+
+export function canAccessDossier(access, { notify = false } = {}) {
+  if (isSuperAdminAccess(access)) {
+    return true;
+  }
+
+  const plan = normalizePlan(
+    access?.plan ||
+      access?.user?.plan ||
+      access?.user?.workspace_plan ||
+      access?.user?.subscription_plan
+  );
+
+  const hasPlanAccess = DOSSIER_PREMIUM_PLANS.has(plan);
+  if (hasPlanAccess) return true;
+
+  if (plan === 'starter' || plan === 'free') {
+    if (notify) {
+      showUpgradeModal('Dossiê Comportamental é um recurso premium.');
+    }
+    return false;
+  }
+
+  const lifecycle = normalizeLifecycle(access?.lifecycleStatus || access?.user?.lifecycle_status);
+  const hasLifecyclePremium =
+    lifecycle === USER_LIFECYCLE.CUSTOMER_ACTIVE || lifecycle === USER_LIFECYCLE.SUPER_ADMIN;
+
+  if (!hasLifecyclePremium && notify) {
+    showUpgradeModal('Dossiê Comportamental é um recurso premium.');
+  }
+
+  return hasLifecyclePremium;
 }
 
 export function isSuperAdminAccess(access) {

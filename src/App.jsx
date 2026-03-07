@@ -23,6 +23,7 @@ import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
+import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -32,6 +33,7 @@ const EXCLUDED_AUTO_ROUTES = new Set(['SuperAdmin', 'SuperAdminLogin', 'SuperAdm
 
 const APP_ALIAS_ROUTES = [
   { path: '/app/dashboard', pageName: 'Dashboard' },
+  { path: '/app/dossier', pageName: 'Dossier' },
   { path: '/app/my-assessments', pageName: 'MyAssessments' },
   { path: '/app/send-assessment', pageName: 'SendAssessment' },
   { path: '/app/team-mapping', pageName: 'TeamMapping' },
@@ -106,6 +108,15 @@ const AuthenticatedApp = () => {
               <GiftLanding />
             </LayoutWrapper>
           </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dossie-comportamental"
+        element={
+          <LayoutWrapper currentPageName="DossieComportamentalLanding">
+            <DossieComportamentalLandingPage />
+          </LayoutWrapper>
         }
       />
 
