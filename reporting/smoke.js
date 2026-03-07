@@ -156,6 +156,13 @@ function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
   );
   assert(!html.includes('/brand/insightdisc-logo-transparent.png'), 'Logo antiga ainda encontrada.');
   assert(html.includes(REQUIRED_LOGO), 'Logo oficial nao encontrada no HTML.');
+  assert(html.includes('>Sumário<') || html.includes('>Sumario<'), 'Pagina de sumario nao encontrada.');
+  assert(html.includes('Conclusão Estratégica do Perfil') || html.includes('Conclusao Estrategica do Perfil'), 'Pagina final premium nao encontrada.');
+  assert(
+    html.includes(`${model?.participant?.name},`) || html.includes(`${model?.participant?.name} ,`),
+    'Conclusao final personalizada nao inicia com nome do participante.',
+  );
+  assert(html.includes('class="page-logo"'), 'Logo interna de cabecalho nao encontrada.');
   assert(!html.includes('Nao informado'), 'Placeholder "Nao informado" encontrado.');
   assert(!html.includes('Arquetipo nao informado'), 'Placeholder de arquetipo encontrado.');
   assert(html.includes('Sinergia com Outros Perfis DISC'), 'Secao de compatibilidade nao encontrada.');
@@ -174,7 +181,7 @@ function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
 
   for (let index = 0; index < pageBodies.length; index += 1) {
     const plain = stripTags(pageBodies[index]);
-    const minChars = index === 0 ? 220 : 520;
+    const minChars = index === 0 ? 220 : index === 1 || index === 29 ? 360 : 520;
     assert(
       plain.length >= minChars,
       `Pagina ${index + 1} com densidade baixa (${plain.length} caracteres).`

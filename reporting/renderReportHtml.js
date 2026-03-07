@@ -6,6 +6,91 @@ const FACTOR_META = {
   C: { label: 'Conformidade', color: '#3498db' },
 };
 
+const SUMMARY_ITEMS = [
+  'Apresentação Executiva',
+  'O que é DISC',
+  'Visão Geral dos 4 Fatores',
+  'Síntese Executiva do Perfil',
+  'Gráficos DISC',
+  'Radar Comportamental',
+  'Benchmark do Perfil',
+  'Dinâmica Geral do Perfil',
+  'Processo de Decisão',
+  'Motivadores',
+  'Drenadores de Energia',
+  'Comportamento no Ambiente de Trabalho',
+  'Comunicação',
+  'Estilo de Liderança',
+  'Tomada de Decisão e Autonomia',
+  'Resposta ao Estresse',
+  'Conflitos',
+  'Relacionamento com Equipe',
+  'Sinergia com Outros Perfis',
+  'Conclusão Estratégica do Perfil',
+];
+
+const SECTION_ICON_SVGS = Object.freeze({
+  chart: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 19h16M6 16v-5m6 5V7m6 9v-8" />
+    </svg>
+  `,
+  radar: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v18M3 12h18M6.9 6.9l10.2 10.2M17.1 6.9L6.9 17.1" />
+      <circle cx="12" cy="12" r="3.8" />
+    </svg>
+  `,
+  communication: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h16v10H8l-4 4V5Z" />
+    </svg>
+  `,
+  energy: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M13 2 5 14h6l-1 8 9-13h-6l1-7Z" />
+    </svg>
+  `,
+  stress: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3 2 20h20L12 3Zm0 6v5m0 3h.01" />
+    </svg>
+  `,
+  leadership: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 4 8 10h8l-4-6Zm-6 9h12v7H6v-7Z" />
+    </svg>
+  `,
+  conflict: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 12h6M14 12h6M10 8l-4 4 4 4M14 8l4 4-4 4" />
+    </svg>
+  `,
+  profile: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.3-4.5 4-6.5 8-6.5s6.7 2 8 6.5" />
+    </svg>
+  `,
+  book: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h7a3 3 0 0 1 3 3v11H7a3 3 0 0 0-3 3V5Zm16 0h-7a3 3 0 0 0-3 3v11h7a3 3 0 0 1 3 3V5Z" />
+    </svg>
+  `,
+  target: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="1.5" />
+    </svg>
+  `,
+  default: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 4 4 20h16L12 4Z" />
+    </svg>
+  `,
+});
+
 const DEFAULT_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
   logo_url: '/brand/insightdisc-report-logo.png',
@@ -506,6 +591,67 @@ function enrichmentMetrics(title, subtitle) {
   }));
 }
 
+function resolveSectionIconKey(title) {
+  const value = safeText(title).toLowerCase();
+  if (!value) return 'default';
+  if (value.includes('gráfico') || value.includes('grafico') || value.includes('benchmark')) return 'chart';
+  if (value.includes('radar')) return 'radar';
+  if (value.includes('comunica')) return 'communication';
+  if (value.includes('motivador') || value.includes('energia')) return 'energy';
+  if (value.includes('estress') || value.includes('pressão') || value.includes('pressao')) return 'stress';
+  if (value.includes('liderança') || value.includes('lideranca')) return 'leadership';
+  if (value.includes('conflito')) return 'conflict';
+  if (value.includes('perfil') || value.includes('síntese') || value.includes('sintese')) return 'profile';
+  if (value.includes('sumário') || value.includes('sumario') || value.includes('glossário') || value.includes('glossario')) return 'book';
+  if (value.includes('conclusão') || value.includes('conclusao')) return 'target';
+  return 'default';
+}
+
+function sectionIconHtml(title) {
+  const key = resolveSectionIconKey(title);
+  return SECTION_ICON_SVGS[key] || SECTION_ICON_SVGS.default;
+}
+
+function summaryRowsHtml(items = []) {
+  const lines = safeArray(items, SUMMARY_ITEMS).map((item, index) => {
+    const order = String(index + 1).padStart(2, '0');
+    return `
+      <div class="summary-item">
+        <div class="summary-order">${order}</div>
+        <div class="summary-copy">${esc(item)}</div>
+      </div>
+    `;
+  });
+
+  const midpoint = Math.ceil(lines.length / 2);
+  const firstColumn = lines.slice(0, midpoint).join('');
+  const secondColumn = lines.slice(midpoint).join('');
+
+  return `
+    <div class="summary-grid">
+      <div class="summary-col">${firstColumn}</div>
+      <div class="summary-col">${secondColumn}</div>
+    </div>
+  `;
+}
+
+function finalConclusionBlocks({ participant, profile, profileContent, insights, plans }) {
+  const strengths = safeArray(profileContent?.naturalStrengths, ['Capacidade de gerar resultado com consistência e consciência comportamental.']).slice(0, 3);
+  const developments = safeArray(profileContent?.developmentPoints, ['Aprimorar calibragem comportamental em contextos de alta pressão.']).slice(0, 2);
+  const plan90 = safeArray(plans?.days90, profileContent?.plan90 || ['Consolidar rotina de melhoria contínua com acompanhamento observável.']).slice(0, 2);
+
+  return [
+    `${safeText(participant?.name, 'Profissional avaliado')}, seu perfil ${safeText(profile?.key, '')} revela uma combinação valiosa de repertório comportamental para gerar impacto real no ambiente profissional.`,
+    `Sua principal força está em ${strengths[0].toLowerCase()}. Quando isso é aplicado com contexto claro, você amplia influência, previsibilidade de entrega e percepção de senioridade.`,
+    `Ao mesmo tempo, o salto mais estratégico aparece ao evoluir ${developments.map((item) => item.toLowerCase()).join(' e ')}. Esse ajuste reduz desgaste e fortalece sua atuação em cenários complexos.`,
+    `Nos próximos ciclos, priorize ${plan90.map((item) => item.toLowerCase()).join(' e ')} para transformar potencial em rotina de alta performance sustentável.`,
+    safeText(
+      insights?.executiveByPage?.career,
+      'Este relatório foi construído para apoiar sua evolução com clareza, profundidade e aplicação prática. O valor está na execução consistente do que foi identificado aqui.'
+    ),
+  ];
+}
+
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
@@ -557,7 +703,17 @@ function automaticEnrichment(title, subtitle) {
   `;
 }
 
-function buildPage({ number, totalPages, title, subtitle, content, cover = false, branding }) {
+function buildPage({
+  number,
+  totalPages,
+  title,
+  subtitle,
+  content,
+  cover = false,
+  branding,
+  enforceDensity = true,
+  hideInternalBranding = false,
+}) {
   if (cover) {
     return `
       <section class="page cover-page">
@@ -583,7 +739,7 @@ function buildPage({ number, totalPages, title, subtitle, content, cover = false
   const parityClass = number % 2 === 0 ? 'page-even' : 'page-odd';
   const densityChars = stripHtml(content).length;
   const contentWithDensity =
-    densityChars < 1700
+    enforceDensity && densityChars < 1700
       ? `${content}\n${automaticEnrichment(title, subtitle)}`
       : content;
 
@@ -591,8 +747,27 @@ function buildPage({ number, totalPages, title, subtitle, content, cover = false
     <section class="page ${parityClass}">
       <div class="page-backdrop"></div>
       <main class="content">
+        ${
+          hideInternalBranding
+            ? ''
+            : `
+              <div class="page-brand-strip">
+                <div class="page-brand-main">
+                  <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="page-logo" />
+                  <div class="page-brand-copy">
+                    <strong>${esc(branding.company_name)}</strong>
+                    <small>Plataforma de Análise Comportamental</small>
+                  </div>
+                </div>
+                <div class="page-brand-meta">Relatório DISC Premium</div>
+              </div>
+            `
+        }
         <div class="section-head">
-          <h2>${esc(title)}</h2>
+          <div class="section-head-title">
+            <span class="section-icon">${sectionIconHtml(title)}</span>
+            <h2>${esc(title)}</h2>
+          </div>
           ${subtitle ? `<span>${esc(subtitle)}</span>` : ''}
         </div>
         ${contentWithDensity}
@@ -733,21 +908,29 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 2,
       totalPages: meta.totalPages,
-      title: 'Apresentação Executiva',
-      subtitle: 'Como utilizar este relatorio com foco em resultado',
+      title: 'Sumário',
+      subtitle: 'Estrutura executiva do relatório e trilha de leitura recomendada',
       branding,
+      enforceDensity: false,
       content: `
-        ${executiveDivider('Como extrair valor deste relatório', 'Leitura executiva para líderes, RH e desenvolvimento')}
+        ${executiveDivider('Como navegar por este relatório', 'Use o sumário como mapa editorial para leitura por prioridade de negócio')}
+        <div class="card summary-intro">
+          <p>Este relatório foi estruturado para apoiar decisões de liderança, comunicação, carreira e desenvolvimento comportamental com base em evidências observáveis.</p>
+          <p>Você pode ler em sequência completa ou priorizar as seções de acordo com seu contexto atual de atuação.</p>
+        </div>
+        ${summaryRowsHtml(SUMMARY_ITEMS)}
         <div class="grid two">
           <div class="card">${paragraphsHtml(methodologyOverview)}</div>
-          <div class="card">${listHtml(methodologyUse)}</div>
+          <div class="card">
+            <h3>Como extrair valor deste relatório</h3>
+            ${listHtml(methodologyUse)}
+          </div>
         </div>
         <div class="card">
           <h3>Aviso de confidencialidade</h3>
           <p>${esc(safeText(report?.lgpd?.notice, 'Documento confidencial para uso profissional. Compartilhamento externo somente com autorizacao do titular e responsavel pelo processo.'))}</p>
         </div>
-        ${enrichmentCard('Insight comportamental', safeText(insights?.executive, 'Priorize aplicacao pratica, rotina de acompanhamento e feedback observavel para transformar leitura em ganho de performance.'))}
-        ${enrichmentCard('Atenção comportamental', 'Este relatorio deve orientar decisoes de desenvolvimento, nao substituir avaliacao tecnica, historico de desempenho ou contexto da funcao.')}
+        ${enrichmentCard('Leitura estratégica', safeText(insights?.executive, 'Priorize aplicacao pratica, rotina de acompanhamento e feedback observavel para transformar leitura em ganho de performance.'))}
       `,
     })
   );
@@ -1694,26 +1877,26 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 30,
       totalPages: meta.totalPages,
-      title: 'Fechamento Executivo',
-      subtitle: 'Síntese final, LGPD e assinatura institucional',
+      title: 'Conclusão Estratégica do Perfil',
+      subtitle: 'Síntese personalizada, próximos passos e assinatura institucional',
       branding,
+      enforceDensity: false,
       content: `
         <div class="card">
-          <h3>Conclusão</h3>
-          <p>O perfil analisado revela características comportamentais que influenciam diretamente a forma como a pessoa percebe desafios, interage com outras pessoas e toma decisões.</p>
-          <p>Compreender essas tendências permite criar ambientes de trabalho mais produtivos, equipes mais equilibradas e estratégias de desenvolvimento mais eficazes.</p>
-          <p>O InsightDISC tem como objetivo fornecer uma leitura clara e aplicada do comportamento humano no contexto profissional.</p>
+          <h3>Mensagem final personalizada</h3>
           ${paragraphsHtml(
-            profileContent?.executiveClosing || narratives?.executiveClosing,
+            finalConclusionBlocks({ participant, profile, profileContent, insights, plans }),
             [
-              safeText(profileContent?.closingSummary, 'Este perfil gera alto valor quando transforma consciência comportamental em rotina de execução com ajuste contínuo.'),
-              safeText(insights?.executiveByPage?.career, safeText(insights?.executive, 'A aplicação prática deste relatório deve ser acompanhada por metas observáveis e revisão recorrente de comportamento.')),
+              `${safeText(participant.name)}, sua leitura comportamental evidencia potencial de impacto profissional quando aplicada com disciplina, contexto e evolução contínua.`,
             ]
           )}
         </div>
         <div class="grid two">
           <div class="card">
-            <h3>Confidencialidade e LGPD</h3>
+            <h3>Resumo técnico e confidencialidade</h3>
+            <p><strong>Perfil identificado:</strong> ${esc(profile.key)} • <strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
+            <p><strong>Fatores de maior expressão:</strong> ${esc(profile.primary)} e ${esc(profile.secondary)}</p>
+            <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
             <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
             <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, 'suporte@insightdisc.app'))}</p>
           </div>
@@ -1725,7 +1908,11 @@ export function renderReportHtml(input = {}) {
             <p>${esc(branding.report_footer_text)}</p>
           </div>
         </div>
-        ${strategicNote('Encerramento premium', 'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina e contexto.')}
+        <div class="card final-lockup">
+          <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="final-lockup-logo" />
+          <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
+        </div>
+        ${strategicNote('Encerramento premium', 'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina, contexto e acompanhamento real.')}
       `,
     })
   );
@@ -1826,6 +2013,65 @@ export function renderReportHtml(input = {}) {
       padding: 8.5mm 10.5mm 18mm;
     }
 
+    .page-brand-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 3mm;
+      padding: 7px 10px;
+      border: 1px solid #d8e1ee;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 255, 0.95));
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    }
+
+    .page-brand-main {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .page-logo {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .page-brand-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .page-brand-copy strong {
+      font-size: 11.2px;
+      color: #112a52;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .page-brand-copy small {
+      font-size: 9.8px;
+      color: #4a607d;
+      line-height: 1.2;
+    }
+
+    .page-brand-meta {
+      font-size: 10px;
+      color: #5d6d85;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
     .section-head {
       display: flex;
       justify-content: space-between;
@@ -1834,6 +2080,36 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 4.5mm;
       border-bottom: 1px solid var(--line);
       padding-bottom: 2.8mm;
+    }
+
+    .section-head-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .section-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid #d8e0ec;
+      background: linear-gradient(180deg, #ffffff, #f3f7ff);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      flex-shrink: 0;
+    }
+
+    .section-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--primary);
+      stroke-width: 1.9;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .section-head h2 {
@@ -2272,6 +2548,57 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 0;
     }
 
+    .summary-intro {
+      border-top: 3px solid rgba(247, 181, 0, 0.55);
+      background: linear-gradient(180deg, #fffdf8, #ffffff);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .summary-col {
+      background: #ffffff;
+      border: 1px solid #dae3f0;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+      display: grid;
+      gap: 6px;
+    }
+
+    .summary-item {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #e2e8f1;
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: linear-gradient(180deg, #ffffff, #f9fbff);
+    }
+
+    .summary-order {
+      font-size: 11px;
+      font-weight: 800;
+      color: #0f2f64;
+      background: #edf3ff;
+      border: 1px solid #d6e2fb;
+      border-radius: 999px;
+      text-align: center;
+      padding: 4px 0;
+      line-height: 1;
+    }
+
+    .summary-copy {
+      font-size: 12.2px;
+      color: #1f2937;
+      line-height: 1.3;
+    }
+
     .visual-panel {
       margin-top: 12px;
       border: 1px solid #d8e0ed;
@@ -2508,6 +2835,30 @@ export function renderReportHtml(input = {}) {
       width: 100%;
       max-width: 420px;
       height: auto;
+    }
+
+    .final-lockup {
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 12px;
+      align-items: center;
+      border-top: 3px solid rgba(247, 181, 0, 0.62);
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+    }
+
+    .final-lockup-logo {
+      width: 100%;
+      max-width: 108px;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .final-lockup p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #1f2f46;
     }
   </style>
 </head>
