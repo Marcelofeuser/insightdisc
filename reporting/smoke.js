@@ -146,7 +146,7 @@ function assert(condition, message) {
   }
 }
 
-function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
+function validateHtml(model, html) {
   const pageBodies = getPageBodies(html);
   assert(pageBodies.length === 30, `Esperado 30 paginas, encontrado ${pageBodies.length}.`);
   assert(html.includes('class="page cover-page"'), 'Pagina 1 (capa) nao encontrada como cover-page.');
@@ -162,7 +162,12 @@ function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
     html.includes(`${model?.participant?.name},`) || html.includes(`${model?.participant?.name} ,`),
     'Conclusao final personalizada nao inicia com nome do participante.',
   );
-  assert(html.includes('class="page-logo"'), 'Logo interna de cabecalho nao encontrada.');
+  assert(
+    html.includes('class="report-header-brand">InsightDISC</div>')
+      && html.includes('class="report-header-subtitle">Plataforma de Análise Comportamental</div>'),
+    'Header interno textual padrao nao encontrado.',
+  );
+  assert(!html.includes('class="page-logo"'), 'Header interno nao deve renderizar imagem de logo.');
   assert(!html.includes('Nao informado'), 'Placeholder "Nao informado" encontrado.');
   assert(!html.includes('Arquetipo nao informado'), 'Placeholder de arquetipo encontrado.');
   assert(html.includes('Sinergia com Outros Perfis DISC'), 'Secao de compatibilidade nao encontrada.');
@@ -175,9 +180,6 @@ function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
 
   const logoMatches = [...html.matchAll(/<img[^>]+class="cover-logo"[^>]*>/g)];
   assert(logoMatches.length === 1, `Esperado 1 bloco de logo na capa, encontrado ${logoMatches.length}.`);
-  if (expectTaglineHidden) {
-    assert(!html.includes('class="cover-tagline"'), 'Tagline duplicada encontrada quando o lockup da logo ja contem subtitulo.');
-  }
 
   for (let index = 0; index < pageBodies.length; index += 1) {
     const plain = stripTags(pageBodies[index]);
@@ -225,17 +227,17 @@ async function run() {
   await validateProfileLibrary();
 
   const scenarios = [
-    { data: scenarioPureD(), options: {} },
-    { data: scenarioComboIS(), options: {} },
-    { data: scenarioComboDC(), options: {} },
-    { data: scenarioLogoLockup(), options: { expectTaglineHidden: true } },
+    { data: scenarioPureD() },
+    { data: scenarioComboIS() },
+    { data: scenarioComboDC() },
+    { data: scenarioLogoLockup() },
   ];
 
   for (const scenarioEntry of scenarios) {
     const scenario = scenarioEntry.data;
     const reportModel = await buildReportModel(scenario);
     const html = renderReportHtml({ reportModel });
-    validateHtml(reportModel, html, scenarioEntry.options);
+    validateHtml(reportModel, html);
 
     const result = await generatePdfFromData(scenario, { outputDir });
     // eslint-disable-next-line no-console

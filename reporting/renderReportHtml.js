@@ -715,16 +715,14 @@ function buildPage({
   hideInternalBranding = false,
 }) {
   if (cover) {
+    const coverBrandName = DEFAULT_BRANDING.company_name;
+    const coverLogoUrl = DEFAULT_BRANDING.logo_url;
     return `
       <section class="page cover-page">
         <div class="cover-content">
           <div class="cover-logo-block">
-            <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="cover-logo" />
-            ${
-              branding.logo_contains_tagline
-                ? ''
-                : '<div class="cover-tagline">Plataforma de Análise Comportamental</div>'
-            }
+            <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-logo" />
+            <div class="cover-tagline">Plataforma de Análise Comportamental</div>
           </div>
           ${content}
         </div>
@@ -752,14 +750,10 @@ function buildPage({
             ? ''
             : `
               <div class="page-brand-strip">
-                <div class="page-brand-main">
-                  <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="page-logo" />
-                  <div class="page-brand-copy">
-                    <strong>${esc(branding.company_name)}</strong>
-                    <small>Plataforma de Análise Comportamental</small>
-                  </div>
+                <div class="report-header-text">
+                  <div class="report-header-brand">InsightDISC</div>
+                  <div class="report-header-subtitle">Plataforma de Análise Comportamental</div>
                 </div>
-                <div class="page-brand-meta">Relatório DISC Premium</div>
               </div>
             `
         }
@@ -872,13 +866,9 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
-        <p class="cover-brand-name">${esc(branding.company_name)}</p>
+        <p class="cover-brand-name">InsightDISC</p>
         <div class="cover-rule"></div>
-        ${
-          branding.logo_contains_tagline
-            ? ''
-            : '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>'
-        }
+        <p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>
         <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
         <p class="cover-name">${esc(participant.name)}</p>
         <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
@@ -1909,7 +1899,7 @@ export function renderReportHtml(input = {}) {
           </div>
         </div>
         <div class="card final-lockup">
-          <img src="${esc(branding.logo_url)}" alt="${esc(branding.company_name)}" class="final-lockup-logo" />
+          <img src="${esc(DEFAULT_BRANDING.logo_url)}" alt="InsightDISC" class="final-lockup-logo" />
           <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
         </div>
         ${strategicNote('Encerramento premium', 'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina, contexto e acompanhamento real.')}
@@ -2015,61 +2005,38 @@ export function renderReportHtml(input = {}) {
 
     .page-brand-strip {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       margin-bottom: 3mm;
-      padding: 7px 10px;
+      padding: 8px 12px;
+      min-height: 54px;
       border: 1px solid #d8e1ee;
       border-radius: 12px;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 255, 0.95));
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
     }
 
-    .page-brand-main {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      min-width: 0;
-    }
-
-    .page-logo {
-      width: 34px;
-      height: 34px;
-      object-fit: contain;
-      display: block;
-      flex-shrink: 0;
-    }
-
-    .page-brand-copy {
+    .report-header-text {
       display: flex;
       flex-direction: column;
-      gap: 1px;
+      justify-content: center;
+      gap: 2px;
       min-width: 0;
     }
 
-    .page-brand-copy strong {
-      font-size: 11.2px;
-      color: #112a52;
-      line-height: 1.15;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .page-brand-copy small {
-      font-size: 9.8px;
-      color: #4a607d;
-      line-height: 1.2;
-    }
-
-    .page-brand-meta {
-      font-size: 10px;
-      color: #5d6d85;
-      font-weight: 600;
+    .report-header-brand {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0b1f3b;
+      line-height: 1;
       letter-spacing: 0.2px;
-      text-transform: uppercase;
-      white-space: nowrap;
+    }
+
+    .report-header-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.2;
     }
 
     .section-head {
