@@ -803,7 +803,40 @@ export function renderReportHtml(input = {}) {
       totalPages: meta.totalPages,
       cover: true,
       branding,
-      content: '',
+      content: `
+        <div class="cover-info-layer">
+          <div class="cover-info-card">
+            <div class="cover-info-kicker">Dados da avaliação</div>
+            <p class="cover-participant-name">${esc(participant.name)}</p>
+            <div class="cover-info-grid">
+              <div class="cover-info-item">
+                <span class="cover-info-label">E-mail</span>
+                <strong class="cover-info-value">${esc(participant.email)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span class="cover-info-label">Empresa</span>
+                <strong class="cover-info-value">${esc(participant.company)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span class="cover-info-label">Perfil predominante</span>
+                <strong class="cover-info-value">${esc(profile.primary)}${esc(profile.secondary ? ` + ${profile.secondary}` : '')}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span class="cover-info-label">Data</span>
+                <strong class="cover-info-value">${esc(meta.generatedAt)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span class="cover-info-label">Responsável</span>
+                <strong class="cover-info-value">${esc(meta.responsibleName)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span class="cover-info-label">ID da avaliação</span>
+                <strong class="cover-info-value">${esc(participant.assessmentId)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
     })
   );
 
@@ -2067,12 +2100,83 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-art-image {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: contain;
       object-position: center center;
       display: block;
       background: #020916;
+    }
+
+    .cover-info-layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 12mm;
+      z-index: 2;
+      padding: 0 12mm;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .cover-info-card {
+      width: 100%;
+      max-width: 178mm;
+      background: linear-gradient(180deg, rgba(5, 14, 30, 0.84), rgba(7, 20, 41, 0.78));
+      border: 1px solid rgba(248, 227, 163, 0.42);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(4px);
+    }
+
+    .cover-info-kicker {
+      margin: 0;
+      font-size: 10px;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      color: rgba(248, 227, 163, 0.95);
+      font-weight: 700;
+    }
+
+    .cover-participant-name {
+      margin: 3px 0 8px;
+      font-size: 17px;
+      color: #ffffff;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .cover-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px 10px;
+    }
+
+    .cover-info-item {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .cover-info-label {
+      font-size: 9px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: 0.62px;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .cover-info-value {
+      font-size: 11.3px;
+      line-height: 1.28;
+      color: #ffffff;
+      font-weight: 640;
+      overflow-wrap: anywhere;
     }
 
     .executive-hero {

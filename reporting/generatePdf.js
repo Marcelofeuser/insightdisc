@@ -39,6 +39,17 @@ function normalizeHtmlAssetPaths(html) {
   return normalizedHtml;
 }
 
+async function inlineOfficialCoverAsset(html) {
+  const coverPath = resolvePath('public', 'report-assets', 'cover-insightdisc-premium.png');
+  try {
+    const bytes = await fs.readFile(coverPath);
+    const dataUrl = `data:image/png;base64,${bytes.toString('base64')}`;
+    return String(html || '').replaceAll('/report-assets/cover-insightdisc-premium.png', dataUrl);
+  } catch {
+    return String(html || '');
+  }
+}
+
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf8');
   return JSON.parse(raw);
@@ -102,7 +113,8 @@ async function loadBrowserLauncher() {
 export async function generatePdfFromData(rawData, options = {}) {
   const reportModel = await buildReportModel(rawData || {});
   const html = renderReportHtml({ reportModel });
-  const htmlForPdf = normalizeHtmlAssetPaths(html);
+  const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
+  const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);
 
   const defaultOutputDir = resolvePath('dist', 'reports');
   const outputDir = path.resolve(options.outputDir || defaultOutputDir);
@@ -117,6 +129,26 @@ export async function generatePdfFromData(rawData, options = {}) {
   try {
     const page = await browser.newPage();
     await page.setContent(htmlForPdf, { waitUntil: 'networkidle0' });
+    const coverStatus = await page.evaluate(async () => {
+      const cover = document.querySelector('.cover-art-image');
+      if (!cover) return { found: false };
+      if (typeof cover.decode === 'function') {
+        try {
+          await cover.decode();
+        } catch {
+          // no-op
+        }
+      }
+      return {
+        found: true,
+        complete: Boolean(cover.complete),
+        naturalWidth: Number(cover.naturalWidth || 0),
+        naturalHeight: Number(cover.naturalHeight || 0),
+      };
+    });
+    if (!coverStatus?.found || coverStatus.naturalWidth === 0 || coverStatus.naturalHeight === 0) {
+      throw new Error('Falha ao carregar a capa oficial do relatório no HTML antes de gerar PDF.');
+    }
     if (typeof page.emulateMediaType === 'function') {
       await page.emulateMediaType('print');
     }
