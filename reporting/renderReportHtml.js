@@ -780,22 +780,36 @@ export function renderReportHtml(input = {}) {
   };
 
   const coverParticipantName = firstNonEmptyText(
-    participant?.name,
     assessment?.candidateName,
-    assessment?.respondent_name,
+    report?.participant?.name,
+    participant?.name,
+    'Participante'
+  );
+  const coverParticipantEmail = firstNonEmptyText(
+    assessment?.candidateEmail,
+    report?.participant?.email,
     participant?.email,
-    assessment?.candidateEmail
+    '-'
   );
-  const coverProfileKey = safeText(
-    report?.profile?.key,
-    safeText(report?.profileKey, 'DISC')
+  const coverCompanyName = firstNonEmptyText(
+    assessment?.organization?.companyName,
+    assessment?.organization?.name,
+    report?.participant?.company,
+    participant?.company,
+    'InsightDISC'
   );
-  const coverGeneratedDate = formatDate(
-    report?.meta?.generatedAt || report?.generatedAt || assessment?.generatedAt || Date.now()
+  const coverGeneratedDate = formatDate(report?.meta?.generatedAt || Date.now());
+  const coverProfileKey = safeText(report?.profile?.key, safeText(report?.profileKey, 'DISC'));
+  const coverAssessmentId = firstNonEmptyText(
+    assessment?.id,
+    report?.participant?.assessmentId,
+    participant?.assessmentId,
+    '-'
   );
-  const coverReportTitle = safeText(
-    meta.reportTitle,
-    'Relatório de Análise Comportamental'
+  const coverReportTitle = safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
+  const coverReportSubtitle = safeText(
+    meta.reportSubtitle,
+    'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
   );
 
   const adaptation = {
@@ -851,17 +865,33 @@ export function renderReportHtml(input = {}) {
       cover: true,
       branding,
       content: `
-        <div class="cover-meta">
-          <div class="cover-meta-kicker">${esc(coverReportTitle)}</div>
-          <h1 class="cover-meta-name">${esc(coverParticipantName)}</h1>
-          <div class="cover-meta-grid">
-            <div class="cover-meta-item">
-              <span>Perfil</span>
-              <strong>${esc(coverProfileKey)}</strong>
+        <div class="cover-info-card">
+          <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
+          <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
+          <div class="cover-info-grid">
+            <div class="cover-info-item">
+              <span>Nome</span>
+              <strong>${esc(coverParticipantName)}</strong>
             </div>
-            <div class="cover-meta-item">
+            <div class="cover-info-item">
+              <span>E-mail</span>
+              <strong>${esc(coverParticipantEmail)}</strong>
+            </div>
+            <div class="cover-info-item">
+              <span>Empresa</span>
+              <strong>${esc(coverCompanyName)}</strong>
+            </div>
+            <div class="cover-info-item">
               <span>Data</span>
               <strong>${esc(coverGeneratedDate)}</strong>
+            </div>
+            <div class="cover-info-item">
+              <span>Perfil predominante</span>
+              <strong>${esc(coverProfileKey)}</strong>
+            </div>
+            <div class="cover-info-item">
+              <span>ID da avaliação</span>
+              <strong>${esc(coverAssessmentId)}</strong>
             </div>
           </div>
         </div>
@@ -2139,59 +2169,62 @@ export function renderReportHtml(input = {}) {
       background: #020916;
     }
 
-    .cover-meta {
+    .cover-info-card {
       position: absolute;
-      left: 18mm;
-      right: 18mm;
+      left: 20mm;
+      right: 20mm;
       bottom: 22mm;
       z-index: 2;
-      padding: 12mm 11mm;
-      border-radius: 18px;
-      background: rgba(8, 18, 38, 0.34);
+      padding: 10mm 10mm 9mm;
+      border-radius: 16px;
+      background: rgba(7, 20, 45, 0.48);
       border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(6px);
       color: #ffffff;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
-    .cover-meta-kicker {
+    .cover-report-kicker {
       margin: 0;
       font-size: 11px;
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.86);
-      font-weight: 700;
-      margin-bottom: 5mm;
-    }
-
-    .cover-meta-name {
-      margin: 0 0 8mm;
-      font-size: 27px;
-      line-height: 1.08;
-      color: #ffffff;
       font-weight: 800;
-      overflow-wrap: anywhere;
-    }
-
-    .cover-meta-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8mm;
-    }
-
-    .cover-meta-item span {
-      display: block;
-      font-size: 10.5px;
-      opacity: 0.82;
-      margin-bottom: 1.8mm;
+      letter-spacing: 1.4px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      margin-bottom: 4mm;
     }
 
-    .cover-meta-item strong {
+    .cover-report-subtitle {
+      font-size: 12.5px;
+      line-height: 1.45;
+      opacity: 0.92;
+      margin-bottom: 7mm;
+    }
+
+    .cover-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5mm 8mm;
+    }
+
+    .cover-info-item {
+      min-width: 0;
+    }
+
+    .cover-info-item span {
       display: block;
-      font-size: 16px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      opacity: 0.78;
+      margin-bottom: 1.4mm;
+    }
+
+    .cover-info-item strong {
+      display: block;
+      font-size: 13.5px;
       font-weight: 700;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
     .executive-hero {
