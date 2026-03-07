@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, requireRole } from '../middleware/rbac.js';
+import { attachUser, requireActiveCustomer, requireRole } from '../middleware/rbac.js';
 
 const router = Router();
 
@@ -65,7 +65,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (req, res) => {
+router.get(
+  '/',
+  requireAuth,
+  attachUser,
+  requireRole('ADMIN', 'PRO'),
+  requireActiveCustomer,
+  async (req, res) => {
   try {
     const status = String(req.query.status || '').trim();
     const search = String(req.query.search || '').trim();
@@ -94,9 +100,16 @@ router.get('/', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (req
   } catch (error) {
     return res.status(400).json({ ok: false, error: error?.message || 'LEAD_LIST_FAILED' });
   }
-});
+  }
+);
 
-router.get('/export/csv', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (req, res) => {
+router.get(
+  '/export/csv',
+  requireAuth,
+  attachUser,
+  requireRole('ADMIN', 'PRO'),
+  requireActiveCustomer,
+  async (req, res) => {
   try {
     const status = String(req.query.status || '').trim();
     const where = status ? { status } : {};
@@ -141,9 +154,16 @@ router.get('/export/csv', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), 
   } catch (error) {
     return res.status(400).json({ ok: false, error: error?.message || 'LEAD_EXPORT_FAILED' });
   }
-});
+  }
+);
 
-router.get('/:id', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (req, res) => {
+router.get(
+  '/:id',
+  requireAuth,
+  attachUser,
+  requireRole('ADMIN', 'PRO'),
+  requireActiveCustomer,
+  async (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     const lead = await prisma.lead.findUnique({ where: { id } });
@@ -154,9 +174,16 @@ router.get('/:id', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (
   } catch (error) {
     return res.status(400).json({ ok: false, error: error?.message || 'LEAD_FETCH_FAILED' });
   }
-});
+  }
+);
 
-router.patch('/:id', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async (req, res) => {
+router.patch(
+  '/:id',
+  requireAuth,
+  attachUser,
+  requireRole('ADMIN', 'PRO'),
+  requireActiveCustomer,
+  async (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     const input = patchLeadSchema.parse(req.body || {});
@@ -180,6 +207,7 @@ router.patch('/:id', requireAuth, attachUser, requireRole('ADMIN', 'PRO'), async
     }
     return res.status(400).json({ ok: false, error: error?.message || 'LEAD_UPDATE_FAILED' });
   }
-});
+  }
+);
 
 export default router;

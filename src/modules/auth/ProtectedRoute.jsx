@@ -13,11 +13,18 @@ import {
 } from '@/modules/auth/access-control';
 
 function evaluatePolicy(access, policy) {
-  if (!policy) return true;
-  if (policy.isPublic) return true;
+  if (!policy) return { allowed: true };
+  if (policy.isPublic) return { allowed: true };
 
   if (policy.requiresAuth && !isAuthenticatedAccess(access)) {
-    return false;
+    return { allowed: false, reason: 'auth' };
+  }
+
+  const allowedLifecycle = policy.allowedLifecycle || [];
+  if (allowedLifecycle.length > 0) {
+    if (!allowedLifecycle.includes(access?.lifecycleStatus)) {
+      return { allowed: false, reason: 'lifecycle' };
+    }
   }
 
   const globalRoles = policy.anyGlobalRoles || [];
@@ -28,12 +35,17 @@ function evaluatePolicy(access, policy) {
     const allowedByGlobalRole = hasAnyGlobalRole(access, globalRoles);
     const allowedByTenantRole = hasAnyTenantRole(access, tenantRoles);
     if (!allowedByGlobalRole && !allowedByTenantRole) {
-      return false;
+      return { allowed: false, reason: 'role' };
     }
   }
 
   const requiredPermissions = policy.permissions || [];
-  return requiredPermissions.every((permission) => hasPermission(access, permission));
+  const permissionOk = requiredPermissions.every((permission) => hasPermission(access, permission));
+  if (!permissionOk) {
+    return { allowed: false, reason: 'permission' };
+  }
+
+  return { allowed: true };
 }
 
 function AccessDenied({ pageName }) {
@@ -72,7 +84,12 @@ export default function ProtectedRoute({ children, policy, pageName }) {
     return <Navigate to={`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`} replace />;
   }
 
-  if (!evaluatePolicy(access, policy)) {
+  const evaluation = evaluatePolicy(access, policy);
+  if (!evaluation.allowed) {
+    if (evaluation.reason === 'lifecycle') {
+      return <Navigate to={policy?.redirectTo || '/Pricing?unlock=1'} replace />;
+    }
+
     return <AccessDenied pageName={pageName} />;
   }
 

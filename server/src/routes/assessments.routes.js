@@ -4,11 +4,16 @@ import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, canAccessOrganization, requireRole } from '../middleware/rbac.js';
+import {
+  attachUser,
+  canAccessOrganization,
+  requireActiveCustomer,
+  requireRole,
+} from '../middleware/rbac.js';
 
 const router = Router();
 
-router.use(requireAuth, attachUser, requireRole('ADMIN', 'PRO'));
+router.use(requireAuth, attachUser, requireRole('ADMIN', 'PRO'), requireActiveCustomer);
 
 router.post('/create', async (req, res) => {
   try {

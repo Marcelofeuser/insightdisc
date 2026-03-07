@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { loginAsAdmin, loginAsProfessional, loginAsUser } from './helpers/auth';
 
+test('Visitante público não acessa dashboard premium', async ({ page }) => {
+  await page.goto('/Dashboard');
+  await expect(page).toHaveURL(/\/Login(?:\?|$)/);
+});
+
 test('Home CTA leva para StartFree', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Fazer Teste Grátis|Começar Gratuitamente/i }).first().click();
@@ -97,6 +102,19 @@ test('TeamMapping adicionar membro abre modal e salva', async ({ page }) => {
   await expect(page.getByText(uniqueName).first()).toBeVisible();
 });
 
+test('Cliente ativo vê botão Fazer minha avaliação no dashboard', async ({ page }) => {
+  await loginAsProfessional(page);
+  await page.goto('/Dashboard');
+  await expect(page.getByTestId('dashboard-self-assessment-btn')).toBeVisible();
+});
+
+test('Fazer minha avaliação inicia fluxo de autoavaliação', async ({ page }) => {
+  await loginAsProfessional(page);
+  await page.goto('/Dashboard');
+  await page.getByTestId('dashboard-self-assessment-btn').click();
+  await expect(page).toHaveURL(/\/PremiumAssessment|\/c\/assessment/);
+});
+
 test('CheckoutSuccess mock mantém página estável e abre fluxo público quando solicitado', async ({ page }) => {
   await page.goto('/CheckoutSuccess?session_id=mock_e2e_checkout&assessmentId=assessment-2&token=tok-2&flow=candidate');
   await expect(page.getByRole('heading', { name: /Relatório liberado/i })).toBeVisible();
@@ -104,13 +122,20 @@ test('CheckoutSuccess mock mantém página estável e abre fluxo público quando
   await expect(page).toHaveURL(/\/c\/upgrade|\/c\/assessment|\/c\/report/);
 });
 
-test('Respondente consegue abrir o próprio report', async ({ page }) => {
+test('Usuário sem compra é redirecionado para planos/desbloqueio', async ({ page }) => {
   await loginAsUser(page);
 
+  await page.goto('/Dashboard');
+  await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+
+  await page.goto('/JobMatching');
+  await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+
+  await page.goto('/LeadsDashboard');
+  await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+
   await page.goto('/MyAssessments');
-  await page.getByRole('link', { name: /Ver relatório/i }).first().click();
-  await expect(page.getByRole('heading', { name: 'Relatório DISC', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Acesso negado/i })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
 });
 
 test('Link público /r/:token abre relatório público', async ({ page }) => {

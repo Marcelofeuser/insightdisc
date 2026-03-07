@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useMemo } from '
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
-import { createAccessContext } from '@/modules/auth/access-control';
+import { createAccessContext, deriveUserLifecycle, USER_LIFECYCLE } from '@/modules/auth/access-control';
 import { useUserStore } from '@/store/user-store';
 import {
   apiRequest,
@@ -34,17 +34,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const inferPlan = (inputUser) => {
+    const lifecycleStatus = deriveUserLifecycle(inputUser);
+    if (lifecycleStatus === USER_LIFECYCLE.SUPER_ADMIN) {
+      return 'enterprise';
+    }
+    if (lifecycleStatus === USER_LIFECYCLE.CUSTOMER_ACTIVE) {
+      return 'premium';
+    }
+
     const rawPlan = String(
       inputUser?.plan ||
         inputUser?.workspace_plan ||
         inputUser?.subscription_plan ||
         ''
     ).toLowerCase();
-    if (['premium', 'pro', 'enterprise'].includes(rawPlan)) {
-      return 'premium';
-    }
-
-    if (['admin', 'professional'].includes(String(inputUser?.role || '').toLowerCase())) {
+    if (lifecycleStatus !== USER_LIFECYCLE.REGISTERED_NO_PURCHASE && ['premium', 'pro', 'enterprise'].includes(rawPlan)) {
       return 'premium';
     }
 
@@ -177,6 +181,8 @@ export const AuthProvider = ({ children }) => {
           globalRole: normalizedAccess.globalRole,
           tenantRole: normalizedAccess.tenantRole,
           entitlements: normalizedAccess.entitlements,
+          lifecycleStatus: normalizedAccess.lifecycleStatus,
+          creditsBalance: normalizedAccess.creditsBalance,
         });
         setIsLoadingAuth(false);
         return;
@@ -193,6 +199,8 @@ export const AuthProvider = ({ children }) => {
         globalRole: normalizedAccess.globalRole,
         tenantRole: normalizedAccess.tenantRole,
         entitlements: normalizedAccess.entitlements,
+        lifecycleStatus: normalizedAccess.lifecycleStatus,
+        creditsBalance: normalizedAccess.creditsBalance,
       });
       setIsLoadingAuth(false);
     } catch (error) {

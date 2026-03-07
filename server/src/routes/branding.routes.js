@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, canManageOrganization } from '../middleware/rbac.js';
+import { attachUser, canManageOrganization, requireActiveCustomer } from '../middleware/rbac.js';
 import {
   getOrganizationBranding,
   updateOrganizationBranding,
@@ -15,7 +15,7 @@ import {
 
 const router = Router();
 
-router.use(requireAuth, attachUser);
+router.use(requireAuth, attachUser, requireActiveCustomer);
 
 const brandingSchema = z
   .object({

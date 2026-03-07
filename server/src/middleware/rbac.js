@@ -3,7 +3,20 @@ import { prisma } from '../lib/prisma.js';
 export async function attachUser(req, _res, next) {
   if (!req.auth?.userId) return next();
 
-  const user = await prisma.user.findUnique({ where: { id: req.auth.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.auth.userId },
+    include: {
+      credits: {
+        select: { balance: true },
+        take: 1,
+      },
+      payments: {
+        where: { status: 'PAID' },
+        select: { id: true, status: true },
+        take: 1,
+      },
+    },
+  });
   req.user = user || null;
   return next();
 }
@@ -29,6 +42,28 @@ export function requireSuperAdmin(req, res, next) {
     return res.status(403).json({ error: 'FORBIDDEN' });
   }
   return next();
+}
+
+export function isActiveCustomer(user = {}) {
+  const role = String(user?.role || '').toUpperCase();
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') return true;
+  if (role === 'CANDIDATE') return false;
+
+  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  const paidPayments = Number(user?.payments?.length || 0);
+  return creditsBalance > 0 || paidPayments > 0;
+}
+
+export function requireActiveCustomer(req, res, next) {
+  if (isActiveCustomer(req.user || {})) {
+    return next();
+  }
+
+  return res.status(402).json({
+    ok: false,
+    error: 'PAYWALL_REQUIRED',
+    message: 'Conta sem compra ativa. Compre créditos para desbloquear recursos premium.',
+  });
 }
 
 export async function canAccessOrganization(userId, organizationId) {

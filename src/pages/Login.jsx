@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiRequest, getApiBaseUrl, setApiSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { deriveUserLifecycle, USER_LIFECYCLE } from '@/modules/auth/access-control';
 
 const DEV_MOCK_ACCOUNTS = Object.freeze([
   { email: 'admin@example.com', label: 'Entrar como Admin' },
@@ -20,9 +21,23 @@ const ENABLE_DEV_LOGIN_SHORTCUTS =
 
 function sanitizeNextPath(nextPath) {
   const raw = String(nextPath || '').trim();
-  if (!raw.startsWith('/')) return createPageUrl('Dashboard');
-  if (raw.startsWith('//')) return createPageUrl('Dashboard');
+  if (!raw.startsWith('/')) return '';
+  if (raw.startsWith('//')) return '';
+  if (raw === createPageUrl('Login') || raw === createPageUrl('Signup')) return '';
   return raw;
+}
+
+function resolvePostLoginPath(user, nextPath = '') {
+  const lifecycleStatus = deriveUserLifecycle(user || {});
+  if (lifecycleStatus === USER_LIFECYCLE.SUPER_ADMIN) {
+    return '/super-admin';
+  }
+
+  if (lifecycleStatus !== USER_LIFECYCLE.CUSTOMER_ACTIVE) {
+    return `${createPageUrl('Pricing')}?unlock=1`;
+  }
+
+  return nextPath || createPageUrl('Dashboard');
 }
 
 export default function Login() {
@@ -39,10 +54,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const nextPath = useMemo(
-    () => sanitizeNextPath(searchParams.get('next')),
-    [searchParams]
-  );
+  const nextPath = useMemo(() => sanitizeNextPath(searchParams.get('next')), [searchParams]);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -50,6 +62,7 @@ export default function Login() {
     setError('');
 
     try {
+      let resolvedUser = null;
       if (apiBaseUrl) {
         const payload = await apiRequest('/auth/login', {
           method: 'POST',
@@ -67,6 +80,7 @@ export default function Login() {
           token: payload.token,
           email: payload?.user?.email || email.trim().toLowerCase(),
         });
+        resolvedUser = payload?.user || null;
       } else if (typeof base44.auth.login === 'function') {
         await base44.auth.login({
           email: email.trim().toLowerCase(),
@@ -77,7 +91,10 @@ export default function Login() {
       }
 
       await checkAppState();
-      navigate(nextPath, { replace: true });
+      const destination = apiBaseUrl
+        ? resolvePostLoginPath(resolvedUser, nextPath)
+        : nextPath || createPageUrl('Dashboard');
+      navigate(destination, { replace: true });
     } catch (loginError) {
       setError(loginError?.payload?.error || loginError?.message || 'Falha ao entrar.');
     } finally {
@@ -89,9 +106,9 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await base44.auth.login({ email: mockEmail });
+      const mockUser = await base44.auth.login({ email: mockEmail });
       await checkAppState();
-      navigate(nextPath, { replace: true });
+      navigate(resolvePostLoginPath(mockUser, nextPath), { replace: true });
     } catch (loginError) {
       setError(loginError?.message || 'Falha no atalho de login.');
     } finally {

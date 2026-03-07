@@ -67,12 +67,28 @@ function resolvePrimaryOrganizationId(user = {}) {
   return '';
 }
 
+function hasActivePaidPurchase(user = {}) {
+  const paymentsCount = Number(user?.payments?.length || 0);
+  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  return paymentsCount > 0 || creditsBalance > 0;
+}
+
 function normalizeUserPayload(user = {}) {
   const role = String(user?.role || 'PRO').toUpperCase();
   const workspaceId = resolvePrimaryOrganizationId(user);
   const isCandidate = role === 'CANDIDATE';
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isAdmin = role === 'ADMIN';
+  const hasPaidPurchase = hasActivePaidPurchase(user);
+  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
+  const lifecycleStatus = isSuperAdmin
+    ? 'super_admin'
+    : isCandidate
+      ? 'lead'
+      : isCustomerActive
+        ? 'customer_active'
+        : 'registered_no_purchase';
 
   return {
     id: user.id,
@@ -84,9 +100,15 @@ function normalizeUserPayload(user = {}) {
     tenant_role: isCandidate ? 'END_CUSTOMER' : workspaceId ? 'TENANT_ADMIN' : null,
     active_workspace_id: workspaceId || null,
     tenant_id: workspaceId || null,
-    entitlements: isCandidate ? [] : ['report.pro', 'report.export.pdf', 'report.export.csv'],
-    plan: isCandidate ? 'free' : isSuperAdmin ? 'enterprise' : 'premium',
-    credits: Number(user?.credits?.[0]?.balance || 0),
+    lifecycle_status: lifecycleStatus,
+    has_paid_purchase: hasPaidPurchase,
+    payments_count: Number(user?.payments?.length || 0),
+    entitlements:
+      isSuperAdmin || isAdmin || hasPaidPurchase
+        ? ['report.pro', 'report.export.pdf', 'report.export.csv']
+        : [],
+    plan: isSuperAdmin ? 'enterprise' : isCustomerActive ? 'premium' : 'free',
+    credits: creditsBalance,
   };
 }
 
@@ -112,6 +134,11 @@ router.post('/register', async (req, res) => {
       const organization = await tx.organization.create({
         data: {
           name: `${input.name.trim()} Workspace`,
+          companyName: input.name.trim(),
+          logoUrl: '/brand/insightdisc-report-logo.png',
+          brandPrimaryColor: '#0b1f3b',
+          brandSecondaryColor: '#f7b500',
+          reportFooterText: 'InsightDISC - Plataforma de Análise Comportamental',
           ownerId: createdUser.id,
         },
       });
@@ -130,6 +157,11 @@ router.post('/register', async (req, res) => {
           credits: true,
           memberships: true,
           organizationsOwned: true,
+          payments: {
+            where: { status: 'PAID' },
+            select: { id: true },
+            take: 1,
+          },
         },
       });
     });
@@ -158,6 +190,11 @@ router.post('/login', async (req, res) => {
         credits: true,
         memberships: true,
         organizationsOwned: true,
+        payments: {
+          where: { status: 'PAID' },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
     if (!user) {
@@ -203,6 +240,11 @@ router.post('/super-admin-login', async (req, res) => {
         credits: true,
         memberships: true,
         organizationsOwned: true,
+        payments: {
+          where: { status: 'PAID' },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
 
@@ -257,6 +299,11 @@ router.get('/me', requireAuth, async (req, res) => {
         credits: true,
         memberships: true,
         organizationsOwned: true,
+        payments: {
+          where: { status: 'PAID' },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
 
@@ -278,6 +325,11 @@ router.get('/super-admin/me', requireAuth, attachUser, requireSuperAdmin, async 
         credits: true,
         memberships: true,
         organizationsOwned: true,
+        payments: {
+          where: { status: 'PAID' },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
 

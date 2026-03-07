@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ArrowRight,
   CalendarClock,
   CheckCircle2,
   Clock3,
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
+import { useAuth } from '@/lib/AuthContext';
+import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,12 +46,27 @@ function getRespondentLabel(assessment) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { access: authAccess, user: authUser } = useAuth();
+  const apiBaseUrl = getApiBaseUrl();
   const [user, setUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
+  const [isStartingSelfAssessment, setIsStartingSelfAssessment] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
+        if (apiBaseUrl && authUser) {
+          setUser(authUser);
+          setWorkspace({
+            id: authUser?.active_workspace_id || authUser?.tenant_id || '',
+            name: authUser?.workspace_name || authUser?.company_name || 'Workspace',
+            plan: authUser?.plan || 'free',
+            credits_balance: Number(authUser?.credits || 0),
+          });
+          return;
+        }
+
         const currentUser = await base44.auth.me();
         setUser(currentUser);
 
@@ -62,9 +80,12 @@ export default function Dashboard() {
     };
 
     loadUser();
-  }, []);
+  }, [apiBaseUrl, authUser]);
 
-  const access = createAccessContext(user);
+  const access = useMemo(
+    () => (authAccess?.userId ? authAccess : createAccessContext(user)),
+    [authAccess, user]
+  );
   const canManageAssessments = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
   const canViewCredits = hasPermission(access, PERMISSIONS.CREDIT_VIEW) || hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
   const canManageCredits = hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
@@ -72,6 +93,10 @@ export default function Dashboard() {
   const { data: assessments = [], isLoading } = useQuery({
     queryKey: ['dashboard-assessments-v2', access?.tenantId, access?.userId, access?.email],
     queryFn: async () => {
+      if (apiBaseUrl) {
+        return [];
+      }
+
       if (access?.tenantId) {
         return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 500);
       }
@@ -89,6 +114,42 @@ export default function Dashboard() {
     },
     enabled: Boolean(access?.userId || access?.email),
   });
+
+  const handleStartSelfAssessment = async () => {
+    if (isStartingSelfAssessment) return;
+
+    if (!apiBaseUrl) {
+      navigate(createPageUrl('PremiumAssessment'));
+      return;
+    }
+
+    if (Number(workspace?.credits_balance || 0) < 1) {
+      navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
+      return;
+    }
+
+    setIsStartingSelfAssessment(true);
+    try {
+      const payload = await apiRequest('/assessment/self/start', {
+        method: 'POST',
+        requireAuth: true,
+      });
+      if (!payload?.token) {
+        throw new Error('Falha ao iniciar autoavaliação.');
+      }
+
+      navigate(`/c/assessment?token=${encodeURIComponent(payload.token)}&self=1&from=dashboard`);
+    } catch (error) {
+      if (Number(error?.status) === 402) {
+        navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
+        return;
+      }
+      // eslint-disable-next-line no-alert
+      alert(error?.payload?.message || error?.message || 'Não foi possível iniciar sua avaliação.');
+    } finally {
+      setIsStartingSelfAssessment(false);
+    }
+  };
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -165,6 +226,17 @@ export default function Dashboard() {
             <CardTitle>Ações rápidas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Button
+              type="button"
+              onClick={handleStartSelfAssessment}
+              className="w-full bg-slate-900 hover:bg-slate-800"
+              disabled={isStartingSelfAssessment}
+              data-testid="dashboard-self-assessment-btn"
+            >
+              {isStartingSelfAssessment ? 'Iniciando avaliação...' : 'Fazer minha avaliação'}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+
             {canManageAssessments ? (
               <Link to={createPageUrl('SendAssessment')}>
                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700">Enviar avaliação</Button>

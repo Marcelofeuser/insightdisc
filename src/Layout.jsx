@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Briefcase,
@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
 import AppShell from '@/components/shell/AppShell';
+import { useAuth } from '@/lib/AuthContext';
 import {
+  canAccessPremiumSaas,
   GLOBAL_ROLES,
   PERMISSIONS,
-  createAccessContext,
   hasAnyGlobalRole,
   hasPermission,
 } from '@/modules/auth/access-control';
@@ -55,27 +55,9 @@ const PAGE_TITLES = {
 };
 
 export default function Layout({ children, currentPageName }) {
-  const [user, setUser] = useState(null);
+  const { user, isAuthenticated, access, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isAuth = await base44.auth.isAuthenticated();
-        if (isAuth) {
-          const currentUser = await base44.auth.me();
-          setUser(currentUser);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-      }
-    };
-
-    checkAuth();
-  }, [location.pathname]);
 
   const goHomeHash = (hash) => {
     const homeUrl = createPageUrl('Home');
@@ -93,7 +75,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const handleLogout = () => {
-    base44.auth.logout(createPageUrl('Home'));
+    logout(true);
   };
 
   const tokenInQuery = new URLSearchParams(location.search).get('token');
@@ -149,7 +131,7 @@ export default function Layout({ children, currentPageName }) {
               </nav>
 
               <div className="flex items-center gap-4">
-                {user ? (
+                {isAuthenticated ? (
                   <Link to={createPageUrl('Dashboard')}>
                     <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">Meu Painel</Button>
                   </Link>
@@ -181,14 +163,17 @@ export default function Layout({ children, currentPageName }) {
     return <div className="min-h-screen bg-slate-50">{children}</div>;
   }
 
-  const access = createAccessContext(user);
-  const canManageAssessments = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+  const canAccessPremium = canAccessPremiumSaas(access);
+  const canManageAssessments =
+    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
   const canViewAssessments =
-    hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT) ||
-    hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF);
-  const canSeeTenantAnalytics = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
-  const canViewCredits = hasPermission(access, PERMISSIONS.CREDIT_VIEW);
-  const canManageCredits = hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
+    canAccessPremium &&
+    (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT) ||
+      hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF));
+  const canSeeTenantAnalytics =
+    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
+  const canViewCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_VIEW);
+  const canManageCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
   const canAccessPlatformAdmin = hasAnyGlobalRole(access, [
     GLOBAL_ROLES.SUPER_ADMIN,
     GLOBAL_ROLES.PLATFORM_ADMIN,

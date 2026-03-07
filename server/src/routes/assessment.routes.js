@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
-import { sha256 } from '../lib/security.js';
+import { generateRandomToken, sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
+import { requireAuth } from '../middleware/auth.js';
+import { attachUser } from '../middleware/rbac.js';
 
 const router = Router();
 
@@ -62,6 +64,169 @@ async function getValidInviteByToken(token, options = {}) {
 
   return { valid: true, invite, tokenHash, alreadyUsed };
 }
+
+async function resolveOrganizationForUser(userId) {
+  const owned = await prisma.organization.findFirst({
+    where: { ownerId: userId },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+  });
+  if (owned?.id) return owned.id;
+
+  const membership = await prisma.organizationMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'asc' },
+    select: { organizationId: true },
+  });
+  if (membership?.organizationId) return membership.organizationId;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true },
+  });
+
+  if (!user) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  const organization = await prisma.organization.create({
+    data: {
+      ownerId: user.id,
+      name: `${user.name || 'Workspace'} Workspace`,
+    },
+    select: { id: true },
+  });
+
+  await prisma.organizationMember.create({
+    data: {
+      organizationId: organization.id,
+      userId: user.id,
+      role: 'OWNER',
+    },
+  });
+
+  return organization.id;
+}
+
+async function ensureOrganizationBrandingDefaults(organizationId) {
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      id: true,
+      name: true,
+      companyName: true,
+      logoUrl: true,
+      brandPrimaryColor: true,
+      brandSecondaryColor: true,
+      reportFooterText: true,
+    },
+  });
+
+  if (!organization) return;
+
+  const nextData = {};
+  if (!String(organization.companyName || '').trim()) {
+    nextData.companyName = String(organization.name || 'InsightDISC').trim();
+  }
+  if (!String(organization.logoUrl || '').trim()) {
+    nextData.logoUrl = '/brand/insightdisc-report-logo.png';
+  }
+  if (!String(organization.brandPrimaryColor || '').trim()) {
+    nextData.brandPrimaryColor = '#0b1f3b';
+  }
+  if (!String(organization.brandSecondaryColor || '').trim()) {
+    nextData.brandSecondaryColor = '#f7b500';
+  }
+  if (!String(organization.reportFooterText || '').trim()) {
+    nextData.reportFooterText = 'InsightDISC - Plataforma de Análise Comportamental';
+  }
+
+  if (Object.keys(nextData).length === 0) return;
+  await prisma.organization.update({
+    where: { id: organizationId },
+    data: nextData,
+  });
+}
+
+router.post('/self/start', requireAuth, attachUser, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.auth.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        credits: {
+          select: { balance: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
+    }
+
+    if (String(user.role || '').toUpperCase() === 'CANDIDATE') {
+      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
+    }
+
+    const balance = Number(user.credits?.[0]?.balance || 0);
+    if (balance < 1) {
+      return res.status(402).json({
+        ok: false,
+        error: 'INSUFFICIENT_CREDITS',
+        message: 'Sem créditos disponíveis para iniciar autoavaliação.',
+      });
+    }
+
+    const organizationId = await resolveOrganizationForUser(user.id);
+    await ensureOrganizationBrandingDefaults(organizationId);
+    const token = generateRandomToken(24);
+    const tokenHash = sha256(token);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+
+    const assessment = await prisma.$transaction(async (tx) => {
+      const created = await tx.assessment.create({
+        data: {
+          organizationId,
+          createdBy: user.id,
+          candidateUserId: user.id,
+          candidateName: user.name,
+          candidateEmail: user.email,
+          status: 'IN_PROGRESS',
+          accessTokenHash: tokenHash,
+        },
+      });
+
+      await tx.invite.create({
+        data: {
+          assessmentId: created.id,
+          tokenHash,
+          expiresAt,
+          status: 'ACTIVE',
+        },
+      });
+
+      return created;
+    });
+
+    return res.status(201).json({
+      ok: true,
+      assessmentId: assessment.id,
+      token,
+      inviteUrl: `/c/assessment?token=${encodeURIComponent(token)}&self=1`,
+      expiresAt: expiresAt.toISOString(),
+    });
+  } catch (error) {
+    const message = String(error?.message || 'SELF_START_FAILED').toUpperCase();
+    if (message.includes('USER_NOT_FOUND')) {
+      return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
+    }
+    return res.status(400).json({ ok: false, error: error?.message || 'SELF_START_FAILED' });
+  }
+});
 
 router.get('/validate-token', async (req, res) => {
   try {
@@ -322,9 +487,45 @@ router.post('/submit', async (req, res) => {
       return res.status(409).json({ ok: false, reason: 'USED', error: 'USED' });
     }
 
+    const isSelfAssessment =
+      Boolean(result?.invite?.assessment?.candidateUserId) &&
+      result.invite.assessment.candidateUserId === result.invite.assessment.createdBy;
+
+    if (isSelfAssessment) {
+      const credit = await prisma.credit.findUnique({
+        where: { userId: result.invite.assessment.createdBy },
+        select: { balance: true },
+      });
+      if (Number(credit?.balance || 0) < 1) {
+        return res.status(402).json({
+          ok: false,
+          reason: 'INSUFFICIENT_CREDITS',
+          error: 'INSUFFICIENT_CREDITS',
+        });
+      }
+    }
+
     const discResult = calculateDiscFromAnswers(input.answers);
 
     const response = await prisma.$transaction(async (tx) => {
+      if (isSelfAssessment) {
+        const credit = await tx.credit.findUnique({
+          where: { userId: result.invite.assessment.createdBy },
+          select: { balance: true },
+        });
+
+        if (Number(credit?.balance || 0) < 1) {
+          const insufficient = new Error('INSUFFICIENT_CREDITS');
+          insufficient.statusCode = 402;
+          throw insufficient;
+        }
+
+        await tx.credit.update({
+          where: { userId: result.invite.assessment.createdBy },
+          data: { balance: { decrement: 1 } },
+        });
+      }
+
       const assessment = await tx.assessment.update({
         where: { id: result.invite.assessmentId },
         data: {
@@ -368,16 +569,24 @@ router.post('/submit', async (req, res) => {
         });
       }
 
-      return { assessment, report };
+      return { assessment, report, creditsConsumed: isSelfAssessment ? 1 : 0 };
     });
 
     return res.status(200).json({
       ok: true,
       assessmentId: response.assessment.id,
       reportId: response.report.id,
+      creditsConsumed: Number(response.creditsConsumed || 0),
       disc: discResult,
     });
   } catch (error) {
+    if (Number(error?.statusCode) === 402 || String(error?.message || '').includes('INSUFFICIENT_CREDITS')) {
+      return res.status(402).json({
+        ok: false,
+        reason: 'INSUFFICIENT_CREDITS',
+        error: 'INSUFFICIENT_CREDITS',
+      });
+    }
     return res.status(400).json({ ok: false, error: error?.message || 'Falha ao submeter assessment.' });
   }
 });

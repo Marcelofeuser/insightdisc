@@ -78,7 +78,7 @@ export async function setMockSession(page, overrides = {}) {
     });
   }, session);
 
-  return session;
+  return { ...session, key: preset.key };
 }
 
 export async function isAuthenticated(page) {
@@ -86,9 +86,14 @@ export async function isAuthenticated(page) {
 }
 
 export async function loginAs(page, role = 'PROFESSIONAL') {
-  await setMockSession(page, { role });
+  const preset = await setMockSession(page, { role });
   await page.goto('/Dashboard', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
+  if (preset.key === 'USER') {
+    await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+    return;
+  }
+
   await expect(page).toHaveURL(/\/Dashboard(?:\?|$)/);
 }
 

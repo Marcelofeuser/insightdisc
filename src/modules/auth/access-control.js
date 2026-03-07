@@ -1,10 +1,29 @@
 import { ENTITLEMENT_TO_PERMISSIONS, PERMISSIONS, ROLE_PERMISSIONS } from '@/modules/auth/permissions';
 import { GLOBAL_ROLES, LEGACY_ROLE_MAP, TENANT_ROLES } from '@/modules/auth/roles';
 
+export const USER_LIFECYCLE = Object.freeze({
+  ANONYMOUS: 'anonymous',
+  LEAD: 'lead',
+  REGISTERED_NO_PURCHASE: 'registered_no_purchase',
+  CUSTOMER_ACTIVE: 'customer_active',
+  SUPER_ADMIN: 'super_admin',
+});
+
 function normalizeString(value) {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function normalizeLifecycle(rawValue) {
+  const raw = String(rawValue || '').trim().toLowerCase();
+  if (Object.values(USER_LIFECYCLE).includes(raw)) return raw;
+  return null;
+}
+
+function toNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
 }
 
 export function normalizeRoles(user = {}) {
@@ -38,6 +57,50 @@ export function getTenantId(user = {}) {
   );
 }
 
+export function deriveUserLifecycle(user = {}) {
+  if (!user || (!user.id && !user.email)) {
+    return USER_LIFECYCLE.ANONYMOUS;
+  }
+
+  const explicitLifecycle =
+    normalizeLifecycle(user.lifecycle_status) || normalizeLifecycle(user.lifecycleStatus);
+  if (explicitLifecycle) {
+    return explicitLifecycle;
+  }
+
+  const role = String(user.role || '').toUpperCase();
+  const globalRole = String(user.global_role || user.globalRole || '').toUpperCase();
+  if (role === 'SUPER_ADMIN' || globalRole === GLOBAL_ROLES.SUPER_ADMIN) {
+    return USER_LIFECYCLE.SUPER_ADMIN;
+  }
+  if (role === 'CANDIDATE') {
+    return USER_LIFECYCLE.LEAD;
+  }
+
+  const hasPaidPurchase =
+    Boolean(user.has_paid_purchase) ||
+    Boolean(user.hasPaidPurchase) ||
+    toNumber(user.payments_count) > 0 ||
+    toNumber(user.paymentsCount) > 0;
+  const creditsBalance =
+    toNumber(user.credits) ||
+    toNumber(user.credits_balance) ||
+    toNumber(user.creditsBalance);
+  const hasPremiumPlan = ['premium', 'pro', 'enterprise'].includes(
+    String(user.plan || user.workspace_plan || user.subscription_plan || '')
+      .trim()
+      .toLowerCase()
+  );
+  const entitlementList = toEntitlementList(user.entitlements);
+  const hasProEntitlement = entitlementList.includes('report.pro');
+
+  if (hasPaidPurchase || creditsBalance > 0 || hasPremiumPlan || hasProEntitlement) {
+    return USER_LIFECYCLE.CUSTOMER_ACTIVE;
+  }
+
+  return USER_LIFECYCLE.REGISTERED_NO_PURCHASE;
+}
+
 function toEntitlementList(raw) {
   if (!raw) return [];
 
@@ -60,6 +123,16 @@ export function createAccessContext(user = null) {
   const safeUser = user || null;
   const { globalRole, tenantRole } = normalizeRoles(safeUser || {});
   const entitlements = toEntitlementList(safeUser?.entitlements);
+  const lifecycleStatus = deriveUserLifecycle(safeUser || {});
+  const creditsBalance =
+    toNumber(safeUser?.credits) ||
+    toNumber(safeUser?.credits_balance) ||
+    toNumber(safeUser?.creditsBalance);
+  const hasPaidPurchase =
+    Boolean(safeUser?.has_paid_purchase) ||
+    Boolean(safeUser?.hasPaidPurchase) ||
+    toNumber(safeUser?.payments_count) > 0 ||
+    toNumber(safeUser?.paymentsCount) > 0;
 
   return {
     user: safeUser,
@@ -69,6 +142,9 @@ export function createAccessContext(user = null) {
     globalRole,
     tenantRole,
     entitlements,
+    lifecycleStatus,
+    creditsBalance,
+    hasPaidPurchase,
   };
 }
 
@@ -131,6 +207,18 @@ export function canAccessTenant(access, tenantId) {
   }
 
   return access?.tenantId === normalizedTenantId;
+}
+
+export function canAccessPremiumSaas(access) {
+  const lifecycle = normalizeLifecycle(access?.lifecycleStatus);
+  return (
+    lifecycle === USER_LIFECYCLE.CUSTOMER_ACTIVE ||
+    lifecycle === USER_LIFECYCLE.SUPER_ADMIN
+  );
+}
+
+export function isSuperAdminAccess(access) {
+  return normalizeLifecycle(access?.lifecycleStatus) === USER_LIFECYCLE.SUPER_ADMIN;
 }
 
 export function canViewAssessment(access, assessment = {}) {

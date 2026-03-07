@@ -7,6 +7,8 @@ const initialState = {
   globalRole: null,
   tenantRole: null,
   entitlements: [],
+  lifecycleStatus: "anonymous",
+  creditsBalance: 0,
 };
 
 export const useUserStore = create((set) => ({
@@ -17,6 +19,8 @@ export const useUserStore = create((set) => ({
   setTenantId: (tenantId) => set({ tenantId }),
   setRoles: ({ globalRole = null, tenantRole = null } = {}) => set({ globalRole, tenantRole }),
   setEntitlements: (entitlements = []) => set({ entitlements }),
+  setLifecycleStatus: (lifecycleStatus = "anonymous") => set({ lifecycleStatus }),
+  setCreditsBalance: (creditsBalance = 0) => set({ creditsBalance }),
   setAuthContext: ({
     user = null,
     plan = "free",
@@ -24,6 +28,8 @@ export const useUserStore = create((set) => ({
     globalRole = null,
     tenantRole = null,
     entitlements = [],
+    lifecycleStatus = "anonymous",
+    creditsBalance = 0,
   } = {}) =>
     set({
       user,
@@ -32,6 +38,8 @@ export const useUserStore = create((set) => ({
       globalRole,
       tenantRole,
       entitlements,
+      lifecycleStatus,
+      creditsBalance,
     }),
   resetAuthContext: () => set(initialState),
 }));
