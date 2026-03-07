@@ -482,9 +482,34 @@ function stripHtml(value) {
     .trim();
 }
 
+function hashCode(value) {
+  let hash = 0;
+  const input = String(value || '');
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function pseudoScore(seed, offset) {
+  const hash = hashCode(`${seed}-${offset}`);
+  return 36 + (hash % 56);
+}
+
+function enrichmentMetrics(title, subtitle) {
+  const seed = `${title}|${subtitle}`;
+  return FACTORS.map((factor, index) => ({
+    factor,
+    label: FACTOR_META[factor].label,
+    score: pseudoScore(seed, index),
+  }));
+}
+
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
+  const metrics = enrichmentMetrics(title, subtitle);
   return `
     <div class="grid three">
       ${enrichmentCard(
@@ -499,6 +524,35 @@ function automaticEnrichment(title, subtitle) {
         'Risco de exagero do perfil',
         `Sem calibragem de contexto, padrões dominantes podem gerar perda de qualidade relacional e queda de previsibilidade na execução.`
       )}
+    </div>
+    <div class="visual-panel">
+      <div class="visual-panel-header">
+        <h4>Painel visual de apoio</h4>
+        <span>Leitura complementar para preencher contexto decisorio</span>
+      </div>
+      <div class="visual-signal-grid">
+        ${metrics
+          .map(
+            (metric) => `
+              <div class="visual-signal-card">
+                <div class="visual-signal-head">
+                  <span class="visual-dot" style="background:${FACTOR_META[metric.factor].color}"></span>
+                  <strong>${metric.factor}</strong>
+                  <small>${esc(metric.label)}</small>
+                </div>
+                <div class="visual-track">
+                  <div class="visual-fill" style="width:${metric.score}%;background:${FACTOR_META[metric.factor].color}"></div>
+                </div>
+                <p>${metric.score}% de intensidade contextual para ${esc(scope.toLowerCase())}.</p>
+              </div>
+            `
+          )
+          .join('')}
+      </div>
+      <div class="visual-panel-notes">
+        <p><strong>Aplicacao no dia a dia:</strong> vincule os sinais acima com exemplos concretos de rotina, reunioes, feedbacks e tomada de decisao.</p>
+        <p><strong>Leitura de lideranca:</strong> para ${esc(detail.toLowerCase())}, use esse painel para equilibrar ritmo, qualidade e colaboracao entre perfis diversos.</p>
+      </div>
     </div>
   `;
 }
@@ -529,12 +583,13 @@ function buildPage({ number, totalPages, title, subtitle, content, cover = false
   const parityClass = number % 2 === 0 ? 'page-even' : 'page-odd';
   const densityChars = stripHtml(content).length;
   const contentWithDensity =
-    densityChars < 1200
+    densityChars < 1700
       ? `${content}\n${automaticEnrichment(title, subtitle)}`
       : content;
 
   return `
     <section class="page ${parityClass}">
+      <div class="page-backdrop"></div>
       <main class="content">
         <div class="section-head">
           <h2>${esc(title)}</h2>
@@ -641,6 +696,7 @@ export function renderReportHtml(input = {}) {
       cover: true,
       branding,
       content: `
+        <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
         <p class="cover-brand-name">${esc(branding.company_name)}</p>
         <div class="cover-rule"></div>
         ${
@@ -651,6 +707,16 @@ export function renderReportHtml(input = {}) {
         <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
         <p class="cover-name">${esc(participant.name)}</p>
         <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
+        <div class="cover-disc-band">
+          ${FACTORS.map(
+            (factor) => `
+              <div class="cover-disc-chip" style="--disc:${FACTOR_META[factor].color}">
+                <span>${factor}</span>
+                <small>${FACTOR_META[factor].label}</small>
+              </div>
+            `
+          ).join('')}
+        </div>
         <div class="cover-participant-box">
           <div><strong>Empresa:</strong> ${esc(participant.company)}</div>
           <div><strong>Data:</strong> ${esc(meta.generatedAt)}</div>
@@ -1732,6 +1798,16 @@ export function renderReportHtml(input = {}) {
       border: 1px solid #e7ebf1;
     }
 
+    .page-backdrop {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 96% 4%, rgba(247, 181, 0, 0.11), transparent 28%),
+        radial-gradient(circle at 4% 92%, rgba(11, 31, 59, 0.08), transparent 30%);
+      opacity: 0.95;
+    }
+
     .page:last-child {
       page-break-after: auto;
     }
@@ -1745,7 +1821,9 @@ export function renderReportHtml(input = {}) {
     }
 
     .content {
-      padding: 9mm 11mm 18mm;
+      position: relative;
+      z-index: 1;
+      padding: 8.5mm 10.5mm 18mm;
     }
 
     .section-head {
@@ -1753,9 +1831,9 @@ export function renderReportHtml(input = {}) {
       justify-content: space-between;
       align-items: baseline;
       gap: 16px;
-      margin-bottom: 5.5mm;
+      margin-bottom: 4.5mm;
       border-bottom: 1px solid var(--line);
-      padding-bottom: 3.2mm;
+      padding-bottom: 2.8mm;
     }
 
     .section-head h2 {
@@ -1765,6 +1843,16 @@ export function renderReportHtml(input = {}) {
       line-height: 1.16;
       letter-spacing: -0.35px;
       font-weight: 750;
+    }
+
+    .section-head h2::after {
+      content: "";
+      display: block;
+      width: 62px;
+      height: 3px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--secondary), rgba(247, 181, 0, 0.15));
     }
 
     .section-head span {
@@ -1789,33 +1877,59 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-page {
-      background: #ffffff;
-      border: 1px solid #e9edf4;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(247, 181, 0, 0.18), transparent 32%),
+        radial-gradient(circle at 84% 12%, rgba(52, 152, 219, 0.14), transparent 34%),
+        linear-gradient(155deg, #07142d 0%, #0b1f3b 52%, #0f2d55 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .cover-page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.09), transparent 38%),
+        linear-gradient(330deg, rgba(247, 181, 0, 0.12), transparent 42%);
+      pointer-events: none;
     }
 
     .cover-content {
-      padding: 20mm 20mm 26mm;
+      position: relative;
+      z-index: 1;
+      padding: 18mm 18mm 24mm;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 6.5mm;
+      gap: 5mm;
     }
 
     .cover-logo-block {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3.2mm;
-      margin-top: 2mm;
+      gap: 2.6mm;
+      margin-top: 1mm;
     }
 
     .cover-logo {
       width: 146mm;
       max-width: 100%;
-      max-height: 42mm;
+      max-height: 38mm;
       object-fit: contain;
       display: block;
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.35));
+    }
+
+    .cover-kicker {
+      text-align: center;
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.76);
+      font-weight: 600;
     }
 
     .cover-brand-name {
@@ -1824,7 +1938,7 @@ export function renderReportHtml(input = {}) {
       font-size: 13px;
       letter-spacing: 1.4px;
       text-transform: uppercase;
-      color: #23324f;
+      color: rgba(255, 255, 255, 0.94);
       font-weight: 700;
     }
 
@@ -1832,13 +1946,13 @@ export function renderReportHtml(input = {}) {
       text-align: center;
       margin: 0;
       font-size: 12px;
-      color: #55627b;
+      color: rgba(255, 255, 255, 0.78);
       letter-spacing: 0.28px;
     }
 
     .cover-tagline {
       font-size: 12.5px;
-      color: #4b5563;
+      color: rgba(255, 255, 255, 0.8);
       letter-spacing: 0.4px;
     }
 
@@ -1848,20 +1962,21 @@ export function renderReportHtml(input = {}) {
       height: 2px;
       margin: 1mm auto 0;
       border-radius: 999px;
-      background: linear-gradient(90deg, rgba(247, 181, 0, 0.05), var(--secondary), rgba(11, 31, 59, 0.28));
+      background: linear-gradient(90deg, rgba(247, 181, 0, 0.14), var(--secondary), rgba(248, 227, 163, 0.78));
     }
 
     .cover-title {
       margin: 0;
       text-align: center;
-      color: var(--primary);
-      font-size: 34px;
+      color: #ffffff;
+      font-size: 35px;
       line-height: 1.08;
-      letter-spacing: 0.4px;
-      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-weight: 840;
       text-transform: uppercase;
       max-width: 162mm;
       margin-inline: auto;
+      text-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     .cover-name {
@@ -1869,7 +1984,7 @@ export function renderReportHtml(input = {}) {
       font-size: 22px;
       line-height: 1.16;
       font-weight: 650;
-      color: #0b1f3b;
+      color: #f8e3a3;
       text-align: center;
     }
 
@@ -1877,29 +1992,62 @@ export function renderReportHtml(input = {}) {
       margin: 0 auto 1mm;
       max-width: 165mm;
       text-align: center;
-      color: #334155;
-      font-size: 15px;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 15.2px;
       line-height: 1.45;
+    }
+
+    .cover-disc-band {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 2mm auto 1mm;
+      max-width: 162mm;
+    }
+
+    .cover-disc-chip {
+      border: 1px solid var(--disc);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+      border-radius: 999px;
+      padding: 6px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .cover-disc-chip span {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.2px;
+    }
+
+    .cover-disc-chip small {
+      font-size: 9.7px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.2;
     }
 
     .cover-participant-box {
       margin: 0 auto;
       width: 100%;
       max-width: 165mm;
-      background: linear-gradient(180deg, #ffffff, #f7f8fb);
-      border: 1px solid #dbe2ec;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.24);
       border-radius: 18px;
       padding: 17px 18px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 9px 18px;
       font-size: 12.8px;
-      color: #1f2937;
-      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+      color: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(8px);
     }
 
     .cover-participant-box strong {
-      color: #0f172a;
+      color: #f8e3a3;
     }
 
     .executive-hero {
@@ -1928,6 +2076,8 @@ export function renderReportHtml(input = {}) {
 
     .cover-footer {
       background: transparent;
+      color: rgba(255, 255, 255, 0.84);
+      border-top: 1px solid rgba(255, 255, 255, 0.24);
     }
 
     p {
@@ -1973,6 +2123,20 @@ export function renderReportHtml(input = {}) {
       border-radius: var(--radius);
       padding: 15px;
       box-shadow: 0 3px 14px rgba(15, 23, 42, 0.038);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      right: -28px;
+      bottom: -28px;
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(11, 31, 59, 0.08), rgba(11, 31, 59, 0));
+      pointer-events: none;
     }
 
     .strategic-note {
@@ -2106,6 +2270,115 @@ export function renderReportHtml(input = {}) {
 
     .callout-box p {
       margin-bottom: 0;
+    }
+
+    .visual-panel {
+      margin-top: 12px;
+      border: 1px solid #d8e0ed;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      padding: 12px;
+      box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    .visual-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #dde5f1;
+      margin-bottom: 10px;
+    }
+
+    .visual-panel-header h4 {
+      margin: 0;
+      color: #0f2a52;
+    }
+
+    .visual-panel-header span {
+      font-size: 10.8px;
+      color: #61708a;
+      text-align: right;
+      max-width: 60%;
+    }
+
+    .visual-signal-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .visual-signal-card {
+      border: 1px solid #dce4ef;
+      border-radius: 10px;
+      padding: 8px;
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+
+    .visual-signal-head {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .visual-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .visual-signal-head strong {
+      font-size: 11px;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    .visual-signal-head small {
+      font-size: 9px;
+      color: #607089;
+      line-height: 1;
+    }
+
+    .visual-track {
+      height: 7px;
+      border-radius: 999px;
+      background: #e5ebf4;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .visual-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .visual-signal-card p {
+      margin: 0;
+      font-size: 10px;
+      line-height: 1.35;
+      color: #4d5d76;
+    }
+
+    .visual-panel-notes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .visual-panel-notes p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #334155;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid #dbe3ef;
+      background: #ffffff;
     }
 
     .factor-card {

@@ -150,7 +150,10 @@ function validateHtml(model, html, { expectTaglineHidden = false } = {}) {
   const pageBodies = getPageBodies(html);
   assert(pageBodies.length === 30, `Esperado 30 paginas, encontrado ${pageBodies.length}.`);
   assert(html.includes('class="page cover-page"'), 'Pagina 1 (capa) nao encontrada como cover-page.');
-  assert(/\.cover-page\s*\{[\s\S]*background:\s*#ffffff;/m.test(html), 'Capa nao esta branca.');
+  assert(
+    /\.cover-page\s*\{[\s\S]*#07142d[\s\S]*#0b1f3b[\s\S]*#0f2d55/m.test(html),
+    'Capa premium azul/dourada nao encontrada.',
+  );
   assert(!html.includes('/brand/insightdisc-logo-transparent.png'), 'Logo antiga ainda encontrada.');
   assert(html.includes(REQUIRED_LOGO), 'Logo oficial nao encontrada no HTML.');
   assert(!html.includes('Nao informado'), 'Placeholder "Nao informado" encontrado.');
