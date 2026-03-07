@@ -129,6 +129,14 @@ function safeText(value, fallback = '') {
   return text || fallback;
 }
 
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
 function safeArray(value, fallback = []) {
   if (Array.isArray(value)) {
     const normalized = value.filter((item) => {
@@ -715,7 +723,27 @@ function buildPage({
 }
 
 export function renderReportHtml(input = {}) {
-  const report = input?.reportModel || input || {};
+  const assessment = input?.assessment || {};
+  const rawReport = input?.reportModel || input || {};
+  const participantFromReport = rawReport?.participant || {};
+  const resolvedParticipantName = firstNonEmptyText(
+    participantFromReport?.name,
+    participantFromReport?.candidateName,
+    participantFromReport?.respondent_name,
+    assessment?.candidateName,
+    assessment?.respondent_name,
+    participantFromReport?.email,
+    participantFromReport?.candidateEmail,
+    assessment?.candidateEmail
+  );
+
+  const report = {
+    ...rawReport,
+    participant: {
+      ...participantFromReport,
+      name: resolvedParticipantName,
+    },
+  };
 
   ensureCriticalData(report);
 
@@ -750,6 +778,25 @@ export function renderReportHtml(input = {}) {
     archetype: safeText(report?.profile?.archetype, safeText(report?.profileContent?.archetype, 'Perfil orientado a resultado com equilibrio relacional e consistencia operacional.')),
     label: safeText(report?.profile?.label, 'Combinacao comportamental com aplicacao corporativa.'),
   };
+
+  const coverParticipantName = firstNonEmptyText(
+    participant?.name,
+    assessment?.candidateName,
+    assessment?.respondent_name,
+    participant?.email,
+    assessment?.candidateEmail
+  );
+  const coverProfileKey = safeText(
+    report?.profile?.key,
+    safeText(report?.profileKey, 'DISC')
+  );
+  const coverGeneratedDate = formatDate(
+    report?.meta?.generatedAt || report?.generatedAt || assessment?.generatedAt || Date.now()
+  );
+  const coverReportTitle = safeText(
+    meta.reportTitle,
+    'Relatório de Análise Comportamental'
+  );
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),
@@ -805,16 +852,16 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         <div class="cover-meta">
-          <div class="cover-meta-kicker">${esc(meta.reportTitle)}</div>
-          <h1 class="cover-meta-name">${esc(participant.name)}</h1>
+          <div class="cover-meta-kicker">${esc(coverReportTitle)}</div>
+          <h1 class="cover-meta-name">${esc(coverParticipantName)}</h1>
           <div class="cover-meta-grid">
             <div class="cover-meta-item">
               <span>Perfil</span>
-              <strong>${esc(profile.key)}</strong>
+              <strong>${esc(coverProfileKey)}</strong>
             </div>
             <div class="cover-meta-item">
               <span>Data</span>
-              <strong>${esc(meta.generatedAt)}</strong>
+              <strong>${esc(coverGeneratedDate)}</strong>
             </div>
           </div>
         </div>
@@ -2086,7 +2133,7 @@ export function renderReportHtml(input = {}) {
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       object-position: center center;
       display: block;
       background: #020916;
@@ -2096,32 +2143,34 @@ export function renderReportHtml(input = {}) {
       position: absolute;
       left: 18mm;
       right: 18mm;
-      bottom: 26mm;
+      bottom: 22mm;
       z-index: 2;
-      padding: 14mm 12mm;
+      padding: 12mm 11mm;
       border-radius: 18px;
-      background: rgba(8, 18, 38, 0.42);
+      background: rgba(8, 18, 38, 0.34);
       border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(6px);
       color: #ffffff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
     .cover-meta-kicker {
       margin: 0;
-      font-size: 12px;
-      letter-spacing: 1.6px;
+      font-size: 11px;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.82);
+      color: rgba(255, 255, 255, 0.86);
       font-weight: 700;
-      margin-bottom: 6mm;
+      margin-bottom: 5mm;
     }
 
     .cover-meta-name {
       margin: 0 0 8mm;
-      font-size: 28px;
-      line-height: 1.1;
+      font-size: 27px;
+      line-height: 1.08;
       color: #ffffff;
       font-weight: 800;
+      overflow-wrap: anywhere;
     }
 
     .cover-meta-grid {
@@ -2132,9 +2181,9 @@ export function renderReportHtml(input = {}) {
 
     .cover-meta-item span {
       display: block;
-      font-size: 11px;
-      opacity: 0.8;
-      margin-bottom: 2mm;
+      font-size: 10.5px;
+      opacity: 0.82;
+      margin-bottom: 1.8mm;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
