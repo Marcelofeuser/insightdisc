@@ -127,6 +127,9 @@ export default function FreeAssessment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadName, setLeadName] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [compareWithAssessmentId, setCompareWithAssessmentId] = useState('');
+  const [compareRelation, setCompareRelation] = useState('');
+  const [compareFromName, setCompareFromName] = useState('');
   const redirectedRef = useRef(false);
   const [consentGiven, setConsentGiven] = useState(() => {
     return localStorage.getItem('disc_consent_given') === 'true';
@@ -136,6 +139,9 @@ export default function FreeAssessment() {
     const params = new URLSearchParams(location.search);
     const qpName = params.get('name')?.trim() || '';
     const qpEmail = params.get('email')?.trim() || '';
+    setCompareWithAssessmentId(params.get('compareWith')?.trim() || '');
+    setCompareRelation(params.get('relation')?.trim() || '');
+    setCompareFromName(params.get('fromName')?.trim() || '');
     if (qpName && qpEmail) {
       setFreeLead({ name: qpName, email: qpEmail, consent: true });
     }
@@ -245,6 +251,9 @@ export default function FreeAssessment() {
         ...(leadEmail ? { respondent_email: leadEmail } : {}),
         ...(leadName ? { lead_name: leadName } : {}),
         ...(leadEmail ? { lead_email: leadEmail } : {}),
+        ...(compareWithAssessmentId ? { comparison_origin_assessment_id: compareWithAssessmentId } : {}),
+        ...(compareRelation ? { comparison_relation: compareRelation } : {}),
+        ...(compareFromName ? { comparison_from_name: compareFromName } : {}),
         access_token: accessToken,
         access_token_hash: accessTokenHash,
         invite_status: 'used',
@@ -252,12 +261,22 @@ export default function FreeAssessment() {
       });
 
       // Navigate to results page
-      navigate(createPageUrl('FreeResults') + `?id=${assessment.id}`);
+      const nextParams = new URLSearchParams();
+      nextParams.set('id', assessment.id);
+      if (compareWithAssessmentId) nextParams.set('compareWith', compareWithAssessmentId);
+      if (compareRelation) nextParams.set('relation', compareRelation);
+      if (compareFromName) nextParams.set('fromName', compareFromName);
+      navigate(`${createPageUrl('FreeResults')}?${nextParams.toString()}`);
     } catch (error) {
       console.error('Error saving assessment:', error);
       // Still navigate but store results in localStorage as backup
       localStorage.setItem('freeAssessmentResults', JSON.stringify(results));
-      navigate(createPageUrl('FreeResults'));
+      const nextParams = new URLSearchParams();
+      if (compareWithAssessmentId) nextParams.set('compareWith', compareWithAssessmentId);
+      if (compareRelation) nextParams.set('relation', compareRelation);
+      if (compareFromName) nextParams.set('fromName', compareFromName);
+      const suffix = nextParams.toString();
+      navigate(`${createPageUrl('FreeResults')}${suffix ? `?${suffix}` : ''}`);
     }
   };
 
@@ -297,6 +316,11 @@ export default function FreeAssessment() {
               Participante: {leadName || '—'}{leadEmail ? ` (${leadEmail})` : ''}
             </p>
           )}
+          {compareWithAssessmentId ? (
+            <p className="text-xs text-indigo-600 mt-2">
+              Modo comparação ativo{compareFromName ? ` (convite de ${compareFromName})` : ''}.
+            </p>
+          ) : null}
         </motion.div>
 
         {/* Progress */}

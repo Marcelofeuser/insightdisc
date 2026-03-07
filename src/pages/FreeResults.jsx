@@ -6,13 +6,22 @@ import {
   Sparkles, 
   ArrowRight, 
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import DISCFactorCard from '@/components/disc/DISCFactorCard';
 import { base44 } from '@/api/base44Client';
+import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
+
+const RELATION_LABELS = Object.freeze({
+  friend: 'amigo',
+  boss: 'chefe',
+  partner: 'parceiro',
+  coworker: 'colega de trabalho',
+});
 
 const FACTOR_INFO = {
   D: {
@@ -52,6 +61,8 @@ const FACTOR_INFO = {
 export default function FreeResults() {
   const [searchParams] = useSearchParams();
   const [assessment, setAssessment] = useState(null);
+  const [comparisonAssessment, setComparisonAssessment] = useState(null);
+  const [comparisonError, setComparisonError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -60,6 +71,7 @@ export default function FreeResults() {
 
   const loadAssessment = async () => {
     const assessmentId = searchParams.get('id');
+    const compareWith = searchParams.get('compareWith');
     let loaded = false;
     
     if (assessmentId) {
@@ -83,6 +95,20 @@ export default function FreeResults() {
         } catch {
           // malformed JSON in localStorage — ignore
         }
+      }
+    }
+
+    if (compareWith) {
+      try {
+        const comparisonRows = await base44.entities.Assessment.filter({ id: compareWith });
+        if (comparisonRows.length > 0) {
+          setComparisonAssessment(comparisonRows[0]);
+        } else {
+          setComparisonError('Não foi possível localizar o perfil de referência para comparação.');
+        }
+      } catch (error) {
+        console.error('Error loading comparison assessment:', error);
+        setComparisonError('Falha ao carregar o perfil de comparação.');
       }
     }
     
@@ -133,6 +159,25 @@ export default function FreeResults() {
   const assessmentToken = assessment?.access_token || '';
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
   const upgradeUrl = `/c/upgrade?assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}`;
+  const compareRelation = searchParams.get('relation') || '';
+  const compareFromName = searchParams.get('fromName') || '';
+  const currentName = assessment?.respondent_name || assessment?.lead_name || searchParams.get('name') || 'Você';
+  const comparisonProfile =
+    comparisonAssessment?.results?.natural_profile || comparisonAssessment?.natural_profile || null;
+  const compatibilityResult = comparisonProfile
+    ? calculateProfileCompatibility(profile, comparisonProfile, {
+      relationLabel: RELATION_LABELS[compareRelation] || 'relacionamento',
+    })
+    : null;
+
+  const buildCompareInviteUrl = (relation) => {
+    if (!assessment?.id) return createPageUrl('StartFree');
+    const params = new URLSearchParams();
+    params.set('compareWith', assessment.id);
+    params.set('relation', relation);
+    params.set('fromName', currentName);
+    return `${createPageUrl('StartFree')}?${params.toString()}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 py-8 px-4">
@@ -269,6 +314,36 @@ export default function FreeResults() {
           </div>
         </motion.div>
 
+        {compatibilityResult ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58 }}
+            className="bg-white rounded-3xl p-6 shadow-lg border border-emerald-200 mb-10"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-xl font-bold text-slate-900">
+                Compatibilidade com {compareFromName || 'perfil de referência'}
+              </h3>
+              <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">
+                {compatibilityResult.score}%
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-slate-600">{compatibilityResult.summary}</p>
+            <ul className="mt-4 grid gap-2 text-sm text-slate-700">
+              {compatibilityResult.highlights.map((item) => (
+                <li key={item} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        ) : comparisonError ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-10">
+            {comparisonError}
+          </div>
+        ) : null}
+
         {/* Premium CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -307,6 +382,43 @@ export default function FreeResults() {
                 </Button>
               </Link>
             )}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-8 rounded-3xl border border-indigo-200 bg-indigo-50 p-6"
+        >
+          <div className="flex items-center gap-2 text-indigo-700 mb-2">
+            <UserPlus className="w-5 h-5" />
+            <h3 className="text-lg font-bold">Compare seu perfil com outras pessoas</h3>
+          </div>
+          <p className="text-sm text-indigo-900/90 mb-4">
+            Convide alguém para fazer o teste e receba leitura automática de compatibilidade comportamental.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link to={buildCompareInviteUrl('friend')}>
+              <Button variant="outline" className="w-full h-11 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white">
+                Comparar com amigo
+              </Button>
+            </Link>
+            <Link to={buildCompareInviteUrl('boss')}>
+              <Button variant="outline" className="w-full h-11 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white">
+                Comparar com chefe
+              </Button>
+            </Link>
+            <Link to={buildCompareInviteUrl('partner')}>
+              <Button variant="outline" className="w-full h-11 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white">
+                Comparar com parceiro
+              </Button>
+            </Link>
+            <Link to={buildCompareInviteUrl('coworker')}>
+              <Button variant="outline" className="w-full h-11 rounded-xl border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white">
+                Comparar com colega de trabalho
+              </Button>
+            </Link>
           </div>
         </motion.div>
 

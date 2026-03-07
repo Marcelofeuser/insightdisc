@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -19,12 +19,20 @@ import TeamQuadrantChart from '@/components/disc/TeamQuadrantChart';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import {
+  FACTOR_LABELS,
+  buildTeamDistribution,
+  buildTeamInsights,
+  calculateProfileCompatibility,
+} from '@/modules/disc/compatibility';
 
 export default function TeamMapping() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [compareMemberA, setCompareMemberA] = useState('');
+  const [compareMemberB, setCompareMemberB] = useState('');
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
@@ -163,14 +171,52 @@ export default function TeamMapping() {
   };
 
   const getMembersWithProfiles = (team) => {
-    return (team.members || []).map(member => {
+    return (team.members || []).map((member, index) => {
       const assessment = assessments.find(a => a.id === member.assessment_id);
       return {
         ...member,
+        id: member.id || `${team.id || 'team'}-member-${index}`,
         profile: assessment?.results?.natural_profile || { D: 25, I: 25, S: 25, C: 25 }
       };
     });
   };
+
+  const selectedMembersWithProfiles = useMemo(
+    () => (selectedTeam ? getMembersWithProfiles(selectedTeam) : []),
+    [selectedTeam, assessments]
+  );
+
+  const teamDistribution = useMemo(
+    () => buildTeamDistribution(selectedMembersWithProfiles.map((member) => member.profile)),
+    [selectedMembersWithProfiles]
+  );
+
+  const teamInsights = useMemo(
+    () => buildTeamInsights(teamDistribution),
+    [teamDistribution]
+  );
+
+  const selectedMemberAData = useMemo(
+    () => selectedMembersWithProfiles.find((member) => member.id === compareMemberA) || null,
+    [selectedMembersWithProfiles, compareMemberA]
+  );
+
+  const selectedMemberBData = useMemo(
+    () => selectedMembersWithProfiles.find((member) => member.id === compareMemberB) || null,
+    [selectedMembersWithProfiles, compareMemberB]
+  );
+
+  const pairCompatibility = useMemo(() => {
+    if (!selectedMemberAData?.profile || !selectedMemberBData?.profile) return null;
+    return calculateProfileCompatibility(selectedMemberAData.profile, selectedMemberBData.profile, {
+      relationLabel: 'trabalho em equipe',
+    });
+  }, [selectedMemberAData, selectedMemberBData]);
+
+  useEffect(() => {
+    setCompareMemberA('');
+    setCompareMemberB('');
+  }, [selectedTeam?.id]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -290,7 +336,7 @@ export default function TeamMapping() {
                   </CardHeader>
                   <CardContent>
                     <TeamQuadrantChart 
-                      members={getMembersWithProfiles(selectedTeam)} 
+                      members={selectedMembersWithProfiles} 
                     />
                   </CardContent>
                 </Card>
@@ -347,6 +393,95 @@ export default function TeamMapping() {
                     </CardContent>
                   </Card>
                 </div>
+
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Mapa comportamental da equipe</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {['D', 'I', 'S', 'C'].map((factor) => (
+                        <div key={factor} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <div className="text-xs uppercase tracking-wide text-slate-500">
+                            {factor} · {FACTOR_LABELS[factor]}
+                          </div>
+                          <div className="mt-1 text-2xl font-black text-slate-900">{teamDistribution[factor] || 0}</div>
+                          <div className="text-xs text-slate-500">dominâncias</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                      <h4 className="text-sm font-semibold text-indigo-900 mb-2">Insights automáticos da equipe</h4>
+                      <ul className="space-y-2 text-sm text-indigo-900">
+                        {teamInsights.map((insight) => (
+                          <li key={insight} className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                            <span>{insight}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Comparar dois perfis da equipe</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <select
+                        value={compareMemberA}
+                        onChange={(event) => setCompareMemberA(event.target.value)}
+                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                      >
+                        <option value="">Selecionar Perfil A</option>
+                        {selectedMembersWithProfiles.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={compareMemberB}
+                        onChange={(event) => setCompareMemberB(event.target.value)}
+                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                      >
+                        <option value="">Selecionar Perfil B</option>
+                        {selectedMembersWithProfiles.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {pairCompatibility ? (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-emerald-900">
+                            Compatibilidade entre {selectedMemberAData?.name} e {selectedMemberBData?.name}
+                          </p>
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800">
+                            {pairCompatibility.score}%
+                          </span>
+                        </div>
+                        <p className="text-sm text-emerald-900">{pairCompatibility.summary}</p>
+                        <ul className="space-y-1 text-xs text-emerald-900">
+                          {pairCompatibility.highlights.map((highlight) => (
+                            <li key={highlight}>• {highlight}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        Selecione dois membros para calcular compatibilidade e explicação comportamental automática.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Team Analysis */}
                 {selectedTeam.analysis && (

@@ -36,16 +36,25 @@ export function buildGiftLink({ token, payload = {}, origin = '' } = {}) {
   if (!cleanToken) return '';
 
   const cleanPayload = normalizeGiftPayload(payload);
-  const baseOrigin =
-    origin || (hasWindow() ? window.location.origin : 'http://localhost:5173');
-  const url = new URL(`${baseOrigin}/gift/${encodeURIComponent(cleanToken)}`);
+  const baseOrigin = origin || (hasWindow() ? window.location.origin : '');
 
+  if (!baseOrigin) {
+    const params = new URLSearchParams();
+    if (cleanPayload.senderName) params.set('from', cleanPayload.senderName);
+    if (cleanPayload.senderEmail) params.set('senderEmail', cleanPayload.senderEmail);
+    if (cleanPayload.recipientName) params.set('to', cleanPayload.recipientName);
+    if (cleanPayload.recipientEmail) params.set('recipientEmail', cleanPayload.recipientEmail);
+    if (cleanPayload.message) params.set('msg', cleanPayload.message);
+    const qs = params.toString();
+    return `/gift/${encodeURIComponent(cleanToken)}${qs ? `?${qs}` : ''}`;
+  }
+
+  const url = new URL(`${baseOrigin}/gift/${encodeURIComponent(cleanToken)}`);
   if (cleanPayload.senderName) url.searchParams.set('from', cleanPayload.senderName);
   if (cleanPayload.senderEmail) url.searchParams.set('senderEmail', cleanPayload.senderEmail);
   if (cleanPayload.recipientName) url.searchParams.set('to', cleanPayload.recipientName);
   if (cleanPayload.recipientEmail) url.searchParams.set('recipientEmail', cleanPayload.recipientEmail);
   if (cleanPayload.message) url.searchParams.set('msg', cleanPayload.message);
-
   return url.toString();
 }
 
@@ -114,4 +123,3 @@ export function resolveGiftPayload({ token, searchParams } = {}) {
     status: stored?.status || '',
   };
 }
-

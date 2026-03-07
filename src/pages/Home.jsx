@@ -48,7 +48,7 @@ const FEATURES = [
 ];
 
 const B2B_STEPS = [
-  { step: '01', icon: Target, title: 'Compra créditos', desc: 'Pacotes de 10, 50 ou 100 tokens via PIX ou Cartão. Sem mensalidade obrigatória.' },
+  { step: '01', icon: Target, title: 'Compra créditos', desc: 'Pacotes de 10, 50 ou 100 avaliações via PIX ou Cartão. Sem mensalidade obrigatória.' },
   { step: '02', icon: Zap, title: 'Gera link único', desc: 'Link descartável rastreável, atrelado ao seu workspace. Expira após uso.' },
   { step: '03', icon: Brain, title: 'Candidato avalia', desc: 'Fluxo guiado de 40 questões com salvamento automático a cada resposta.' },
   { step: '04', icon: Award, title: 'Relatório White-label', desc: 'PDF com sua marca gerado automaticamente. 1 crédito debitado.' },
@@ -69,10 +69,10 @@ const PLANS = [
     gradient: 'from-slate-800 to-slate-900',
   },
   {
-    name: 'Profissional',
+    name: 'Business',
     tag: 'B2B',
     price: 'R$ 199',
-    priceSub: '/mês + tokens',
+    priceSub: '/mês',
     features: ['Dashboard corporativo completo', 'Links únicos descartáveis', 'Histórico e busca de candidatos', 'White-label (logo + cor da marca)', 'Analytics avançado e fit cultural', 'Suporte prioritário'],
     cta: 'Começar Agora',
     popular: true,
@@ -129,7 +129,8 @@ export default function Home() {
               </h1>
 
               <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-lg">
-                O teste DISC mais preciso do Brasil. Resultado gratuito em 3 minutos.
+                InsightDISC: Plataforma de Inteligência Comportamental para decisões sobre pessoas.
+                Resultado gratuito em 3 minutos.
                 Relatório profissional com análise completa dos 4 fatores DISC (D, I, S, C), perfil comportamental detalhado, estilo de liderança e orientação de carreira.
               </p>
 
@@ -477,7 +478,7 @@ export default function Home() {
                 <span className="text-xl font-extrabold">InsightDISC</span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Plataforma líder em avaliação comportamental DISC no Brasil. Metodologia ipsativa com rigor científico.
+                Plataforma de Inteligência Comportamental para decisões sobre pessoas, com metodologia DISC ipsativa e rigor científico.
               </p>
             </div>
             <div>

@@ -22,9 +22,9 @@ const SALES_WHATSAPP_URL =
 const SOCIAL_OFFERS = Object.freeze([
   {
     id: 'free',
-    title: 'Teste Grátis',
+    title: 'Starter',
     price: 'R$ 0',
-    subtitle: 'Entrada rápida para conhecer seu perfil',
+    subtitle: 'Teste grátis com leitura inicial',
     badge: 'LIMITADO',
     cta: 'Fazer Teste Grátis',
     ctaHref: '/avaliacoes',
@@ -36,9 +36,9 @@ const SOCIAL_OFFERS = Object.freeze([
   },
   {
     id: 'single',
-    title: '1 Avaliação Avulsa',
+    title: 'Professional',
     price: 'R$ 79',
-    subtitle: 'Relatório completo individual',
+    subtitle: '1 avaliação premium completa',
     cta: 'Comprar 1 Avaliação',
     features: [
       'Relatório premium completo em PDF',
@@ -49,7 +49,7 @@ const SOCIAL_OFFERS = Object.freeze([
   },
   {
     id: 'gift',
-    title: 'Presentear alguém',
+    title: 'Gift',
     price: 'R$ 79',
     subtitle: 'Compre 1 avaliação para outra pessoa',
     cta: 'Comprar presente',
@@ -77,7 +77,7 @@ const CREDIT_PACKS = Object.freeze([
     name: '50 avaliações',
     credits: 50,
     price: 'R$ 1.190',
-    perUnit: 'R$ 23,80 por avaliação',
+    perUnit: 'R$ 23 por avaliação',
     highlight: 'Melhor equilíbrio para operação recorrente.',
     cta: 'Comprar 50 Avaliações',
     popular: true,
@@ -459,7 +459,7 @@ export default function Pricing() {
             </h2>
             <p className="mt-4 text-slate-600 leading-relaxed">
               Aqui você encontra exatamente o que cada oferta entrega: o que é gratuito, o que é avulso, o que é presenteável,
-              o que é pacote de avaliações e o que é assinatura mensal SaaS.
+              o que é pacote de avaliações e o que é assinatura mensal SaaS. Linhas comerciais: Starter, Professional, Business e Enterprise.
             </p>
           </div>
 
@@ -515,6 +515,7 @@ export default function Pricing() {
                     <div>
                       <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
                       <p className="text-sm text-slate-600">{SOCIAL_OFFERS[0].subtitle}</p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Plano Starter</p>
                     </div>
                     <span className="rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-bold">
                       {SOCIAL_OFFERS[0].badge}
@@ -549,6 +550,7 @@ export default function Pricing() {
                   <div>
                     <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
                     <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">Plano Professional</p>
                   </div>
 
                   <div className="flex items-end gap-2">
@@ -589,6 +591,7 @@ export default function Pricing() {
                     <div>
                       <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
                       <p className="text-sm text-slate-600">{SOCIAL_OFFERS[2].subtitle}</p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-violet-700">Produto Presenteável</p>
                     </div>
                     <Gift className="w-5 h-5 text-violet-600" />
                   </div>

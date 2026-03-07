@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ function isValidEmail(value) {
 
 export default function StartFree() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [name, setName] = useState("");
@@ -24,6 +25,15 @@ export default function StartFree() {
   const canContinue = useMemo(() => {
     return name.trim().length >= 2 && isValidEmail(email) && lgpd;
   }, [name, email, lgpd]);
+
+  const compareContext = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const compareWith = String(params.get("compareWith") || "").trim();
+    const relation = String(params.get("relation") || "").trim();
+    const fromName = String(params.get("fromName") || "").trim();
+    if (!compareWith) return null;
+    return { compareWith, relation, fromName };
+  }, [location.search]);
 
   const go = () => {
     if (!canContinue) {
@@ -42,6 +52,11 @@ export default function StartFree() {
     const params = new URLSearchParams();
     params.set("name", trimmedName);
     params.set("email", trimmedEmail);
+    if (compareContext?.compareWith) {
+      params.set("compareWith", compareContext.compareWith);
+      if (compareContext.relation) params.set("relation", compareContext.relation);
+      if (compareContext.fromName) params.set("fromName", compareContext.fromName);
+    }
 
     navigate(`${createPageUrl("FreeAssessment")}?${params.toString()}`);
   };
@@ -55,6 +70,12 @@ export default function StartFree() {
             <p className="text-slate-600 text-sm">
               Informe seus dados para gerar seu resultado e permitir compartilhar o link do relatório.
             </p>
+            {compareContext ? (
+              <div className="mt-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+                Você está entrando em um convite de comparação de perfil
+                {compareContext.fromName ? ` enviado por ${compareContext.fromName}` : ''}.
+              </div>
+            ) : null}
           </div>
 
           <div className="grid gap-4">

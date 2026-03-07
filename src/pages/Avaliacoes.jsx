@@ -64,7 +64,7 @@ const USE_CASES = [
   {
     title: 'Empresas (RH e Recrutamento)',
     bullets: ['Apoio em contratação e fit comportamental', 'Mapeamento de equipes e lideranças', 'Base para feedback e desenvolvimento'],
-    cta: 'Ver planos B2B',
+    cta: 'Ver planos',
     href: `${createPageUrl('Pricing')}#b2b`,
     icon: Building2,
   },
@@ -130,11 +130,11 @@ function CTAButtons() {
       </Link>
       <Link to={createPageUrl('Pricing')}>
         <Button
-          variant="ghost"
-          className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.20)] hover:border-white/40 hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))]"
+          variant="outline"
+          className="h-14 w-full sm:w-auto rounded-2xl border border-indigo-600 bg-white text-indigo-700 shadow-[0_10px_24px_rgba(79,70,229,0.12)] hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-200"
           data-testid="avaliacoes-cta-secondary"
         >
-          Ver planos B2B
+          Ver planos
         </Button>
       </Link>
       <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">
@@ -338,10 +338,10 @@ export default function Avaliacoes() {
                 </Link>
                 <Link to={createPageUrl('Pricing')}>
                   <Button
-                    variant="ghost"
-                    className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.20)] hover:border-white/40 hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))]"
+                    variant="outline"
+                    className="h-14 w-full sm:w-auto rounded-2xl border border-white bg-white text-indigo-700 shadow-[0_10px_24px_rgba(15,23,42,0.12)] hover:bg-indigo-700 hover:text-white hover:border-indigo-700 transition-all duration-200"
                   >
-                    Ver planos B2B
+                    Ver planos
                   </Button>
                 </Link>
               </div>

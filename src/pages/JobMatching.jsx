@@ -57,6 +57,27 @@ function calculateMatchScore(candidateProfile, idealProfile) {
   return maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
 }
 
+function buildMatchExplanation(candidateProfile, idealProfile, score) {
+  if (!candidateProfile || !idealProfile) return 'Compatibilidade calculada com base nos fatores DISC disponíveis.';
+
+  const factorDiffs = ['D', 'I', 'S', 'C'].map((factor) => {
+    const target = Number(idealProfile?.[factor]?.ideal ?? 50);
+    const value = Number(candidateProfile?.[factor] ?? 0);
+    return { factor, gap: Math.abs(target - value), value, target };
+  });
+
+  const bestFit = [...factorDiffs].sort((a, b) => a.gap - b.gap)[0];
+  const biggestGap = [...factorDiffs].sort((a, b) => b.gap - a.gap)[0];
+
+  if (score >= 75) {
+    return `Compatibilidade ${score}%: forte aderência em ${bestFit.factor} (${FACTOR_NAMES[bestFit.factor]}), alinhando ritmo e demanda principal da vaga.`;
+  }
+  if (score >= 50) {
+    return `Compatibilidade ${score}%: aderência parcial com bom encaixe em ${bestFit.factor}. O maior ajuste necessário está em ${biggestGap.factor}.`;
+  }
+  return `Compatibilidade ${score}%: baixa aderência ao perfil ideal, com distância relevante em ${biggestGap.factor} (${FACTOR_NAMES[biggestGap.factor]}).`;
+}
+
 export default function JobMatching() {
   const { access, user: authUser } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
@@ -370,6 +391,13 @@ export default function JobMatching() {
                               </p>
                               <p className="text-xs text-slate-500">
                                 {new Date(candidate.completed_at).toLocaleDateString('pt-BR')}
+                              </p>
+                              <p className="text-xs text-slate-600 mt-1 pr-2">
+                                {buildMatchExplanation(
+                                  candidate.results?.natural_profile,
+                                  selectedPosition.ideal_profile,
+                                  candidate.matchScore
+                                )}
                               </p>
                             </div>
 

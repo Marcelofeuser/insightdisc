@@ -36,16 +36,32 @@ const PRODUCTS = Object.freeze({
     price: 'R$ 199,00 / mês',
     summary: 'Plano contínuo para operação profissional com painel SaaS.',
   },
+  business: {
+    title: 'Assinatura Business Mensal',
+    price: 'R$ 199,00 / mês',
+    summary: 'Plano contínuo para operação profissional com painel SaaS.',
+  },
   'report-unlock': {
+    title: 'Desbloquear Relatório Completo',
+    price: 'R$ 49,90',
+    summary: 'Libera o relatório completo da avaliação já realizada.',
+  },
+  report: {
     title: 'Desbloquear Relatório Completo',
     price: 'R$ 49,90',
     summary: 'Libera o relatório completo da avaliação já realizada.',
   },
 });
 
+const PRODUCT_ALIASES = Object.freeze({
+  business: 'business-monthly',
+  report: 'report-unlock',
+});
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
-  const productKey = searchParams.get('product') || 'single';
+  const rawProductKey = (searchParams.get('product') || searchParams.get('produto') || 'single').trim();
+  const productKey = PRODUCT_ALIASES[rawProductKey] || rawProductKey;
   const product = PRODUCTS[productKey] || PRODUCTS.single;
 
   return (
@@ -82,7 +98,9 @@ export default function Checkout() {
 
             <Button
               className="h-12 w-full rounded-2xl bg-slate-900 hover:bg-slate-950"
-              onClick={() => {}}
+              onClick={() => {
+                window.alert('Pagamento em implementação nesta rota provisória.');
+              }}
             >
               PAGAMENTO EM IMPLEMENTAÇÃO
             </Button>
