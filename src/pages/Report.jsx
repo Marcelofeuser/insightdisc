@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
@@ -9,6 +9,7 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { trackEvent } from '@/lib/analytics';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import {
   PERMISSIONS,
@@ -80,6 +81,7 @@ async function exportLocalPdfFromHtml(html, fileName) {
 }
 
 export default function Report() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [assessment, setAssessment] = useState(null);
   const [remoteReportHtml, setRemoteReportHtml] = useState('');
@@ -212,10 +214,37 @@ export default function Report() {
   );
   const hasCreditsForPremium = hasSuperAdminBypass || availableCredits > 0;
   const canShowExport = Boolean(canExportReport) && hasCreditsForPremium;
+  const dossierCandidateId = String(
+    assessment?.candidate_user_id ||
+      assessment?.candidateUserId ||
+      assessment?.candidate_user?.id ||
+      assessment?.candidateUser?.id ||
+      ''
+  ).trim();
   const blockedByRemoteError = Boolean(apiBaseUrl && remoteReportError);
   const canRenderReport = blockedByRemoteError
     ? false
     : Boolean(remoteReportHtml || reportModel);
+
+  const handleAddToDossier = () => {
+    if (!assessment?.id) return;
+    if (!dossierCandidateId) {
+      setExportError('Este avaliado ainda não está vinculado a um usuário para abrir o dossiê.');
+      return;
+    }
+
+    trackEvent('dossier_cta_click', {
+      source: 'report_header_action',
+      path: '/dossie-comportamental',
+      assessmentId: assessment.id,
+    });
+
+    const params = new URLSearchParams({
+      candidateId: dossierCandidateId,
+      assessmentId: assessment.id,
+    });
+    navigate(`/Dossier?${params.toString()}`);
+  };
 
   const exportCSV = (sectionName, rows) => {
     const csv = rows
@@ -423,8 +452,17 @@ export default function Report() {
               </div>
             </div>
 
-            {canShowExport ? (
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                onClick={handleAddToDossier}
+                variant="outline"
+                className="rounded-xl"
+                disabled={!dossierCandidateId}
+              >
+                Adicionar ao Dossiê
+              </Button>
+              {canShowExport ? (
+                <>
                 <Button onClick={exportInsightsCSV} variant="outline" className="rounded-xl hidden sm:inline-flex">
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   CSV Insights
@@ -458,8 +496,9 @@ export default function Report() {
                   <Download className="w-4 h-4 mr-2" />
                   {isPreparingPdf ? 'Preparando...' : 'Baixar PDF'}
                 </Button>
-              </div>
-            ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
           {exportError ? (
             <p className="mt-2 text-sm text-red-600">{exportError}</p>
@@ -482,6 +521,28 @@ export default function Report() {
             srcDoc={reportHtml}
             className="w-full h-[80vh] border-0"
           />
+        </div>
+
+        <div className="mt-8">
+          {dossierCandidateId ? (
+            <Button variant="outline" onClick={handleAddToDossier}>
+              Abrir Dossiê Comportamental
+            </Button>
+          ) : (
+            <Link
+              to="/dossie-comportamental"
+              className="btn-secondary inline-flex"
+              onClick={() =>
+                trackEvent('dossier_cta_click', {
+                  source: 'report_footer_link',
+                  path: '/dossie-comportamental',
+                  assessmentId: assessment?.id || '',
+                })
+              }
+            >
+              <Button variant="outline">Conhecer Dossiê Comportamental</Button>
+            </Link>
+          )}
         </div>
       </main>
     </div>
