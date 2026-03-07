@@ -20,6 +20,8 @@ import InsightChatWidget from '@/components/InsightChatWidget';
 import SuperAdminLogin from '@/pages/SuperAdminLogin';
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
+import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
+import GiftLanding from '@/pages/GiftLanding';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -94,6 +96,17 @@ const AuthenticatedApp = () => {
         <Route path="report" element={<CandidateReport />} />
         <Route path="portal" element={<CandidatePortal />} />
       </Route>
+
+      <Route
+        path="/gift/:token"
+        element={
+          <ProtectedRoute pageName="GiftLanding" policy={getPagePolicy('GiftLanding')}>
+            <LayoutWrapper currentPageName="GiftLanding">
+              <GiftLanding />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
       {APP_ALIAS_ROUTES.map(({ path, pageName }) =>
@@ -170,6 +183,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ScrollToTopOnRouteChange />
           <AuthenticatedApp />
           <InsightChatWidget />
         </Router>

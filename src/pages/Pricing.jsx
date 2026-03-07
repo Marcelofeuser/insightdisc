@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, CheckCircle2, CreditCard, Building2, Shield, Star
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  Gift,
+  HeartHandshake,
+  MessageSquareText,
+  Shield,
+  Sparkles,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,108 +18,388 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import {
+  createGiftToken,
+  findGiftOrder,
+  normalizeGiftPayload,
+  saveGiftOrder,
+} from '@/modules/billing/gift-utils';
 
-const CREDIT_PACKS = [
+const SALES_WHATSAPP_URL =
+  'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
+
+const DEFAULT_GIFT_MESSAGE =
+  'Quero te presentear com uma avaliação DISC do InsightDISC para apoiar seu autoconhecimento e desenvolvimento profissional.';
+
+const SOCIAL_OFFERS = Object.freeze([
+  {
+    id: 'free',
+    title: 'Teste Grátis',
+    price: 'R$ 0',
+    subtitle: 'Entrada rápida para conhecer seu perfil',
+    badge: 'LIMITADO',
+    cta: 'Fazer Teste Grátis',
+    ctaHref: createPageUrl('StartFree'),
+    features: [
+      'Resultado imediato com perfil dominante',
+      'Versão reduzida do diagnóstico comportamental',
+      'Ideal para experimentar o método DISC',
+    ],
+  },
+  {
+    id: 'single',
+    title: '1 Avaliação Avulsa',
+    price: 'R$ 79',
+    subtitle: 'Relatório completo individual',
+    cta: 'Comprar 1 Avaliação',
+    features: [
+      'Relatório premium completo em PDF',
+      'Gráficos naturais e adaptados',
+      'Leitura detalhada de perfil e desenvolvimento',
+      'Acesso ao resultado completo',
+    ],
+  },
+  {
+    id: 'gift',
+    title: 'Presentear alguém',
+    price: 'R$ 79',
+    subtitle: 'Compre 1 avaliação para outra pessoa',
+    cta: 'Presentear alguém',
+    features: [
+      'Mensagem personalizada de presente',
+      'Link exclusivo /gift/:token',
+      'Experiência emocional e profissional',
+    ],
+  },
+]);
+
+const CREDIT_PACKS = Object.freeze([
   {
     id: 'credits_10',
-    name: '10 Avaliações',
+    name: '10 avaliações',
     credits: 10,
     price: 'R$ 290',
-    pricePerUnit: 'R$ 29/avaliação',
-    popular: false,
-    highlight: 'Ideal para testes e projetos pequenos',
-    color: 'from-slate-600 to-slate-800',
+    perUnit: 'R$ 29 por avaliação',
+    highlight: 'Ideal para squads pequenos e consultorias.',
+    cta: 'Comprar 10 Avaliações',
   },
   {
     id: 'credits_50',
-    name: '50 Avaliações',
+    name: '50 avaliações',
     credits: 50,
     price: 'R$ 1.190',
-    pricePerUnit: 'R$ 23,80/avaliação',
+    perUnit: 'R$ 23,80 por avaliação',
+    highlight: 'Melhor equilíbrio para operação recorrente.',
+    cta: 'Comprar 50 Avaliações',
     popular: true,
-    highlight: 'Economia de 18% — Mais vendido',
-    color: 'from-indigo-600 to-violet-600',
-    badge: 'Mais Popular',
   },
   {
     id: 'credits_100',
-    name: '100 Avaliações',
+    name: '100 avaliações',
     credits: 100,
     price: 'R$ 1.990',
-    pricePerUnit: 'R$ 19,90/avaliação',
-    popular: false,
-    highlight: 'Economia de 31% — Melhor custo-benefício',
-    color: 'from-emerald-600 to-teal-600',
+    perUnit: 'R$ 19,90 por avaliação',
+    highlight: 'Escala com maior eficiência de custo.',
+    cta: 'Comprar 100 Avaliações',
   },
-];
+]);
 
-const PLANS = [
+const BUSINESS_PLANS = Object.freeze([
   {
-    id: 'plan_pro',
-    name: 'Pro',
-    price: 'R$ 599',
-    period: '/mês',
-    features: ['30 avaliações/mês inclusas', 'Dashboard gerencial completo', 'Relatórios PDF ilimitados', 'Job Matching', 'Suporte prioritário'],
-    color: 'border-indigo-200',
+    id: 'business_monthly',
+    name: 'Plano Business Mensal',
+    price: 'R$ 199/mês',
+    audience: 'Profissionais e equipes em operação contínua',
+    cta: 'Assinar Plano Business',
+    ctaKind: 'checkout',
+    features: [
+      'Inclui 5 avaliações por mês',
+      'Painel SaaS completo para gestão de avaliações',
+      'Histórico de candidatos e relatórios premium',
+      'Avaliações extras via pacotes de créditos',
+      'Job Matching e visão de pipeline',
+    ],
   },
   {
-    id: 'plan_enterprise',
+    id: 'enterprise',
     name: 'Enterprise',
     price: 'Sob consulta',
-    period: '',
-    features: ['Avaliações ilimitadas', 'White-label completo', 'API de integração', 'Mapeamento de equipes ilimitado', 'Gerente de sucesso dedicado'],
-    color: 'border-violet-200',
+    audience: 'Operação corporativa com múltiplas áreas',
+    cta: 'Falar com Vendas',
+    ctaKind: 'sales',
+    features: [
+      'White-label corporativo completo',
+      'Gestão de equipes e permissões avançadas',
+      'Analytics executivo e indicadores por unidade',
+      'API e integrações sob demanda',
+      'Suporte estratégico dedicado',
+    ],
   },
-];
+]);
+
+const SOCIAL_COMPARISON = Object.freeze([
+  {
+    feature: 'Resultado imediato',
+    free: 'Sim',
+    single: 'Sim',
+    gift: 'Sim (quando o presente é ativado)',
+  },
+  {
+    feature: 'Perfil dominante',
+    free: 'Sim',
+    single: 'Sim',
+    gift: 'Sim',
+  },
+  {
+    feature: 'Relatório completo',
+    free: 'Não',
+    single: 'Sim',
+    gift: 'Sim',
+  },
+  {
+    feature: 'PDF premium',
+    free: 'Não',
+    single: 'Sim',
+    gift: 'Sim',
+  },
+  {
+    feature: 'Gráficos completos D/I/S/C',
+    free: 'Parcial',
+    single: 'Completo',
+    gift: 'Completo',
+  },
+  {
+    feature: 'Acesso vitalício ao resultado',
+    free: 'Não',
+    single: 'Sim',
+    gift: 'Sim',
+  },
+  {
+    feature: 'Possibilidade de compartilhar',
+    free: 'Limitado',
+    single: 'Sim',
+    gift: 'Sim',
+  },
+  {
+    feature: 'Experiência presenteável',
+    free: 'Não',
+    single: 'Opcional',
+    gift: 'Sim',
+  },
+]);
+
+const BUSINESS_COMPARISON = Object.freeze([
+  {
+    feature: 'Quantidade incluída',
+    credits10: '10 avaliações',
+    credits50: '50 avaliações',
+    credits100: '100 avaliações',
+    business: '5 avaliações/mês',
+    enterprise: 'Sob desenho',
+  },
+  {
+    feature: 'Validade',
+    credits10: '12 meses',
+    credits50: '12 meses',
+    credits100: '12 meses',
+    business: 'Ciclo mensal',
+    enterprise: 'Contrato corporativo',
+  },
+  {
+    feature: 'Painel SaaS',
+    credits10: 'Sim',
+    credits50: 'Sim',
+    credits100: 'Sim',
+    business: 'Sim',
+    enterprise: 'Sim avançado',
+  },
+  {
+    feature: 'Relatórios PDF premium',
+    credits10: 'Sim',
+    credits50: 'Sim',
+    credits100: 'Sim',
+    business: 'Sim',
+    enterprise: 'Sim + customização',
+  },
+  {
+    feature: 'Job Matching',
+    credits10: 'Básico',
+    credits50: 'Completo',
+    credits100: 'Completo',
+    business: 'Completo',
+    enterprise: 'Completo + governança',
+  },
+  {
+    feature: 'Histórico de candidatos',
+    credits10: 'Sim',
+    credits50: 'Sim',
+    credits100: 'Sim',
+    business: 'Sim',
+    enterprise: 'Sim',
+  },
+  {
+    feature: 'White-label',
+    credits10: 'Não',
+    credits50: 'Opcional',
+    credits100: 'Opcional',
+    business: 'Opcional',
+    enterprise: 'Completo',
+  },
+  {
+    feature: 'Equipe e permissões',
+    credits10: 'Básico',
+    credits50: 'Básico',
+    credits100: 'Básico',
+    business: 'Intermediário',
+    enterprise: 'Avançado',
+  },
+  {
+    feature: 'Analytics',
+    credits10: 'Essencial',
+    credits50: 'Intermediário',
+    credits100: 'Intermediário',
+    business: 'Gerencial',
+    enterprise: 'Executivo',
+  },
+  {
+    feature: 'Suporte',
+    credits10: 'Padrão',
+    credits50: 'Prioritário',
+    credits100: 'Prioritário',
+    business: 'Prioritário',
+    enterprise: 'Dedicado',
+  },
+  {
+    feature: 'API',
+    credits10: 'Não',
+    credits50: 'Não',
+    credits100: 'Não',
+    business: 'Não',
+    enterprise: 'Sim',
+  },
+  {
+    feature: 'Uso corporativo avançado',
+    credits10: 'Limitado',
+    credits50: 'Moderado',
+    credits100: 'Moderado',
+    business: 'Alto',
+    enterprise: 'Total',
+  },
+]);
+
+const FAQ_ITEMS = Object.freeze([
+  {
+    q: 'Qual a diferença entre crédito avulso e assinatura Business?',
+    a: 'Crédito avulso é compra pontual de avaliações com validade. Assinatura Business é mensal, inclui avaliações recorrentes e acesso contínuo ao painel.',
+  },
+  {
+    q: 'O teste grátis já entrega o relatório completo?',
+    a: 'Não. O teste grátis é limitado e mostra uma versão reduzida. O relatório premium completo fica disponível nos produtos pagos.',
+  },
+  {
+    q: 'Posso comprar avaliações extras além do plano mensal?',
+    a: 'Sim. Mesmo com assinatura ativa, você pode complementar com pacotes de créditos quando precisar de volume adicional.',
+  },
+  {
+    q: 'Como funciona o presente?',
+    a: 'Você preenche os dados de quem envia e de quem recebe, conclui a compra e recebe um link personalizado para enviar.',
+  },
+]);
+
+function ComparisonCell({ value }) {
+  const positive = ['sim', 'completo', 'alto', 'total'];
+  const lowered = String(value || '').toLowerCase();
+  const isPositive = positive.some((token) => lowered.includes(token));
+  return (
+    <td className="px-3 py-3 text-sm text-slate-700 align-top">
+      <span
+        className={
+          isPositive
+            ? 'inline-flex rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold'
+            : 'inline-flex rounded-full bg-slate-100 text-slate-600 px-2 py-1 text-xs font-semibold'
+        }
+      >
+        {value}
+      </span>
+    </td>
+  );
+}
 
 export default function Pricing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user: authUser } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+
   const [user, setUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
-  const [purchasing, setPurchasing] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [creditLoading, setCreditLoading] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
+
+  const [giftForm, setGiftForm] = useState({
+    senderName: '',
+    senderEmail: '',
+    recipientName: '',
+    recipientEmail: '',
+    message: '',
+    useDefaultMessage: true,
+  });
+  const [giftError, setGiftError] = useState('');
 
   const assessmentId = searchParams.get('assessmentId') || '';
   const leadEmail = searchParams.get('email') || '';
   const leadName = searchParams.get('name') || '';
   const candidateToken = searchParams.get('token') || '';
   const checkoutFlow = searchParams.get('flow') || (assessmentId ? 'candidate' : '');
+  const unlockRequired = searchParams.get('unlock') === '1';
+
+  const isCandidateUnlock = useMemo(
+    () => Boolean(assessmentId || candidateToken || checkoutFlow === 'candidate'),
+    [assessmentId, candidateToken, checkoutFlow]
+  );
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (apiBaseUrl && authUser) {
+          setUser(authUser);
+          setWorkspace({
+            id: authUser?.active_workspace_id || authUser?.tenant_id || '',
+            credits_balance: Number(authUser?.credits || 0),
+          });
+          return;
+        }
+
+        const authenticatedUser = await base44.auth.me();
+        setUser(authenticatedUser);
+        if (authenticatedUser?.active_workspace_id) {
+          const workspaceResult = await base44.entities.Workspace.filter({
+            id: authenticatedUser.active_workspace_id,
+          });
+          if (workspaceResult.length) {
+            setWorkspace(workspaceResult[0]);
+          }
+        }
+      } catch {
+        setUser(null);
+      }
+    };
+
     loadData();
-  }, [authUser, apiBaseUrl]);
-
-  const loadData = async () => {
-    try {
-      if (apiBaseUrl && authUser) {
-        setUser(authUser);
-        setWorkspace({
-          id: authUser?.active_workspace_id || authUser?.tenant_id || '',
-          credits_balance: Number(authUser?.credits || 0),
-        });
-        return;
-      }
-
-      const u = await base44.auth.me();
-      setUser(u);
-      if (u.active_workspace_id) {
-        const ws = await base44.entities.Workspace.filter({ id: u.active_workspace_id });
-        if (ws.length) setWorkspace(ws[0]);
-      }
-    } catch {}
-  };
+  }, [apiBaseUrl, authUser]);
 
   const goToLogin = () => {
     const next = `${createPageUrl('Pricing')}${window.location.search || ''}`;
     navigate(`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`);
   };
 
-  const handlePurchase = async (pack) => {
+  const openSales = () => {
+    window.open(SALES_WHATSAPP_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCreditPackPurchase = async (pack) => {
     if (!user) {
       goToLogin();
       return;
@@ -124,8 +412,10 @@ export default function Pricing() {
         return;
       }
 
-      setPurchasing(pack.id);
+      setCreditLoading(pack.id);
       setCheckoutError('');
+      setSuccessMessage('');
+
       try {
         const response = await apiRequest('/payments/create-checkout', {
           method: 'POST',
@@ -133,77 +423,100 @@ export default function Pricing() {
           body: {
             credits: pack.credits,
             successUrl: `${window.location.origin}${createPageUrl('CheckoutSuccess')}`,
-            cancelUrl: `${window.location.origin}${createPageUrl('Pricing')}`,
+            cancelUrl: `${window.location.origin}${createPageUrl('Pricing')}#b2b`,
           },
         });
 
         if (!response?.url) {
-          throw new Error('Falha ao criar sessão de checkout.');
+          throw new Error('Falha ao iniciar checkout de créditos.');
         }
 
         window.location.href = response.url;
-        return;
       } catch (error) {
-        setCheckoutError(error?.message || 'Não foi possível iniciar o checkout.');
+        setCheckoutError(error?.message || 'Não foi possível iniciar a compra de créditos.');
       } finally {
-        setPurchasing(null);
+        setCreditLoading('');
       }
       return;
     }
 
-    setPurchasing(pack.id);
-
-    // Simulate payment (in prod: redirect to Stripe/Asaas checkout)
-    // Per PCI-DSS: we never store card data — only gateway transaction IDs
-    await new Promise(r => setTimeout(r, 1800));
+    setCreditLoading(pack.id);
+    setCheckoutError('');
 
     try {
-      // Record transaction (simulated as completed — real: set via webhook)
-      await base44.entities.Transaction.create({
-        user_id: user.id,
-        workspace_id: workspace?.id,
-        type: 'credit_pack',
-        product: pack.id,
-        amount: parseInt(pack.price.replace(/\D/g, '')),
-        currency: 'BRL',
-        status: 'completed',
-        payment_method: 'credit_card',
-        credits_added: pack.credits,
-        metadata: { pack_name: pack.name }
-      });
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+      if (workspace?.id) {
+        const currentBalance = Number(workspace?.credits_balance || 0);
+        const nextBalance = currentBalance + pack.credits;
 
-      // Add credits to workspace
-      if (workspace) {
-        const newBalance = (workspace.credits_balance || 0) + pack.credits;
-        await base44.entities.Workspace.update(workspace.id, { credits_balance: newBalance });
-        setWorkspace(prev => ({ ...prev, credits_balance: newBalance }));
+        await base44.entities.Transaction.create({
+          user_id: user.id,
+          workspace_id: workspace.id,
+          type: 'credit_pack',
+          product: pack.id,
+          amount: Number(pack.price.replace(/\D/g, '')),
+          currency: 'BRL',
+          status: 'completed',
+          payment_method: 'credit_card',
+          credits_added: pack.credits,
+          metadata: { pack_name: pack.name },
+        });
+
+        await base44.entities.Workspace.update(workspace.id, {
+          credits_balance: nextBalance,
+        });
+
+        setWorkspace((prev) => ({ ...prev, credits_balance: nextBalance }));
       }
 
-      setSuccess(pack);
-    } catch (e) {
-      console.error(e);
+      setSuccessMessage(`${pack.credits} créditos adicionados com sucesso.`);
+    } catch (error) {
+      setCheckoutError(error?.message || 'Não foi possível concluir a compra.');
     } finally {
-      setPurchasing(null);
+      setCreditLoading('');
     }
   };
 
-  const handleCheckout = async ({ priceEnvKey, mode = 'payment' }) => {
+  const handleWebCheckout = async ({
+    priceEnvKey,
+    mode = 'payment',
+    flowOverride = '',
+    successParams = {},
+    cancelHash = '',
+    emailOverride = '',
+    nameOverride = '',
+  }) => {
     setCheckoutError('');
-    setCheckoutLoading(true);
+    setSuccessMessage('');
+    setCheckoutLoading(priceEnvKey || 'checkout');
+
     let timeoutId;
     try {
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      const successUrl = new URL(`${window.location.origin}${createPageUrl('CheckoutSuccess')}`);
+      Object.entries(successParams || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          successUrl.searchParams.set(key, String(value));
+        }
+      });
+
+      const cancelUrl = new URL(`${window.location.origin}${createPageUrl('Pricing')}`);
+      if (cancelHash) {
+        cancelUrl.hash = cancelHash;
+      }
+
       const payload = {
         mode,
         priceEnvKey,
-        email: leadEmail || user?.email || '',
-        name: leadName || user?.full_name || '',
+        email: emailOverride || leadEmail || user?.email || '',
+        name: nameOverride || leadName || user?.full_name || '',
         assessmentId: assessmentId || undefined,
         token: candidateToken || undefined,
-        flow: checkoutFlow || undefined,
-        successUrl: `${window.location.origin}${createPageUrl('CheckoutSuccess')}`,
-        cancelUrl: `${window.location.origin}${createPageUrl('Pricing')}`,
+        flow: flowOverride || checkoutFlow || undefined,
+        successUrl: successUrl.toString(),
+        cancelUrl: cancelUrl.toString(),
       };
 
       const response = await fetch('/api/stripe/create-checkout-session', {
@@ -212,6 +525,7 @@ export default function Pricing() {
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
+
       clearTimeout(timeoutId);
       const data = await response.json();
 
@@ -232,6 +546,7 @@ export default function Pricing() {
         window.location.href = fallback.toString();
         return;
       }
+
       setCheckoutError(
         error?.name === 'AbortError'
           ? 'O checkout demorou para responder. Tente novamente em instantes.'
@@ -241,183 +556,550 @@ export default function Pricing() {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      setCheckoutLoading(false);
+      setCheckoutLoading('');
     }
   };
 
+  const handleBuySingleAssessment = () => {
+    handleWebCheckout({
+      priceEnvKey: 'STRIPE_PRICE_PRO',
+      mode: 'payment',
+      flowOverride: checkoutFlow || (isCandidateUnlock ? 'candidate' : ''),
+      successParams: isCandidateUnlock
+        ? {
+            assessmentId,
+            token: candidateToken,
+            flow: checkoutFlow || 'candidate',
+          }
+        : {},
+      cancelHash: 'social',
+    });
+  };
+
+  const handleGiftPurchase = async () => {
+    const normalizedGift = normalizeGiftPayload({
+      senderName: giftForm.senderName,
+      senderEmail: giftForm.senderEmail,
+      recipientName: giftForm.recipientName,
+      recipientEmail: giftForm.recipientEmail,
+      message: giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message,
+    });
+
+    if (!normalizedGift.senderName) {
+      setGiftError('Informe o nome de quem está enviando o presente.');
+      return;
+    }
+
+    if (!normalizedGift.recipientName && !normalizedGift.recipientEmail) {
+      setGiftError('Informe o nome ou e-mail de quem vai receber o presente.');
+      return;
+    }
+
+    const giftToken = createGiftToken();
+    saveGiftOrder({
+      token: giftToken,
+      payload: normalizedGift,
+      status: 'pending',
+    });
+
+    const preview = findGiftOrder(giftToken);
+    const giftPayload = preview?.payload || normalizedGift;
+
+    setGiftError('');
+
+    await handleWebCheckout({
+      priceEnvKey: 'STRIPE_PRICE_PRO',
+      mode: 'payment',
+      flowOverride: 'gift',
+      successParams: {
+        flow: 'gift',
+        giftToken,
+        from: giftPayload.senderName,
+        senderEmail: giftPayload.senderEmail,
+        to: giftPayload.recipientName,
+        recipientEmail: giftPayload.recipientEmail,
+        msg: giftPayload.message,
+      },
+      cancelHash: 'social',
+      emailOverride: giftPayload.senderEmail || leadEmail || user?.email || '',
+      nameOverride: giftPayload.senderName || leadName || user?.full_name || '',
+    });
+  };
+
+  const setGiftField = (field, value) => {
+    setGiftForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const activeBalance = Number(workspace?.credits_balance || 0);
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link to={user ? createPageUrl('Dashboard') : createPageUrl('Home')}>
-            <Button variant="ghost" size="icon" className="rounded-xl"><ArrowLeft className="w-5 h-5" /></Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Comprar Avaliações</h1>
-            {workspace && (
-              <p className="text-sm text-slate-500">
-                Saldo atual: <span className="font-semibold text-indigo-600">{workspace.credits_balance || 0} créditos</span>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.13),transparent_34%),radial-gradient(circle_at_10%_18%,rgba(14,165,233,0.14),transparent_32%),#f8fafc]">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link to={user ? createPageUrl('Dashboard') : createPageUrl('Home')}>
+              <Button variant="ghost" size="icon" className="rounded-xl">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black text-slate-900">Preços InsightDISC</h1>
+              <p className="text-sm text-slate-600">
+                Estrutura comercial clara para Social / Individual e Business / Empresas
               </p>
-            )}
+            </div>
           </div>
+
+          {user ? (
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
+              Saldo atual: <strong>{activeBalance} créditos</strong>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <Card className="mb-8 border-slate-200">
-          <CardContent className="p-6 space-y-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Plano Individual</h2>
-              <p className="text-sm text-slate-600">
-                Faça o teste gratuitamente e desbloqueie o relatório completo quando quiser.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to={createPageUrl('StartFree')}>
-                <Button variant="outline">Fazer teste grátis</Button>
-              </Link>
-              <Button
-                onClick={() => handleCheckout({ priceEnvKey: 'STRIPE_PRICE_PRO', mode: 'payment' })}
-                disabled={checkoutLoading || !assessmentId}
-                className="bg-indigo-600 hover:bg-indigo-700"
-              >
-                {checkoutLoading ? 'Abrindo checkout...' : 'Comprar relatório completo'}
-              </Button>
-            </div>
-            {!assessmentId ? (
-              <p className="text-xs text-slate-500">
-                Para desbloquear um relatório específico, use o botão de desbloqueio na página de resultados.
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        {/* Success Banner */}
-        {success && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-5 rounded-2xl bg-green-50 border border-green-200 flex items-center gap-4">
-            <CheckCircle2 className="w-8 h-8 text-green-500 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-green-800">Compra realizada com sucesso!</p>
-              <p className="text-sm text-green-700">{success.credits} créditos foram adicionados à sua conta. Novo saldo: {workspace?.credits_balance} créditos.</p>
-            </div>
-          </motion.div>
-        )}
+      <main className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+        {unlockRequired ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Seu acesso ainda está bloqueado. Escolha uma opção de compra para desbloquear o painel completo.
+          </div>
+        ) : null}
 
         {checkoutError ? (
-          <div className="mb-8 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {checkoutError}
           </div>
         ) : null}
 
-        {/* PCI-DSS Notice */}
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 mb-8">
-          <Shield className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <p className="text-sm text-blue-700">
-            <strong>Pagamento 100% seguro.</strong> Dados de cartão processados diretamente pelo gateway (PCI-DSS Level 1). Não armazenamos dados financeiros em nossos servidores.
+        {successMessage ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            {successMessage}
+          </div>
+        ) : null}
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-indigo-700">
+              <Sparkles className="w-3.5 h-3.5" />
+              Pricing estruturado por jornada
+            </p>
+            <h2 className="mt-4 text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+              Escolha a trilha certa para você: <span className="text-indigo-600">Social / Individual</span> ou <span className="text-violet-600">Business / Empresas</span>
+            </h2>
+            <p className="mt-4 text-slate-600 leading-relaxed">
+              Aqui você encontra exatamente o que cada oferta entrega: o que é gratuito, o que é avulso, o que é presenteável,
+              o que é pacote de avaliações e o que é assinatura mensal SaaS.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href="#social">
+              <Button className="h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 px-6">
+                Social / Individual
+              </Button>
+            </a>
+            <a href="#b2b">
+              <Button variant="outline" className="h-12 rounded-2xl px-6 border-slate-300">
+                Business / Empresas
+              </Button>
+            </a>
+          </div>
+
+          <div className="mt-7 grid md:grid-cols-3 gap-4">
+            {[
+              'Sem ambiguidade entre assinatura e créditos',
+              'Diferença clara entre uso individual e corporativo',
+              'Funil preparado para conversão e expansão',
+            ].map((item) => (
+              <div key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-100">
+          <Shield className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <p className="text-sm text-blue-800">
+            Pagamentos processados em gateway seguro (PCI-DSS). O InsightDISC não armazena dados sensíveis de cartão.
           </p>
         </div>
 
-        {/* Credit Packs */}
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Pacotes de Créditos (Pay-as-you-go)</h2>
-        <div className="grid md:grid-cols-3 gap-6 mb-14">
-          {CREDIT_PACKS.map((pack, i) => (
-            <motion.div key={pack.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }} className="relative">
-              {pack.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-amber-400 text-amber-900 text-xs font-bold rounded-full z-10 whitespace-nowrap">
-                  {pack.badge}
-                </div>
-              )}
-              <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-xl shadow-indigo-100' : 'border-slate-200'} overflow-hidden`}>
-                <div className={`bg-gradient-to-br ${pack.color} p-6 text-white`}>
-                  <h3 className="text-xl font-bold mb-1">{pack.name}</h3>
-                  <p className="text-white/70 text-sm">{pack.highlight}</p>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">{pack.price}</span>
-                    <p className="text-white/70 text-sm mt-1">{pack.pricePerUnit}</p>
-                  </div>
-                </div>
-                <CardContent className="p-6">
-                  <ul className="space-y-2 mb-6">
-                    {['Relatório PDF completo', 'Gráfico Natural + Adaptado', 'Job Matching incluído', 'Válido por 12 meses'].map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-slate-700">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    onClick={() => handlePurchase(pack)}
-                    disabled={purchasing === pack.id}
-                    className={`w-full rounded-xl h-12 font-semibold ${pack.popular ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-800 hover:bg-slate-900'}`}
-                  >
-                    {purchasing === pack.id ? (
-                      <><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />Processando...</>
-                    ) : (
-                      <><CreditCard className="w-4 h-4 mr-2" />Comprar {pack.name}</>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        <section id="social" className="scroll-mt-28 space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.12em] text-indigo-600 font-semibold">Social / Individual</p>
+              <h3 className="text-3xl font-black text-slate-900">Para quem quer se conhecer, evoluir ou presentear alguém</h3>
+              <p className="text-slate-600 mt-2 max-w-3xl">
+                Ofertas diretas para pessoa física: teste grátis limitado, compra avulsa de 1 avaliação e fluxo dedicado de presente com link personalizado.
+              </p>
+            </div>
+          </div>
 
-        {/* Subscription Plans */}
-        <h2 id="b2b" className="text-2xl font-bold text-slate-900 mb-6 scroll-mt-24">
-          Planos SaaS (Assinatura Mensal)
-        </h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          {PLANS.map((plan, i) => (
-            <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className={`border-2 ${plan.color}`}>
-                <CardContent className="p-7">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Building2 className="w-5 h-5 text-indigo-600" />
-                        <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <Card className="border-2 border-slate-200">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
+                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[0].subtitle}</p>
+                  </div>
+                  <span className="rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-bold">
+                    {SOCIAL_OFFERS[0].badge}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[0].price}</span>
+                </div>
+                <ul className="space-y-2 text-sm text-slate-700">
+                  {SOCIAL_OFFERS[0].features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to={SOCIAL_OFFERS[0].ctaHref}>
+                  <Button className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950">
+                    {SOCIAL_OFFERS[0].cta}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]">
+              <CardContent className="p-6 space-y-4">
+                <div>
+                  <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
+                  <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[1].price}</span>
+                  <span className="text-sm text-slate-500 pb-1">pagamento único</span>
+                </div>
+                {isCandidateUnlock ? (
+                  <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
+                    Você veio de um resultado gratuito. Esta compra libera o relatório completo desta avaliação.
+                  </div>
+                ) : null}
+                <ul className="space-y-2 text-sm text-slate-700">
+                  {SOCIAL_OFFERS[1].features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={handleBuySingleAssessment}
+                  disabled={Boolean(checkoutLoading)}
+                  className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {checkoutLoading === 'STRIPE_PRICE_PRO' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-violet-200">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
+                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[2].subtitle}</p>
+                  </div>
+                  <Gift className="w-5 h-5 text-violet-600" />
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[2].price}</span>
+                  <span className="text-sm text-slate-500 pb-1">por presente</span>
+                </div>
+
+                <ul className="space-y-2 text-sm text-slate-700">
+                  {SOCIAL_OFFERS[2].features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="grid gap-3">
+                  <input
+                    value={giftForm.senderName}
+                    onChange={(event) => setGiftField('senderName', event.target.value)}
+                    placeholder="Nome de quem envia"
+                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    value={giftForm.senderEmail}
+                    onChange={(event) => setGiftField('senderEmail', event.target.value)}
+                    placeholder="E-mail de quem envia (opcional)"
+                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    value={giftForm.recipientName}
+                    onChange={(event) => setGiftField('recipientName', event.target.value)}
+                    placeholder="Nome de quem recebe"
+                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    value={giftForm.recipientEmail}
+                    onChange={(event) => setGiftField('recipientEmail', event.target.value)}
+                    placeholder="E-mail de quem recebe (opcional)"
+                    className="h-11 rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+
+                  <label className="flex items-center gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={giftForm.useDefaultMessage}
+                      onChange={(event) => setGiftField('useDefaultMessage', event.target.checked)}
+                    />
+                    Usar mensagem pronta do InsightDISC
+                  </label>
+
+                  <textarea
+                    value={giftForm.useDefaultMessage ? DEFAULT_GIFT_MESSAGE : giftForm.message}
+                    onChange={(event) => setGiftField('message', event.target.value)}
+                    disabled={giftForm.useDefaultMessage}
+                    placeholder="Mensagem personalizada (opcional)"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm min-h-24"
+                  />
+                </div>
+
+                {giftError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-2 text-xs text-red-700">{giftError}</div>
+                ) : null}
+
+                <Button
+                  onClick={handleGiftPurchase}
+                  disabled={Boolean(checkoutLoading)}
+                  className="w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
+                >
+                  {checkoutLoading === 'STRIPE_PRICE_PRO' ? 'Abrindo checkout...' : 'Presentear alguém'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border border-slate-200">
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full min-w-[780px] border-collapse">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-800">Social / Individual</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Grátis</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">1 Avaliação</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Presenteie alguém</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SOCIAL_COMPARISON.map((row) => (
+                    <tr key={row.feature} className="border-t border-slate-200">
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.feature}</td>
+                      <ComparisonCell value={row.free} />
+                      <ComparisonCell value={row.single} />
+                      <ComparisonCell value={row.gift} />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section id="b2b" className="scroll-mt-28 space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.12em] text-violet-700 font-semibold">Business / Empresarial</p>
+              <h3 className="text-3xl font-black text-slate-900">Pacotes de avaliações, SaaS mensal e Enterprise</h3>
+              <p className="text-slate-600 mt-2 max-w-3xl">
+                Diferença clara: pacotes avulsos entregam volume imediato de avaliações; assinatura mensal entrega operação contínua com quantidade incluída;
+                Enterprise é desenho personalizado para escala corporativa.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            {CREDIT_PACKS.map((pack) => (
+              <motion.div key={pack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-[0_18px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
+                        <p className="text-sm text-slate-600">{pack.highlight}</p>
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
-                        <span className="text-slate-500">{plan.period}</span>
-                      </div>
+                      {pack.popular ? <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> : null}
                     </div>
-                    {plan.id === 'plan_pro' && <Star className="w-5 h-5 text-amber-400 fill-amber-400" />}
+
+                    <div>
+                      <div className="text-3xl font-black text-slate-900">{pack.price}</div>
+                      <div className="text-sm text-slate-500">{pack.perUnit}</div>
+                    </div>
+
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {[
+                        `${pack.credits} avaliações incluídas`,
+                        'Validade de 12 meses',
+                        'Relatórios PDF premium',
+                        'Uso em recrutamento e desenvolvimento',
+                      ].map((feature) => (
+                        <li key={feature} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      onClick={() => handleCreditPackPurchase(pack)}
+                      disabled={creditLoading === pack.id}
+                      className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950"
+                    >
+                      {creditLoading === pack.id ? 'Processando...' : pack.cta}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {BUSINESS_PLANS.map((plan) => (
+              <Card key={plan.id} className="border-2 border-violet-200">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
+                        <Building2 className="w-4 h-4" />
+                        SaaS / Enterprise
+                      </div>
+                      <h4 className="text-2xl font-black text-slate-900">{plan.name}</h4>
+                      <p className="text-sm text-slate-600">{plan.audience}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-black text-slate-900">{plan.price}</div>
+                      {plan.id === 'business_monthly' ? (
+                        <div className="text-xs text-slate-500">Inclui 5 avaliações/mês + créditos extras opcionais</div>
+                      ) : null}
+                    </div>
                   </div>
-                  <ul className="space-y-2 mb-6">
-                    {plan.features.map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-slate-700">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        {f}
+
+                  <ul className="space-y-2 text-sm text-slate-700">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    onClick={() =>
-                      plan.id === 'plan_enterprise'
-                        ? null
-                        : handleCheckout({ priceEnvKey: 'STRIPE_PRICE_B2B', mode: 'subscription' })
-                    }
-                    disabled={plan.id !== 'plan_enterprise' && checkoutLoading}
-                    className="w-full rounded-xl h-12 font-semibold bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    {plan.id === 'plan_enterprise'
-                      ? 'Falar com Vendas'
-                      : checkoutLoading
-                        ? 'Abrindo checkout...'
-                        : 'Assinar Plano Pro'}
-                  </Button>
+
+                  {plan.ctaKind === 'checkout' ? (
+                    <Button
+                      onClick={() =>
+                        handleWebCheckout({
+                          priceEnvKey: 'STRIPE_PRICE_B2B',
+                          mode: 'subscription',
+                          flowOverride: 'business_subscription',
+                          successParams: { flow: 'business_subscription' },
+                          cancelHash: 'b2b',
+                        })
+                      }
+                      disabled={Boolean(checkoutLoading)}
+                      className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      {checkoutLoading === 'STRIPE_PRICE_B2B' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
+                    </Button>
+                  ) : (
+                    <Button onClick={openSales} className="w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700">
+                      Falar com Vendas
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <p className="text-xs text-center text-slate-400 mt-10">
-          Todos os preços em BRL. Cancelamento a qualquer momento. Créditos não utilizados são transferidos entre ciclos.
+          <Card className="border border-slate-200">
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full min-w-[1120px] border-collapse">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-800">Business / Empresas</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">10 avaliações</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">50 avaliações</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">100 avaliações</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Business mensal</th>
+                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Enterprise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BUSINESS_COMPARISON.map((row) => (
+                    <tr key={row.feature} className="border-t border-slate-200">
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.feature}</td>
+                      <ComparisonCell value={row.credits10} />
+                      <ComparisonCell value={row.credits50} />
+                      <ComparisonCell value={row.credits100} />
+                      <ComparisonCell value={row.business} />
+                      <ComparisonCell value={row.enterprise} />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid lg:grid-cols-[1.4fr_1fr] gap-6">
+          <Card className="border border-slate-200">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-2xl font-black text-slate-900">FAQ rápido</h3>
+              <div className="space-y-3">
+                {FAQ_ITEMS.map((item) => (
+                  <div key={item.q} className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+                    <p className="font-semibold text-slate-900">{item.q}</p>
+                    <p className="text-sm text-slate-600 mt-1">{item.a}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-indigo-200 bg-gradient-to-br from-indigo-700 via-violet-700 to-blue-700 text-white">
+            <CardContent className="p-6 space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.1em] font-semibold">
+                <HeartHandshake className="w-4 h-4" />
+                CTA final
+              </div>
+              <h3 className="text-2xl font-black leading-tight">Pronto para escolher seu próximo passo?</h3>
+              <p className="text-indigo-100">
+                Social para autoconhecimento rápido, Business para operação recorrente e Enterprise para escala global.
+              </p>
+              <div className="grid gap-2">
+                <Link to={createPageUrl('StartFree')}>
+                  <Button className="w-full h-11 rounded-xl bg-white text-indigo-700 hover:bg-indigo-50">
+                    Fazer Teste Grátis
+                  </Button>
+                </Link>
+                <Button onClick={handleBuySingleAssessment} className="w-full h-11 rounded-xl bg-indigo-950 hover:bg-indigo-900">
+                  Comprar 1 Avaliação
+                </Button>
+                <Button onClick={openSales} variant="outline" className="w-full h-11 rounded-xl border-white/40 text-white hover:bg-white/10">
+                  <MessageSquareText className="w-4 h-4 mr-2" />
+                  Falar com Vendas
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <p className="text-center text-xs text-slate-400 pb-4">
+          Preços em BRL. Créditos não utilizados permanecem disponíveis durante a validade contratada.
         </p>
       </main>
     </div>

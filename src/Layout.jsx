@@ -34,6 +34,7 @@ const PUBLIC_PAGES = [
   'Login',
   'Pricing',
   'PublicReport',
+  'GiftLanding',
   'Signup',
   'StartFree',
   'SuperAdminLogin',

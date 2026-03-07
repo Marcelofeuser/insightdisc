@@ -18,6 +18,7 @@ export const PUBLIC_PAGES = new Set([
   'Login',
   'Pricing',
   'PublicReport',
+  'GiftLanding',
   'Signup',
   'StartFree',
   'SuperAdminLogin',
