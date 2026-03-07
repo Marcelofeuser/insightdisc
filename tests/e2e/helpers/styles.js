@@ -24,9 +24,12 @@ export async function expectPremiumBackground(locator) {
   const hasGradient =
     styles.backgroundImage && styles.backgroundImage !== 'none' && styles.backgroundImage.includes('gradient');
   const whiteSolid = isSolidWhite(styles.backgroundColor);
+  const textWhite = isSolidWhite(styles.color);
+  const borderWhite = isSolidWhite(styles.borderColor);
+  const hasHighContrastWhiteStyle = whiteSolid && !textWhite && !borderWhite;
 
   expect(
-    hasGradient || !whiteSolid,
-    `CTA com fundo inválido. backgroundColor=${styles.backgroundColor}, backgroundImage=${styles.backgroundImage}`
+    hasGradient || !whiteSolid || hasHighContrastWhiteStyle,
+    `CTA com fundo inválido. backgroundColor=${styles.backgroundColor}, backgroundImage=${styles.backgroundImage}, color=${styles.color}, borderColor=${styles.borderColor}`
   ).toBeTruthy();
 }

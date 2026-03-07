@@ -158,10 +158,10 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="ghost"
-                    className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.18)] hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))] hover:border-white/35 transition-all duration-200 px-8 text-base font-semibold"
+                    className="h-14 w-full sm:w-auto rounded-2xl border border-indigo-600 bg-white text-indigo-700 shadow-[0_10px_28px_rgba(79,70,229,0.16)] hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-200 px-8 text-base font-semibold"
                     data-testid="home-cta-secondary"
                   >
-                    Ver Planos B2B
+                    Ver Planos
                   </Button>
                 </Link>
               </div>
@@ -299,7 +299,7 @@ export default function Home() {
           <div className="text-center mt-12">
             <Link to={`${createPageUrl('Pricing')}#b2b`}>
               <Button size="lg" className="h-13 h-12 px-8 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white font-bold">
-                Ver Planos Corporativos <ArrowRight className="ml-2 w-4 h-4" />
+                Ver Planos <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
           </div>
@@ -454,9 +454,9 @@ export default function Home() {
                 <Button
                   size="lg"
                   variant="ghost"
-                  className="h-16 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.18)] hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))] hover:border-white/35 transition-all duration-200 px-10 text-lg font-bold"
+                  className="h-16 w-full sm:w-auto rounded-2xl border border-indigo-600 bg-white text-indigo-700 shadow-[0_10px_28px_rgba(79,70,229,0.18)] hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-200 px-10 text-lg font-bold"
                 >
-                  Planos Corporativos
+                  Ver Planos
                 </Button>
               </Link>
             </div>

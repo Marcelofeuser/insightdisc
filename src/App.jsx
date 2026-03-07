@@ -22,6 +22,7 @@ import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
+import Checkout from '@/pages/Checkout';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -107,6 +108,16 @@ const AuthenticatedApp = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/checkout"
+        element={
+          <LayoutWrapper currentPageName="Checkout">
+            <Checkout />
+          </LayoutWrapper>
+        }
+      />
+      <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
 
       <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
       {APP_ALIAS_ROUTES.map(({ path, pageName }) =>

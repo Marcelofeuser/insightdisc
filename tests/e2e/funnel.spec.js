@@ -34,7 +34,7 @@ test('Guard bloqueia acesso direto ao FreeAssessment sem lead', async ({ page })
   await expect(page).toHaveURL(/\/StartFree(?:\?|$)/);
 });
 
-test('FreeResults compartilhar sempre habilitado e desbloqueio leva para Pricing', async ({ page }) => {
+test('FreeResults exibe desbloqueio único e leva para checkout provisório', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(
       'freeAssessmentResults',
@@ -46,11 +46,8 @@ test('FreeResults compartilhar sempre habilitado e desbloqueio leva para Pricing
   });
 
   await page.goto('/FreeResults');
-  const shareButton = page.getByRole('button', { name: /Compartilhar Resultado/i });
-  await expect(shareButton).toBeEnabled();
-  await shareButton.click();
-  await page.getByRole('button', { name: /Desbloquear Relatório Completo|Desbloquear por/i }).first().click();
-  await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+  await page.getByRole('button', { name: /Desbloquear Relatório Completo/i }).first().click();
+  await expect(page).toHaveURL(/\/checkout\?product=report-unlock/);
 });
 
 test('Links legais do footer abrem páginas públicas', async ({ page }) => {

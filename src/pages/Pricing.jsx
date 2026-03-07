@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Gift,
   HeartHandshake,
-  MessageSquareText,
   Shield,
   Sparkles,
   Star,
@@ -15,10 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
-import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
-import { createGiftToken, saveGiftOrder } from '@/modules/billing/gift-utils';
 
 const SALES_WHATSAPP_URL =
   'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
@@ -31,7 +27,7 @@ const SOCIAL_OFFERS = Object.freeze([
     subtitle: 'Entrada rápida para conhecer seu perfil',
     badge: 'LIMITADO',
     cta: 'Fazer Teste Grátis',
-    ctaHref: createPageUrl('StartFree'),
+    ctaHref: '/avaliacoes',
     features: [
       'Resultado imediato com perfil dominante',
       'Versão reduzida do diagnóstico comportamental',
@@ -74,6 +70,7 @@ const CREDIT_PACKS = Object.freeze([
     perUnit: 'R$ 29 por avaliação',
     highlight: 'Ideal para squads pequenos e consultorias.',
     cta: 'Comprar 10 Avaliações',
+    checkoutProduct: 'pack-10',
   },
   {
     id: 'credits_50',
@@ -84,6 +81,7 @@ const CREDIT_PACKS = Object.freeze([
     highlight: 'Melhor equilíbrio para operação recorrente.',
     cta: 'Comprar 50 Avaliações',
     popular: true,
+    checkoutProduct: 'pack-50',
   },
   {
     id: 'credits_100',
@@ -93,6 +91,7 @@ const CREDIT_PACKS = Object.freeze([
     perUnit: 'R$ 19,90 por avaliação',
     highlight: 'Escala com maior eficiência de custo.',
     cta: 'Comprar 100 Avaliações',
+    checkoutProduct: 'pack-100',
   },
 ]);
 
@@ -321,17 +320,10 @@ export default function Pricing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user: authUser } = useAuth();
-  const apiBaseUrl = getApiBaseUrl();
-
-  const [user, setUser] = useState(null);
-  const [workspace, setWorkspace] = useState(null);
   const [checkoutLoading, setCheckoutLoading] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
 
   const assessmentId = searchParams.get('assessmentId') || '';
-  const leadEmail = searchParams.get('email') || '';
-  const leadName = searchParams.get('name') || '';
   const candidateToken = searchParams.get('token') || '';
   const checkoutFlow = searchParams.get('flow') || (assessmentId ? 'candidate' : '');
   const unlockRequired = searchParams.get('unlock') === '1';
@@ -340,37 +332,6 @@ export default function Pricing() {
     () => Boolean(assessmentId || candidateToken || checkoutFlow === 'candidate'),
     [assessmentId, candidateToken, checkoutFlow]
   );
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        if (apiBaseUrl && authUser) {
-          setUser(authUser);
-          setWorkspace({
-            id: authUser?.active_workspace_id || authUser?.tenant_id || '',
-            credits_balance: Number(authUser?.credits || 0),
-          });
-          return;
-        }
-
-        const authenticatedUser = await base44.auth.me();
-        setUser(authenticatedUser);
-
-        if (authenticatedUser?.active_workspace_id) {
-          const workspaceResult = await base44.entities.Workspace.filter({
-            id: authenticatedUser.active_workspace_id,
-          });
-          if (workspaceResult.length) {
-            setWorkspace(workspaceResult[0]);
-          }
-        }
-      } catch {
-        setUser(null);
-      }
-    };
-
-    loadData();
-  }, [apiBaseUrl, authUser]);
 
   useEffect(() => {
     const scrollToHashSection = () => {
@@ -392,173 +353,60 @@ export default function Pricing() {
     };
   }, []);
 
-  const goToLogin = () => {
-    const next = `${createPageUrl('Pricing')}${window.location.search || ''}`;
-    navigate(`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`);
-  };
-
   const openSales = () => {
     window.open(SALES_WHATSAPP_URL, '_blank', 'noopener,noreferrer');
   };
 
-  const startCheckout = async ({
-    checkoutKey,
-    productType,
-    credits,
-    mode = 'payment',
-    priceEnvKey,
-    flow,
-    successParams = {},
-    cancelHash = '',
-    name,
-    email,
-    giftToken,
-  }) => {
-    if (!user) {
-      goToLogin();
+  const buildCheckoutUrl = (product, payload = {}) => {
+    const params = new URLSearchParams();
+    params.set('product', product);
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+    return `/checkout?${params.toString()}`;
+  };
+
+  const startCheckout = (checkoutKey, product, payload = {}) => {
+    if (!product) {
+      setCheckoutError('Produto inválido para checkout.');
       return;
     }
 
-    if (!apiBaseUrl) {
-      setCheckoutError('Não foi possível iniciar o checkout agora. Verifique se a API está ativa.');
-      return;
-    }
-
-    const authToken = getApiToken();
-    if (!authToken) {
-      goToLogin();
-      return;
-    }
-
-    setCheckoutLoading(checkoutKey || productType || 'checkout');
+    setCheckoutLoading(checkoutKey || product);
     setCheckoutError('');
-    setSuccessMessage('');
-
-    try {
-      const successUrl = new URL(`${window.location.origin}${createPageUrl('CheckoutSuccess')}`);
-      Object.entries(successParams || {}).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          successUrl.searchParams.set(key, String(value));
-        }
-      });
-
-      const cancelUrl = new URL(`${window.location.origin}${createPageUrl('Pricing')}`);
-      if (cancelHash) {
-        cancelUrl.hash = cancelHash;
-      }
-
-      const payload = {
-        productType,
-        mode,
-        credits,
-        priceEnvKey,
-        flow,
-        assessmentId: assessmentId || undefined,
-        token: candidateToken || undefined,
-        giftToken: giftToken || undefined,
-        successUrl: successUrl.toString(),
-        cancelUrl: cancelUrl.toString(),
-        name: name || leadName || user?.full_name || '',
-        email: email || leadEmail || user?.email || '',
-      };
-
-      const response = await apiRequest('/payments/create-checkout', {
-        method: 'POST',
-        requireAuth: true,
-        body: payload,
-      });
-
-      if (!response?.url) {
-        throw new Error('Não foi possível iniciar o checkout.');
-      }
-
-      window.location.href = response.url;
-    } catch (error) {
-      const code = String(error?.message || '').toUpperCase();
-      if (code.includes('API_BASE_URL_NOT_CONFIGURED')) {
-        setCheckoutError('Não foi possível iniciar o checkout agora. Verifique se a API está ativa.');
-      } else if (code.includes('API_AUTH_MISSING')) {
-        goToLogin();
-      } else if (code.includes('BUSINESS_PRICE_NOT_CONFIGURED')) {
-        setCheckoutError('Plano Business indisponível no momento. Fale com vendas para ativação.');
-      } else {
-        setCheckoutError(error?.message || 'Não foi possível iniciar o checkout agora. Tente novamente.');
-      }
-    } finally {
-      setCheckoutLoading('');
-    }
+    navigate(buildCheckoutUrl(product, payload));
   };
 
   const handleBuySingleAssessment = () => {
-    startCheckout({
-      checkoutKey: 'single_assessment',
-      productType: 'single_assessment',
-      credits: 1,
-      mode: 'payment',
+    startCheckout('single_assessment', 'single', {
       flow: checkoutFlow || (isCandidateUnlock ? 'candidate' : 'single_assessment'),
-      successParams: isCandidateUnlock
-        ? {
-            assessmentId,
-            token: candidateToken,
-            flow: checkoutFlow || 'candidate',
-          }
-        : { flow: 'single_assessment' },
-      cancelHash: 'social',
+      assessmentId: isCandidateUnlock ? assessmentId : '',
+      token: isCandidateUnlock ? candidateToken : '',
     });
   };
 
   const handleGiftPurchase = () => {
-    const giftToken = createGiftToken();
-    saveGiftOrder({
-      token: giftToken,
-      payload: {},
-      status: 'pending',
-    });
-
-    startCheckout({
-      checkoutKey: 'gift_assessment',
-      productType: 'gift_assessment',
-      credits: 1,
-      mode: 'payment',
+    startCheckout('gift_assessment', 'gift', {
       flow: 'gift',
-      giftToken,
-      successParams: {
-        flow: 'gift',
-        giftToken,
-      },
-      cancelHash: 'social',
     });
   };
 
   const handleCreditPackPurchase = (pack) => {
-    startCheckout({
-      checkoutKey: pack.id,
-      productType: 'credit_pack',
-      credits: pack.credits,
-      mode: 'payment',
+    startCheckout(pack.id, pack.checkoutProduct, {
       flow: 'credit_pack',
-      successParams: {
-        flow: 'credit_pack',
-        credits: pack.credits,
-      },
-      cancelHash: 'b2b',
     });
   };
 
   const handleBusinessSubscription = () => {
-    startCheckout({
-      checkoutKey: 'business_monthly',
-      productType: 'business_subscription',
-      credits: 5,
-      mode: 'subscription',
-      priceEnvKey: 'STRIPE_PRICE_B2B',
+    startCheckout('business_monthly', 'business-monthly', {
       flow: 'business_subscription',
-      successParams: { flow: 'business_subscription' },
-      cancelHash: 'b2b',
     });
   };
 
-  const activeBalance = Number(workspace?.credits_balance || 0);
+  const user = authUser || null;
+  const activeBalance = Number(authUser?.credits_balance ?? authUser?.credits ?? 0);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.13),transparent_34%),radial-gradient(circle_at_10%_18%,rgba(14,165,233,0.14),transparent_32%),#f8fafc]">
@@ -596,12 +444,6 @@ export default function Pricing() {
         {checkoutError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {checkoutError}
-          </div>
-        ) : null}
-
-        {successMessage ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-            {successMessage}
           </div>
         ) : null}
 
@@ -667,29 +509,31 @@ export default function Pricing() {
 
           <div className="grid lg:grid-cols-3 gap-6">
             <Card className="h-full border-2 border-slate-200">
-              <CardContent className="p-6 h-full flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
-                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[0].subtitle}</p>
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
+                      <p className="text-sm text-slate-600">{SOCIAL_OFFERS[0].subtitle}</p>
+                    </div>
+                    <span className="rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-bold">
+                      {SOCIAL_OFFERS[0].badge}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-bold">
-                    {SOCIAL_OFFERS[0].badge}
-                  </span>
-                </div>
 
-                <div>
-                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[0].price}</span>
-                </div>
+                  <div>
+                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[0].price}</span>
+                  </div>
 
-                <ul className="space-y-2 text-sm text-slate-700 flex-1">
-                  {SOCIAL_OFFERS[0].features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                    {SOCIAL_OFFERS[0].features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Link to={SOCIAL_OFFERS[0].ctaHref} className="mt-auto">
                   <Button className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950">
@@ -700,31 +544,33 @@ export default function Pricing() {
             </Card>
 
             <Card className="h-full border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]">
-              <CardContent className="p-6 h-full flex flex-col gap-4">
-                <div>
-                  <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
-                  <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
-                </div>
-
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[1].price}</span>
-                  <span className="text-sm text-slate-500 pb-1">pagamento único</span>
-                </div>
-
-                {isCandidateUnlock ? (
-                  <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
-                    Você veio de um resultado gratuito. Esta compra libera o relatório completo desta avaliação.
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
+                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
                   </div>
-                ) : null}
 
-                <ul className="space-y-2 text-sm text-slate-700 flex-1">
-                  {SOCIAL_OFFERS[1].features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[1].price}</span>
+                    <span className="text-sm text-slate-500 pb-1">pagamento único</span>
+                  </div>
+
+                  {isCandidateUnlock ? (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
+                      Você veio de um resultado gratuito. Esta compra libera o relatório completo desta avaliação.
+                    </div>
+                  ) : null}
+
+                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                    {SOCIAL_OFFERS[1].features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Button
                   onClick={handleBuySingleAssessment}
@@ -737,31 +583,33 @@ export default function Pricing() {
             </Card>
 
             <Card className="h-full border-2 border-violet-200">
-              <CardContent className="p-6 h-full flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
-                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[2].subtitle}</p>
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
+                      <p className="text-sm text-slate-600">{SOCIAL_OFFERS[2].subtitle}</p>
+                    </div>
+                    <Gift className="w-5 h-5 text-violet-600" />
                   </div>
-                  <Gift className="w-5 h-5 text-violet-600" />
-                </div>
 
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[2].price}</span>
-                  <span className="text-sm text-slate-500 pb-1">por presente</span>
-                </div>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[2].price}</span>
+                    <span className="text-sm text-slate-500 pb-1">por presente</span>
+                  </div>
 
-                <ul className="space-y-2 text-sm text-slate-700 flex-1">
-                  {SOCIAL_OFFERS[2].features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                    {SOCIAL_OFFERS[2].features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
-                  A personalização do presente acontece após o pagamento confirmado.
+                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
+                    A personalização do presente acontece após o pagamento confirmado.
+                  </div>
                 </div>
 
                 <Button
@@ -816,33 +664,35 @@ export default function Pricing() {
             {CREDIT_PACKS.map((pack) => (
               <motion.div key={pack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-[0_18px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
-                  <CardContent className="p-6 h-full flex flex-col gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
-                        <p className="text-sm text-slate-600">{pack.highlight}</p>
+                  <CardContent className="p-6 h-full flex flex-col justify-between">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
+                          <p className="text-sm text-slate-600">{pack.highlight}</p>
+                        </div>
+                        {pack.popular ? <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> : null}
                       </div>
-                      {pack.popular ? <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> : null}
-                    </div>
 
-                    <div>
-                      <div className="text-3xl font-black text-slate-900">{pack.price}</div>
-                      <div className="text-sm text-slate-500">{pack.perUnit}</div>
-                    </div>
+                      <div>
+                        <div className="text-3xl font-black text-slate-900">{pack.price}</div>
+                        <div className="text-sm text-slate-500">{pack.perUnit}</div>
+                      </div>
 
-                    <ul className="space-y-2 text-sm text-slate-700 flex-1">
-                      {[
-                        `${pack.credits} avaliações incluídas`,
-                        'Validade de 12 meses',
-                        'Relatórios PDF premium',
-                        'Uso em recrutamento e desenvolvimento',
-                      ].map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                      <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                        {[
+                          `${pack.credits} avaliações incluídas`,
+                          'Validade de 12 meses',
+                          'Relatórios PDF premium',
+                          'Uso em recrutamento e desenvolvimento',
+                        ].map((feature) => (
+                          <li key={feature} className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
                     <Button
                       onClick={() => handleCreditPackPurchase(pack)}
@@ -860,32 +710,34 @@ export default function Pricing() {
           <div className="grid lg:grid-cols-2 gap-6">
             {BUSINESS_PLANS.map((plan) => (
               <Card key={plan.id} className="h-full border-2 border-violet-200">
-                <CardContent className="p-6 h-full flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
-                        <Building2 className="w-4 h-4" />
-                        SaaS / Enterprise
+                <CardContent className="p-6 h-full flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
+                          <Building2 className="w-4 h-4" />
+                          SaaS / Enterprise
+                        </div>
+                        <h4 className="text-2xl font-black text-slate-900">{plan.name}</h4>
+                        <p className="text-sm text-slate-600">{plan.audience}</p>
                       </div>
-                      <h4 className="text-2xl font-black text-slate-900">{plan.name}</h4>
-                      <p className="text-sm text-slate-600">{plan.audience}</p>
+                      <div className="text-right">
+                        <div className="text-2xl font-black text-slate-900">{plan.price}</div>
+                        {plan.id === 'business_monthly' ? (
+                          <div className="text-xs text-slate-500">Inclui 5 avaliações/mês + créditos extras opcionais</div>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-black text-slate-900">{plan.price}</div>
-                      {plan.id === 'business_monthly' ? (
-                        <div className="text-xs text-slate-500">Inclui 5 avaliações/mês + créditos extras opcionais</div>
-                      ) : null}
-                    </div>
-                  </div>
 
-                  <ul className="space-y-2 text-sm text-slate-700 flex-1">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {plan.ctaKind === 'checkout' ? (
                     <Button
@@ -959,25 +811,15 @@ export default function Pricing() {
                 <HeartHandshake className="w-4 h-4" />
                 CTA final
               </div>
-              <h3 className="text-2xl font-black leading-tight">Pronto para escolher seu próximo passo?</h3>
+              <h3 className="text-2xl font-black leading-tight">Precisa de apoio para escolher o plano certo?</h3>
               <p className="text-indigo-100">
-                Social para autoconhecimento rápido, Business para operação recorrente e Enterprise para escala global.
+                Nosso time comercial ajuda você a definir a melhor combinação entre avaliação avulsa, pacotes de créditos e assinatura Business.
               </p>
-              <div className="grid gap-2">
-                <Link to={createPageUrl('StartFree')}>
-                  <Button className="w-full h-11 rounded-xl bg-white !text-slate-900 border border-white/80 hover:bg-slate-100 shadow-sm">
-                    Fazer Teste Grátis
-                  </Button>
-                </Link>
-                <Button onClick={handleBuySingleAssessment} className="w-full h-11 rounded-xl bg-indigo-950 hover:bg-indigo-900">
-                  Comprar 1 Avaliação
-                </Button>
+              <div className="grid gap-2 pt-1">
                 <Button
                   onClick={openSales}
-                  variant="outline"
-                  className="w-full h-11 rounded-xl border-white/50 bg-white/12 text-white hover:bg-white/20"
+                  className="w-full h-11 rounded-xl bg-white text-indigo-700 border border-indigo-100 hover:bg-indigo-50 hover:text-indigo-800"
                 >
-                  <MessageSquareText className="w-4 h-4 mr-2" />
                   Falar com Vendas
                 </Button>
               </div>

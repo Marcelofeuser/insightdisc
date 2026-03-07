@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Lock, 
   Sparkles, 
   ArrowRight, 
-  Share2,
   CheckCircle2,
   RefreshCw
 } from 'lucide-react';
@@ -13,9 +12,7 @@ import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import DISCFactorCard from '@/components/disc/DISCFactorCard';
-import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
-import { shareOrCopy } from '@/utils/share';
 
 const FACTOR_INFO = {
   D: {
@@ -56,7 +53,6 @@ export default function FreeResults() {
   const [searchParams] = useSearchParams();
   const [assessment, setAssessment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     loadAssessment();
@@ -93,56 +89,6 @@ export default function FreeResults() {
     setIsLoading(false);
   };
 
-  const handleShare = async () => {
-    let shareUrl = window.location.href;
-
-    if (assessment?.id) {
-      try {
-        const response = await fetch('/api/report/create-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            assessmentId: assessment.id,
-            assessmentSnapshot: assessment,
-          }),
-        });
-        const data = await response.json();
-        if (response.ok && data?.token) {
-          shareUrl = `${window.location.origin}/r/${encodeURIComponent(data.token)}`;
-          setAssessment((prev) =>
-            prev ? { ...prev, public_share_token: data.token } : prev
-          );
-
-          if (base44?.__isMock && typeof base44?.entities?.Assessment?.update === 'function') {
-            await base44.entities.Assessment.update(assessment.id, {
-              public_share_token: data.token,
-            });
-          }
-        }
-      } catch {
-        if (base44?.__isMock) {
-          const token = `mock:${assessment.id}`;
-          shareUrl = `${window.location.origin}/r/${encodeURIComponent(token)}`;
-          setAssessment((prev) =>
-            prev ? { ...prev, public_share_token: token } : prev
-          );
-          if (typeof base44?.entities?.Assessment?.update === 'function') {
-            await base44.entities.Assessment.update(assessment.id, {
-              public_share_token: token,
-            });
-          }
-        }
-      }
-    }
-
-    await shareOrCopy({
-      title: 'InsightDISC — Meu resultado',
-      text: 'Confira meu resultado no InsightDISC:',
-      url: shareUrl,
-      toast,
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -155,7 +101,15 @@ export default function FreeResults() {
     );
   }
 
+  const hasAssessmentContext = Boolean(
+    searchParams.get('id') || searchParams.get('token') || searchParams.get('email') || searchParams.get('name')
+  );
+
   if (!assessment?.results) {
+    if (hasAssessmentContext) {
+      return <Navigate to="/checkout?product=report-unlock" replace />;
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
         <div className="text-center">
@@ -177,7 +131,7 @@ export default function FreeResults() {
   const profile = results.natural_profile;
   const isUnlocked = Boolean(assessment?.report_unlocked);
   const assessmentToken = assessment?.access_token || '';
-  const pricingUrl = `${createPageUrl('Pricing')}?assessmentId=${encodeURIComponent(assessment?.id || '')}&email=${encodeURIComponent(assessment?.respondent_email || assessment?.lead_email || assessment?.user_id || '')}&name=${encodeURIComponent(assessment?.respondent_name || assessment?.lead_name || '')}&token=${encodeURIComponent(assessmentToken)}&flow=candidate`;
+  const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
   const upgradeUrl = `/c/upgrade?assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}`;
 
   return (
@@ -348,19 +302,11 @@ export default function FreeResults() {
                   size="lg"
                   className="bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl shadow-lg"
                 >
-                  Desbloquear por R$ 49,90
+                  Desbloquear relatório completo
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
             )}
-            <Button 
-              size="lg"
-              onClick={handleShare}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl border border-indigo-500"
-            >
-              <Share2 className="w-5 h-5 mr-2" />
-              Compartilhar Resultado
-            </Button>
           </div>
         </motion.div>
 
