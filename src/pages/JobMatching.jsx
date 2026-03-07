@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const DISC_COLORS = { D: 'text-red-600', I: 'text-orange-600', S: 'text-green-600', C: 'text-blue-600' };
 const DISC_BG = { D: 'bg-red-50 border-red-200', I: 'bg-orange-50 border-orange-200', S: 'bg-green-50 border-green-200', C: 'bg-blue-50 border-blue-200' };
@@ -81,6 +82,7 @@ function buildMatchExplanation(candidateProfile, idealProfile, score) {
 export default function JobMatching() {
   const { access, user: authUser } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
   const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -140,7 +142,7 @@ export default function JobMatching() {
   });
 
   const availableCredits = Number(workspace?.credits_balance || 0);
-  const canUsePremiumActions = availableCredits > 0;
+  const canUsePremiumActions = hasSuperAdminBypass || availableCredits > 0;
 
   const handleCreatePosition = async () => {
     if (!canUsePremiumActions) return;
@@ -230,6 +232,9 @@ export default function JobMatching() {
             <div>
               <h1 className="text-xl font-bold text-slate-900">Compatibilidade DISC para Vagas</h1>
               <p className="text-sm text-slate-500">Compare candidatos com perfis ideais de vaga</p>
+              {hasSuperAdminBypass ? (
+                <p className="text-xs font-semibold text-amber-700 mt-1">SUPER ADMIN — ACESSO TOTAL</p>
+              ) : null}
             </div>
           </div>
           <Button

@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { PRODUCTS, getProductById, resolveProductId as resolveCatalogProductId } from '../config/pricing.js';
 import { requireAuth } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
+import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 
 const router = Router();
 
@@ -60,6 +61,11 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
       input.product || resolveProductIdFromPayload(input.productType, input.credits)
     );
     const resolvedProduct = getProductById(resolvedProductId);
+    const hasSuperAdminBypass = isSuperAdminUser({
+      role: req.auth?.role,
+      globalRole: req.auth?.globalRole,
+      global_role: req.auth?.global_role,
+    });
 
     const resolvedMode =
       input.mode
@@ -83,6 +89,27 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
         giftToken: input.giftToken || '',
       }
     );
+    if (hasSuperAdminBypass) {
+      const mockSessionId = `superadmin_${Date.now()}`;
+      const url = appendQuery(`${env.appUrl}/CheckoutSuccess?session_id=${mockSessionId}`, {
+        assessmentId: input.assessmentId || '',
+        token: input.token || '',
+        flow: input.flow || '',
+        giftToken: input.giftToken || '',
+        credits: 0,
+        superAdminBypass: 1,
+      });
+      return res.status(200).json({
+        ok: true,
+        mocked: true,
+        bypassed: true,
+        id: mockSessionId,
+        url,
+        product: resolvedProductId || '',
+        amount: 0,
+        currency: resolvedProduct?.currency || 'BRL',
+      });
+    }
 
     const stripe = getStripeClient();
     if (!stripe || !resolvedPriceId) {
@@ -151,6 +178,20 @@ router.post('/confirm', requireAuth, async (req, res) => {
       credits: z.number().int().positive().optional(),
     });
     const input = schema.parse(req.body || {});
+    const hasSuperAdminBypass = isSuperAdminUser({
+      role: req.auth?.role,
+      globalRole: req.auth?.globalRole,
+      global_role: req.auth?.global_role,
+    });
+
+    if (hasSuperAdminBypass) {
+      return res.status(200).json({
+        ok: true,
+        bypassed: true,
+        creditsAdded: 0,
+        balance: 999999,
+      });
+    }
 
     const existingPayment = await prisma.payment.findUnique({
       where: { stripeSession: input.sessionId },

@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const SALES_WHATSAPP_URL =
   'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
@@ -320,7 +321,7 @@ function ComparisonCell({ value }) {
 export default function Pricing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user: authUser } = useAuth();
+  const { user: authUser, access } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
 
@@ -407,6 +408,7 @@ export default function Pricing() {
   };
 
   const user = authUser || null;
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
   const activeBalance = Number(authUser?.credits_balance ?? authUser?.credits ?? 0);
 
   return (
@@ -429,7 +431,7 @@ export default function Pricing() {
 
           {user ? (
             <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
-              Saldo atual: <strong>{activeBalance} créditos</strong>
+              Saldo atual: <strong>{hasSuperAdminBypass ? 'Ilimitado' : `${activeBalance} créditos`}</strong>
             </div>
           ) : null}
         </div>
@@ -445,6 +447,11 @@ export default function Pricing() {
         {checkoutError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {checkoutError}
+          </div>
+        ) : null}
+        {hasSuperAdminBypass ? (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            SUPER ADMIN — sem cobrança real para testes internos.
           </div>
         ) : null}
 

@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { env } from '../config/env.js';
 import { findSeedSuperAdminUser } from '../modules/auth/super-admin-bootstrap.js';
+import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 
 const router = Router();
 
@@ -77,10 +78,10 @@ function normalizeUserPayload(user = {}) {
   const role = String(user?.role || 'PRO').toUpperCase();
   const workspaceId = resolvePrimaryOrganizationId(user);
   const isCandidate = role === 'CANDIDATE';
-  const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isSuperAdmin = isSuperAdminUser(user);
   const isAdmin = role === 'ADMIN';
-  const hasPaidPurchase = hasActivePaidPurchase(user);
-  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  const hasPaidPurchase = isSuperAdmin ? true : hasActivePaidPurchase(user);
+  const creditsBalance = isSuperAdmin ? 999999 : Number(user?.credits?.[0]?.balance || 0);
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
     ? 'super_admin'
@@ -102,11 +103,13 @@ function normalizeUserPayload(user = {}) {
     tenant_id: workspaceId || null,
     lifecycle_status: lifecycleStatus,
     has_paid_purchase: hasPaidPurchase,
-    payments_count: Number(user?.payments?.length || 0),
+    payments_count: isSuperAdmin ? Math.max(1, Number(user?.payments?.length || 0)) : Number(user?.payments?.length || 0),
     entitlements:
-      isSuperAdmin || isAdmin || hasPaidPurchase
-        ? ['report.pro', 'report.export.pdf', 'report.export.csv']
-        : [],
+      isSuperAdmin
+        ? ['*']
+        : isAdmin || hasPaidPurchase
+          ? ['report.pro', 'report.export.pdf', 'report.export.csv']
+          : [],
     plan: isSuperAdmin ? 'enterprise' : isCustomerActive ? 'premium' : 'free',
     credits: creditsBalance,
   };

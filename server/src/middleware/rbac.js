@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 
 export async function attachUser(req, _res, next) {
   if (!req.auth?.userId) return next();
@@ -24,10 +25,10 @@ export async function attachUser(req, _res, next) {
 export function requireRole(...roles) {
   const allowed = new Set(roles);
   return (req, res, next) => {
-    const role = String(req.user?.role || '').toUpperCase();
-    if (role === 'SUPER_ADMIN') {
+    if (isSuperAdminUser(req.user || req.auth || {})) {
       return next();
     }
+    const role = String(req.user?.role || '').toUpperCase();
     if (!role || !allowed.has(role)) {
       return res.status(403).json({ ok: false, error: 'Forbidden' });
     }
@@ -36,9 +37,14 @@ export function requireRole(...roles) {
 }
 
 export function requireSuperAdmin(req, res, next) {
-  const role = String(req.user?.role || req.auth?.role || '').toUpperCase();
+  const authUser = {
+    role: req.user?.role || req.auth?.role,
+    global_role: req.user?.global_role || req.auth?.global_role,
+    globalRole: req.user?.globalRole || req.auth?.globalRole,
+  };
+  const role = String(authUser?.role || '').toUpperCase();
   const scope = String(req.auth?.scope || '').toLowerCase();
-  if (role !== 'SUPER_ADMIN' && scope !== 'super_admin') {
+  if (!isSuperAdminUser(authUser) && role !== 'SUPER_ADMIN' && scope !== 'super_admin') {
     return res.status(403).json({ error: 'FORBIDDEN' });
   }
   return next();
@@ -46,7 +52,7 @@ export function requireSuperAdmin(req, res, next) {
 
 export function isActiveCustomer(user = {}) {
   const role = String(user?.role || '').toUpperCase();
-  if (role === 'SUPER_ADMIN' || role === 'ADMIN') return true;
+  if (isSuperAdminUser(user) || role === 'ADMIN') return true;
   if (role === 'CANDIDATE') return false;
 
   const creditsBalance = Number(user?.credits?.[0]?.balance || 0);

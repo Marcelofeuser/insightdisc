@@ -6,6 +6,7 @@ import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
+import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
 
@@ -172,8 +173,9 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
       return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
 
+    const isSuperAdmin = isSuperAdminUser(user);
     const balance = Number(user.credits?.[0]?.balance || 0);
-    if (balance < 1) {
+    if (!isSuperAdmin && balance < 1) {
       return res.status(402).json({
         ok: false,
         error: 'INSUFFICIENT_CREDITS',
@@ -490,13 +492,23 @@ router.post('/submit', async (req, res) => {
     const isSelfAssessment =
       Boolean(result?.invite?.assessment?.candidateUserId) &&
       result.invite.assessment.candidateUserId === result.invite.assessment.createdBy;
+    const selfAssessmentOwnerId = result?.invite?.assessment?.createdBy || '';
+    let isSuperAdminSelfAssessment = false;
 
     if (isSelfAssessment) {
-      const credit = await prisma.credit.findUnique({
-        where: { userId: result.invite.assessment.createdBy },
-        select: { balance: true },
+      const owner = await prisma.user.findUnique({
+        where: { id: selfAssessmentOwnerId },
+        select: {
+          role: true,
+          credits: {
+            select: { balance: true },
+            take: 1,
+          },
+        },
       });
-      if (Number(credit?.balance || 0) < 1) {
+      isSuperAdminSelfAssessment = isSuperAdminUser(owner || {});
+      const balance = Number(owner?.credits?.[0]?.balance || 0);
+      if (!isSuperAdminSelfAssessment && balance < 1) {
         return res.status(402).json({
           ok: false,
           reason: 'INSUFFICIENT_CREDITS',
@@ -508,9 +520,9 @@ router.post('/submit', async (req, res) => {
     const discResult = calculateDiscFromAnswers(input.answers);
 
     const response = await prisma.$transaction(async (tx) => {
-      if (isSelfAssessment) {
+      if (isSelfAssessment && !isSuperAdminSelfAssessment) {
         const credit = await tx.credit.findUnique({
-          where: { userId: result.invite.assessment.createdBy },
+          where: { userId: selfAssessmentOwnerId },
           select: { balance: true },
         });
 
@@ -521,7 +533,7 @@ router.post('/submit', async (req, res) => {
         }
 
         await tx.credit.update({
-          where: { userId: result.invite.assessment.createdBy },
+          where: { userId: selfAssessmentOwnerId },
           data: { balance: { decrement: 1 } },
         });
       }
@@ -569,7 +581,7 @@ router.post('/submit', async (req, res) => {
         });
       }
 
-      return { assessment, report, creditsConsumed: isSelfAssessment ? 1 : 0 };
+      return { assessment, report, creditsConsumed: isSelfAssessment && !isSuperAdminSelfAssessment ? 1 : 0 };
     });
 
     return res.status(200).json({

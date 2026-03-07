@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PRODUCTS, formatPriceBRL, getProductById } from '@/config/pricing';
 import { createPageUrl } from '@/utils';
+import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 function buildCheckoutProduct(rawProductKey) {
   const fallbackProduct = PRODUCTS.SINGLE_PRO;
@@ -21,9 +23,11 @@ function buildCheckoutProduct(rawProductKey) {
 }
 
 export default function Checkout() {
+  const { access } = useAuth();
   const [searchParams] = useSearchParams();
   const rawProductKey = (searchParams.get('product') || searchParams.get('produto') || 'single').trim();
   const product = buildCheckoutProduct(rawProductKey);
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -41,6 +45,11 @@ export default function Checkout() {
               <CreditCard className="h-3.5 w-3.5" />
               Checkout provisório
             </div>
+            {hasSuperAdminBypass ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-amber-800">
+                SUPER ADMIN — ACESSO TOTAL
+              </div>
+            ) : null}
 
             <div>
               <h1 className="text-2xl font-black text-slate-900">{product.title}</h1>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -39,6 +40,7 @@ export default function BrandingSettings() {
   const { access, user } = useAuth();
   const { toast } = useToast();
   const apiBaseUrl = getApiBaseUrl();
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const workspaceId = useMemo(
     () => access?.tenantId || user?.active_workspace_id || '',
@@ -53,7 +55,7 @@ export default function BrandingSettings() {
   const [success, setSuccess] = useState('');
   const [workspaceCredits, setWorkspaceCredits] = useState(null);
   const availableCredits = Number(user?.credits ?? workspaceCredits ?? 0);
-  const canEditBranding = availableCredits > 0;
+  const canEditBranding = hasSuperAdminBypass || availableCredits > 0;
 
   useEffect(() => {
     const loadBranding = async () => {
@@ -259,6 +261,9 @@ export default function BrandingSettings() {
         <p className="text-sm text-slate-500">
           Personalize o white-label do seu workspace para preview e PDF do relatório DISC.
         </p>
+        {hasSuperAdminBypass ? (
+          <p className="text-xs font-semibold text-amber-700">SUPER ADMIN — ACESSO TOTAL</p>
+        ) : null}
       </section>
 
       {!canEditBranding ? (

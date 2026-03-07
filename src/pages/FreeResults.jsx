@@ -14,8 +14,10 @@ import { createPageUrl } from '@/utils';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import DISCFactorCard from '@/components/disc/DISCFactorCard';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -60,6 +62,7 @@ const FACTOR_INFO = {
 };
 
 export default function FreeResults() {
+  const { access } = useAuth();
   const [searchParams] = useSearchParams();
   const [assessment, setAssessment] = useState(null);
   const [comparisonAssessment, setComparisonAssessment] = useState(null);
@@ -131,9 +134,10 @@ export default function FreeResults() {
   const hasAssessmentContext = Boolean(
     searchParams.get('id') || searchParams.get('token') || searchParams.get('email') || searchParams.get('name')
   );
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   if (!assessment?.results) {
-    if (hasAssessmentContext) {
+    if (hasAssessmentContext && !hasSuperAdminBypass) {
       return <Navigate to="/checkout?product=report-unlock" replace />;
     }
 
@@ -156,7 +160,7 @@ export default function FreeResults() {
   const dominant = results.dominant_factor;
   const dominantInfo = FACTOR_INFO[dominant];
   const profile = results.natural_profile;
-  const isUnlocked = Boolean(assessment?.report_unlocked);
+  const isUnlocked = Boolean(assessment?.report_unlocked) || hasSuperAdminBypass;
   const assessmentToken = assessment?.access_token || '';
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
   const upgradeUrl = `/c/upgrade?assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}`;
@@ -194,6 +198,11 @@ export default function FreeResults() {
             <CheckCircle2 className="w-4 h-4" />
             Avaliação Concluída!
           </div>
+          {hasSuperAdminBypass ? (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 text-sm font-semibold mb-4">
+              SUPER ADMIN — ACESSO TOTAL
+            </div>
+          ) : null}
           
           <h1 className="text-4xl font-bold text-slate-900 mb-4">
             Seu Perfil Dominante

@@ -15,6 +15,7 @@ import {
   canViewReport,
   createAccessContext,
   hasPermission,
+  isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
@@ -203,12 +204,13 @@ export default function Report() {
   }, [apiBaseUrl, assessment?.id]);
 
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
+  const hasSuperAdminBypass = isSuperAdminAccess(authAccess);
   const availableCredits = Number(
     assessment?.workspace_credits ??
       authAccess?.user?.credits ??
       0
   );
-  const hasCreditsForPremium = availableCredits > 0;
+  const hasCreditsForPremium = hasSuperAdminBypass || availableCredits > 0;
   const canShowExport = Boolean(canExportReport) && hasCreditsForPremium;
   const blockedByRemoteError = Boolean(apiBaseUrl && remoteReportError);
   const canRenderReport = blockedByRemoteError
@@ -415,6 +417,9 @@ export default function Report() {
                       ? new Date(assessment.completed_at).toLocaleDateString('pt-BR')
                       : '-'}
                 </p>
+                {hasSuperAdminBypass ? (
+                  <p className="text-xs font-semibold text-amber-700 mt-1">SUPER ADMIN — ACESSO TOTAL</p>
+                ) : null}
               </div>
             </div>
 

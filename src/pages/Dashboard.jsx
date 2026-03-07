@@ -22,7 +22,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import StatsGrid from '@/components/ui/StatsGrid';
 import EmptyState from '@/components/ui/EmptyState';
 import TableShell from '@/components/ui/TableShell';
-import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
+import {
+  PERMISSIONS,
+  createAccessContext,
+  hasPermission,
+  isSuperAdminAccess,
+} from '@/modules/auth/access-control';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -89,6 +94,7 @@ export default function Dashboard() {
   const canManageAssessments = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
   const canViewCredits = hasPermission(access, PERMISSIONS.CREDIT_VIEW) || hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
   const canManageCredits = hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const { data: assessments = [], isLoading } = useQuery({
     queryKey: ['dashboard-assessments-v2', access?.tenantId, access?.userId, access?.email],
@@ -123,7 +129,7 @@ export default function Dashboard() {
       return;
     }
 
-    if (Number(workspace?.credits_balance || 0) < 1) {
+    if (!hasSuperAdminBypass && Number(workspace?.credits_balance || 0) < 1) {
       navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
       return;
     }
@@ -140,7 +146,7 @@ export default function Dashboard() {
 
       navigate(`/c/assessment?token=${encodeURIComponent(payload.token)}&self=1&from=dashboard`);
     } catch (error) {
-      if (Number(error?.status) === 402) {
+      if (!hasSuperAdminBypass && Number(error?.status) === 402) {
         navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
         return;
       }
@@ -170,10 +176,10 @@ export default function Dashboard() {
     return {
       completedLast30,
       pendingCount: pending.length,
-      credits: Number(workspace?.credits_balance ?? 0) || 0,
+      credits: hasSuperAdminBypass ? 'Ilimitado' : Number(workspace?.credits_balance ?? 0) || 0,
       conversionRate,
     };
-  }, [assessments, workspace]);
+  }, [assessments, workspace, hasSuperAdminBypass]);
 
   const recentCompleted = useMemo(
     () => assessments.filter((assessment) => assessment?.status === 'completed').slice(0, 5),
@@ -216,6 +222,11 @@ export default function Dashboard() {
       <section className="space-y-1">
         <h2 className="text-2xl font-bold text-slate-900">Visão geral</h2>
         <p className="text-sm text-slate-500">Resumo operacional da sua conta DISC SaaS</p>
+        {hasSuperAdminBypass ? (
+          <Badge className="mt-2 bg-amber-100 text-amber-800 border border-amber-300">
+            SUPER ADMIN — ACESSO TOTAL
+          </Badge>
+        ) : null}
       </section>
 
       <StatsGrid items={statsItems} />
@@ -276,7 +287,9 @@ export default function Dashboard() {
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
               <p className="text-sm text-slate-500">Créditos</p>
-              <p className="font-semibold text-slate-900 mt-1">{Number(workspace?.credits_balance ?? 0) || 0}</p>
+              <p className="font-semibold text-slate-900 mt-1">
+                {hasSuperAdminBypass ? 'Ilimitado' : Number(workspace?.credits_balance ?? 0) || 0}
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
               <p className="text-sm text-slate-500">Usuário</p>

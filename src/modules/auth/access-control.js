@@ -136,6 +136,7 @@ export function createAccessContext(user = null) {
 
   return {
     user: safeUser,
+    role: safeUser?.role ?? null,
     userId: safeUser?.id ?? null,
     email: safeUser?.email ?? null,
     tenantId: getTenantId(safeUser || {}),
@@ -218,7 +219,17 @@ export function canAccessPremiumSaas(access) {
 }
 
 export function isSuperAdminAccess(access) {
-  return normalizeLifecycle(access?.lifecycleStatus) === USER_LIFECYCLE.SUPER_ADMIN;
+  const role = String(access?.role || access?.user?.role || '').toUpperCase();
+  const globalRole = String(
+    access?.globalRole || access?.global_role || access?.user?.globalRole || access?.user?.global_role || ''
+  ).toUpperCase();
+  const lifecycle = normalizeLifecycle(access?.lifecycleStatus || access?.user?.lifecycle_status || access?.user?.lifecycleStatus);
+
+  return (
+    role === 'SUPER_ADMIN' ||
+    globalRole === 'SUPER_ADMIN' ||
+    lifecycle === USER_LIFECYCLE.SUPER_ADMIN
+  );
 }
 
 export function canViewAssessment(access, assessment = {}) {

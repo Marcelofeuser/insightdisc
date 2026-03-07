@@ -25,6 +25,7 @@ import { generateInviteToken, hashInviteToken } from '@/modules/invites/invite-t
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 export default function SendAssessment() {
   const { access, user: authUser } = useAuth();
@@ -39,8 +40,9 @@ export default function SendAssessment() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(null);
   const [error, setError] = useState(null);
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
   const availableCredits = Number(workspace?.credits_balance || 0);
-  const hasCredits = availableCredits > 0;
+  const hasCredits = hasSuperAdminBypass || availableCredits > 0;
 
   useEffect(() => {
     loadWorkspace();
@@ -97,7 +99,7 @@ export default function SendAssessment() {
       return;
     }
 
-    if (availableCredits < validEmails.length) {
+    if (!hasSuperAdminBypass && availableCredits < validEmails.length) {
       setError(`Créditos insuficientes. Você tem ${availableCredits} créditos e precisa de ${validEmails.length}.`);
       return;
     }
@@ -195,7 +197,7 @@ export default function SendAssessment() {
         });
       }
 
-      if (workspace && !apiBaseUrl) {
+      if (workspace && !apiBaseUrl && !hasSuperAdminBypass) {
         await base44.entities.Workspace.update(workspace.id, {
           credits_balance: (workspace.credits_balance || 0) - validEmails.length
         });
@@ -225,7 +227,7 @@ export default function SendAssessment() {
       return;
     }
 
-    if (availableCredits < linkCount) {
+    if (!hasSuperAdminBypass && availableCredits < linkCount) {
       setError(`Créditos insuficientes. Você tem ${availableCredits} créditos.`);
       return;
     }
@@ -300,7 +302,7 @@ export default function SendAssessment() {
         });
       }
 
-      if (workspace && !apiBaseUrl) {
+      if (workspace && !apiBaseUrl && !hasSuperAdminBypass) {
         await base44.entities.Workspace.update(workspace.id, {
           credits_balance: (workspace.credits_balance || 0) - linkCount
         });
@@ -339,8 +341,14 @@ export default function SendAssessment() {
             <div>
               <h1 className="text-xl font-bold text-slate-900">Enviar Avaliação</h1>
               <p className="text-sm text-slate-500">
-                Créditos disponíveis: <span className="font-semibold text-indigo-600">{availableCredits}</span>
+                Créditos disponíveis:{' '}
+                <span className="font-semibold text-indigo-600">
+                  {hasSuperAdminBypass ? 'Ilimitado' : availableCredits}
+                </span>
               </p>
+              {hasSuperAdminBypass ? (
+                <p className="text-xs font-semibold text-amber-700 mt-1">SUPER ADMIN — TESTES ILIMITADOS</p>
+              ) : null}
             </div>
           </div>
         </div>
