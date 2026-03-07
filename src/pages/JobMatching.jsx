@@ -20,6 +20,7 @@ import { Slider } from '@/components/ui/slider';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 
 const DISC_COLORS = { D: 'text-red-600', I: 'text-orange-600', S: 'text-green-600', C: 'text-blue-600' };
 const DISC_BG = { D: 'bg-red-50 border-red-200', I: 'bg-orange-50 border-orange-200', S: 'bg-green-50 border-green-200', C: 'bg-blue-50 border-blue-200' };
@@ -83,7 +84,22 @@ export default function JobMatching() {
     queryFn: () => base44.entities.Assessment.filter({ status: 'completed' }, '-completed_at', 100)
   });
 
+  const { data: workspace = null } = useQuery({
+    queryKey: ['job-matching-workspace'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      const workspaceId = user?.active_workspace_id || user?.tenant_id;
+      if (!workspaceId) return null;
+      const rows = await base44.entities.Workspace.filter({ id: workspaceId });
+      return rows?.[0] || null;
+    }
+  });
+
+  const availableCredits = Number(workspace?.credits_balance || 0);
+  const canUsePremiumActions = availableCredits > 0;
+
   const handleCreatePosition = async () => {
+    if (!canUsePremiumActions) return;
     if (!newPosition.title) return;
     const user = await base44.auth.me();
     await base44.entities.JobPosition.create({
@@ -135,11 +151,16 @@ export default function JobMatching() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Job Matching DISC</h1>
+              <h1 className="text-xl font-bold text-slate-900">Compatibilidade DISC para Vagas</h1>
               <p className="text-sm text-slate-500">Compare candidatos com perfis ideais de vaga</p>
             </div>
           </div>
-          <Button onClick={() => setShowCreateForm(true)} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+            data-testid="job-matching-create-vaga"
+            disabled={!canUsePremiumActions}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nova Vaga
           </Button>
@@ -147,6 +168,14 @@ export default function JobMatching() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {!canUsePremiumActions ? (
+          <CreditPaywallCard
+            className="mb-6"
+            title="Ações premium bloqueadas"
+            description="Compre créditos para criar vagas e usar os recursos avançados de compatibilidade."
+          />
+        ) : null}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Positions List */}
           <div className="space-y-4">
@@ -165,9 +194,14 @@ export default function JobMatching() {
                 <CardContent className="p-8 text-center">
                   <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 mb-4">Nenhuma vaga cadastrada</p>
-                  <Button onClick={() => setShowCreateForm(true)} className="bg-indigo-600">
+                  <Button
+                    onClick={() => setShowCreateForm(true)}
+                    className="bg-indigo-600"
+                    data-testid="job-matching-create-vaga-empty"
+                    disabled={!canUsePremiumActions}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
-                    Criar Vaga
+                    Criar vaga
                   </Button>
                 </CardContent>
               </Card>
@@ -478,8 +512,12 @@ export default function JobMatching() {
               <Button variant="outline" onClick={() => setShowCreateForm(false)} className="flex-1 rounded-xl">
                 Cancelar
               </Button>
-              <Button onClick={handleCreatePosition} className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-xl">
-                Criar Vaga
+              <Button
+                onClick={handleCreatePosition}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+                disabled={!canUsePremiumActions}
+              >
+                Criar vaga
               </Button>
             </div>
           </motion.div>

@@ -1,0 +1,41 @@
+{
+  "structure": [
+    "Capa",
+    "Apresentacao executiva",
+    "O que e DISC",
+    "Visao geral dos fatores",
+    "Sintese executiva",
+    "Graficos DISC",
+    "Radar comportamental",
+    "Benchmark do perfil",
+    "Dinamica geral do perfil",
+    "Processo de decisao",
+    "Motivadores",
+    "Drenadores de energia",
+    "Comportamento no ambiente de trabalho",
+    "Comunicacao",
+    "Estilo de lideranca",
+    "Tomada de decisao e autonomia",
+    "Resposta ao estresse",
+    "Conflitos",
+    "Relacionamento com equipe",
+    "Sinergia com outros perfis DISC",
+    "Ambiente ideal de trabalho",
+    "Aderencia a funcoes e carreira",
+    "Forcas naturais",
+    "Pontos de desenvolvimento",
+    "Recomendacoes de desenvolvimento",
+    "Como liderar este perfil",
+    "Como este perfil deve liderar",
+    "Plano de acao 30/60/90 dias",
+    "Glossario e interpretacao tecnica",
+    "Fechamento executivo"
+  ],
+  "enrichmentBlocks": {
+    "insight": "Insight comportamental",
+    "application": "Aplicacao pratica",
+    "managerLens": "Leitura do gestor",
+    "riskLens": "Risco de exagero do perfil",
+    "developmentLens": "Observacao de desenvolvimento"
+  }
+}

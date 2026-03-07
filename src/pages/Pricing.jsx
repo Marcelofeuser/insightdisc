@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, CheckCircle2, CreditCard, Building2, Shield, Star
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 
 const CREDIT_PACKS = [
   {
@@ -63,7 +65,10 @@ const PLANS = [
 ];
 
 export default function Pricing() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user: authUser } = useAuth();
+  const apiBaseUrl = getApiBaseUrl();
   const [user, setUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [purchasing, setPurchasing] = useState(null);
@@ -79,10 +84,19 @@ export default function Pricing() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [authUser, apiBaseUrl]);
 
   const loadData = async () => {
     try {
+      if (apiBaseUrl && authUser) {
+        setUser(authUser);
+        setWorkspace({
+          id: authUser?.active_workspace_id || authUser?.tenant_id || '',
+          credits_balance: Number(authUser?.credits || 0),
+        });
+        return;
+      }
+
       const u = await base44.auth.me();
       setUser(u);
       if (u.active_workspace_id) {
@@ -92,8 +106,51 @@ export default function Pricing() {
     } catch {}
   };
 
+  const goToLogin = () => {
+    const next = `${createPageUrl('Pricing')}${window.location.search || ''}`;
+    navigate(`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`);
+  };
+
   const handlePurchase = async (pack) => {
-    if (!user) { base44.auth.redirectToLogin(window.location.href); return; }
+    if (!user) {
+      goToLogin();
+      return;
+    }
+
+    if (apiBaseUrl) {
+      const token = getApiToken();
+      if (!token) {
+        goToLogin();
+        return;
+      }
+
+      setPurchasing(pack.id);
+      setCheckoutError('');
+      try {
+        const response = await apiRequest('/payments/create-checkout', {
+          method: 'POST',
+          requireAuth: true,
+          body: {
+            credits: pack.credits,
+            successUrl: `${window.location.origin}${createPageUrl('CheckoutSuccess')}`,
+            cancelUrl: `${window.location.origin}${createPageUrl('Pricing')}`,
+          },
+        });
+
+        if (!response?.url) {
+          throw new Error('Falha ao criar sessão de checkout.');
+        }
+
+        window.location.href = response.url;
+        return;
+      } catch (error) {
+        setCheckoutError(error?.message || 'Não foi possível iniciar o checkout.');
+      } finally {
+        setPurchasing(null);
+      }
+      return;
+    }
+
     setPurchasing(pack.id);
 
     // Simulate payment (in prod: redirect to Stripe/Asaas checkout)

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 
@@ -19,6 +19,8 @@ export default function CheckoutSuccess() {
   const [flow, setFlow] = useState(searchParams.get('flow') || '');
   const [publicToken, setPublicToken] = useState('');
   const [availablePdfUrl, setAvailablePdfUrl] = useState(searchParams.get('pdfUrl') || '');
+  const [confirmedCredits, setConfirmedCredits] = useState(0);
+  const [balanceAfterCheckout, setBalanceAfterCheckout] = useState(0);
   const apiBaseUrl = getApiBaseUrl();
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
 
@@ -28,10 +30,16 @@ export default function CheckoutSuccess() {
       const fallbackAssessmentId = searchParams.get('assessmentId') || '';
       const fallbackToken = searchParams.get('token') || '';
       const fallbackFlow = searchParams.get('flow') || '';
+      const fallbackCredits = Number(searchParams.get('credits') || 0);
       const isMock = String(sessionId).startsWith('mock_');
       const isDev = import.meta.env.DEV;
       const fallbackEmail = searchParams.get('email') || '';
       const fallbackName = searchParams.get('name') || '';
+      const isCandidateContext =
+        Boolean(fallbackAssessmentId) ||
+        Boolean(fallbackToken) ||
+        fallbackFlow === 'candidate' ||
+        Boolean(fallbackEmail);
       const resolvePdfFromToken = async (token) => {
         if (!apiBaseUrl || !token) return '';
         try {
@@ -80,6 +88,27 @@ export default function CheckoutSuccess() {
         setError('Sessão de pagamento não encontrada.');
         setIsLoading(false);
         return;
+      }
+
+      if (apiBaseUrl && !isCandidateContext && getApiToken()) {
+        try {
+          const payload = await apiRequest('/payments/confirm', {
+            method: 'POST',
+            requireAuth: true,
+            body: {
+              sessionId,
+              credits: fallbackCredits || undefined,
+            },
+          });
+
+          setConfirmedCredits(Number(payload?.creditsAdded || 0));
+          setBalanceAfterCheckout(Number(payload?.balance || 0));
+          setError('');
+          setIsLoading(false);
+          return;
+        } catch (confirmError) {
+          console.warn('[CheckoutSuccess] backend confirm failed, using fallback verify', confirmError);
+        }
       }
 
       try {
@@ -170,7 +199,7 @@ export default function CheckoutSuccess() {
       return `${createPageUrl('Report')}?id=${assessmentId}`;
     }
 
-    return createPageUrl('Pricing');
+    return createPageUrl('Dashboard');
   })();
   const canOpenPdf = Boolean(availablePdfUrl) && Boolean(canExportReport);
 
@@ -203,6 +232,11 @@ export default function CheckoutSuccess() {
               <p className="text-sm text-slate-600">
                 Seu acesso PRO foi liberado com sucesso.
               </p>
+              {confirmedCredits > 0 ? (
+                <p className="text-sm text-emerald-700">
+                  {confirmedCredits} créditos adicionados. Saldo atual: {balanceAfterCheckout} créditos.
+                </p>
+              ) : null}
               <p className="text-xs text-slate-500">Clique em um dos botões abaixo para continuar.</p>
               <div className="flex flex-wrap gap-3">
                 <Link to={openReportHref}>

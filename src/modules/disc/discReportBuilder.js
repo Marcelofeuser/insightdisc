@@ -10,10 +10,10 @@ const FACTOR_LABEL = {
 
 const BRANDING_FALLBACK = Object.freeze({
   company_name: 'InsightDISC',
-  logo_url: '/brand/insightdisc-logo.svg',
+  logo_url: '/brand/insightdisc-report-logo.png',
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
-  report_footer_text: 'InsightDISC - Plataforma de Analise Comportamental',
+  report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
 });
 
 function safeNum(value) {

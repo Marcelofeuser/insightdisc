@@ -4,8 +4,18 @@ import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { createAccessContext } from '@/modules/auth/access-control';
 import { useUserStore } from '@/store/user-store';
+import {
+  apiRequest,
+  clearApiSession,
+  getApiBaseUrl,
+  getApiToken,
+} from '@/lib/apiClient';
+import { createPageUrl } from '@/utils';
 
 const AuthContext = createContext();
+const ENABLE_DEV_LOGIN_SHORTCUTS =
+  import.meta.env.DEV &&
+  String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
 
 export const AuthProvider = ({ children }) => {
   const setAuthContextStore = useUserStore((state) => state.setAuthContext);
@@ -16,6 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const apiBaseUrl = getApiBaseUrl();
   const access = useMemo(() => createAccessContext(user), [user]);
 
   useEffect(() => {
@@ -44,6 +55,13 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      if (apiBaseUrl) {
+        setAppPublicSettings({ id: null, public_settings: {} });
+        await checkUserAuth();
+        setIsLoadingPublicSettings(false);
+        return;
+      }
 
       const hasValidAppId = Boolean(
         typeof appParams.appId === 'string' &&
@@ -132,6 +150,38 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
+
+      if (apiBaseUrl) {
+        const token = getApiToken();
+        if (!token) {
+          setIsAuthenticated(false);
+          setUser(null);
+          resetAuthContextStore();
+          setIsLoadingAuth(false);
+          return;
+        }
+
+        const payload = await apiRequest('/auth/me', { method: 'GET', requireAuth: true });
+        const currentUser = payload?.user || null;
+        if (!currentUser) {
+          throw new Error('Sessão inválida.');
+        }
+
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        const normalizedAccess = createAccessContext(currentUser);
+        setAuthContextStore({
+          user: currentUser,
+          plan: inferPlan(currentUser),
+          tenantId: normalizedAccess.tenantId,
+          globalRole: normalizedAccess.globalRole,
+          tenantRole: normalizedAccess.tenantRole,
+          entitlements: normalizedAccess.entitlements,
+        });
+        setIsLoadingAuth(false);
+        return;
+      }
+
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -155,7 +205,9 @@ export const AuthProvider = ({ children }) => {
       // If user auth fails, it might be an expired token
       const hasSessionToken =
         Boolean(appParams?.token) ||
-        (typeof window !== 'undefined' && Boolean(window.localStorage.getItem('disc_mock_user_email')));
+        (ENABLE_DEV_LOGIN_SHORTCUTS &&
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage.getItem('disc_mock_user_email')));
       if ((error.status === 401 || error.status === 403) && hasSessionToken) {
         setAuthError({
           type: 'auth_required',
@@ -171,7 +223,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     resetAuthContextStore();
-    
+
+    if (apiBaseUrl) {
+      clearApiSession();
+      if (shouldRedirect && typeof window !== 'undefined') {
+        window.location.href = createPageUrl('Home');
+      }
+      return;
+    }
+
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
       base44.auth.logout(window.location.href);
@@ -182,8 +242,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    if (typeof window !== 'undefined') {
+      const next = `${window.location.pathname}${window.location.search || ''}`;
+      const loginUrl = `${createPageUrl('Login')}?next=${encodeURIComponent(next)}`;
+      window.location.href = loginUrl;
+    }
   };
 
   return (

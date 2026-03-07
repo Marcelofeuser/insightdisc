@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { generateInviteToken, hashInviteToken } from '@/modules/invites/invite-token';
+import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 
 export default function SendAssessment() {
   const [workspace, setWorkspace] = useState(null);
@@ -33,6 +34,8 @@ export default function SendAssessment() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(null);
   const [error, setError] = useState(null);
+  const availableCredits = Number(workspace?.credits_balance || 0);
+  const hasCredits = availableCredits > 0;
 
   useEffect(() => {
     loadWorkspace();
@@ -71,13 +74,17 @@ export default function SendAssessment() {
 
   const handleSendEmails = async () => {
     const validEmails = emails.filter(e => e && e.includes('@'));
+    if (!hasCredits) {
+      setError('Sem créditos disponíveis. Compre créditos para enviar convites.');
+      return;
+    }
     if (validEmails.length === 0) {
       setError('Por favor, insira pelo menos um email válido');
       return;
     }
 
-    if (workspace && workspace.credits_balance < validEmails.length) {
-      setError(`Créditos insuficientes. Você tem ${workspace.credits_balance} créditos e precisa de ${validEmails.length}.`);
+    if (availableCredits < validEmails.length) {
+      setError(`Créditos insuficientes. Você tem ${availableCredits} créditos e precisa de ${validEmails.length}.`);
       return;
     }
 
@@ -154,8 +161,13 @@ export default function SendAssessment() {
   };
 
   const handleGenerateLinks = async () => {
-    if (workspace && workspace.credits_balance < linkCount) {
-      setError(`Créditos insuficientes. Você tem ${workspace.credits_balance} créditos.`);
+    if (!hasCredits) {
+      setError('Sem créditos disponíveis. Compre créditos para gerar links.');
+      return;
+    }
+
+    if (availableCredits < linkCount) {
+      setError(`Créditos insuficientes. Você tem ${availableCredits} créditos.`);
       return;
     }
 
@@ -236,7 +248,7 @@ export default function SendAssessment() {
             <div>
               <h1 className="text-xl font-bold text-slate-900">Enviar Avaliação</h1>
               <p className="text-sm text-slate-500">
-                Créditos disponíveis: <span className="font-semibold text-indigo-600">{workspace?.credits_balance || 0}</span>
+                Créditos disponíveis: <span className="font-semibold text-indigo-600">{availableCredits}</span>
               </p>
             </div>
           </div>
@@ -244,6 +256,14 @@ export default function SendAssessment() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8">
+        {!hasCredits ? (
+          <CreditPaywallCard
+            className="mb-6"
+            title="Envio premium bloqueado por falta de créditos"
+            description="Cada avaliação premium consome 1 crédito. Compre créditos para liberar convites e links."
+          />
+        ) : null}
+
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -324,7 +344,7 @@ export default function SendAssessment() {
 
                 <Button
                   onClick={handleSendEmails}
-                  disabled={isSending || !emails.some(e => e.includes('@'))}
+                  disabled={isSending || !hasCredits || !emails.some(e => e.includes('@'))}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl h-12"
                 >
                   {isSending ? (
@@ -369,7 +389,7 @@ export default function SendAssessment() {
                     />
                     <Button
                       onClick={handleGenerateLinks}
-                      disabled={isGenerating}
+                      disabled={isGenerating || !hasCredits}
                       className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
                     >
                       {isGenerating ? (

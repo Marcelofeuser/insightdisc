@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { requireAuth } from '../middleware/auth.js';
+import { prisma } from '../lib/prisma.js';
 
 const router = Router();
 
@@ -49,6 +50,7 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
         assessmentId: input.assessmentId || '',
         token: input.token || '',
         flow: input.flow || '',
+        credits: input.credits,
       });
       return res.status(200).json({ ok: true, mocked: true, id: mockSessionId, url });
     }
@@ -76,6 +78,99 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
     return res.status(200).json({ ok: true, id: session.id, url: session.url });
   } catch (error) {
     return res.status(400).json({ ok: false, error: error?.message || 'Falha ao criar checkout.' });
+  }
+});
+
+router.post('/confirm', requireAuth, async (req, res) => {
+  try {
+    const schema = z.object({
+      sessionId: z.string().min(1),
+      credits: z.number().int().positive().optional(),
+    });
+    const input = schema.parse(req.body || {});
+
+    const existingPayment = await prisma.payment.findUnique({
+      where: { stripeSession: input.sessionId },
+    });
+
+    if (existingPayment && existingPayment.userId !== req.auth.userId) {
+      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
+    }
+
+    if (existingPayment?.status === 'PAID') {
+      const currentCredit = await prisma.credit.findUnique({ where: { userId: req.auth.userId } });
+      return res.status(200).json({
+        ok: true,
+        alreadyProcessed: true,
+        creditsAdded: existingPayment.creditsAdded,
+        balance: Number(currentCredit?.balance || 0),
+      });
+    }
+
+    const stripe = getStripeClient();
+    let creditsAdded = Number(input.credits || 0);
+    let amount = 0;
+    let paid = false;
+
+    if (stripe && !String(input.sessionId).startsWith('mock_')) {
+      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+      paid = session?.payment_status === 'paid';
+      creditsAdded = Number(session?.metadata?.credits || creditsAdded || 0);
+      amount = Number(session?.amount_total || 0);
+    } else {
+      paid = true;
+      creditsAdded = Number(input.credits || 1);
+    }
+
+    if (!paid) {
+      return res.status(400).json({ ok: false, error: 'PAYMENT_NOT_CONFIRMED' });
+    }
+
+    if (!creditsAdded || creditsAdded < 1) {
+      return res.status(400).json({ ok: false, error: 'INVALID_CREDITS_AMOUNT' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.payment.upsert({
+        where: { stripeSession: input.sessionId },
+        create: {
+          userId: req.auth.userId,
+          creditsAdded,
+          amount,
+          stripeSession: input.sessionId,
+          status: 'PAID',
+        },
+        update: {
+          userId: req.auth.userId,
+          creditsAdded,
+          amount,
+          status: 'PAID',
+        },
+      });
+
+      const credit = await tx.credit.upsert({
+        where: { userId: req.auth.userId },
+        create: { userId: req.auth.userId, balance: creditsAdded },
+        update: { balance: { increment: creditsAdded } },
+      });
+
+      return {
+        creditsAdded,
+        balance: Number(credit?.balance || 0),
+      };
+    });
+
+    return res.status(200).json({
+      ok: true,
+      creditsAdded: result.creditsAdded,
+      balance: result.balance,
+    });
+  } catch (error) {
+    const message = String(error?.message || '').toUpperCase();
+    if (message.includes('FORBIDDEN')) {
+      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
+    }
+    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao confirmar pagamento.' });
   }
 });
 

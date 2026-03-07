@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        heroSecondaryCta:
+          "!bg-[linear-gradient(135deg,rgba(139,92,246,0.30),rgba(255,255,255,0.10))] !text-white border border-[rgba(255,255,255,0.22)] backdrop-blur-sm shadow-[0_8px_24px_rgba(79,70,229,0.20)] hover:!bg-[linear-gradient(135deg,rgba(139,92,246,0.46),rgba(255,255,255,0.18))] hover:border-[rgba(255,255,255,0.36)] hover:shadow-[0_12px_30px_rgba(99,102,241,0.35)]",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

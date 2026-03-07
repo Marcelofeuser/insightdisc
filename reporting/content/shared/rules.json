@@ -1,0 +1,46 @@
+{
+  "top2Selection": {
+    "source": "natural",
+    "pureThreshold": 18,
+    "tieBehavior": "pure"
+  },
+  "factorBands": {
+    "low": {
+      "min": 0,
+      "max": 33
+    },
+    "mid": {
+      "min": 34,
+      "max": 66
+    },
+    "high": {
+      "min": 67,
+      "max": 100
+    }
+  },
+  "adaptationBand": {
+    "low": {
+      "maxExclusive": 8,
+      "label": "baixo"
+    },
+    "mid": {
+      "minInclusive": 8,
+      "maxInclusive": 15,
+      "label": "moderado"
+    },
+    "high": {
+      "minExclusive": 15,
+      "label": "alto"
+    }
+  },
+  "minContentPerPage": {
+    "minParagraphs": 3,
+    "minBullets": 5,
+    "minCharsInternalPage": 520,
+    "minCharsCover": 220
+  },
+  "density": {
+    "minBulletsPerSection": 5,
+    "minParagraphsPerPage": 3
+  }
+}

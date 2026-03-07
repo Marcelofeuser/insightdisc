@@ -9,6 +9,7 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import {
   PERMISSIONS,
   canViewReport,
@@ -108,9 +109,10 @@ export default function Report() {
                 if (workspaces.length > 0) {
                   const workspace = workspaces[0];
                   foundAssessment.workspace_name = workspace?.name || '';
+                  foundAssessment.workspace_credits = Number(workspace?.credits_balance || 0);
                   foundAssessment.workspace_branding = {
                     company_name: workspace?.company_name || workspace?.name || 'InsightDISC',
-                    logo_url: workspace?.logo_url || '/brand/insightdisc-logo.svg',
+                    logo_url: workspace?.logo_url || '/brand/insightdisc-report-logo.png',
                     brand_primary_color: workspace?.brand_primary_color || '#0b1f3b',
                     brand_secondary_color: workspace?.brand_secondary_color || '#f7b500',
                     report_footer_text:
@@ -201,7 +203,13 @@ export default function Report() {
   }, [apiBaseUrl, assessment?.id]);
 
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
-  const canShowExport = Boolean(canExportReport);
+  const availableCredits = Number(
+    assessment?.workspace_credits ??
+      authAccess?.user?.credits ??
+      0
+  );
+  const hasCreditsForPremium = availableCredits > 0;
+  const canShowExport = Boolean(canExportReport) && hasCreditsForPremium;
   const blockedByRemoteError = Boolean(apiBaseUrl && remoteReportError);
   const canRenderReport = blockedByRemoteError
     ? false
@@ -281,7 +289,11 @@ export default function Report() {
   const handleGeneratePdf = async () => {
     if (!assessment || !reportHtml) return;
     if (!canShowExport) {
-      setExportError('Sem permissão para exportar relatório.');
+      setExportError(
+        canExportReport
+          ? 'Créditos insuficientes para exportar relatório.'
+          : 'Sem permissão para exportar relatório.'
+      );
       return;
     }
 
@@ -315,7 +327,11 @@ export default function Report() {
   const handleDownloadPdf = async () => {
     if (!assessment || !reportHtml) return;
     if (!canShowExport) {
-      setExportError('Sem permissão para exportar relatório.');
+      setExportError(
+        canExportReport
+          ? 'Créditos insuficientes para exportar relatório.'
+          : 'Sem permissão para exportar relatório.'
+      );
       return;
     }
 
@@ -442,6 +458,14 @@ export default function Report() {
           </div>
           {exportError ? (
             <p className="mt-2 text-sm text-red-600">{exportError}</p>
+          ) : null}
+          {canExportReport && !hasCreditsForPremium ? (
+            <div className="mt-3">
+              <CreditPaywallCard
+                title="Exportação bloqueada por falta de créditos"
+                description="Compre créditos para gerar e baixar o PDF premium."
+              />
+            </div>
           ) : null}
         </div>
       </header>

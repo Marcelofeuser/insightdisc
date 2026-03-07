@@ -1,0 +1,242 @@
+{
+  "key": "SD",
+  "title": "Estabilidade com Dominancia",
+  "archetype": "Integrador Firme",
+  "summary": "Perfil confiavel e equilibrado, que combina suporte estavel com maior firmeza de posicao.",
+  "executiveSummary": [
+    "Une estabilidade relacional com postura firme de responsabilidade.",
+    "Sustenta equipe com previsibilidade sem perder direcao.",
+    "Consegue posicionar-se com equilibrio em ambiente de pressao moderada.",
+    "Evolui quando aumenta velocidade de resposta em conflito dificil."
+  ],
+  "identityDynamics": [
+    "Busca harmonia com clareza de limite e compromisso.",
+    "Apoia o time, mas tende a se posicionar quando necessario.",
+    "Valoriza confianca, respeito e responsabilidade compartilhada.",
+    "Opera melhor em contexto previsivel com direcao clara.",
+    "Combina paciencia com firmeza progressiva."
+  ],
+  "decisionStyle": [
+    "Decide de forma ponderada e consistente.",
+    "Tem mais firmeza que o S puro em temas relevantes.",
+    "Evita ruptura desnecessaria, mas assume posicao quando criterio e claro.",
+    "Pode demorar em confronto de alta tensao.",
+    "Decide melhor com contexto, limite e impacto definidos."
+  ],
+  "motivators": [
+    "Confianca e seguranca relacional",
+    "Clareza de responsabilidade",
+    "Estabilidade com progresso",
+    "Ambiente respeitoso",
+    "Reconhecimento por consistencia"
+  ],
+  "energyDrainers": [
+    "Pressao agressiva sem criterio",
+    "Mudanca mal conduzida",
+    "Desrespeito relacional",
+    "Conflito caotico",
+    "Ambiente instavel e imprevisivel"
+  ],
+  "workStrengths": [
+    "Confiabilidade",
+    "Apoio consistente ao time",
+    "Posicionamento equilibrado",
+    "Maturidade relacional",
+    "Estabilidade de execucao",
+    "Compromisso com continuidade"
+  ],
+  "workRisks": [
+    "Demora para confronto necessario",
+    "Resistencia silenciosa a ruptura",
+    "Acomodacao em zona de conforto",
+    "Dificuldade de acelerar em urgencia alta",
+    "Excesso de prudencia em decisao",
+    "Baixa exposicao em pauta estrategica"
+  ],
+  "communicationStyle": [
+    "Calmo com firmeza gradual",
+    "Respeitoso e objetivo",
+    "Busca evitar ruido relacional",
+    "Comunicacao orientada a estabilidade"
+  ],
+  "communicationNeeds": [
+    "Tom respeitoso e claro",
+    "Contexto de impacto humano",
+    "Previsibilidade de decisao",
+    "Espaco seguro para posicionamento"
+  ],
+  "communicationDo": [
+    "Explique contexto com clareza e respeito.",
+    "Defina expectativa de forma objetiva.",
+    "Convide posicionamento sem confronto agressivo.",
+    "Valide entendimento e proximo passo.",
+    "Mantenha consistencia na comunicacao de prioridade."
+  ],
+  "communicationDont": [
+    "Nao use tom hostil para cobrar resultado.",
+    "Evite mudanca brusca sem alinhamento previo.",
+    "Nao confunda calma com falta de compromisso.",
+    "Evite pressao emocional sem criterio.",
+    "Nao ignore sinais de resistencia silenciosa."
+  ],
+  "leadershipStyle": [
+    "Lidera pela combinacao de suporte e firmeza.",
+    "Cria ambiente confiavel para execucao sustentada.",
+    "Tem potencial para estabilizar equipe em transicao.",
+    "Ganha escala quando acelera posicionamento em tema critico."
+  ],
+  "leadershipStrengths": [
+    "Confianca de equipe",
+    "Estabilidade de clima",
+    "Firmeza equilibrada",
+    "Consistencia de acompanhamento",
+    "Capacidade de sustentar relacao"
+  ],
+  "leadershipRisks": [
+    "Atrasar enfrentamento de conflito",
+    "Excesso de prudencia em decisao dura",
+    "Dificuldade de cobrar com contundencia",
+    "Baixa velocidade em mudanca brusca",
+    "Acumular tensao sem explicitar limite"
+  ],
+  "stressPattern": [
+    "Aumenta cautela para preservar estabilidade.",
+    "Pode recolher posicionamento em conflito intenso.",
+    "Segura desconforto por tempo prolongado.",
+    "Responde melhor com roteiro claro de acao."
+  ],
+  "stressSignals": [
+    "Silencio em pauta critica",
+    "Atraso de decisao em confronto",
+    "Sobrecarga silenciosa",
+    "Evitacao de conversa dificil",
+    "Queda de assertividade"
+  ],
+  "recoveryStrategy": [
+    "Definir limite claro de responsabilidade.",
+    "Planejar conversa dificil com estrutura.",
+    "Priorizar acao objetiva em pauta urgente.",
+    "Solicitar apoio de mediacao quando necessario.",
+    "Reforcar rotina de feedback de posicionamento."
+  ],
+  "conflictStyle": [
+    "Prefere conciliacao com firmeza progressiva.",
+    "Evita confronto hostil, mas busca acordo justo.",
+    "Pode resistir indiretamente se nao se sentir ouvido.",
+    "Conflito melhora com respeito e clareza de criterio.",
+    "Precisa antecipar posicionamento para evitar aculo."
+  ],
+  "teamContribution": [
+    "Sustenta confianca em equipe",
+    "Equilibra relacao e responsabilidade",
+    "Apoia execucao com estabilidade",
+    "Contribui para convivio maduro",
+    "Reduz ruido em transicao"
+  ],
+  "bestMatches": [
+    "C",
+    "I",
+    "SI",
+    "SC",
+    "CS"
+  ],
+  "frictionMatches": [
+    "DI",
+    "D agressivo",
+    "ID",
+    "DC rigido"
+  ],
+  "idealEnvironment": [
+    "Ambiente respeitoso com direcao clara",
+    "Ritmo previsivel com espaco de ajuste",
+    "Lideranca coerente e responsavel",
+    "Processo estavel com autonomia gradual",
+    "Cultura de feedback seguro"
+  ],
+  "lowFitEnvironment": [
+    "Pressao agressiva constante",
+    "Conflito sem mediacao",
+    "Mudanca caotica sem contexto",
+    "Cultura de desrespeito relacional"
+  ],
+  "recommendedRoles": [
+    "Coordenacao de equipe",
+    "Operacoes com foco em pessoas",
+    "Atendimento consultivo",
+    "People operations",
+    "Gestao de relacionamento interno",
+    "Supervisao de servicos",
+    "Customer success relacional",
+    "Implantacao com suporte humano"
+  ],
+  "lowFitRoles": [
+    "Escopo de confronto extremo continuo",
+    "Ambiente de mudanca caotica permanente",
+    "Funcao com agressividade comercial alta sem suporte",
+    "Papel sem relacao de confianca minima"
+  ],
+  "naturalStrengths": [
+    "Confiabilidade",
+    "Maturidade relacional",
+    "Consistencia",
+    "Firmeza equilibrada",
+    "Escuta",
+    "Paciência",
+    "Cooperacao",
+    "Responsabilidade"
+  ],
+  "developmentPoints": [
+    "Velocidade de posicionamento",
+    "Assertividade em conflito",
+    "Coragem para confronto necessario",
+    "Agilidade em decisao dificil",
+    "Exposicao de limite com clareza",
+    "Reducao de resistencia indireta",
+    "Priorizacao sob pressao",
+    "Maior protagonismo estrategico"
+  ],
+  "developmentRisks": [
+    "Atraso de decisao por prudencia excessiva",
+    "Acumulo de tensao silenciosa",
+    "Baixa visibilidade de contribuicao firme",
+    "Desgaste por evitar confronto recorrente"
+  ],
+  "managerGuidance": [
+    "Crie ambiente seguro para posicionamento firme.",
+    "Cobre decisao com respeito e criterio claro.",
+    "Nao adie conversa de conflito relevante.",
+    "Reconheca consistencia e incentive protagonismo.",
+    "Acompanhe risco de sobrecarga silenciosa."
+  ],
+  "selfLeadershipGuidance": [
+    "Pratique confronto curto com foco em fato.",
+    "Defina limite antes de acumular desconforto.",
+    "Acelere decisao em temas recorrentes.",
+    "Comunique divergencia com clareza e respeito.",
+    "Fortaleça protagonismo sem perder equilibrio relacional."
+  ],
+  "plan30": [
+    "Identificar situacoes de evitacao de conflito.",
+    "Treinar um posicionamento firme por semana.",
+    "Definir limite de carga e comunicar ao lider.",
+    "Ajustar rotina de decisao em pautas recorrentes."
+  ],
+  "plan60": [
+    "Aumentar assertividade em conversas dificeis.",
+    "Reduzir resistencia indireta com alinhamento antecipado.",
+    "Pedir feedback sobre firmeza e clareza percebidas.",
+    "Aprimorar velocidade em decisao de media complexidade."
+  ],
+  "plan90": [
+    "Consolidar estilo de lideranca equilibrado e firme.",
+    "Manter estabilidade com maior protagonismo.",
+    "Escalar boas praticas de convivio com responsabilidade.",
+    "Mensurar ganho de resultado com menor tensao acumulada."
+  ],
+  "executiveClosing": [
+    "O perfil SD combina confianca relacional com firmeza progressiva.",
+    "Seu salto de desenvolvimento esta em acelerar posicionamento sob tensao.",
+    "Quando une estabilidade com decisao mais rapida, amplia impacto de lideranca.",
+    "A trilha proposta fortalece equilibrio entre cuidado e direcao."
+  ]
+}

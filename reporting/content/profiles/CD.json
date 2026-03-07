@@ -1,0 +1,242 @@
+{
+  "key": "CD",
+  "title": "Conformidade com Dominancia",
+  "archetype": "Estrategista de Governanca",
+  "summary": "Perfil analitico e firme, orientado a controle, padrao e seguranca de execucao.",
+  "executiveSummary": [
+    "Combina profundidade analitica com firmeza de posicionamento.",
+    "Opera com criterio, governanca e responsabilidade alta.",
+    "Contribui para decisao segura e execucao coerente.",
+    "Evolui quando acelera simplificacao sem perder rigor."
+  ],
+  "identityDynamics": [
+    "Pensa com profundidade antes de concluir direcao.",
+    "Posiciona-se com firmeza quando criterio esta claro.",
+    "Valoriza estrutura, previsibilidade e padrao de qualidade.",
+    "Tende a cobrar coerencia tecnica em toda entrega.",
+    "Prefere contexto organizado e governanca forte."
+  ],
+  "decisionStyle": [
+    "Decide com base em logica e avaliacao de risco.",
+    "Menos impulsivo, mais estruturado e cauteloso.",
+    "Precisa de base tecnica para avancar com seguranca.",
+    "Pode retardar decisao quando faltam dados confiaveis.",
+    "Decide melhor com escopo fechado e criterio de aprovacao."
+  ],
+  "motivators": [
+    "Estrutura e metodo",
+    "Seguranca de execucao",
+    "Excelencia tecnica",
+    "Previsibilidade de processo",
+    "Autoridade por competencia"
+  ],
+  "energyDrainers": [
+    "Improvisacao sem base",
+    "Superficialidade de analise",
+    "Pressao emocional sem criterio",
+    "Ambiente instavel",
+    "Baixa disciplina de processo"
+  ],
+  "workStrengths": [
+    "Analise consistente",
+    "Disciplina de processo",
+    "Criterio decisorio forte",
+    "Governanca operacional",
+    "Cobrança estruturada",
+    "Coerencia tecnica"
+  ],
+  "workRisks": [
+    "Excesso de cautela",
+    "Rigidez de metodo",
+    "Criticidade elevada",
+    "Dificuldade com informalidade",
+    "Demora de fechamento em incerteza",
+    "Baixa tolerancia a improviso"
+  ],
+  "communicationStyle": [
+    "Analitica e firme",
+    "Detalhada com foco em coerencia",
+    "Tom tecnico de governanca",
+    "Orientada a padrao e responsabilidade"
+  ],
+  "communicationNeeds": [
+    "Dados consistentes",
+    "Regras claras",
+    "Escopo delimitado",
+    "Prazos realistas com qualidade"
+  ],
+  "communicationDo": [
+    "Estruture argumento com fatos e criterios.",
+    "Defina impacto de risco e plano de mitigacao.",
+    "Use linguagem objetiva com profundidade adequada.",
+    "Feche com regra de execucao e validação.",
+    "Mantenha coerencia entre cobranca e suporte."
+  ],
+  "communicationDont": [
+    "Nao trate decisao tecnica como opiniao vaga.",
+    "Evite pressao emocional para acelerar sem base.",
+    "Nao altere criterio sem comunicar racional.",
+    "Evite excesso de detalhe fora de prioridade.",
+    "Nao endureca tom em erro de aprendizagem inicial."
+  ],
+  "leadershipStyle": [
+    "Lidera por governanca, criterio e previsibilidade.",
+    "Combina disciplina tecnica com firmeza de decisao.",
+    "Protege qualidade e risco em agenda critica.",
+    "Ganha escala quando simplifica comunicacao para o time."
+  ],
+  "leadershipStrengths": [
+    "Governanca solida",
+    "Analise de risco",
+    "Padrao de qualidade",
+    "Coerencia de processo",
+    "Firmeza decisoria"
+  ],
+  "leadershipRisks": [
+    "Lentidao por excesso de cautela",
+    "Rigidez em contexto dinamico",
+    "Comunicacao pouco acessivel",
+    "Critica elevada sem calibragem",
+    "Baixa tolerancia a erro inicial"
+  ],
+  "stressPattern": [
+    "Aumenta controle e verificacao de detalhe.",
+    "Eleva exigencia de padrao sob pressao.",
+    "Reduz flexibilidade para variacao de metodo.",
+    "Pode se tornar mais duro em cobranca."
+  ],
+  "stressSignals": [
+    "Revisao excessiva de entrega",
+    "Postergacao de decisao por inseguranca de dado",
+    "Aumento de criticidade no time",
+    "Conflito por rigidez de processo",
+    "Baixa abertura para sugestao alternativa"
+  ],
+  "recoveryStrategy": [
+    "Definir nivel de controle proporcional ao risco.",
+    "Priorizar temas de alto impacto e simplificar o restante.",
+    "Estabelecer limite de analise por prazo.",
+    "Calibrar forma de feedback para manter aderencia.",
+    "Retomar foco em solucao e nao apenas em falha."
+  ],
+  "conflictStyle": [
+    "Conflita por padrao e coerencia de execucao.",
+    "Prefere debate tecnico com fato e criterio.",
+    "Pode endurecer quando percebe improviso recorrente.",
+    "Conflito reduz com contrato claro de qualidade.",
+    "Precisa equilibrar rigor com abertura ao contexto."
+  ],
+  "teamContribution": [
+    "Eleva maturidade de processo",
+    "Reduz risco de inconsistencia",
+    "Aumenta previsibilidade de entrega",
+    "Sustenta padrao de qualidade",
+    "Fortalece cultura de responsabilidade"
+  ],
+  "bestMatches": [
+    "S",
+    "D",
+    "SC",
+    "DC",
+    "CI"
+  ],
+  "frictionMatches": [
+    "I muito espontaneo",
+    "ID",
+    "DI sem metodo",
+    "IS pouco assertivo"
+  ],
+  "idealEnvironment": [
+    "Cultura de qualidade com pragmatismo",
+    "Processo claro com ownership definido",
+    "Lideranca que valoriza criterio tecnico",
+    "Ritmo sustentavel com previsibilidade",
+    "Espaco para analise aplicada ao negocio"
+  ],
+  "lowFitEnvironment": [
+    "Ambiente de improviso continuo",
+    "Baixa disciplina de governanca",
+    "Mudanca sem contexto e sem critério",
+    "Pressao emocional com baixa base tecnica"
+  ],
+  "recommendedRoles": [
+    "Governanca e compliance",
+    "Gestao de processo",
+    "Planejamento e controle",
+    "Gestao de risco",
+    "Qualidade e auditoria",
+    "Operacoes estrategicas",
+    "Controladoria",
+    "Lideranca de programa de excelencia"
+  ],
+  "lowFitRoles": [
+    "Escopo de improviso radical",
+    "Funcao sem padrao de qualidade",
+    "Ambiente de alta instabilidade emocional",
+    "Papel sem clareza de responsabilidade"
+  ],
+  "naturalStrengths": [
+    "Criterio",
+    "Disciplina",
+    "Confiabilidade",
+    "Rigor tecnico",
+    "Firmeza",
+    "Padronizacao",
+    "Analise de risco",
+    "Responsabilidade"
+  ],
+  "developmentPoints": [
+    "Simplificacao de comunicacao",
+    "Agilidade em decisao de medio risco",
+    "Flexibilidade em contexto novo",
+    "Abertura a alternativas viaveis",
+    "Tolerancia ao imperfeito em baixa criticidade",
+    "Calibragem de criticidade",
+    "Conexao interpessoal",
+    "Delegacao com checkpoint"
+  ],
+  "developmentRisks": [
+    "Paralisia por excesso de criterio",
+    "Rigidez de relacao com equipe",
+    "Queda de velocidade de negocio",
+    "Atrito por exigencia sem calibragem"
+  ],
+  "managerGuidance": [
+    "Defina fronteira de controle por impacto de risco.",
+    "Reforce priorizacao para evitar excesso de detalhe.",
+    "Estimule comunicacao clara para diferentes perfis.",
+    "Use feedback sobre velocidade e flexibilidade.",
+    "Acompanhe risco de rigidez em mudanca."
+  ],
+  "selfLeadershipGuidance": [
+    "Diferencie perfeicao necessaria de excesso de cautela.",
+    "Pratique sintese executiva em decisoes tecnicas.",
+    "Adote limite de tempo para fechamento de pauta.",
+    "Escute alternativas praticas antes de descartar.",
+    "Mensure impacto de qualidade junto de velocidade."
+  ],
+  "plan30": [
+    "Mapear pontos de excesso de cautela em decisoes recentes.",
+    "Definir criterio de profundidade por nivel de risco.",
+    "Treinar comunicacao tecnica em formato executivo.",
+    "Delegar uma atividade de controle secundario."
+  ],
+  "plan60": [
+    "Aumentar velocidade em temas de media complexidade.",
+    "Reduzir atrito por forma de criticidade.",
+    "Aprimorar flexibilidade em ajustes de processo.",
+    "Pedir feedback sobre clareza e pragmatismo de lideranca."
+  ],
+  "plan90": [
+    "Consolidar governanca com maior adaptabilidade.",
+    "Escalar padrao de qualidade sem microcontrole.",
+    "Manter rigor com ritmo de negocio sustentavel.",
+    "Mensurar ganho de resultado e aderencia da equipe."
+  ],
+  "executiveClosing": [
+    "O perfil CD fortalece governanca e seguranca de execucao em contexto exigente.",
+    "Seu maior salto vem de integrar rigor com agilidade adaptativa.",
+    "Quando simplifica sem perder criterio, amplia impacto estrategico.",
+    "A trilha proposta sustenta qualidade com maior fluidez operacional."
+  ]
+}

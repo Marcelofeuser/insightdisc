@@ -129,7 +129,11 @@ function CTAButtons() {
         </Button>
       </Link>
       <Link to={createPageUrl('Pricing')}>
-        <Button variant="outline" className="h-12 px-6 rounded-xl border-slate-300">
+        <Button
+          variant="ghost"
+          className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.20)] hover:border-white/40 hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))]"
+          data-testid="avaliacoes-cta-secondary"
+        >
           Ver planos B2B
         </Button>
       </Link>
@@ -333,7 +337,10 @@ export default function Avaliacoes() {
                   </Button>
                 </Link>
                 <Link to={createPageUrl('Pricing')}>
-                  <Button variant="outline" className="h-12 px-6 rounded-xl border-white/60 text-white hover:bg-white/10">
+                  <Button
+                    variant="ghost"
+                    className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.20)] hover:border-white/40 hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))]"
+                  >
                     Ver planos B2B
                   </Button>
                 </Link>

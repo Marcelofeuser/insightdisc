@@ -59,10 +59,11 @@ function resolveBranding(assessment = {}, assetBaseUrl = '') {
   if (!organization) {
     return {
       company_name: 'InsightDISC',
-      logo_url: '/brand/insightdisc-logo.svg',
+      logo_url: '/brand/insightdisc-report-logo.png',
+      cover_url: '',
       brand_primary_color: '#0b1f3b',
       brand_secondary_color: '#f7b500',
-      report_footer_text: 'InsightDISC - Plataforma de Analise Comportamental',
+      report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
     };
   }
 
@@ -78,10 +79,10 @@ function resolveBranding(assessment = {}, assetBaseUrl = '') {
     logoUrl.startsWith('/') && assetBaseUrl
       ? `${assetBaseUrl}${logoUrl}`
       : logoUrl;
-
   return {
     company_name: companyName,
     logo_url: absoluteLogo,
+    cover_url: '',
     brand_primary_color: normalized.brand_primary_color,
     brand_secondary_color: normalized.brand_secondary_color,
     report_footer_text: normalized.report_footer_text,
@@ -115,9 +116,9 @@ export async function buildPremiumReportModel({
 
   const meta = {
     brand: branding.company_name,
-    reportTitle: 'Relatorio DISC Premium',
+    reportTitle: 'Relatorio de Analise Comportamental DISC',
     reportSubtitle:
-      'Diagnostico comportamental completo com benchmark, plano de acao e recomendacoes praticas',
+      'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento',
     generatedAt: new Date().toISOString(),
     reportId: assessment?.id || 'sem-id',
     version: '4.0',

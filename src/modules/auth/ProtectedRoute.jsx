@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useLocation } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -61,13 +61,15 @@ function AccessDenied({ pageName }) {
 
 export default function ProtectedRoute({ children, policy, pageName }) {
   const { access } = useAuth();
+  const location = useLocation();
 
   if (policy?.isPublic) {
     return children;
   }
 
   if (!isAuthenticatedAccess(access)) {
-    return <Navigate to={createPageUrl('Login')} replace />;
+    const next = `${location.pathname}${location.search || ''}`;
+    return <Navigate to={`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`} replace />;
   }
 
   if (!evaluatePolicy(access, policy)) {

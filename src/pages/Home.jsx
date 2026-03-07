@@ -148,14 +148,19 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap gap-4 mb-10">
-                <Link to={createPageUrl('StartFree')}>
-                  <Button size="lg" className="h-14 px-8 text-base font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 rounded-2xl shadow-lg shadow-indigo-200/60">
+                <Link to={createPageUrl('StartFree')} className="w-full sm:w-auto">
+                  <Button size="lg" className="h-14 w-full sm:w-auto px-8 text-base font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 rounded-2xl shadow-lg shadow-indigo-200/60">
                     Fazer Teste Grátis
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link to={`${createPageUrl('Pricing')}#b2b`}>
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-base rounded-2xl border-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                <Link to={`${createPageUrl('Pricing')}#b2b`} className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="h-14 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.18)] hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))] hover:border-white/35 transition-all duration-200 px-8 text-base font-semibold"
+                    data-testid="home-cta-secondary"
+                  >
                     Ver Planos B2B
                   </Button>
                 </Link>
@@ -446,7 +451,11 @@ export default function Home() {
                 </Button>
               </Link>
               <Link to={`${createPageUrl('Pricing')}#b2b`}>
-                <Button size="lg" variant="outline" className="h-16 px-10 text-lg font-bold border-2 border-white/30 text-white hover:bg-white/10 rounded-2xl">
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="h-16 w-full sm:w-auto rounded-2xl border border-white/25 bg-[linear-gradient(135deg,rgba(139,92,246,0.28),rgba(99,102,241,0.18))] text-white backdrop-blur-md shadow-[0_10px_30px_rgba(79,70,229,0.18)] hover:bg-[linear-gradient(135deg,rgba(139,92,246,0.38),rgba(99,102,241,0.26))] hover:border-white/35 transition-all duration-200 px-10 text-lg font-bold"
+                >
                   Planos Corporativos
                 </Button>
               </Link>

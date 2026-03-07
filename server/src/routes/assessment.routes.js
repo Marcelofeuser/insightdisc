@@ -4,6 +4,8 @@ import { prisma } from '../lib/prisma.js';
 import { sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
+import { buildPremiumReportModel } from '../modules/report/build-report.js';
+import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 
 const router = Router();
 
@@ -156,6 +158,90 @@ router.get('/report-by-token', async (req, res) => {
   } catch (error) {
     const reason = normalizeReason(error?.message || 'REPORT_BY_TOKEN_ERROR');
     return res.status(500).json({ ok: false, reason });
+  }
+});
+
+router.get('/report-pdf-by-token', async (req, res) => {
+  try {
+    const token = String(req.query.token || '').trim();
+    const result = await getValidInviteByToken(token, { allowUsed: true });
+
+    if (!result.valid) {
+      const reason = normalizeReason(result.reason);
+      return res.status(statusCodeByReason(reason)).json({ ok: false, reason });
+    }
+
+    const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: result.invite.assessmentId },
+      include: {
+        report: true,
+        creator: true,
+        organization: { include: { owner: true } },
+      },
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+    }
+
+    const reportExists = Boolean(assessment.report?.pdfUrl);
+    if (reportExists) {
+      const rawPdfUrl = String(assessment.report?.pdfUrl || '');
+      const absolutePdfUrl = /^https?:\/\//i.test(rawPdfUrl)
+        ? rawPdfUrl
+        : `${assetBaseUrl}${rawPdfUrl}`;
+      return res.status(200).json({
+        ok: true,
+        reportId: assessment.report?.id || null,
+        assessmentId: assessment.id,
+        pdfUrl: absolutePdfUrl,
+        pdfPath: rawPdfUrl,
+      });
+    }
+
+    const reportModel = await buildPremiumReportModel({
+      assessment,
+      discResult: assessment.report?.discProfile || {},
+      assetBaseUrl,
+      currentUser: assessment.creator || assessment.organization?.owner || null,
+    });
+
+    const generated = await generatePremiumPdf(reportModel, assessment.id, assessment);
+
+    const report = await prisma.report.upsert({
+      where: { assessmentId: assessment.id },
+      create: {
+        assessmentId: assessment.id,
+        discProfile: reportModel,
+        pdfUrl: generated.pdfUrl || null,
+      },
+      update: {
+        discProfile: reportModel,
+        pdfUrl: generated.pdfUrl || null,
+      },
+    });
+
+    const rawPdfUrl = String(report.pdfUrl || generated.pdfUrl || '');
+    const absolutePdfUrl = /^https?:\/\//i.test(rawPdfUrl)
+      ? rawPdfUrl
+      : `${assetBaseUrl}${rawPdfUrl}`;
+
+    return res.status(200).json({
+      ok: true,
+      reportId: report.id,
+      assessmentId: assessment.id,
+      pdfUrl: absolutePdfUrl,
+      pdfPath: rawPdfUrl,
+      generated: true,
+    });
+  } catch (error) {
+    const status = Number(error?.statusCode) || 400;
+    return res.status(status).json({
+      ok: false,
+      reason: 'PDF_BY_TOKEN_FAILED',
+      error: error?.message || 'Falha ao gerar PDF público por token.',
+    });
   }
 });
 

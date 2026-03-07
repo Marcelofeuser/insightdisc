@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 
 const FALLBACK_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
-  logo_url: '/brand/insightdisc-logo.svg',
+  logo_url: '/brand/insightdisc-logo-transparent.png',
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
@@ -48,6 +49,9 @@ export default function BrandingSettings() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [workspaceCredits, setWorkspaceCredits] = useState(null);
+  const availableCredits = Number(user?.credits ?? workspaceCredits ?? 0);
+  const canEditBranding = availableCredits > 0;
 
   useEffect(() => {
     const loadBranding = async () => {
@@ -75,6 +79,7 @@ export default function BrandingSettings() {
         const workspaces = await base44.entities.Workspace.filter({ id: workspaceId });
         if (workspaces.length > 0) {
           const workspace = workspaces[0];
+          setWorkspaceCredits(Number(workspace?.credits_balance || 0));
           setForm(
             normalizeBranding({
               company_name: workspace?.company_name || workspace?.name,
@@ -113,6 +118,11 @@ export default function BrandingSettings() {
   };
 
   const saveBranding = async () => {
+    if (!canEditBranding) {
+      setError('Sem créditos para editar a marca. Compre créditos para liberar o white-label.');
+      return;
+    }
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -159,6 +169,11 @@ export default function BrandingSettings() {
   };
 
   const uploadLogo = async (file) => {
+    if (!canEditBranding) {
+      setError('Sem créditos para editar a marca. Compre créditos para liberar o white-label.');
+      return;
+    }
+
     if (!file || !workspaceId) return;
 
     setUploading(true);
@@ -205,6 +220,13 @@ export default function BrandingSettings() {
           Personalize o white-label do seu workspace para preview e PDF do relatório DISC.
         </p>
       </section>
+
+      {!canEditBranding ? (
+        <CreditPaywallCard
+          title="White-label bloqueado por falta de créditos"
+          description="Compre créditos para personalizar logo, cores e rodapé dos relatórios."
+        />
+      ) : null}
 
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -308,7 +330,7 @@ export default function BrandingSettings() {
 
                 <Button
                   onClick={saveBranding}
-                  disabled={saving || uploading}
+                  disabled={saving || uploading || !canEditBranding}
                   className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
                 >
                   <Save className="w-4 h-4 mr-2" />

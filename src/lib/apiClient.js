@@ -1,5 +1,10 @@
 const API_TOKEN_KEYS = ['insightdisc_api_token', 'insight_api_token', 'server_api_token'];
-const API_EMAIL_KEYS = ['insightdisc_api_email', 'disc_mock_user_email'];
+const ENABLE_DEV_LOGIN_SHORTCUTS =
+  import.meta.env.DEV &&
+  String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
+const API_EMAIL_KEYS = ENABLE_DEV_LOGIN_SHORTCUTS
+  ? ['insightdisc_api_email', 'disc_mock_user_email']
+  : ['insightdisc_api_email'];
 const PRIMARY_API_TOKEN_KEY = API_TOKEN_KEYS[0];
 const PRIMARY_API_EMAIL_KEY = API_EMAIL_KEYS[0];
 

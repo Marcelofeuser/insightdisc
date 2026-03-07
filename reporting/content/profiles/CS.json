@@ -1,0 +1,242 @@
+{
+  "key": "CS",
+  "title": "Conformidade com Estabilidade",
+  "archetype": "Estruturador Seguro",
+  "summary": "Perfil organizado, estavel e cuidadoso, orientado a seguranca de execucao e metodo.",
+  "executiveSummary": [
+    "Combina rigor de processo com constancia relacional.",
+    "Prioriza seguranca, previsibilidade e qualidade de entrega.",
+    "Contribui fortemente para estabilidade operacional.",
+    "Evolui quando amplia adaptabilidade e rapidez decisoria."
+  ],
+  "identityDynamics": [
+    "Busca controle e previsibilidade antes de agir.",
+    "Opera por metodo com alto senso de responsabilidade.",
+    "Prefere rotina clara e criterios bem definidos.",
+    "Evita risco desnecessario e improviso brusco.",
+    "Valoriza estabilidade com padrao de qualidade."
+  ],
+  "decisionStyle": [
+    "Decide de forma logica e cautelosa.",
+    "Pondera risco antes de avançar.",
+    "Pode ser mais lento em cenarios ambiguos.",
+    "Busca reduzir incerteza antes de assumir compromisso.",
+    "Decide melhor com regra clara e prazo realista."
+  ],
+  "motivators": [
+    "Seguranca operacional",
+    "Precisao",
+    "Rotina clara",
+    "Responsabilidade definida",
+    "Padrao de qualidade"
+  ],
+  "energyDrainers": [
+    "Urgencia sem criterio",
+    "Improviso sem base",
+    "Desorganizacao recorrente",
+    "Ruido emocional alto",
+    "Ambiente instavel"
+  ],
+  "workStrengths": [
+    "Disciplina de execucao",
+    "Metodo",
+    "Seguranca operacional",
+    "Constancia",
+    "Padronizacao",
+    "Qualidade confiavel"
+  ],
+  "workRisks": [
+    "Rigidez em mudanca",
+    "Lentidao de resposta",
+    "Baixa tolerancia a improviso",
+    "Dificuldade em ambiente fluido",
+    "Retraimento em confronto agressivo",
+    "Excesso de cautela em oportunidade"
+  ],
+  "communicationStyle": [
+    "Tecnica e tranquila",
+    "Ritmo estavel",
+    "Foco em clareza e processo",
+    "Tom cuidadoso"
+  ],
+  "communicationNeeds": [
+    "Regras claras",
+    "Previsibilidade de mudanca",
+    "Escopo definido",
+    "Tempo para ajuste seguro"
+  ],
+  "communicationDo": [
+    "Comunique criterio e sequencia de execucao.",
+    "Explique impacto da mudanca com antecedencia.",
+    "Defina padrão de qualidade esperado.",
+    "Valide risco e responsabilidade do combinado.",
+    "Mantenha consistencia de orientacao."
+  ],
+  "communicationDont": [
+    "Nao imponha urgencia sem contexto.",
+    "Evite improviso sem regra minima.",
+    "Nao altere criterio continuamente.",
+    "Evite conflito agressivo desnecessario.",
+    "Nao ignore necessidade de previsibilidade."
+  ],
+  "leadershipStyle": [
+    "Lidera por metodo, previsibilidade e controle de qualidade.",
+    "Sustenta rotina com alto senso de responsabilidade.",
+    "Protege operacao contra erro e retrabalho.",
+    "Ganha impacto quando acelera adaptacao com criterio."
+  ],
+  "leadershipStrengths": [
+    "Governanca de rotina",
+    "Confiabilidade de processo",
+    "Qualidade consistente",
+    "Disciplina de execucao",
+    "Seguranca operacional"
+  ],
+  "leadershipRisks": [
+    "Rigidez excessiva em mudanca",
+    "Lentidao de decisao",
+    "Baixa exposicao em contexto agressivo",
+    "Dificuldade de improviso controlado",
+    "Conflito evitado em excesso"
+  ],
+  "stressPattern": [
+    "Aumenta controle para reduzir incerteza.",
+    "Fica mais cauteloso em ambiente turbulento.",
+    "Pode retrair comunicacao sob pressao agressiva.",
+    "Tende a prolongar analise para sentir seguranca."
+  ],
+  "stressSignals": [
+    "Demora de resposta em urgencia",
+    "Revisao repetitiva de detalhe",
+    "Baixa flexibilidade de plano",
+    "Silencio em confronto",
+    "Sobrecarga por tentativa de controle total"
+  ],
+  "recoveryStrategy": [
+    "Definir priorizacao objetiva por impacto e risco.",
+    "Estabelecer limite de analise para decidir.",
+    "Treinar resposta assertiva em conflito necessario.",
+    "Introduzir ajuste gradual em vez de ruptura abrupta.",
+    "Compartilhar responsabilidade para reduzir sobrecarga."
+  ],
+  "conflictStyle": [
+    "Evita confronto aberto quando possivel.",
+    "Prefere resolver por regra e contrato de processo.",
+    "Pode retrair-se em ambiente agressivo.",
+    "Conflito melhora com respeito e criterio objetivo.",
+    "Precisa fortalecer posicionamento em temas criticos."
+  ],
+  "teamContribution": [
+    "Estrutura rotina com seguranca",
+    "Mantem qualidade de forma consistente",
+    "Aumenta previsibilidade operacional",
+    "Reduz risco de erro recorrente",
+    "Sustenta disciplina coletiva"
+  ],
+  "bestMatches": [
+    "S",
+    "C",
+    "SC",
+    "SI",
+    "CD"
+  ],
+  "frictionMatches": [
+    "DI",
+    "ID",
+    "D muito agressivo",
+    "I muito impulsivo"
+  ],
+  "idealEnvironment": [
+    "Processo claro e confiavel",
+    "Cultura de qualidade com respeito",
+    "Mudanca planejada e bem comunicada",
+    "Ritmo estavel com responsabilidade definida",
+    "Lideranca previsivel e coerente"
+  ],
+  "lowFitEnvironment": [
+    "Caos operacional continuo",
+    "Urgencia constante sem criterio",
+    "Conflito hostil de alta frequencia",
+    "Ambiente sem padrao minimo de execucao"
+  ],
+  "recommendedRoles": [
+    "Operacoes estruturadas",
+    "Qualidade e conformidade",
+    "Controle de processo",
+    "Backoffice critico",
+    "Gestao de rotina regulada",
+    "Documentacao tecnica",
+    "Suporte operacional",
+    "Seguranca de execucao"
+  ],
+  "lowFitRoles": [
+    "Escopo altamente caotico e improvisado",
+    "Papel de confronto agressivo constante",
+    "Funcao sem criterio e previsibilidade",
+    "Ambiente de mudanca sem suporte"
+  ],
+  "naturalStrengths": [
+    "Metodo",
+    "Disciplina",
+    "Confiabilidade",
+    "Precisao",
+    "Constancia",
+    "Padronizacao",
+    "Organizacao",
+    "Responsabilidade"
+  ],
+  "developmentPoints": [
+    "Agilidade de decisao",
+    "Flexibilidade em mudanca",
+    "Adaptabilidade em cenario ambiguo",
+    "Assertividade em confronto",
+    "Exposicao em pauta estrategica",
+    "Priorizacao dinamica",
+    "Tolerancia ao nao ideal",
+    "Reducao de cautela excessiva"
+  ],
+  "developmentRisks": [
+    "Rigidez prolongada",
+    "Perda de oportunidade por lentidao",
+    "Retraimento em conflito necessario",
+    "Desgaste por controle excessivo"
+  ],
+  "managerGuidance": [
+    "Defina escopo e criterio com alta clareza.",
+    "Introduza mudanca com plano e sequencia.",
+    "Incentive decisao mais rapida em risco moderado.",
+    "Reforce assertividade em pauta critica.",
+    "Acompanhe sinais de retraimento sob pressao."
+  ],
+  "selfLeadershipGuidance": [
+    "Diferencie risco real de inseguranca percebida.",
+    "Pratique decisao com limite de tempo.",
+    "Treine confronto construtivo com foco em fatos.",
+    "Aumente flexibilidade em pontos nao criticos.",
+    "Mantenha foco em impacto alem do metodo."
+  ],
+  "plan30": [
+    "Mapear pontos de lentidao em decisao.",
+    "Definir regra de priorizacao diaria por impacto.",
+    "Treinar uma conversa assertiva por semana.",
+    "Aplicar ajuste incremental em processo-chave."
+  ],
+  "plan60": [
+    "Aumentar velocidade em tema de media complexidade.",
+    "Reduzir rigidez em mudanca planejada.",
+    "Pedir feedback sobre flexibilidade percebida.",
+    "Aprimorar comunicacao objetiva sob pressao."
+  ],
+  "plan90": [
+    "Consolidar metodo com maior adaptabilidade.",
+    "Escalar qualidade com ritmo sustentavel.",
+    "Fortalecer protagonismo em pauta estrategica.",
+    "Mensurar ganho de performance com menor rigidez."
+  ],
+  "executiveClosing": [
+    "O perfil CS entrega seguranca e consistencia em operacoes criticas.",
+    "Seu principal salto esta em combinar metodo com agilidade adaptativa.",
+    "Quando amplia flexibilidade sem perder qualidade, cresce em impacto.",
+    "A trilha proposta fortalece execucao segura em ambiente dinamico."
+  ]
+}
