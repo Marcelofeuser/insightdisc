@@ -23,8 +23,13 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { generateInviteToken, hashInviteToken } from '@/modules/invites/invite-token';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
+import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function SendAssessment() {
+  const { access, user: authUser } = useAuth();
+  const apiBaseUrl = getApiBaseUrl();
+  const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
   const [workspace, setWorkspace] = useState(null);
   const [emails, setEmails] = useState(['']);
   const [customMessage, setCustomMessage] = useState('');
@@ -39,10 +44,19 @@ export default function SendAssessment() {
 
   useEffect(() => {
     loadWorkspace();
-  }, []);
+  }, [apiBaseUrl, authUser?.id, organizationId]);
 
   const loadWorkspace = async () => {
     try {
+      if (apiBaseUrl) {
+        setWorkspace({
+          id: organizationId,
+          credits_balance: Number(authUser?.credits_balance ?? authUser?.credits ?? 0),
+          name: authUser?.workspace_name || authUser?.company_name || 'Workspace',
+        });
+        return;
+      }
+
       const user = await base44.auth.me();
       if (user.active_workspace_id) {
         const workspaces = await base44.entities.Workspace.filter({ 
@@ -75,7 +89,7 @@ export default function SendAssessment() {
   const handleSendEmails = async () => {
     const validEmails = emails.filter(e => e && e.includes('@'));
     if (!hasCredits) {
-      setError('Sem créditos disponíveis. Compre créditos para enviar convites.');
+      setError('Você não possui créditos disponíveis');
       return;
     }
     if (validEmails.length === 0) {
@@ -92,15 +106,50 @@ export default function SendAssessment() {
     setError(null);
 
     try {
-      const user = await base44.auth.me();
       const baseUrl = window.location.origin;
+      const newLinks = [];
 
       for (const email of validEmails) {
+        if (apiBaseUrl) {
+          if (!organizationId) {
+            throw new Error('Workspace não identificado para criar convites.');
+          }
+
+          const created = await apiRequest('/assessments/create', {
+            method: 'POST',
+            requireAuth: true,
+            body: {
+              organizationId,
+              candidateEmail: email,
+            },
+          });
+
+          const assessmentId = created?.assessment?.id;
+          if (!assessmentId) throw new Error('Falha ao criar assessment para convite.');
+
+          const generated = await apiRequest('/assessments/generate-link', {
+            method: 'POST',
+            requireAuth: true,
+            body: { assessmentId },
+          });
+
+          const token = String(generated?.token || '').trim();
+          if (!token) throw new Error('Token de convite não retornado pelo backend.');
+
+          const assessmentUrl = `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`;
+          newLinks.push({
+            token,
+            url: assessmentUrl,
+            created_at: new Date().toISOString(),
+          });
+          continue;
+        }
+
+        const user = await base44.auth.me();
         const token = generateInviteToken();
         const tokenHash = await hashInviteToken(token);
         const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-        
-        // Create pending assessment
+
         const created = await base44.entities.Assessment.create({
           user_id: email,
           type: 'premium',
@@ -118,9 +167,13 @@ export default function SendAssessment() {
         }
         console.log('[SendAssessment] invite created', { assessmentId: created.id, email, expiresAt });
 
-        // Send email
         const assessmentUrl = `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`;
-        
+        newLinks.push({
+          token,
+          url: assessmentUrl,
+          created_at: new Date().toISOString(),
+        });
+
         await base44.integrations.Core.SendEmail({
           to: email,
           subject: 'Você foi convidado para uma Avaliação DISC',
@@ -142,16 +195,22 @@ export default function SendAssessment() {
         });
       }
 
-      // Update workspace credits
-      if (workspace) {
+      if (workspace && !apiBaseUrl) {
         await base44.entities.Workspace.update(workspace.id, {
           credits_balance: (workspace.credits_balance || 0) - validEmails.length
         });
       }
 
+      if (newLinks.length) {
+        setGeneratedLinks([...newLinks, ...generatedLinks]);
+      }
       setEmails(['']);
       setCustomMessage('');
-      alert(`${validEmails.length} convite(s) enviado(s) com sucesso!`);
+      alert(
+        apiBaseUrl
+          ? `${validEmails.length} convite(s) criado(s). Compartilhe os links gerados na seção de links.`
+          : `${validEmails.length} convite(s) enviado(s) com sucesso!`
+      );
     } catch (error) {
       console.error('Error sending invites:', error);
       setError('Erro ao enviar convites. Tente novamente.');
@@ -162,7 +221,7 @@ export default function SendAssessment() {
 
   const handleGenerateLinks = async () => {
     if (!hasCredits) {
-      setError('Sem créditos disponíveis. Compre créditos para gerar links.');
+      setError('Você não possui créditos disponíveis');
       return;
     }
 
@@ -175,15 +234,48 @@ export default function SendAssessment() {
     setError(null);
 
     try {
-      const user = await base44.auth.me();
       const baseUrl = window.location.origin;
       const newLinks = [];
 
       for (let i = 0; i < linkCount; i++) {
+        if (apiBaseUrl) {
+          if (!organizationId) {
+            throw new Error('Workspace não identificado para criar links.');
+          }
+
+          const created = await apiRequest('/assessments/create', {
+            method: 'POST',
+            requireAuth: true,
+            body: {
+              organizationId,
+            },
+          });
+
+          const assessmentId = created?.assessment?.id;
+          if (!assessmentId) throw new Error('Falha ao criar assessment para link.');
+
+          const generated = await apiRequest('/assessments/generate-link', {
+            method: 'POST',
+            requireAuth: true,
+            body: { assessmentId },
+          });
+
+          const token = String(generated?.token || '').trim();
+          if (!token) throw new Error('Token de convite não retornado pelo backend.');
+
+          newLinks.push({
+            token,
+            url: `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`,
+            created_at: new Date().toISOString(),
+          });
+          continue;
+        }
+
+        const user = await base44.auth.me();
         const token = generateInviteToken();
         const tokenHash = await hashInviteToken(token);
         const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-        
+
         const created = await base44.entities.Assessment.create({
           user_id: 'pending',
           type: 'premium',
@@ -208,8 +300,7 @@ export default function SendAssessment() {
         });
       }
 
-      // Update workspace credits
-      if (workspace) {
+      if (workspace && !apiBaseUrl) {
         await base44.entities.Workspace.update(workspace.id, {
           credits_balance: (workspace.credits_balance || 0) - linkCount
         });

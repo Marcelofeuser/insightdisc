@@ -482,9 +482,12 @@ export default function TeamMapping() {
                 <select
                   value={newMember.assessmentId}
                   onChange={(e) => setNewMember((prev) => ({ ...prev, assessmentId: e.target.value }))}
+                  disabled={assessments.length === 0}
                   className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm"
                 >
-                  <option value="">Sem avaliação vinculada</option>
+                  <option value="">
+                    {assessments.length === 0 ? 'Nenhuma avaliação disponível' : 'Sem avaliação vinculada'}
+                  </option>
                   {assessments.map((assessment) => (
                     <option key={assessment.id} value={assessment.id}>
                       {assessment.respondent_name || assessment.respondent_email || assessment.user_id || assessment.id}

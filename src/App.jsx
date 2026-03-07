@@ -123,6 +123,7 @@ const AuthenticatedApp = () => {
       {APP_ALIAS_ROUTES.map(({ path, pageName }) =>
         renderProtectedPage(path, pageName, Pages[pageName])
       )}
+      {renderProtectedPage('/sendAssessment', 'SendAssessment', Pages.SendAssessment)}
       {renderProtectedPage('/avaliacoes', 'Avaliacoes', Pages.Avaliacoes)}
 
       <Route

@@ -86,7 +86,9 @@ router.post('/generate-link', async (req, res) => {
     return res.status(200).json({
       ok: true,
       assessmentId: assessment.id,
+      token,
       inviteUrl,
+      invitePath: `/c/invite?token=${encodeURIComponent(token)}`,
       expiresAt: expiresAt.toISOString(),
     });
   } catch (error) {

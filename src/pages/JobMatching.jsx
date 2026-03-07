@@ -21,6 +21,8 @@ import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
+import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 
 const DISC_COLORS = { D: 'text-red-600', I: 'text-orange-600', S: 'text-green-600', C: 'text-blue-600' };
 const DISC_BG = { D: 'bg-red-50 border-red-200', I: 'bg-orange-50 border-orange-200', S: 'bg-green-50 border-green-200', C: 'bg-blue-50 border-blue-200' };
@@ -56,6 +58,9 @@ function calculateMatchScore(candidateProfile, idealProfile) {
 }
 
 export default function JobMatching() {
+  const { access, user: authUser } = useAuth();
+  const apiBaseUrl = getApiBaseUrl();
+  const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,25 +79,43 @@ export default function JobMatching() {
   const { data: positions = [], refetch: refetchPositions } = useQuery({
     queryKey: ['job-positions'],
     queryFn: async () => {
+      if (apiBaseUrl) {
+        const payload = await apiRequest('/jobs', {
+          method: 'GET',
+          requireAuth: true,
+        });
+        return payload?.jobs || [];
+      }
       const user = await base44.auth.me();
       return base44.entities.JobPosition.filter({ workspace_id: user.active_workspace_id || 'all' });
-    }
+    },
   });
 
   const { data: assessments = [] } = useQuery({
     queryKey: ['completed-assessments-for-matching'],
-    queryFn: () => base44.entities.Assessment.filter({ status: 'completed' }, '-completed_at', 100)
+    queryFn: async () => {
+      if (apiBaseUrl) {
+        return [];
+      }
+      return base44.entities.Assessment.filter({ status: 'completed' }, '-completed_at', 100);
+    },
   });
 
   const { data: workspace = null } = useQuery({
     queryKey: ['job-matching-workspace'],
     queryFn: async () => {
+      if (apiBaseUrl) {
+        return {
+          id: organizationId,
+          credits_balance: Number(authUser?.credits_balance ?? authUser?.credits ?? 0),
+        };
+      }
       const user = await base44.auth.me();
       const workspaceId = user?.active_workspace_id || user?.tenant_id;
       if (!workspaceId) return null;
       const rows = await base44.entities.Workspace.filter({ id: workspaceId });
       return rows?.[0] || null;
-    }
+    },
   });
 
   const availableCredits = Number(workspace?.credits_balance || 0);
@@ -100,16 +123,49 @@ export default function JobMatching() {
 
   const handleCreatePosition = async () => {
     if (!canUsePremiumActions) return;
-    if (!newPosition.title) return;
+    if (!newPosition.title.trim()) return;
+
+    if (apiBaseUrl) {
+      const min = {};
+      const max = {};
+      ['D', 'I', 'S', 'C'].forEach((factor) => {
+        min[factor] = Number(newPosition.ideal_profile[factor]?.min ?? 0);
+        max[factor] = Number(newPosition.ideal_profile[factor]?.max ?? 100);
+      });
+
+      const payload = await apiRequest('/jobs', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          titulo: newPosition.title.trim(),
+          departamento: newPosition.department?.trim() || '',
+          descricao: newPosition.description?.trim() || '',
+          disc_ideal: newPosition.ideal_profile,
+          min,
+          max,
+          competencias: newPosition.key_competencies,
+        },
+      });
+
+      const createdJob = payload?.job || null;
+      setShowCreateForm(false);
+      await refetchPositions();
+      if (createdJob) {
+        setSelectedPosition(createdJob);
+      }
+      return;
+    }
+
     const user = await base44.auth.me();
-    await base44.entities.JobPosition.create({
+    const created = await base44.entities.JobPosition.create({
       ...newPosition,
       workspace_id: user.active_workspace_id || user.id,
       is_active: true,
-      candidates: []
+      candidates: [],
     });
     setShowCreateForm(false);
-    refetchPositions();
+    await refetchPositions();
+    setSelectedPosition(created || null);
   };
 
   const updateIdealProfile = (factor, key, value) => {
@@ -194,15 +250,7 @@ export default function JobMatching() {
                 <CardContent className="p-8 text-center">
                   <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 mb-4">Nenhuma vaga cadastrada</p>
-                  <Button
-                    onClick={() => setShowCreateForm(true)}
-                    className="bg-indigo-600"
-                    data-testid="job-matching-create-vaga-empty"
-                    disabled={!canUsePremiumActions}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Criar vaga
-                  </Button>
+                  <p className="text-sm text-slate-400">Use o botão "Nova Vaga" no topo para criar sua primeira vaga.</p>
                 </CardContent>
               </Card>
             ) : (
@@ -515,7 +563,7 @@ export default function JobMatching() {
               <Button
                 onClick={handleCreatePosition}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-xl"
-                disabled={!canUsePremiumActions}
+                disabled={!canUsePremiumActions || !newPosition.title.trim()}
               >
                 Criar vaga
               </Button>

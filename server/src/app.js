@@ -14,6 +14,7 @@ import healthRoutes from './routes/health.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
 import leadsRoutes from './routes/leads.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,7 @@ export function createApp() {
   app.use('/report', reportRoutes);
   app.use('/branding', brandingRoutes);
   app.use('/payments', paymentsRoutes);
+  app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/super-admin', superAdminRoutes);
 
@@ -67,6 +69,8 @@ export function createApp() {
         getBranding: 'GET /branding/:workspaceId',
         saveBranding: 'PUT /branding/:workspaceId',
         uploadLogo: 'POST /branding/:workspaceId/logo',
+        listJobs: 'GET /jobs',
+        createJob: 'POST /jobs',
         getReport: 'GET /report/:id',
         createCheckout: 'POST /payments/create-checkout',
         confirmCheckout: 'POST /payments/confirm',

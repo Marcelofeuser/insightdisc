@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
+import { useToast } from '@/components/ui/use-toast';
 
 const FALLBACK_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
@@ -36,6 +37,7 @@ function normalizeBranding(input = {}) {
 
 export default function BrandingSettings() {
   const { access, user } = useAuth();
+  const { toast } = useToast();
   const apiBaseUrl = getApiBaseUrl();
 
   const workspaceId = useMemo(
@@ -120,17 +122,31 @@ export default function BrandingSettings() {
   const saveBranding = async () => {
     if (!canEditBranding) {
       setError('Sem créditos para editar a marca. Compre créditos para liberar o white-label.');
+      toast({
+        variant: 'destructive',
+        title: 'Sem créditos para editar a marca',
+        description: 'Compre créditos para liberar o white-label.',
+      });
       return;
     }
 
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
+      toast({
+        variant: 'destructive',
+        title: 'Dados inválidos',
+        description: validationError,
+      });
       return;
     }
 
     if (!workspaceId) {
       setError('Workspace não identificado.');
+      toast({
+        variant: 'destructive',
+        title: 'Workspace não identificado',
+      });
       return;
     }
 
@@ -161,8 +177,18 @@ export default function BrandingSettings() {
       }
 
       setSuccess('Identidade visual salva com sucesso.');
+      toast({
+        title: 'Identidade visual salva',
+        description: 'Logo, cores e rodapé foram atualizados no preview.',
+      });
     } catch (saveError) {
-      setError(saveError?.message || 'Falha ao salvar identidade visual.');
+      const message = saveError?.message || 'Falha ao salvar identidade visual.';
+      setError(message);
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao salvar identidade visual',
+        description: message,
+      });
     } finally {
       setSaving(false);
     }
@@ -171,6 +197,11 @@ export default function BrandingSettings() {
   const uploadLogo = async (file) => {
     if (!canEditBranding) {
       setError('Sem créditos para editar a marca. Compre créditos para liberar o white-label.');
+      toast({
+        variant: 'destructive',
+        title: 'Sem créditos para editar a marca',
+        description: 'Compre créditos para liberar o white-label.',
+      });
       return;
     }
 
@@ -205,8 +236,17 @@ export default function BrandingSettings() {
       }
 
       setSuccess('Logo atualizado com sucesso.');
+      toast({
+        title: 'Logo atualizado',
+      });
     } catch (uploadError) {
-      setError(uploadError?.message || 'Falha ao enviar logo.');
+      const message = uploadError?.message || 'Falha ao enviar logo.';
+      setError(message);
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao enviar logo',
+        description: message,
+      });
     } finally {
       setUploading(false);
     }

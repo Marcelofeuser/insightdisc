@@ -238,7 +238,7 @@ export default function Dashboard() {
             </Button>
 
             {canManageAssessments ? (
-              <Link to={createPageUrl('SendAssessment')}>
+              <Link to="/sendAssessment">
                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700">Enviar avaliação</Button>
               </Link>
             ) : null}
@@ -299,7 +299,7 @@ export default function Dashboard() {
             title="Sem avaliações concluídas"
             description="Quando alguém finalizar uma avaliação, ela aparecerá aqui."
             ctaLabel={canManageAssessments ? 'Enviar avaliação' : undefined}
-            onCtaClick={canManageAssessments ? () => (window.location.href = createPageUrl('SendAssessment')) : undefined}
+            onCtaClick={canManageAssessments ? () => (window.location.href = '/sendAssessment') : undefined}
           />
         ) : (
           <div className="space-y-3">
