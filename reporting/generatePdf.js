@@ -14,6 +14,31 @@ function resolvePath(...parts) {
   return path.resolve(ROOT_DIR, ...parts);
 }
 
+function toFileBaseUrl(absoluteDirPath) {
+  const normalized = String(absoluteDirPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  return `file://${normalized}/`;
+}
+
+function normalizeHtmlAssetPaths(html) {
+  const publicBaseUrl = toFileBaseUrl(resolvePath('public'));
+  let normalizedHtml = String(html || '');
+
+  if (!/<base\s/i.test(normalizedHtml)) {
+    normalizedHtml = normalizedHtml.replace(
+      /<head>/i,
+      `<head>\n    <base href="${publicBaseUrl}">`
+    );
+  }
+
+  // Resolve root-based assets (/brand, /report-assets, etc.) when rendering HTML directly from setContent.
+  normalizedHtml = normalizedHtml.replace(
+    /(["'(])\/(brand|report-assets|assets|reports)\//g,
+    `$1${publicBaseUrl}$2/`
+  );
+
+  return normalizedHtml;
+}
+
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf8');
   return JSON.parse(raw);
@@ -77,6 +102,7 @@ async function loadBrowserLauncher() {
 export async function generatePdfFromData(rawData, options = {}) {
   const reportModel = await buildReportModel(rawData || {});
   const html = renderReportHtml({ reportModel });
+  const htmlForPdf = normalizeHtmlAssetPaths(html);
 
   const defaultOutputDir = resolvePath('dist', 'reports');
   const outputDir = path.resolve(options.outputDir || defaultOutputDir);
@@ -90,7 +116,7 @@ export async function generatePdfFromData(rawData, options = {}) {
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlForPdf, { waitUntil: 'networkidle0' });
     if (typeof page.emulateMediaType === 'function') {
       await page.emulateMediaType('print');
     }
@@ -115,7 +141,7 @@ export async function generatePdfFromData(rawData, options = {}) {
     engine: engine.name,
     outputPath,
     outputRelative: path.relative(ROOT_DIR, outputPath),
-    html,
+    html: htmlForPdf,
     reportModel,
   };
 }

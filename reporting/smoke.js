@@ -151,13 +151,13 @@ function validateHtml(model, html) {
   assert(pageBodies.length === 30, `Esperado 30 paginas, encontrado ${pageBodies.length}.`);
   assert(html.includes('class="page cover-page"'), 'Pagina 1 (capa) nao encontrada como cover-page.');
   assert(
-    /\.cover-page\s*\{[\s\S]*#07142d[\s\S]*#0b1f3b[\s\S]*#0f2d55/m.test(html),
-    'Capa premium azul/dourada nao encontrada.',
+    html.includes('class="cover-art-image"') && html.includes('/report-assets/cover-insightdisc-premium.png'),
+    'Asset oficial da nova capa nao encontrado na pagina 1.',
   );
   assert(!html.includes('/brand/insightdisc-logo-transparent.png'), 'Logo antiga ainda encontrada.');
   assert(html.includes(REQUIRED_LOGO), 'Logo oficial nao encontrada no HTML.');
   const coverTitleMatches = [...html.matchAll(/class="cover-title"/g)];
-  assert(coverTitleMatches.length === 1, `Titulo principal da capa duplicado (${coverTitleMatches.length}).`);
+  assert(coverTitleMatches.length === 0, `Estrutura antiga de titulo da capa ainda ativa (${coverTitleMatches.length}).`);
   assert(html.includes('>Sumário<') || html.includes('>Sumario<'), 'Pagina de sumario nao encontrada.');
   assert(html.includes('Conclusão Estratégica do Perfil') || html.includes('Conclusao Estrategica do Perfil'), 'Pagina final premium nao encontrada.');
   assert(
@@ -180,12 +180,12 @@ function validateHtml(model, html) {
   assert(html.includes('Forças Naturais') || html.includes('Forcas Naturais'), 'Secao de forcas nao encontrada.');
   assert(html.includes('Pontos de Desenvolvimento'), 'Secao de desenvolvimento nao encontrada.');
 
-  const logoMatches = [...html.matchAll(/<img[^>]+class="cover-logo"[^>]*>/g)];
-  assert(logoMatches.length === 1, `Esperado 1 bloco de logo na capa, encontrado ${logoMatches.length}.`);
+  const coverArtMatches = [...html.matchAll(/<img[^>]+class="cover-art-image"[^>]*>/g)];
+  assert(coverArtMatches.length === 1, `Esperado 1 asset de capa oficial, encontrado ${coverArtMatches.length}.`);
 
   for (let index = 0; index < pageBodies.length; index += 1) {
     const plain = stripTags(pageBodies[index]);
-    const minChars = index === 0 ? 220 : index === 1 || index === 29 ? 360 : 520;
+    const minChars = index === 0 ? 0 : index === 1 || index === 29 ? 360 : 520;
     assert(
       plain.length >= minChars,
       `Pagina ${index + 1} com densidade baixa (${plain.length} caracteres).`

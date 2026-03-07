@@ -94,6 +94,7 @@ const SECTION_ICON_SVGS = Object.freeze({
 const DEFAULT_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
   logo_url: '/brand/insightdisc-report-logo.png',
+  cover_url: '/report-assets/cover-insightdisc-premium.png',
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
@@ -176,6 +177,7 @@ function normalizeBranding(branding = {}, meta = {}) {
   return {
     company_name: safeText(branding?.company_name || meta?.brand, DEFAULT_BRANDING.company_name),
     logo_url: safeText(branding?.logo_url, DEFAULT_BRANDING.logo_url),
+    cover_url: safeText(branding?.cover_url, DEFAULT_BRANDING.cover_url),
     brand_primary_color: normalizeHexColor(
       branding?.brand_primary_color,
       DEFAULT_BRANDING.brand_primary_color
@@ -661,25 +663,13 @@ function buildPage({
 }) {
   if (cover) {
     const coverBrandName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
-    const coverLogoUrl = safeText(branding?.logo_url, DEFAULT_BRANDING.logo_url);
+    const coverArtUrl = DEFAULT_BRANDING.cover_url;
     return `
       <section class="page cover-page">
         <div class="cover-content">
-          <div class="cover-main-zone">
-            <div class="cover-logo-block">
-              <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-logo" />
-            </div>
-            ${content}
-          </div>
-          <div class="cover-bottom-lockup">
-            <img src="${esc(coverLogoUrl)}" alt="${esc(coverBrandName)}" class="cover-mini-logo" />
-            <p class="cover-bottom-label">${esc(coverBrandName)}</p>
-          </div>
+          <img src="${esc(coverArtUrl)}" alt="Capa oficial ${esc(coverBrandName)}" class="cover-art-image" />
+          ${content}
         </div>
-        <footer class="footer cover-footer">
-          <span>InsightDISC • Relatório Confidencial</span>
-          <span>Página 1 de ${totalPages}</span>
-        </footer>
       </section>
     `;
   }
@@ -807,43 +797,13 @@ export function renderReportHtml(input = {}) {
   ]);
 
   const pages = [];
-  const showCoverLockupText = !branding.logo_contains_tagline;
-
   pages.push(
     buildPage({
       number: 1,
       totalPages: meta.totalPages,
       cover: true,
       branding,
-      content: `
-        <div class="cover-main-copy">
-          <div class="cover-kicker">Avaliacao comportamental premium • insight editorial</div>
-          ${showCoverLockupText ? '<p class="cover-brand-name">InsightDISC</p>' : ''}
-          ${showCoverLockupText ? '<div class="cover-rule"></div>' : ''}
-          ${showCoverLockupText ? '<p class="cover-platform-tagline">Plataforma de Análise Comportamental</p>' : ''}
-          <h1 class="cover-title">RELATÓRIO DE ANÁLISE COMPORTAMENTAL DISC</h1>
-          <p class="cover-name">${esc(participant.name)}</p>
-          <p class="cover-subtitle">${esc(meta.reportSubtitle)}</p>
-          <div class="cover-disc-band">
-            ${FACTORS.map(
-              (factor) => `
-                <div class="cover-disc-chip" style="--disc:${FACTOR_META[factor].color}">
-                  <span>${factor}</span>
-                  <small>${FACTOR_META[factor].label}</small>
-                </div>
-              `
-            ).join('')}
-          </div>
-          <div class="cover-participant-box">
-            <div><strong>Empresa:</strong> ${esc(participant.company)}</div>
-            <div><strong>Data:</strong> ${esc(meta.generatedAt)}</div>
-            <div><strong>E-mail:</strong> ${esc(participant.email)}</div>
-            <div><strong>Perfil predominante:</strong> ${esc(profile.primary)}${esc(profile.secondary ? ` + ${profile.secondary}` : '')}</div>
-            <div><strong>Responsável:</strong> ${esc(meta.responsibleName)}</div>
-            <div><strong>ID da avaliação:</strong> ${esc(participant.assessmentId)}</div>
-          </div>
-        </div>
-      `,
+      content: '',
     })
   );
 
@@ -2086,224 +2046,33 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-page {
-      background:
-        radial-gradient(circle at 15% 10%, rgba(247, 181, 0, 0.18), transparent 32%),
-        radial-gradient(circle at 84% 12%, rgba(52, 152, 219, 0.14), transparent 34%),
-        linear-gradient(155deg, #07142d 0%, #0b1f3b 52%, #0f2d55 100%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #020916;
+      border: none;
     }
 
     .cover-page::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(120deg, rgba(255, 255, 255, 0.09), transparent 38%),
-        linear-gradient(330deg, rgba(247, 181, 0, 0.12), transparent 42%);
-      pointer-events: none;
+      display: none;
     }
 
     .cover-content {
       position: relative;
       z-index: 1;
-      padding: 16mm 16mm 24mm;
+      padding: 0;
       height: 100%;
+      width: 100%;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 4.4mm;
+      align-items: stretch;
+      justify-content: stretch;
       overflow: hidden;
     }
 
-    .cover-main-zone {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4mm;
-    }
-
-    .cover-logo-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2.6mm;
-      margin-top: 0;
-    }
-
-    .cover-main-copy {
+    .cover-art-image {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3.3mm;
-    }
-
-    .cover-logo {
-      width: 142mm;
-      max-width: 100%;
-      max-height: 34mm;
+      height: 100%;
       object-fit: contain;
+      object-position: center center;
       display: block;
-      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.28));
-    }
-
-    .cover-kicker {
-      text-align: center;
-      margin: 0;
-      font-size: 11px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.76);
-      font-weight: 600;
-    }
-
-    .cover-brand-name {
-      text-align: center;
-      margin: 0;
-      font-size: 13px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.94);
-      font-weight: 700;
-    }
-
-    .cover-platform-tagline {
-      text-align: center;
-      margin: 0;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.78);
-      letter-spacing: 0.28px;
-    }
-
-    .cover-tagline {
-      font-size: 12.5px;
-      color: rgba(255, 255, 255, 0.8);
-      letter-spacing: 0.4px;
-    }
-
-    .cover-rule {
-      width: 126mm;
-      max-width: 100%;
-      height: 2px;
-      margin: 1mm auto 0;
-      border-radius: 999px;
-      background: linear-gradient(90deg, rgba(247, 181, 0, 0.14), var(--secondary), rgba(248, 227, 163, 0.78));
-    }
-
-    .cover-title {
-      margin: 0;
-      text-align: center;
-      color: #ffffff;
-      font-size: 30px;
-      line-height: 1.1;
-      letter-spacing: 0.2px;
-      font-weight: 800;
-      text-transform: uppercase;
-      max-width: 162mm;
-      margin-inline: auto;
-    }
-
-    .cover-name {
-      margin: 0 auto;
-      font-size: 20px;
-      line-height: 1.16;
-      font-weight: 650;
-      color: #f8e3a3;
-      text-align: center;
-    }
-
-    .cover-subtitle {
-      margin: 0 auto 1mm;
-      max-width: 165mm;
-      text-align: center;
-      color: rgba(255, 255, 255, 0.88);
-      font-size: 14px;
-      line-height: 1.36;
-    }
-
-    .cover-disc-band {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-      margin: 2mm auto 1mm;
-      max-width: 162mm;
-    }
-
-    .cover-disc-chip {
-      border: 1px solid var(--disc);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-      border-radius: 999px;
-      padding: 6px 8px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    .cover-disc-chip span {
-      font-size: 13px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: 0.2px;
-    }
-
-    .cover-disc-chip small {
-      font-size: 9.7px;
-      color: rgba(255, 255, 255, 0.85);
-      line-height: 1.2;
-    }
-
-    .cover-participant-box {
-      margin: 0 auto;
-      width: 100%;
-      max-width: 165mm;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
-      border: 1px solid rgba(255, 255, 255, 0.24);
-      border-radius: 16px;
-      padding: 13px 14px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px 14px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
-      backdrop-filter: blur(8px);
-    }
-
-    .cover-participant-box strong {
-      color: #f8e3a3;
-    }
-
-    .cover-bottom-lockup {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2mm;
-      padding-top: 2.4mm;
-      margin-bottom: 1.6mm;
-    }
-
-    .cover-mini-logo {
-      width: 56mm;
-      max-width: 56mm;
-      max-height: 14mm;
-      object-fit: contain;
-      opacity: 0.74;
-      display: block;
-      filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.26));
-    }
-
-    .cover-bottom-label {
-      margin: 0;
-      font-size: 10.5px;
-      line-height: 1.2;
-      text-transform: uppercase;
-      letter-spacing: 0.75px;
-      color: rgba(255, 255, 255, 0.72);
-      text-align: center;
+      background: #020916;
     }
 
     .executive-hero {
