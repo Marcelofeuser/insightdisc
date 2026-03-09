@@ -346,12 +346,42 @@ router.get('/super-admin/me', requireAuth, attachUser, requireSuperAdmin, async 
   }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', requireAuth, attachUser, async (req, res) => {
   try {
-    const schema = z.object({ email: z.string().email(), newPassword: z.string().min(8) });
+    const schema = z.object({
+      email: z.string().email().optional(),
+      currentPassword: z.string().min(1).optional(),
+      newPassword: z.string().min(8),
+    });
     const input = schema.parse(req.body || {});
 
-    const user = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
+    const sessionUser = req.user;
+    if (!sessionUser) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    const requestedEmail = String(input.email || sessionUser.email || '')
+      .trim()
+      .toLowerCase();
+    const sessionEmail = String(sessionUser.email || '').trim().toLowerCase();
+    const isSelfReset = requestedEmail === sessionEmail;
+    const canResetAnyUser = isSuperAdminUser(sessionUser);
+
+    if (!isSelfReset && !canResetAnyUser) {
+      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
+    }
+
+    if (isSelfReset && !canResetAnyUser) {
+      const validCurrentPassword = await verifyPassword(
+        String(input.currentPassword || ''),
+        sessionUser.passwordHash,
+      );
+      if (!validCurrentPassword) {
+        return res.status(401).json({ ok: false, error: 'CURRENT_PASSWORD_INVALID' });
+      }
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: requestedEmail } });
     if (!user) {
       return res.status(404).json({ ok: false, error: 'Usuário não encontrado.' });
     }

@@ -3,6 +3,7 @@ export const PERMISSIONS = Object.freeze({
 });
 
 const ROLE_PERMISSIONS = Object.freeze({
+  SUPER_ADMIN: [PERMISSIONS.REPORT_EXPORT],
   ADMIN: [PERMISSIONS.REPORT_EXPORT],
   PRO: [PERMISSIONS.REPORT_EXPORT],
   CANDIDATE: [],
@@ -21,4 +22,3 @@ export function hasPermission(access, permission) {
   const granted = ROLE_PERMISSIONS[role] || [];
   return granted.includes(permission);
 }
-

@@ -46,8 +46,8 @@ export default function Login() {
   const { checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
   const isDev = import.meta.env.DEV;
-  const canShowDevMockShortcuts =
-    isDev && ENABLE_DEV_LOGIN_SHORTCUTS && (!apiBaseUrl || Boolean(base44?.__isMock));
+  const canUseMockAuth = isDev && ENABLE_DEV_LOGIN_SHORTCUTS && Boolean(base44?.__isMock);
+  const canShowDevMockShortcuts = canUseMockAuth;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,19 +81,14 @@ export default function Login() {
           email: payload?.user?.email || email.trim().toLowerCase(),
         });
         resolvedUser = payload?.user || null;
-      } else if (typeof base44.auth.login === 'function') {
-        await base44.auth.login({
-          email: email.trim().toLowerCase(),
-          password,
-        });
       } else {
-        throw new Error('Login não suportado no ambiente atual.');
+        throw new Error(
+          'Autenticação indisponível: backend não configurado. Defina VITE_API_URL/BACKEND_API_URL.'
+        );
       }
 
       await checkAppState();
-      const destination = apiBaseUrl
-        ? resolvePostLoginPath(resolvedUser, nextPath)
-        : nextPath || createPageUrl('Dashboard');
+      const destination = resolvePostLoginPath(resolvedUser, nextPath);
       navigate(destination, { replace: true });
     } catch (loginError) {
       setError(loginError?.payload?.error || loginError?.message || 'Falha ao entrar.');
@@ -103,6 +98,11 @@ export default function Login() {
   };
 
   const quickLogin = async (mockEmail) => {
+    if (!canUseMockAuth) {
+      setError('Atalho mock disponível apenas em desenvolvimento local.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {

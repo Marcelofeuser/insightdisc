@@ -8,9 +8,57 @@ const API_EMAIL_KEYS = ENABLE_DEV_LOGIN_SHORTCUTS
 const PRIMARY_API_TOKEN_KEY = API_TOKEN_KEYS[0];
 const PRIMARY_API_EMAIL_KEY = API_EMAIL_KEYS[0];
 
+function normalizeBaseUrl(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  return trimmed.replace(/\/$/, '');
+}
+
+function isLoopbackHost(hostname = '') {
+  const normalized = String(hostname || '').toLowerCase();
+  return (
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1'
+  );
+}
+
 export function getApiBaseUrl() {
-  const raw = String(import.meta.env.VITE_API_URL || '').trim();
-  return raw ? raw.replace(/\/$/, '') : '';
+  const configured = normalizeBaseUrl(
+    import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || ''
+  );
+  const runtimeOrigin =
+    typeof window !== 'undefined' ? normalizeBaseUrl(window.location.origin) : '';
+
+  if (configured) {
+    if (configured.startsWith('/') && runtimeOrigin) {
+      return normalizeBaseUrl(`${runtimeOrigin}${configured}`);
+    }
+
+    if (
+      import.meta.env.PROD &&
+      runtimeOrigin &&
+      /^https?:\/\//i.test(configured)
+    ) {
+      try {
+        const configuredUrl = new URL(configured);
+        const runtimeUrl = new URL(runtimeOrigin);
+        if (isLoopbackHost(configuredUrl.hostname) && !isLoopbackHost(runtimeUrl.hostname)) {
+          return runtimeOrigin;
+        }
+      } catch {
+        // Ignore URL parsing issues and return configured value below.
+      }
+    }
+
+    return configured;
+  }
+
+  if (import.meta.env.PROD && runtimeOrigin) {
+    return runtimeOrigin;
+  }
+
+  return '';
 }
 
 function getFromStorage(keys = []) {

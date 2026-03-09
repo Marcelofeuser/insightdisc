@@ -16,6 +16,7 @@ const AuthContext = createContext();
 const ENABLE_DEV_LOGIN_SHORTCUTS =
   import.meta.env.DEV &&
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
+const CAN_USE_DEV_BASE44_FALLBACK = import.meta.env.DEV;
 
 export const AuthProvider = ({ children }) => {
   const setAuthContextStore = useUserStore((state) => state.setAuthContext);
@@ -64,6 +65,17 @@ export const AuthProvider = ({ children }) => {
         setAppPublicSettings({ id: null, public_settings: {} });
         await checkUserAuth();
         setIsLoadingPublicSettings(false);
+        return;
+      }
+
+      if (!CAN_USE_DEV_BASE44_FALLBACK) {
+        resetAuthContextStore();
+        setAuthError({
+          type: 'api_required',
+          message: 'Backend API não configurado para autenticação.',
+        });
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
         return;
       }
 
@@ -185,6 +197,18 @@ export const AuthProvider = ({ children }) => {
           creditsBalance: normalizedAccess.creditsBalance,
         });
         setIsLoadingAuth(false);
+        return;
+      }
+
+      if (!CAN_USE_DEV_BASE44_FALLBACK) {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        setUser(null);
+        resetAuthContextStore();
+        setAuthError({
+          type: 'api_required',
+          message: 'Backend API não configurado para autenticação.',
+        });
         return;
       }
 

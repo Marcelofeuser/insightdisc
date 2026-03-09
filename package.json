@@ -20,6 +20,7 @@
     "test:job-matching": "playwright test tests/e2e/job-matching.spec.js",
     "test:super-admin": "playwright test tests/e2e/super-admin.spec.js",
     "test:leads": "playwright test tests/e2e/leads-dashboard.spec.js",
+    "test:auth-live": "playwright test tests/e2e/auth-access-live.spec.js --config=playwright.live.config.js",
     "preview": "vite preview",
     "report:sample": "node reporting/generatePdf.js reporting/sample-data.json",
     "report:build": "node reporting/generatePdf.js",

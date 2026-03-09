@@ -6,6 +6,10 @@ const vitePort = Number(process.env.VITE_PORT || 5173);
 const defaultAppUrl = `http://localhost:${vitePort}`;
 const superAdminMasterKey = String(process.env.SUPER_ADMIN_MASTER_KEY || '').trim();
 export const hasSuperAdminKey = Boolean(superAdminMasterKey);
+const allowDevEmailAuth =
+  String(process.env.ALLOW_DEV_EMAIL_AUTH || '')
+    .trim()
+    .toLowerCase() === 'true';
 
 if (!hasSuperAdminKey && process.env.NODE_ENV !== 'test') {
   // eslint-disable-next-line no-console
@@ -27,4 +31,5 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
   superAdminMasterKey,
   hasSuperAdminKey,
+  allowDevEmailAuth,
 };

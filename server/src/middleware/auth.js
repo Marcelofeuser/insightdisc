@@ -12,19 +12,12 @@ function extractBearerToken(header = '') {
 export async function requireAuth(req, res, next) {
   try {
     const token = extractBearerToken(req.headers.authorization);
-    if (!token && env.nodeEnv !== 'production') {
+    if (!token && env.nodeEnv !== 'production' && env.allowDevEmailAuth) {
       const email = String(req.headers['x-insight-user-email'] || '').trim().toLowerCase();
       if (email) {
-        let user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: email.split('@')[0] || 'dev-user',
-              passwordHash: 'dev-auth-placeholder',
-              credits: { create: { balance: 0 } },
-            },
-          });
+          return res.status(401).json({ ok: false, error: 'Unauthorized' });
         }
         req.auth = {
           userId: user.id,

@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { createPageUrl } from '@/utils';
 
 export default function ForgotPassword() {
   const apiBaseUrl = getApiBaseUrl();
+  const sessionToken = getApiToken();
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,13 +26,19 @@ export default function ForgotPassword() {
       setError('Recuperação de senha exige backend configurado (VITE_API_URL).');
       return;
     }
+    if (!sessionToken) {
+      setError('Por segurança, faça login antes de alterar sua senha.');
+      return;
+    }
 
     setLoading(true);
     try {
       await apiRequest('/auth/reset-password', {
         method: 'POST',
+        requireAuth: true,
         body: {
           email: email.trim().toLowerCase(),
+          currentPassword,
           newPassword: password,
         },
       });
@@ -91,9 +99,21 @@ export default function ForgotPassword() {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="forgot-current-password">Senha atual</Label>
+              <Input
+                id="forgot-current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Confirme sua senha atual"
+                required
+              />
+            </div>
             <Button
               type="submit"
-              disabled={loading || !email || password.length < 8}
+              disabled={loading || !email || !currentPassword || password.length < 8}
               className="w-full bg-indigo-600 hover:bg-indigo-700"
             >
               {loading ? 'Atualizando senha...' : 'Atualizar senha'}

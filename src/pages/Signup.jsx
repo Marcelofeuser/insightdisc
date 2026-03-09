@@ -21,6 +21,10 @@ export default function Signup() {
   const navigate = useNavigate();
   const { checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const canUseMockAuth =
+    import.meta.env.DEV &&
+    String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true' &&
+    Boolean(base44?.__isMock);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -68,7 +72,7 @@ export default function Signup() {
           token: payload.token,
           email: payload?.user?.email || normalizedEmail,
         });
-      } else if (base44?.__isMock) {
+      } else if (canUseMockAuth) {
         const createdUser = await base44.entities.User.create({
           email: normalizedEmail,
           full_name: trimmedName,
@@ -93,7 +97,9 @@ export default function Signup() {
 
         await base44.auth.login({ email: normalizedEmail });
       } else {
-        throw new Error('Cadastro indisponível sem backend configurado.');
+        throw new Error(
+          'Cadastro indisponível: backend não configurado. Defina VITE_API_URL/BACKEND_API_URL.'
+        );
       }
 
       await checkAppState();

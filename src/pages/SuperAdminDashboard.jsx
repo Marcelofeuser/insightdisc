@@ -133,6 +133,17 @@ export default function SuperAdminDashboard() {
   const apiBaseUrl = getApiBaseUrl();
   const token = getApiToken();
 
+  const resolveAbsoluteApiUrl = useCallback(
+    (rawUrl = '') => {
+      const normalized = String(rawUrl || '').trim();
+      if (!normalized) return '';
+      if (/^https?:\/\//i.test(normalized)) return normalized;
+      if (!apiBaseUrl) return normalized;
+      return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
+    },
+    [apiBaseUrl],
+  );
+
   const loadOverview = useCallback(async (showRefreshState = false) => {
     if (showRefreshState) setRefreshing(true);
     setLoading((prev) => (showRefreshState ? prev : true));
@@ -142,9 +153,24 @@ export default function SuperAdminDashboard() {
         method: 'GET',
         requireAuth: true,
       });
+      const normalizedReports = Array.isArray(payload?.latestReports)
+        ? payload.latestReports.map((report) => ({
+            ...report,
+            pdfUrl: resolveAbsoluteApiUrl(report?.pdfUrl || ''),
+          }))
+        : [];
+      const normalizedAssessments = Array.isArray(payload?.latestAssessments)
+        ? payload.latestAssessments.map((assessment) => ({
+            ...assessment,
+            pdfUrl: resolveAbsoluteApiUrl(assessment?.pdfUrl || ''),
+          }))
+        : [];
+
       setOverview({
         ...EMPTY_OVERVIEW,
         ...payload,
+        latestReports: normalizedReports,
+        latestAssessments: normalizedAssessments,
       });
     } catch (loadError) {
       setError(loadError?.payload?.error || loadError?.message || 'Falha ao carregar dashboard.');
@@ -152,7 +178,7 @@ export default function SuperAdminDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [resolveAbsoluteApiUrl]);
 
   useEffect(() => {
     void loadOverview(false);
@@ -313,7 +339,7 @@ export default function SuperAdminDashboard() {
         body: { assessmentId },
       });
 
-      const pdfUrl = payload?.pdfUrl || payload?.report?.pdfUrl || '';
+      const pdfUrl = resolveAbsoluteApiUrl(payload?.pdfUrl || payload?.report?.pdfUrl || '');
       setOverview((prev) => ({
         ...prev,
         latestReports: prev.latestReports.map((report) =>
@@ -616,7 +642,7 @@ export default function SuperAdminDashboard() {
                             size="sm"
                             variant="outline"
                             disabled={!report.pdfUrl}
-                            onClick={() => window.open(report.pdfUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => window.open(resolveAbsoluteApiUrl(report.pdfUrl), '_blank', 'noopener,noreferrer')}
                           >
                             PDF
                           </Button>
@@ -748,7 +774,10 @@ export default function SuperAdminDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => latestDemoReport?.pdfUrl && window.open(latestDemoReport.pdfUrl, '_blank', 'noopener,noreferrer')}
+                  onClick={() =>
+                    latestDemoReport?.pdfUrl &&
+                    window.open(resolveAbsoluteApiUrl(latestDemoReport.pdfUrl), '_blank', 'noopener,noreferrer')
+                  }
                   disabled={!latestDemoReport?.pdfUrl}
                 >
                   Abrir PDF demo
@@ -773,4 +802,3 @@ export default function SuperAdminDashboard() {
     </div>
   );
 }
-

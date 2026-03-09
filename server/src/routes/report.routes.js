@@ -1,26 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
-import { env } from '../config/env.js';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, requireActiveCustomer } from '../middleware/rbac.js';
+import { attachUser, canAccessOrganization, requireActiveCustomer } from '../middleware/rbac.js';
 import { requireReportExport } from '../middleware/require-report-export.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { renderReportHtml } from '../modules/report/render-report-html.js';
 
 const router = Router();
-
-async function canAccessOrganization(userId, organizationId) {
-  if (env.nodeEnv !== 'production') {
-    return true;
-  }
-
-  const membership = await prisma.organizationMember.findFirst({ where: { organizationId, userId } });
-  if (membership) return true;
-  const owner = await prisma.organization.findFirst({ where: { id: organizationId, ownerId: userId } });
-  return Boolean(owner);
-}
 
 router.get(
   '/:assessmentId/html',
