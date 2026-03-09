@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiAuthHeaders, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,76 @@ function statusBadgeClass(status = '') {
   return 'bg-slate-100 text-slate-700 border-slate-200';
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (normalized) return normalized;
+  }
+  return '';
+}
+
+function inferReportAssessmentId(report = {}) {
+  return firstNonEmpty(
+    report?.assessmentId,
+    report?.assessment?.id,
+    report?.assessment_id,
+    report?.assessmentID,
+  );
+}
+
+function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
+  const assessmentId = inferReportAssessmentId(report);
+  const previewPath =
+    firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl) ||
+    (assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '');
+  const rawPdfPath =
+    firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl) ||
+    (assessmentId
+      ? `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`
+      : '');
+
+  return {
+    ...report,
+    id: firstNonEmpty(report?.id, report?.reportId, assessmentId),
+    reportId: firstNonEmpty(report?.reportId, report?.id),
+    assessmentId,
+    previewPath,
+    publicLink: previewPath,
+    pdfUrl: resolveAbsoluteApiUrl(rawPdfPath),
+    pdfPath: rawPdfPath,
+    hasStoredPdf: Boolean(firstNonEmpty(report?.pdfUrl, report?.pdfPath, report?.pdf_url)),
+  };
+}
+
+function parsePdfFileName(contentDisposition, fallbackName = 'insightdisc-relatorio.pdf') {
+  const header = String(contentDisposition || '');
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]).replace(/[/\\]/g, '-');
+  }
+
+  const quotedMatch = header.match(/filename=\"?([^\";]+)\"?/i);
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1].replace(/[/\\]/g, '-');
+  }
+
+  return fallbackName;
+}
+
+function downloadBlob(blob, fileName) {
+  const objectUrl = window.URL.createObjectURL(blob);
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  } finally {
+    window.URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function StatCard({ icon: Icon, label, value }) {
   return (
     <Card className="border-slate-200 bg-white/95 shadow-sm">
@@ -129,6 +199,7 @@ export default function SuperAdminDashboard() {
   const [overview, setOverview] = useState(EMPTY_OVERVIEW);
   const [updatingLeadId, setUpdatingLeadId] = useState('');
   const [generatingReport, setGeneratingReport] = useState('');
+  const [downloadingPdfId, setDownloadingPdfId] = useState('');
 
   const apiBaseUrl = getApiBaseUrl();
   const token = getApiToken();
@@ -153,17 +224,50 @@ export default function SuperAdminDashboard() {
         method: 'GET',
         requireAuth: true,
       });
-      const normalizedReports = Array.isArray(payload?.latestReports)
-        ? payload.latestReports.map((report) => ({
-            ...report,
-            pdfUrl: resolveAbsoluteApiUrl(report?.pdfUrl || ''),
-          }))
-        : [];
       const normalizedAssessments = Array.isArray(payload?.latestAssessments)
         ? payload.latestAssessments.map((assessment) => ({
             ...assessment,
             pdfUrl: resolveAbsoluteApiUrl(assessment?.pdfUrl || ''),
           }))
+        : [];
+      const assessmentByReportId = new Map(
+        normalizedAssessments
+          .map((assessment) => [String(assessment?.reportId || '').trim(), assessment])
+          .filter(([reportId]) => Boolean(reportId)),
+      );
+      const normalizedReports = Array.isArray(payload?.latestReports)
+        ? payload.latestReports.map((report, index) => {
+            const normalized = normalizeReportRowPayload(report, resolveAbsoluteApiUrl);
+            const reportId = String(normalized?.reportId || normalized?.id || '').trim();
+            const assessmentFallback = reportId ? assessmentByReportId.get(reportId) : null;
+            if (!assessmentFallback) {
+              return {
+                ...normalized,
+                id: normalized.id || reportId || normalized.assessmentId || `report-row-${index}`,
+              };
+            }
+
+            const fallbackAssessmentId = String(assessmentFallback?.id || '').trim();
+            const fallbackPdfUrl = resolveAbsoluteApiUrl(assessmentFallback?.pdfUrl || '');
+            const mergedAssessmentId = normalized.assessmentId || fallbackAssessmentId;
+            const mergedPreviewPath =
+              normalized.previewPath ||
+              (mergedAssessmentId ? `/Report?id=${encodeURIComponent(mergedAssessmentId)}` : '');
+            const mergedPdfUrl = normalized.pdfUrl || fallbackPdfUrl;
+            return {
+              ...normalized,
+              id:
+                normalized.id ||
+                reportId ||
+                mergedAssessmentId ||
+                assessmentFallback?.id ||
+                `report-row-${index}`,
+              assessmentId: mergedAssessmentId,
+              previewPath: mergedPreviewPath,
+              publicLink: mergedPreviewPath,
+              pdfUrl: mergedPdfUrl,
+            };
+          })
         : [];
 
       setOverview({
@@ -209,29 +313,155 @@ export default function SuperAdminDashboard() {
     navigate('/super-admin-login', { replace: true });
   };
 
-  const handleCopyText = async (text, label) => {
-    if (!text) {
-      toast({
-        variant: 'destructive',
-        title: 'Nada para copiar',
-        description: `Não há ${label} disponível para esta linha.`,
-      });
-      return;
+  const handleCopyText = useCallback(
+    async (text, label) => {
+      if (!text) {
+        toast({
+          variant: 'destructive',
+          title: 'Nada para copiar',
+          description: `Não há ${label} disponível para esta linha.`,
+        });
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(String(text));
+        toast({
+          title: 'Copiado',
+          description: `${label} copiado para a área de transferência.`,
+        });
+      } catch (_error) {
+        toast({
+          variant: 'destructive',
+          title: 'Falha ao copiar',
+          description: 'Não foi possível copiar no seu navegador.',
+        });
+      }
+    },
+    [toast],
+  );
+
+  const toAbsoluteAppUrl = useCallback((rawPath = '') => {
+    const normalized = String(rawPath || '').trim();
+    if (!normalized) return '';
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (typeof window === 'undefined') return normalized;
+    return `${window.location.origin}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
+  }, []);
+
+  const resolveReportPreviewPath = useCallback((report = {}) => {
+    const fromPayload = firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl);
+    if (fromPayload) {
+      if (/^https?:\/\//i.test(fromPayload)) {
+        try {
+          const parsed = new URL(fromPayload);
+          return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        } catch {
+          return '';
+        }
+      }
+      return fromPayload;
     }
-    try {
-      await navigator.clipboard.writeText(String(text));
-      toast({
-        title: 'Copiado',
-        description: `${label} copiado para a área de transferência.`,
-      });
-    } catch (_error) {
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao copiar',
-        description: 'Não foi possível copiar no seu navegador.',
-      });
-    }
-  };
+    const assessmentId = inferReportAssessmentId(report);
+    return assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '';
+  }, []);
+
+  const resolveReportPdfEndpoint = useCallback(
+    (report = {}) => {
+      const fromPayload = firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdfAbsoluteUrl);
+      if (fromPayload) {
+        return resolveAbsoluteApiUrl(fromPayload);
+      }
+
+      const assessmentId = inferReportAssessmentId(report);
+      if (!assessmentId) return '';
+      return resolveAbsoluteApiUrl(
+        `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`,
+      );
+    },
+    [resolveAbsoluteApiUrl],
+  );
+
+  const handleOpenReportPreview = useCallback(
+    (report = {}) => {
+      const previewPath = resolveReportPreviewPath(report);
+      if (!previewPath) {
+        toast({
+          variant: 'destructive',
+          title: 'Preview indisponível',
+          description: 'Este relatório não possui assessment vinculado.',
+        });
+        return;
+      }
+
+      navigate(previewPath);
+    },
+    [navigate, resolveReportPreviewPath, toast],
+  );
+
+  const handleCopyReportLink = useCallback(
+    async (report = {}) => {
+      const previewPath = resolveReportPreviewPath(report);
+      const absoluteLink = toAbsoluteAppUrl(previewPath);
+      await handleCopyText(absoluteLink, 'Link do relatório');
+    },
+    [handleCopyText, resolveReportPreviewPath, toAbsoluteAppUrl],
+  );
+
+  const handleDownloadReportPdf = useCallback(
+    async (report = {}) => {
+      const reportKey = firstNonEmpty(report?.id, report?.reportId, report?.assessmentId);
+      const endpoint = resolveReportPdfEndpoint(report);
+      if (!endpoint) {
+        toast({
+          variant: 'destructive',
+          title: 'PDF indisponível',
+          description: 'Não foi possível identificar o endpoint de download deste relatório.',
+        });
+        return;
+      }
+
+      setDownloadingPdfId(reportKey || 'downloading');
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            ...getApiAuthHeaders(),
+          },
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const message =
+            payload?.message ||
+            payload?.error ||
+            payload?.reason ||
+            `HTTP_${response.status}`;
+          throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        if (!blob || blob.size === 0) {
+          throw new Error('PDF_EMPTY');
+        }
+
+        const fallbackAssessmentId = inferReportAssessmentId(report) || 'export';
+        const fileName = parsePdfFileName(
+          response.headers.get('content-disposition'),
+          `insightdisc-relatorio-${fallbackAssessmentId}.pdf`,
+        );
+        downloadBlob(blob, fileName);
+      } catch (_error) {
+        toast({
+          variant: 'destructive',
+          title: 'Falha ao baixar PDF',
+          description: 'Não foi possível baixar o PDF deste relatório.',
+        });
+      } finally {
+        setDownloadingPdfId('');
+      }
+    },
+    [resolveReportPdfEndpoint, toast],
+  );
 
   const handleOpenLeadWhatsapp = (lead) => {
     const normalized = normalizePhone(lead?.phone || '');
@@ -343,11 +573,13 @@ export default function SuperAdminDashboard() {
       setOverview((prev) => ({
         ...prev,
         latestReports: prev.latestReports.map((report) =>
-          report.assessmentId === assessmentId
+          inferReportAssessmentId(report) === assessmentId
             ? { ...report, pdfUrl: pdfUrl || report.pdfUrl }
             : report,
         ),
       }));
+
+      await loadOverview(true);
 
       toast({
         title: 'Relatório gerado',
@@ -596,7 +828,7 @@ export default function SuperAdminDashboard() {
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-white">Relatórios</h2>
-          <TableContainer title="Relatórios mais recentes">
+          <TableContainer title="Relatórios mais recentes" id="super-admin-reports-table">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-slate-500 border-b">
@@ -610,7 +842,11 @@ export default function SuperAdminDashboard() {
                 </thead>
                 <tbody>
                   {(overview.latestReports || []).map((report) => (
-                    <tr key={report.id} className="border-b last:border-b-0">
+                    <tr
+                      key={report.id}
+                      className="border-b last:border-b-0"
+                      data-testid={`super-admin-report-row-${report.id}`}
+                    >
                       <td className="py-3 pr-3">
                         <div className="font-medium text-slate-800">{report.participant}</div>
                         <div className="text-xs text-slate-500">{report.organization}</div>
@@ -618,9 +854,13 @@ export default function SuperAdminDashboard() {
                       <td className="py-3 pr-3">{report.profile || '-'}</td>
                       <td className="py-3 pr-3">{formatDate(report.createdAt)}</td>
                       <td className="py-3 pr-3">
-                        {report.pdfUrl ? (
+                        {report.hasStoredPdf ? (
                           <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200">
                             Disponível
+                          </Badge>
+                        ) : report.assessmentId ? (
+                          <Badge className="bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            Sob demanda
                           </Badge>
                         ) : (
                           <Badge className="bg-slate-100 text-slate-700 border border-slate-200">
@@ -633,7 +873,8 @@ export default function SuperAdminDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => navigate(`/Report?id=${report.assessmentId}`)}
+                            data-testid={`super-admin-report-preview-${report.id}`}
+                            onClick={() => handleOpenReportPreview(report)}
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             Preview
@@ -641,22 +882,33 @@ export default function SuperAdminDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={!report.pdfUrl}
-                            onClick={() => window.open(resolveAbsoluteApiUrl(report.pdfUrl), '_blank', 'noopener,noreferrer')}
+                            data-testid={`super-admin-report-pdf-${report.id}`}
+                            disabled={
+                              downloadingPdfId === firstNonEmpty(report?.id, report?.reportId, report?.assessmentId) ||
+                              !firstNonEmpty(report?.assessmentId, report?.pdfUrl, report?.pdfPath)
+                            }
+                            onClick={() => void handleDownloadReportPdf(report)}
                           >
-                            PDF
+                            {downloadingPdfId === firstNonEmpty(report?.id, report?.reportId, report?.assessmentId)
+                              ? 'Baixando...'
+                              : 'PDF'}
                           </Button>
                           <Button
                             size="sm"
-                            disabled={generatingReport === report.assessmentId}
-                            onClick={() => void handleGenerateReportFromAssessment(report.assessmentId)}
+                            data-testid={`super-admin-report-regenerate-${report.id}`}
+                            disabled={
+                              !inferReportAssessmentId(report) ||
+                              generatingReport === inferReportAssessmentId(report)
+                            }
+                            onClick={() => void handleGenerateReportFromAssessment(inferReportAssessmentId(report))}
                           >
-                            {generatingReport === report.assessmentId ? 'Gerando...' : 'Regenerar PDF'}
+                            {generatingReport === inferReportAssessmentId(report) ? 'Gerando...' : 'Regenerar PDF'}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => void handleCopyText(report.publicLink, 'Link público')}
+                            data-testid={`super-admin-report-link-${report.id}`}
+                            onClick={() => void handleCopyReportLink(report)}
                           >
                             <Copy className="w-4 h-4 mr-1" />
                             Link
@@ -775,10 +1027,11 @@ export default function SuperAdminDashboard() {
                 <Button
                   variant="outline"
                   onClick={() =>
-                    latestDemoReport?.pdfUrl &&
-                    window.open(resolveAbsoluteApiUrl(latestDemoReport.pdfUrl), '_blank', 'noopener,noreferrer')
+                    void handleDownloadReportPdf(
+                      latestDemoReport || { assessmentId: latestDemoAssessment?.id || '' },
+                    )
                   }
-                  disabled={!latestDemoReport?.pdfUrl}
+                  disabled={!latestDemoAssessment?.id}
                 >
                   Abrir PDF demo
                 </Button>

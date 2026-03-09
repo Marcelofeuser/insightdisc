@@ -38,7 +38,15 @@ router.get('/', async (req, res) => {
   });
 });
 
-router.get('/overview', async (_req, res) => {
+router.get('/overview', async (req, res) => {
+  const appBaseUrl = `${req.protocol}://${req.get('host')}`;
+  const toAbsoluteUrl = (rawPath = '') => {
+    const normalized = String(rawPath || '').trim();
+    if (!normalized) return '';
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    return `${appBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
+  };
+
   const [usersTotal, assessmentsTotal, reportsTotal, leadsTotal, paymentsTotal, workspacesTotal] =
     await Promise.all([
       safeQuery('usersTotal', () => prisma.user.count(), 0),
@@ -175,23 +183,41 @@ router.get('/overview', async (_req, res) => {
     status: 'ativo',
   }));
 
-  const latestReports = latestReportsRaw.map((report) => ({
-    id: report.id,
-    assessmentId: report.assessmentId,
-    participant:
-      report.assessment?.candidateName ||
-      report.assessment?.candidateEmail ||
-      'Participante sem nome',
-    profile:
-      report.discProfile?.profile?.key ||
-      report.discProfile?.profileKey ||
-      report.discProfile?.profile?.title ||
-      '-',
-    createdAt: report.createdAt,
-    pdfUrl: report.pdfUrl || '',
-    organization: report.assessment?.organization?.name || '-',
-    publicLink: report.assessmentId ? `/Report?id=${report.assessmentId}` : '',
-  }));
+  const latestReports = latestReportsRaw.map((report) => {
+    const assessmentId = String(report.assessmentId || '').trim();
+    const previewPath = assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '';
+    const generatedPdfPath = assessmentId
+      ? `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`
+      : '';
+    const storedPdfPath = String(report.pdfUrl || '').trim();
+    const resolvedPdfPath = storedPdfPath || generatedPdfPath;
+
+    return {
+      id: report.id,
+      reportId: report.id,
+      assessmentId,
+      participant:
+        report.assessment?.candidateName ||
+        report.assessment?.candidateEmail ||
+        'Participante sem nome',
+      candidateEmail: report.assessment?.candidateEmail || '',
+      profile:
+        report.discProfile?.profile?.key ||
+        report.discProfile?.profileKey ||
+        report.discProfile?.profile?.title ||
+        '-',
+      createdAt: report.createdAt,
+      organization: report.assessment?.organization?.name || '-',
+      previewPath,
+      previewUrl: toAbsoluteUrl(previewPath),
+      publicLink: previewPath,
+      publicUrl: toAbsoluteUrl(previewPath),
+      pdfUrl: resolvedPdfPath,
+      pdfPath: resolvedPdfPath,
+      pdfAbsoluteUrl: toAbsoluteUrl(resolvedPdfPath),
+      hasStoredPdf: Boolean(storedPdfPath),
+    };
+  });
 
   const latestLeads = latestLeadsRaw.map((lead) => ({
     id: lead.id,
