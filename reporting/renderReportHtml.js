@@ -746,6 +746,60 @@ function applyGlobalWordingCorrections(html = '') {
     .replaceAll('Contribuicao tipica: contribuicao para', 'Contribuicao tipica: apoio a');
 }
 
+function applyUtf8Polish(html = '') {
+  const replacements = [
+    [/\bRelatorio\b/g, 'Relatório'],
+    [/\brelatorio\b/g, 'relatório'],
+    [/\bAnalise\b/g, 'Análise'],
+    [/\banalise\b/g, 'análise'],
+    [/\bComunicacao\b/g, 'Comunicação'],
+    [/\bcomunicacao\b/g, 'comunicação'],
+    [/\bLideranca\b/g, 'Liderança'],
+    [/\blideranca\b/g, 'liderança'],
+    [/\bDecisao\b/g, 'Decisão'],
+    [/\bdecisao\b/g, 'decisão'],
+    [/\bEstratégico\b/g, 'Estratégico'],
+    [/\bestrategico\b/g, 'estratégico'],
+    [/\bEstratégica\b/g, 'Estratégica'],
+    [/\bestrategica\b/g, 'estratégica'],
+    [/\bAdaptacao\b/g, 'Adaptação'],
+    [/\badaptacao\b/g, 'adaptação'],
+    [/\bOrganizacao\b/g, 'Organização'],
+    [/\borganizacao\b/g, 'organização'],
+    [/\bAvaliacao\b/g, 'Avaliação'],
+    [/\bavaliacao\b/g, 'avaliação'],
+    [/\bConclusao\b/g, 'Conclusão'],
+    [/\bconclusao\b/g, 'conclusão'],
+    [/\bCriterio\b/g, 'Critério'],
+    [/\bcriterio\b/g, 'critério'],
+    [/\bValidacao\b/g, 'Validação'],
+    [/\bvalidacao\b/g, 'validação'],
+    [/\bAplicacao\b/g, 'Aplicação'],
+    [/\baplicacao\b/g, 'aplicação'],
+    [/\bEvolucao\b/g, 'Evolução'],
+    [/\bevolucao\b/g, 'evolução'],
+    [/\bGestao\b/g, 'Gestão'],
+    [/\bgestao\b/g, 'gestão'],
+    [/\bPressao\b/g, 'Pressão'],
+    [/\bpressao\b/g, 'pressão'],
+    [/\bAcao\b/g, 'Ação'],
+    [/\bacao\b/g, 'ação'],
+    [/\bAcoes\b/g, 'Ações'],
+    [/\bacoes\b/g, 'ações'],
+    [/\bFuncao\b/g, 'Função'],
+    [/\bfuncao\b/g, 'função'],
+    [/\bAutonom(a|i)a\b/g, 'Autonomia'],
+    [/\bautonom(a|i)a\b/g, 'autonomia'],
+  ];
+
+  let normalized = String(html || '');
+  replacements.forEach(([pattern, replacement]) => {
+    normalized = normalized.replace(pattern, replacement);
+  });
+
+  return normalized;
+}
+
 function finalConclusionBlocks({ participant, profile, isPremiumTier = false }) {
   const isBalancedProfile = profile?.mode === 'balanced' || profile?.key === 'DISC';
   const profileDescriptor = isBalancedProfile
@@ -776,22 +830,37 @@ function finalConclusionBlocks({ participant, profile, isPremiumTier = false }) 
   return base;
 }
 
-function buildBackCoverPage(branding = {}) {
+function buildBackCoverPage(branding = {}, options = {}) {
   const companyName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
   const supportEmail = safeText(branding?.support_email, 'contato@insightdisc.app');
   const website = safeText(branding?.website, 'www.insightdisc.app');
+  const tierLabel = options?.isPremiumTier ? 'Relatório DISC Premium' : 'Relatório DISC Completo';
+  const reportDateLabel = safeText(options?.generatedAt, formatDate(Date.now()));
 
   return `
     <section class="back-cover-page" aria-label="Contracapa do relatório">
       <div class="back-cover">
+        <div class="back-cover-tier">${esc(tierLabel)}</div>
         <img src="/assets/logo-insightdisc.png" alt="${esc(companyName)}" class="back-cover-logo" />
         <div class="back-cover-title">${esc(companyName)}</div>
         <div class="back-cover-subtitle">Plataforma de Análise Comportamental</div>
-        <div class="back-cover-info">
-          Relatório de Análise DISC<br />
-          Gerado automaticamente pela plataforma ${esc(companyName)}<br />
-          ${esc(website)}<br />
-          ${esc(supportEmail)}
+        <div class="back-cover-divider"></div>
+        <div class="back-cover-columns">
+          <div class="back-cover-card">
+            <h4>Contato InsightDISC</h4>
+            <p>${esc(website)}</p>
+            <p>${esc(supportEmail)}</p>
+            <p>Data de geração: ${esc(reportDateLabel)}</p>
+          </div>
+          <div class="back-cover-card">
+            <h4>Disclaimer DISC</h4>
+            <p>Este relatório utiliza o modelo DISC para leitura comportamental aplicada ao contexto profissional.</p>
+            <p>Não constitui diagnóstico psicológico, clínico ou psiquiátrico.</p>
+          </div>
+        </div>
+        <div class="back-cover-bottom">
+          <p>© ${new Date().getFullYear()} ${esc(companyName)}. Todos os direitos reservados.</p>
+          <p>Uso permitido apenas para desenvolvimento profissional e decisões de gestão de pessoas com consentimento adequado.</p>
         </div>
       </div>
     </section>
@@ -967,12 +1036,17 @@ export function renderReportHtml(input = {}) {
   );
   const coverGeneratedDate = formatDate(report?.meta?.generatedAt || Date.now());
   const coverProfileKey = safeText(report?.profile?.key, safeText(report?.profileKey, 'DISC'));
+  const coverArchetype = safeText(
+    report?.profile?.archetype,
+    safeText(report?.profileContent?.archetype, 'Estrategista Adaptativo')
+  );
   const coverAssessmentId = firstNonEmptyText(
     assessment?.id,
     report?.participant?.assessmentId,
     participant?.assessmentId,
     '-'
   );
+  const coverTierLabel = isPremiumTier ? 'Relatório DISC Premium' : 'Relatório DISC Completo';
   const coverReportTitle = isPremiumTier
     ? 'RELATÓRIO DISC PREMIUM'
     : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
@@ -982,9 +1056,11 @@ export function renderReportHtml(input = {}) {
         meta.reportSubtitle,
         'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
       );
-  const coverPremiumBadge = isPremiumTier
-    ? '<div class="cover-premium-badge">RELATÓRIO PREMIUM EXECUTIVO</div>'
-    : '';
+  const coverTierBadge = `
+    <div class="cover-tier-badge ${isPremiumTier ? 'cover-tier-premium' : 'cover-tier-standard'}">
+      ${esc(coverTierLabel)}
+    </div>
+  `;
   const coverPremiumNote = isPremiumTier
     ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
     : '';
@@ -1037,6 +1113,25 @@ export function renderReportHtml(input = {}) {
   const isBalancedProfile = profile.mode === 'balanced' || profile.key === 'DISC';
   const profilePrimaryLabel = safeText(profile?.displayPrimary, profile.primary);
   const profileSecondaryLabel = safeText(profile?.displaySecondary, profile.secondary);
+  const premiumTopStrengths = ensureUniqueItems([
+    ...safeArray(profileContent?.naturalStrengths, []),
+    ...safeArray(profileContent?.workStrengths, []),
+  ]).slice(0, 10);
+  const premiumRemainingStrengths = ensureUniqueItems([
+    ...safeArray(profileContent?.naturalStrengths, []),
+    ...safeArray(profileContent?.workStrengths, []),
+  ]).filter((item) => !premiumTopStrengths.includes(item));
+
+  const premiumTopRisks = ensureUniqueItems([
+    ...safeArray(profileContent?.developmentRisks, []),
+    ...safeArray(profileContent?.workRisks, []),
+    ...safeArray(profileContent?.leadershipRisks, []),
+  ]).slice(0, 10);
+  const premiumRemainingRisks = ensureUniqueItems([
+    ...safeArray(profileContent?.developmentRisks, []),
+    ...safeArray(profileContent?.workRisks, []),
+    ...safeArray(profileContent?.leadershipRisks, []),
+  ]).filter((item) => !premiumTopRisks.includes(item));
 
   const pages = [];
   pages.push(
@@ -1047,7 +1142,7 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         <div class="cover-info-card">
-          ${coverPremiumBadge}
+          ${coverTierBadge}
           <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
           <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
           ${coverPremiumNote}
@@ -1071,6 +1166,14 @@ export function renderReportHtml(input = {}) {
             <div class="cover-info-item">
               <span>Perfil predominante</span>
               <strong>${esc(coverProfileKey)}</strong>
+            </div>
+            <div class="cover-info-item">
+              <span>Arquétipo</span>
+              <strong>${esc(coverArchetype)}</strong>
+            </div>
+            <div class="cover-info-item">
+              <span>Tier do relatório</span>
+              <strong>${esc(coverTierLabel)}</strong>
             </div>
             <div class="cover-info-item">
               <span>ID da avaliação</span>
@@ -1937,10 +2040,7 @@ export function renderReportHtml(input = {}) {
                 <h3>TOP 10 FORÇAS COMPORTAMENTAIS DE ALTO IMPACTO</h3>
                 <p>Estas forças representam ativos comportamentais com maior potencial de geração de valor em contexto corporativo quando associados a metas, prazos e critérios de qualidade claramente definidos.</p>
                 ${listHtml(
-                  ensureUniqueItems([
-                    ...safeArray(profileContent?.naturalStrengths, []),
-                    ...safeArray(profileContent?.workStrengths, []),
-                  ]).slice(0, 10),
+                  premiumTopStrengths,
                   ['Capacidade de adaptação a diferentes contextos organizacionais.'],
                 )}
               </div>
@@ -1948,7 +2048,11 @@ export function renderReportHtml(input = {}) {
             : ''
         }
         <div class="card">
-          ${listHtml(profileContent?.naturalStrengths, ['Forca natural com impacto observavel em colaboracao e entrega.'])}
+          <h3>${isPremiumTier ? 'Forças complementares para alavancagem' : 'Forças naturais prioritárias'}</h3>
+          ${listHtml(
+            isPremiumTier ? premiumRemainingStrengths : profileContent?.naturalStrengths,
+            ['Força natural com impacto observável em colaboração e entrega.'],
+          )}
         </div>
         <div class="grid two">
           <div class="card">
@@ -1985,11 +2089,7 @@ export function renderReportHtml(input = {}) {
                 <h3>TOP 10 RISCOS COMPORTAMENTAIS PRIORITÁRIOS</h3>
                 <p>Os riscos abaixo indicam padrões que podem comprometer previsibilidade de entrega, qualidade relacional e consistência decisória quando o perfil opera sob pressão sem calibragem.</p>
                 ${listHtml(
-                  ensureUniqueItems([
-                    ...safeArray(profileContent?.developmentRisks, []),
-                    ...safeArray(profileContent?.workRisks, []),
-                    ...safeArray(profileContent?.leadershipRisks, []),
-                  ]).slice(0, 10),
+                  premiumTopRisks,
                   ['Risco de oscilação de clareza quando a pressão aumenta sem critério de decisão.'],
                 )}
               </div>
@@ -1997,7 +2097,11 @@ export function renderReportHtml(input = {}) {
             : ''
         }
         <div class="card">
-          ${listHtml(profileContent?.developmentPoints, ['Ponto de desenvolvimento com alto potencial de impacto no resultado.'])}
+          <h3>${isPremiumTier ? 'Riscos complementares para monitoramento' : 'Pontos de desenvolvimento prioritários'}</h3>
+          ${listHtml(
+            isPremiumTier ? premiumRemainingRisks : profileContent?.developmentPoints,
+            ['Ponto de desenvolvimento com alto potencial de impacto no resultado.'],
+          )}
         </div>
         <div class="grid two">
           <div class="card">
@@ -2248,7 +2352,10 @@ export function renderReportHtml(input = {}) {
     })
   );
 
-  const backCoverPage = buildBackCoverPage(branding);
+  const backCoverPage = buildBackCoverPage(branding, {
+    isPremiumTier,
+    generatedAt: coverGeneratedDate,
+  });
   const selectedPagesRaw = isPremiumTier
     ? pages
     : STANDARD_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
@@ -2336,6 +2443,8 @@ export function renderReportHtml(input = {}) {
       page-break-inside: avoid;
       break-inside: avoid;
       border: 1px solid #e7ebf1;
+      font-size: 11pt;
+      line-height: 1.45;
     }
 
     .page-backdrop {
@@ -2363,7 +2472,7 @@ export function renderReportHtml(input = {}) {
     .content {
       position: relative;
       z-index: 1;
-      padding: 7.5mm 10mm 20mm;
+      padding: 8.5mm 16mm 20mm;
       height: 100%;
       overflow: hidden;
     }
@@ -2550,20 +2659,29 @@ export function renderReportHtml(input = {}) {
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
-    .cover-premium-badge {
+    .cover-tier-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 4mm;
       padding: 1.6mm 4mm;
       border-radius: 999px;
-      border: 1px solid rgba(216, 164, 68, 0.78);
-      background: linear-gradient(180deg, rgba(216, 164, 68, 0.26), rgba(216, 164, 68, 0.08));
-      color: #ffe7b3;
       font-size: 10px;
       font-weight: 800;
       letter-spacing: 1px;
       text-transform: uppercase;
+    }
+
+    .cover-tier-premium {
+      border: 1px solid rgba(216, 164, 68, 0.78);
+      background: linear-gradient(180deg, rgba(216, 164, 68, 0.28), rgba(216, 164, 68, 0.08));
+      color: #ffe7b3;
+    }
+
+    .cover-tier-standard {
+      border: 1px solid rgba(148, 163, 184, 0.72);
+      background: linear-gradient(180deg, rgba(148, 163, 184, 0.26), rgba(148, 163, 184, 0.08));
+      color: #e8edf7;
     }
 
     .cover-report-kicker {
@@ -2652,14 +2770,14 @@ export function renderReportHtml(input = {}) {
 
     p {
       margin: 0 0 10px;
-      font-size: 12.9px;
+      font-size: 12.2px;
       color: #1f2937;
-      line-height: 1.48;
+      line-height: 1.5;
     }
 
     h3 {
       margin: 0 0 6px;
-      font-size: 15.4px;
+      font-size: 15.1px;
       color: var(--primary);
       line-height: 1.24;
       letter-spacing: -0.15px;
@@ -2676,7 +2794,7 @@ export function renderReportHtml(input = {}) {
 
     .grid {
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
     .grid.two {
@@ -2687,11 +2805,17 @@ export function renderReportHtml(input = {}) {
       grid-template-columns: repeat(3, 1fr);
     }
 
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
     .card {
       background: var(--card);
       border: 1px solid #d9e0ea;
       border-radius: var(--radius);
-      padding: 12px;
+      padding: 13px;
       box-shadow: 0 3px 14px rgba(15, 23, 42, 0.038);
       position: relative;
       overflow: hidden;
@@ -3038,15 +3162,15 @@ export function renderReportHtml(input = {}) {
       padding: 0;
       list-style: none;
       display: grid;
-      gap: 7px;
+      gap: 8px;
     }
 
     .bullet-list li {
       position: relative;
-      padding-left: 16px;
-      font-size: 13px;
+      padding-left: 17px;
+      font-size: 12.4px;
       color: #1f2937;
-      line-height: 1.42;
+      line-height: 1.48;
     }
 
     .bullet-list li::before {
@@ -3061,7 +3185,9 @@ export function renderReportHtml(input = {}) {
     .table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12.5px;
+      font-size: 12px;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .table th,
@@ -3070,6 +3196,8 @@ export function renderReportHtml(input = {}) {
       padding: 7px 8px;
       text-align: left;
       vertical-align: top;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .table th {
@@ -3083,7 +3211,30 @@ export function renderReportHtml(input = {}) {
     .table.compact td,
     .table.compact th {
       padding: 7px 8px;
-      font-size: 12px;
+      font-size: 11.6px;
+    }
+
+    .card,
+    .table,
+    .section,
+    .grid,
+    .grid-two,
+    .summary-grid,
+    .factor-card,
+    .kpi-grid,
+    .visual-panel,
+    .bullet-list {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .table tr,
+    .table tbody,
+    .table thead {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     .action-plan-card {
@@ -3196,41 +3347,115 @@ export function renderReportHtml(input = {}) {
       height: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
       text-align: center;
-      padding: 24mm 18mm;
+      padding: 20mm 18mm 16mm;
       background: #ffffff;
+    }
+
+    .back-cover-tier {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8mm;
+      padding: 1.6mm 4mm;
+      border-radius: 999px;
+      border: 1px solid rgba(11, 31, 59, 0.2);
+      background: linear-gradient(180deg, #f7fafc, #eef4fb);
+      color: #213a63;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
     }
 
     .back-cover-logo {
       width: 280px;
-      max-width: 74mm;
+      max-width: 68mm;
       height: auto;
-      margin-bottom: 12mm;
+      margin-bottom: 8mm;
       object-fit: contain;
     }
 
     .back-cover-title {
-      font-size: 40px;
-      font-weight: 700;
+      font-size: 34px;
+      font-weight: 800;
       color: #0b1f3b;
       line-height: 1.08;
       letter-spacing: -0.4px;
     }
 
     .back-cover-subtitle {
-      margin-top: 20px;
-      font-size: 22px;
+      margin-top: 10px;
+      font-size: 18px;
       color: #334155;
       line-height: 1.25;
     }
 
-    .back-cover-info {
-      margin-top: 60px;
-      font-size: 16px;
-      color: #64748b;
-      line-height: 1.55;
+    .back-cover-divider {
+      width: 100%;
+      max-width: 138mm;
+      height: 1px;
+      margin: 8mm 0 7mm;
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0), rgba(148, 163, 184, 0.65), rgba(148, 163, 184, 0));
+    }
+
+    .back-cover-columns {
+      width: 100%;
+      max-width: 148mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .back-cover-card {
+      text-align: left;
+      border: 1px solid #d7e1ef;
+      border-radius: 12px;
+      padding: 10px 11px;
+      background: #fbfdff;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    }
+
+    .back-cover-card h4 {
+      margin: 0 0 5px;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #17335f;
+      font-weight: 800;
+    }
+
+    .back-cover-card p {
+      margin: 0 0 5px;
+      font-size: 11.4px;
+      line-height: 1.42;
+      color: #40526f;
+    }
+
+    .back-cover-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .back-cover-bottom {
+      margin-top: auto;
+      width: 100%;
+      max-width: 148mm;
+      border-top: 1px solid #dce5f2;
+      padding-top: 7mm;
+      text-align: center;
+    }
+
+    .back-cover-bottom p {
+      margin: 0 0 4px;
+      font-size: 10.8px;
+      line-height: 1.4;
+      color: #5b6d88;
+    }
+
+    .back-cover-bottom p:last-child {
+      margin-bottom: 0;
     }
 
     @media print {
@@ -3253,7 +3478,7 @@ export function renderReportHtml(input = {}) {
 </body>
 </html>`;
 
-  return applyGlobalWordingCorrections(html);
+  return applyUtf8Polish(applyGlobalWordingCorrections(html));
 }
 
 export default renderReportHtml;
