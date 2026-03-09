@@ -1,4 +1,4 @@
-const API_TOKEN_KEYS = ['insightdisc_api_token', 'insight_api_token', 'server_api_token'];
+const API_TOKEN_KEYS = ['insightdisc_token', 'insightdisc_api_token', 'insight_api_token', 'server_api_token'];
 const ENABLE_DEV_LOGIN_SHORTCUTS =
   import.meta.env.DEV &&
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
@@ -87,7 +87,9 @@ export function setApiSession({ token = '', email = '' } = {}) {
   if (typeof window === 'undefined') return;
 
   if (token) {
-    window.localStorage.setItem(PRIMARY_API_TOKEN_KEY, token);
+    API_TOKEN_KEYS.forEach((key) => {
+      window.localStorage.setItem(key, token);
+    });
   }
 
   if (email) {

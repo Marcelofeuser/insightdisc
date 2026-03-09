@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarClock,
@@ -167,6 +167,7 @@ function InlineStat({ icon: Icon, label, value }) {
 
 export default function Dossier() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { access, user } = useAuth();
   const { isPremium } = usePremium();
@@ -240,6 +241,22 @@ export default function Dossier() {
         assessmentsHistory: local.assessmentsHistory,
         overview: local.overview,
       };
+    },
+  });
+
+  const historyQuery = useQuery({
+    queryKey: ['assessment-history', apiBaseUrl, access?.userId, workspaceId],
+    enabled:
+      Boolean(apiBaseUrl) &&
+      Boolean(access?.userId) &&
+      !candidateId &&
+      (hasSuperAdminBypass || (isPremium && hasDossierAccess)),
+    queryFn: async () => {
+      const payload = await apiRequest('/assessment/history', {
+        method: 'GET',
+        requireAuth: true,
+      });
+      return Array.isArray(payload?.history) ? payload.history : [];
     },
   });
 
@@ -611,18 +628,6 @@ export default function Dossier() {
     }
   };
 
-  if (!candidateId) {
-    return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <Card className="rounded-2xl border-slate-200 shadow-sm">
-          <CardContent className="p-6 text-sm text-slate-600">
-            Selecione um avaliado para abrir o Dossiê Comportamental.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if ((!isPremium && !hasSuperAdminBypass) || !hasDossierAccess) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
@@ -637,6 +642,65 @@ export default function Dossier() {
             <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => (window.location.href = '/Pricing')}>
               Ver planos premium
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!candidateId) {
+    const rows = historyQuery.data || [];
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Selecione um avaliado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Escolha um participante para abrir o Dossiê Comportamental.
+            </p>
+            {historyQuery.isLoading ? (
+              <div className="space-y-2">
+                <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+              </div>
+            ) : rows.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                Nenhum histórico de avaliação disponível para este workspace.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {rows.map((item) => (
+                  <div
+                    key={`${item.candidateId}-${item.assessmentId}`}
+                    className="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {item.candidateName || 'Participante'}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {item.candidateEmail || '-'} • Perfil {toUpperProfile(item.profile)} • {formatDate(item.createdAt)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        navigate(
+                          `/Dossier?candidateId=${encodeURIComponent(
+                            item.candidateId,
+                          )}&assessmentId=${encodeURIComponent(item.assessmentId)}`,
+                        )
+                      }
+                    >
+                      Abrir dossiê
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

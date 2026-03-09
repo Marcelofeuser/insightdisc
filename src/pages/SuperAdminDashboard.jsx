@@ -563,10 +563,11 @@ export default function SuperAdminDashboard() {
 
     setGeneratingReport(assessmentId);
     try {
-      const payload = await apiRequest('/report/generate', {
+      console.info('[SuperAdminDashboard] regenerate report requested', { assessmentId });
+      const payload = await apiRequest('/assessment/generate-report', {
         method: 'POST',
         requireAuth: true,
-        body: { assessmentId },
+        body: { assessmentId, type: 'premium' },
       });
 
       const pdfUrl = resolveAbsoluteApiUrl(payload?.pdfUrl || payload?.report?.pdfUrl || '');

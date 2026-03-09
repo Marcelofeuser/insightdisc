@@ -166,9 +166,11 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
+      console.info('[AuthContext] loading auth session...');
 
       if (apiBaseUrl) {
         const token = getApiToken();
+        console.info('[AuthContext] token detected:', Boolean(token));
         if (!token) {
           setIsAuthenticated(false);
           setUser(null);
@@ -185,6 +187,7 @@ export const AuthProvider = ({ children }) => {
 
         setUser(currentUser);
         setIsAuthenticated(true);
+        console.info('[AuthContext] auth session loaded for:', currentUser?.email || currentUser?.id || 'unknown-user');
         const normalizedAccess = createAccessContext(currentUser);
         setAuthContextStore({
           user: currentUser,
@@ -227,7 +230,7 @@ export const AuthProvider = ({ children }) => {
         creditsBalance: normalizedAccess.creditsBalance,
       });
       setIsLoadingAuth(false);
-    } catch (error) {
+  } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);

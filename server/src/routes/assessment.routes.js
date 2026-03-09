@@ -8,7 +8,13 @@ import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser } from '../middleware/rbac.js';
+import {
+  attachUser,
+  canAccessOrganization,
+  requireActiveCustomer,
+  requireRole,
+} from '../middleware/rbac.js';
+import { requireReportExport } from '../middleware/require-report-export.js';
 
 const router = Router();
 
@@ -27,6 +33,33 @@ function statusCodeByReason(reason) {
   if (reason === 'USED') return 409;
   if (reason === 'NOT_FOUND') return 404;
   return 400;
+}
+
+function normalizeReportType(value) {
+  return String(value || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
+}
+
+function resolveAssessmentProfile(report = {}) {
+  return (
+    report?.discProfile?.profile?.key ||
+    report?.discProfile?.profileKey ||
+    report?.discProfile?.profile?.title ||
+    'DISC'
+  );
+}
+
+async function canAccessAssessmentRecord(user, authUserId, assessment = {}) {
+  if (!assessment?.id || !authUserId) return false;
+  if (isSuperAdminUser(user || {})) return true;
+
+  const currentEmail = String(user?.email || '').trim().toLowerCase();
+  const candidateEmail = String(assessment?.candidateEmail || '').trim().toLowerCase();
+  if (assessment?.candidateUserId && assessment.candidateUserId === authUserId) return true;
+  if (!assessment?.candidateUserId && currentEmail && candidateEmail && currentEmail === candidateEmail) {
+    return true;
+  }
+
+  return canAccessOrganization(authUserId, assessment.organizationId);
 }
 
 async function getValidInviteByToken(token, options = {}) {
@@ -328,9 +361,173 @@ router.get('/report-by-token', async (req, res) => {
   }
 });
 
+router.get(
+  '/report-data',
+  requireAuth,
+  attachUser,
+  requireActiveCustomer,
+  async (req, res) => {
+    try {
+      const assessmentId = String(req.query.id || req.query.assessmentId || '').trim();
+      if (!assessmentId) {
+        return res.status(400).json({ ok: false, reason: 'ASSESSMENT_ID_REQUIRED' });
+      }
+
+      const assessment = await prisma.assessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          report: true,
+          response: true,
+          organization: true,
+        },
+      });
+
+      if (!assessment) {
+        return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+      }
+
+      const allowed = await canAccessAssessmentRecord(req.user || {}, req.auth.userId, assessment);
+      if (!allowed) {
+        return res.status(403).json({ ok: false, reason: 'FORBIDDEN' });
+      }
+
+      if (!assessment.report) {
+        return res.status(404).json({ ok: false, reason: 'REPORT_NOT_FOUND' });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        assessment: {
+          id: assessment.id,
+          status: assessment.status,
+          candidateName: assessment.candidateName || '',
+          candidateEmail: assessment.candidateEmail || '',
+          candidateUserId: assessment.candidateUserId || '',
+          createdAt: assessment.createdAt,
+          completedAt: assessment.completedAt,
+          organizationId: assessment.organizationId,
+          organizationName: assessment.organization?.name || '',
+          branding: normalizeBrandingFromOrganization(assessment.organization || {}),
+        },
+        report: {
+          id: assessment.report.id,
+          pdfUrl: assessment.report.pdfUrl || '',
+          discProfile: assessment.report.discProfile || {},
+        },
+        reportItem: {
+          assessmentId: assessment.id,
+          reportId: assessment.report.id,
+          candidateName: assessment.candidateName || '',
+          candidateEmail: assessment.candidateEmail || '',
+          createdAt: assessment.createdAt,
+          completedAt: assessment.completedAt,
+          pdfUrl: assessment.report.pdfUrl || '',
+          discProfile: assessment.report.discProfile || {},
+        },
+      });
+    } catch (error) {
+      return res.status(500).json({
+        ok: false,
+        reason: 'REPORT_DATA_FAILED',
+        message: 'Não foi possível carregar os dados do relatório.',
+      });
+    }
+  },
+);
+
+router.get(
+  '/history',
+  requireAuth,
+  attachUser,
+  requireRole('ADMIN', 'PRO'),
+  requireActiveCustomer,
+  async (req, res) => {
+    try {
+      const isSuperAdmin = isSuperAdminUser(req.user || {});
+      let where = {
+        report: { isNot: null },
+        candidateUserId: { not: null },
+      };
+
+      if (!isSuperAdmin) {
+        const [ownedOrganizations, memberships] = await Promise.all([
+          prisma.organization.findMany({
+            where: { ownerId: req.auth.userId },
+            select: { id: true },
+          }),
+          prisma.organizationMember.findMany({
+            where: { userId: req.auth.userId },
+            select: { organizationId: true },
+          }),
+        ]);
+
+        const organizationIds = Array.from(
+          new Set([
+            ...ownedOrganizations.map((item) => item.id),
+            ...memberships.map((item) => item.organizationId),
+          ]),
+        ).filter(Boolean);
+
+        if (!organizationIds.length) {
+          return res.status(200).json({ ok: true, history: [] });
+        }
+
+        where = {
+          ...where,
+          organizationId: { in: organizationIds },
+        };
+      }
+
+      const assessments = await prisma.assessment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 240,
+        select: {
+          id: true,
+          candidateUserId: true,
+          candidateName: true,
+          candidateEmail: true,
+          createdAt: true,
+          completedAt: true,
+          report: {
+            select: {
+              discProfile: true,
+            },
+          },
+        },
+      });
+
+      const seenCandidates = new Set();
+      const history = [];
+      for (const item of assessments) {
+        const candidateId = String(item.candidateUserId || '').trim();
+        if (!candidateId || seenCandidates.has(candidateId)) continue;
+        seenCandidates.add(candidateId);
+        history.push({
+          candidateId,
+          candidateName: item.candidateName || item.candidateEmail || 'Participante',
+          candidateEmail: item.candidateEmail || '',
+          profile: resolveAssessmentProfile(item.report || {}),
+          createdAt: item.completedAt || item.createdAt,
+          assessmentId: item.id,
+        });
+      }
+
+      return res.status(200).json({ ok: true, history });
+    } catch (error) {
+      return res.status(500).json({
+        ok: false,
+        reason: 'ASSESSMENT_HISTORY_FAILED',
+        message: 'Não foi possível carregar o histórico de avaliações.',
+      });
+    }
+  },
+);
+
 router.get('/report-pdf-by-token', async (req, res) => {
   try {
     const token = String(req.query.token || '').trim();
+    const reportType = normalizeReportType(req.query.type || req.query.reportType);
     const shouldDownload = String(req.query.download || '').toLowerCase() === '1';
     const result = await getValidInviteByToken(token, { allowUsed: true });
 
@@ -353,6 +550,12 @@ router.get('/report-pdf-by-token', async (req, res) => {
       return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
     }
 
+    console.info('[assessment/report-pdf-by-token] generating PDF', {
+      assessmentId: assessment.id,
+      reportType,
+      shouldDownload,
+    });
+
     const downloadPath = `/assessment/report-pdf-by-token?token=${encodeURIComponent(token)}&download=1`;
     const absoluteDownloadUrl = `${assetBaseUrl}${downloadPath}`;
     if (!shouldDownload) {
@@ -370,6 +573,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
       discResult: assessment.report?.discProfile || {},
       assetBaseUrl,
       currentUser: assessment.creator || assessment.organization?.owner || null,
+      reportType,
     });
 
     const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
@@ -403,6 +607,11 @@ router.get('/report-pdf-by-token', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'no-store');
 
+    console.info('[assessment/report-pdf-by-token] PDF generated', {
+      assessmentId: assessment.id,
+      bytes: buffer.length,
+    });
+
     return res.status(200).send(buffer);
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -415,6 +624,214 @@ router.get('/report-pdf-by-token', async (req, res) => {
     });
   }
 });
+
+router.post(
+  '/generate-report',
+  requireAuth,
+  attachUser,
+  requireActiveCustomer,
+  requireReportExport,
+  async (req, res) => {
+    try {
+      const schema = z.object({
+        assessmentId: z.string().min(1),
+        type: z.enum(['standard', 'premium']).optional(),
+        reportType: z.enum(['standard', 'premium']).optional(),
+      });
+      const input = schema.parse(req.body || {});
+      const reportType = normalizeReportType(input.type || input.reportType);
+      const assessmentId = String(input.assessmentId || '').trim();
+
+      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assessment = await prisma.assessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+        },
+      });
+
+      if (!assessment) {
+        return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+      }
+
+      const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
+      if (!allowed) {
+        return res.status(403).json({ ok: false, reason: 'FORBIDDEN' });
+      }
+
+      console.info('[assessment/generate-report] start', {
+        assessmentId: assessment.id,
+        reportType,
+        userId: req.auth.userId,
+      });
+
+      const reportModel = await buildPremiumReportModel({
+        assessment,
+        discResult: assessment.report?.discProfile || {},
+        assetBaseUrl,
+        currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
+        reportType,
+      });
+
+      const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
+        inMemory: true,
+      });
+
+      const buffer = generated.pdfBuffer;
+      if (!buffer || !Buffer.isBuffer(buffer)) {
+        return res.status(503).json({
+          ok: false,
+          reason: 'PDF_UNAVAILABLE',
+          message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+        });
+      }
+
+      const pdfPath = `/assessment/report-pdf?assessmentId=${encodeURIComponent(
+        assessment.id,
+      )}&type=${encodeURIComponent(reportType)}`;
+
+      const report = await prisma.report.upsert({
+        where: { assessmentId: assessment.id },
+        create: {
+          assessmentId: assessment.id,
+          discProfile: reportModel,
+          pdfUrl: pdfPath,
+        },
+        update: {
+          discProfile: reportModel,
+          pdfUrl: pdfPath,
+        },
+      });
+
+      console.info('[assessment/generate-report] success', {
+        assessmentId: assessment.id,
+        reportId: report.id,
+        reportType,
+      });
+
+      return res.status(200).json({
+        ok: true,
+        assessmentId: assessment.id,
+        reportType,
+        report: {
+          id: report.id,
+          assessmentId: report.assessmentId,
+          pdfUrl: report.pdfUrl || pdfPath,
+        },
+        pdfUrl: report.pdfUrl || pdfPath,
+      });
+    } catch (error) {
+      const status = Number(error?.statusCode) || 400;
+      return res.status(status).json({
+        ok: false,
+        reason: 'GENERATE_REPORT_FAILED',
+        message: 'Não foi possível regenerar o relatório agora. Tente novamente.',
+      });
+    }
+  },
+);
+
+router.get(
+  '/report-pdf',
+  requireAuth,
+  attachUser,
+  requireActiveCustomer,
+  requireReportExport,
+  async (req, res) => {
+    try {
+      const assessmentId = String(req.query.assessmentId || req.query.id || '').trim();
+      const reportType = normalizeReportType(req.query.type || req.query.reportType);
+      if (!assessmentId) {
+        return res.status(400).json({ ok: false, reason: 'ASSESSMENT_ID_REQUIRED' });
+      }
+
+      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assessment = await prisma.assessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+        },
+      });
+
+      if (!assessment) {
+        return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+      }
+
+      const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
+      if (!allowed) {
+        return res.status(403).json({ ok: false, reason: 'FORBIDDEN' });
+      }
+
+      console.info('[assessment/report-pdf] generating PDF', {
+        assessmentId: assessment.id,
+        reportType,
+        userId: req.auth.userId,
+      });
+
+      const reportModel = await buildPremiumReportModel({
+        assessment,
+        discResult: assessment.report?.discProfile || {},
+        assetBaseUrl,
+        currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
+        reportType,
+      });
+
+      const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
+        inMemory: true,
+      });
+
+      const buffer = generated.pdfBuffer;
+      if (!buffer || !Buffer.isBuffer(buffer)) {
+        return res.status(503).json({
+          ok: false,
+          reason: 'PDF_UNAVAILABLE',
+          message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+        });
+      }
+
+      const downloadPath = `/assessment/report-pdf?assessmentId=${encodeURIComponent(
+        assessment.id,
+      )}&type=${encodeURIComponent(reportType)}`;
+      await prisma.report.upsert({
+        where: { assessmentId: assessment.id },
+        create: {
+          assessmentId: assessment.id,
+          discProfile: reportModel,
+          pdfUrl: downloadPath,
+        },
+        update: {
+          discProfile: reportModel,
+          pdfUrl: downloadPath,
+        },
+      });
+
+      const fileName = 'insightdisc-report.pdf';
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Cache-Control', 'no-store');
+
+      console.info('[assessment/report-pdf] PDF generated', {
+        assessmentId: assessment.id,
+        bytes: buffer.length,
+      });
+
+      return res.status(200).send(buffer);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[assessment/report-pdf] failed:', error?.stack || error?.message || error);
+      const status = Number(error?.statusCode) || 400;
+      return res.status(status).json({
+        ok: false,
+        reason: 'REPORT_PDF_FAILED',
+        message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+      });
+    }
+  },
+);
 
 router.post('/consume', async (req, res) => {
   try {

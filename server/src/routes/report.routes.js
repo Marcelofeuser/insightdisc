@@ -10,6 +10,10 @@ import { renderReportHtml } from '../modules/report/render-report-html.js';
 
 const router = Router();
 
+function normalizeReportType(value) {
+  return String(value || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
+}
+
 router.get(
   '/:assessmentId/html',
   requireAuth,
@@ -38,6 +42,7 @@ router.get(
         discResult: assessment.report?.discProfile || {},
         assetBaseUrl,
         currentUser: req.user || null,
+        reportType: normalizeReportType(req.query?.type || req.query?.reportType),
       });
       const html = renderReportHtml({ assessment, reportModel });
 
@@ -60,8 +65,12 @@ router.post(
   async (req, res) => {
     try {
       const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
-      const schema = z.object({ assessmentId: z.string().min(1) });
+      const schema = z.object({
+        assessmentId: z.string().min(1),
+        reportType: z.enum(['standard', 'premium']).optional(),
+      });
       const input = schema.parse(req.body || {});
+      const reportType = normalizeReportType(input.reportType);
 
       const assessment = await prisma.assessment.findUnique({
         where: { id: input.assessmentId },
@@ -81,6 +90,13 @@ router.post(
         discResult: assessment.report?.discProfile || {},
         assetBaseUrl,
         currentUser: req.user || null,
+        reportType,
+      });
+
+      console.info('[report/generate] generating report', {
+        assessmentId: assessment.id,
+        reportType,
+        userId: req.auth.userId,
       });
 
       const pdf = await generatePremiumPdf(reportModel, assessment.id, assessment);
@@ -96,6 +112,12 @@ router.post(
           discProfile: reportModel,
           pdfUrl: pdf.pdfUrl || null,
         },
+      });
+
+      console.info('[report/generate] report generated', {
+        assessmentId: assessment.id,
+        reportId: report.id,
+        reportType,
       });
 
       return res.status(200).json({

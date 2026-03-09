@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiAuthHeaders, getApiBaseUrl } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import {
@@ -19,6 +19,7 @@ import {
   isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
+import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
 
 async function exportLocalPdfFromHtml(html, fileName) {
@@ -89,7 +90,6 @@ export default function Report() {
   const [isLoading, setIsLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
-  const [generatedPdfUrl, setGeneratedPdfUrl] = useState('');
   const [exportError, setExportError] = useState('');
   const { access: authAccess } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
@@ -97,63 +97,152 @@ export default function Report() {
   useEffect(() => {
     const loadAssessment = async () => {
       const assessmentId = searchParams.get('id');
+      setIsLoading(true);
+      setAssessment(null);
+      if (!assessmentId) {
+        setAssessment(null);
+        setIsLoading(false);
+        return;
+      }
 
-      if (assessmentId) {
+      if (apiBaseUrl) {
         try {
           setAccessDenied(false);
-          const data = await base44.entities.Assessment.filter({ id: assessmentId });
-          if (data.length > 0) {
-            const foundAssessment = { ...data[0] };
-            if (foundAssessment?.workspace_id) {
-              try {
-                const workspaces = await base44.entities.Workspace.filter({
-                  id: foundAssessment.workspace_id,
-                });
-                if (workspaces.length > 0) {
-                  const workspace = workspaces[0];
-                  foundAssessment.workspace_name = workspace?.name || '';
-                  foundAssessment.workspace_credits = Number(workspace?.credits_balance || 0);
-                  foundAssessment.workspace_branding = {
-                    company_name: workspace?.company_name || workspace?.name || 'InsightDISC',
-                    logo_url: workspace?.logo_url || '/brand/insightdisc-report-logo.png',
-                    brand_primary_color: workspace?.brand_primary_color || '#0b1f3b',
-                    brand_secondary_color: workspace?.brand_secondary_color || '#f7b500',
-                    report_footer_text:
-                      workspace?.report_footer_text ||
-                      'InsightDISC - Plataforma de Análise Comportamental',
-                  };
-                }
-              } catch {
-                // fallback sem branding custom
-              }
-            }
-            const fallbackUser = authAccess?.userId ? null : await base44.auth.me().catch(() => null);
-            const access = authAccess?.userId ? authAccess : createAccessContext(fallbackUser);
-            const requiresPro = Boolean(
-              foundAssessment?.type === 'premium' || foundAssessment?.report_unlocked
-            );
+          console.info('[Report] loading report data', { assessmentId });
+          const reportDataPayload = await apiRequest(
+            `/assessment/report-data?id=${encodeURIComponent(assessmentId)}`,
+            {
+              method: 'GET',
+              requireAuth: true,
+            },
+          );
 
-            if (!canViewReport(access, foundAssessment, { requiresPro })) {
-              setAccessDenied(true);
-              setAssessment(null);
-            } else {
-              setAssessment(foundAssessment);
+          const reportItem =
+            reportDataPayload?.reportItem ||
+            (reportDataPayload?.assessment?.id
+              ? {
+                  assessmentId: reportDataPayload.assessment.id,
+                  reportId: reportDataPayload?.report?.id || null,
+                  candidateName: reportDataPayload?.assessment?.candidateName || '',
+                  candidateEmail: reportDataPayload?.assessment?.candidateEmail || '',
+                  createdAt: reportDataPayload?.assessment?.createdAt || null,
+                  completedAt: reportDataPayload?.assessment?.completedAt || null,
+                  pdfUrl: reportDataPayload?.report?.pdfUrl || null,
+                  discProfile: reportDataPayload?.report?.discProfile || null,
+                }
+              : null);
+
+          if (reportItem) {
+            const reports = mapCandidateReports([reportItem]);
+            const matched = findCandidateReportByIdentifier(reports, assessmentId) || reports[0];
+            if (matched) {
+              setAssessment({
+                ...matched,
+                id: matched?.assessmentId || matched?.id,
+                workspace_credits: Number(authAccess?.user?.credits ?? 0),
+              });
+              setIsLoading(false);
+              return;
             }
           }
         } catch (error) {
-          console.error('Error loading assessment:', error);
+          if (Number(error?.status) === 401 || Number(error?.status) === 403) {
+            setAccessDenied(true);
+            setAssessment(null);
+            setIsLoading(false);
+            return;
+          }
+
+          if (Number(error?.status) !== 404) {
+            console.error('Error loading report data from API:', error);
+          }
         }
+
+        try {
+          const payload = await apiRequest('/candidate/me/reports', {
+            method: 'GET',
+            requireAuth: true,
+          });
+
+          const reports = mapCandidateReports(payload?.reports || []);
+          const matched = findCandidateReportByIdentifier(reports, assessmentId);
+
+          if (matched) {
+            setAssessment({
+              ...matched,
+              id: matched?.assessmentId || matched?.id,
+              workspace_credits: Number(authAccess?.user?.credits ?? 0),
+            });
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          if (Number(error?.status) === 401 || Number(error?.status) === 403) {
+            setAccessDenied(true);
+            setAssessment(null);
+            setIsLoading(false);
+            return;
+          }
+
+          console.error('Error loading assessment from API:', error);
+        }
+      }
+
+      try {
+        setAccessDenied(false);
+        const data = await base44.entities.Assessment.filter({ id: assessmentId });
+        if (data.length > 0) {
+          const foundAssessment = { ...data[0] };
+          if (foundAssessment?.workspace_id) {
+            try {
+              const workspaces = await base44.entities.Workspace.filter({
+                id: foundAssessment.workspace_id,
+              });
+              if (workspaces.length > 0) {
+                const workspace = workspaces[0];
+                foundAssessment.workspace_name = workspace?.name || '';
+                foundAssessment.workspace_credits = Number(workspace?.credits_balance || 0);
+                foundAssessment.workspace_branding = {
+                  company_name: workspace?.company_name || workspace?.name || 'InsightDISC',
+                  logo_url: workspace?.logo_url || '/brand/insightdisc-report-logo.png',
+                  brand_primary_color: workspace?.brand_primary_color || '#0b1f3b',
+                  brand_secondary_color: workspace?.brand_secondary_color || '#f7b500',
+                  report_footer_text:
+                    workspace?.report_footer_text ||
+                    'InsightDISC - Plataforma de Análise Comportamental',
+                };
+              }
+            } catch {
+              // fallback sem branding custom
+            }
+          }
+          const fallbackUser = authAccess?.userId ? null : await base44.auth.me().catch(() => null);
+          const access = authAccess?.userId ? authAccess : createAccessContext(fallbackUser);
+          const requiresPro = Boolean(
+            foundAssessment?.type === 'premium' || foundAssessment?.report_unlocked
+          );
+
+          if (!canViewReport(access, foundAssessment, { requiresPro })) {
+            setAccessDenied(true);
+            setAssessment(null);
+          } else {
+            setAssessment(foundAssessment);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading assessment:', error);
       }
 
       setIsLoading(false);
     };
 
     loadAssessment();
-  }, [searchParams, authAccess]);
+  }, [searchParams, authAccess, apiBaseUrl]);
 
   const hasDiscData = Boolean(
     assessment?.results ||
       assessment?.disc_results ||
+      assessment?.disc_profile ||
       assessment?.natural_profile ||
       assessment?.scores
   );
@@ -172,7 +261,8 @@ export default function Report() {
 
   useEffect(() => {
     const fetchRemoteHtml = async () => {
-      if (!apiBaseUrl || !assessment?.id) {
+      const assessmentId = assessment?.assessmentId || assessment?.id || '';
+      if (!apiBaseUrl || !assessmentId) {
         setRemoteReportHtml('');
         setRemoteReportError('');
         return;
@@ -180,7 +270,7 @@ export default function Report() {
 
       try {
         setRemoteReportError('');
-        const payload = await apiRequest(`/report/${assessment.id}/html`, {
+        const payload = await apiRequest(`/report/${assessmentId}/html`, {
           method: 'GET',
           requireAuth: true,
         });
@@ -203,7 +293,7 @@ export default function Report() {
     };
 
     fetchRemoteHtml();
-  }, [apiBaseUrl, assessment?.id]);
+  }, [apiBaseUrl, assessment?.assessmentId, assessment?.id]);
 
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
   const hasSuperAdminBypass = isSuperAdminAccess(authAccess);
@@ -221,7 +311,7 @@ export default function Report() {
       assessment?.candidateUser?.id ||
       ''
   ).trim();
-  const blockedByRemoteError = Boolean(apiBaseUrl && remoteReportError);
+  const blockedByRemoteError = Boolean(apiBaseUrl && remoteReportError && !reportModel);
   const canRenderReport = blockedByRemoteError
     ? false
     : Boolean(remoteReportHtml || reportModel);
@@ -295,29 +385,53 @@ export default function Report() {
     ]);
   };
 
-  const resolveAbsolutePdfUrl = (rawPdfUrl) => {
-    if (!rawPdfUrl) return '';
-    return /^https?:\/\//i.test(rawPdfUrl) ? rawPdfUrl : `${apiBaseUrl}${rawPdfUrl}`;
+  const downloadPdfBlob = (blob, fileName) => {
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   };
 
-  const generatePdfOnServer = async () => {
-    const payload = await apiRequest('/report/generate', {
-      method: 'POST',
-      body: { assessmentId: assessment.id },
-      requireAuth: true,
+  const downloadTierPdfFromApi = async (reportType = 'standard') => {
+    const params = new URLSearchParams({
+      assessmentId: assessment.id,
+      type: reportType,
+    });
+    const endpoint = `${apiBaseUrl}/assessment/report-pdf?${params.toString()}`;
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        ...getApiAuthHeaders(),
+      },
     });
 
-    const rawPdfUrl = payload?.pdfUrl || payload?.report?.pdfUrl || '';
-    const absolutePdfUrl = resolveAbsolutePdfUrl(rawPdfUrl);
-    if (!absolutePdfUrl) {
-      throw new Error('PDF_URL_MISSING');
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const error = new Error(payload?.reason || payload?.error || `HTTP_${response.status}`);
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
     }
 
-    setGeneratedPdfUrl(absolutePdfUrl);
-    return absolutePdfUrl;
+    const blob = await response.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error('PDF_EMPTY');
+    }
+
+    downloadPdfBlob(
+      blob,
+      `insightdisc-relatorio-${reportType}-${assessment?.id || 'export'}.pdf`
+    );
   };
 
-  const handleGeneratePdf = async () => {
+  const handleDownloadByType = async (reportType = 'standard') => {
     if (!assessment || !reportHtml) return;
     if (!canShowExport) {
       setExportError(
@@ -333,14 +447,25 @@ export default function Report() {
 
     try {
       if (apiBaseUrl) {
-        const absolutePdfUrl = await generatePdfOnServer();
-        setGeneratedPdfUrl(absolutePdfUrl);
+        await downloadTierPdfFromApi(reportType);
         return;
       }
 
+      const localTierModel = {
+        ...(reportModel || {}),
+        reportType,
+        meta: {
+          ...(reportModel?.meta || {}),
+          reportType,
+        },
+      };
+      const localTierHtml = renderReportHtml({
+        assessment,
+        reportModel: localTierModel,
+      });
       await exportLocalPdfFromHtml(
-        reportHtml,
-        `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`
+        localTierHtml,
+        `insightdisc-relatorio-${reportType}-${assessment?.id || 'export'}.pdf`
       );
     } catch (error) {
       if (error?.status === 403) {
@@ -349,50 +474,7 @@ export default function Report() {
       }
 
       setExportError('Falha ao gerar PDF.');
-      console.error('[Report] generate PDF failed', error);
-    } finally {
-      setIsPreparingPdf(false);
-    }
-  };
-
-  const handleDownloadPdf = async () => {
-    if (!assessment || !reportHtml) return;
-    if (!canShowExport) {
-      setExportError(
-        canExportReport
-          ? 'Créditos insuficientes para exportar relatório.'
-          : 'Sem permissão para exportar relatório.'
-      );
-      return;
-    }
-
-    setIsPreparingPdf(true);
-    setExportError('');
-
-    try {
-      if (generatedPdfUrl) {
-        window.open(generatedPdfUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
-
-      if (apiBaseUrl) {
-        const absolutePdfUrl = await generatePdfOnServer();
-        window.open(absolutePdfUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
-
-      await exportLocalPdfFromHtml(
-        reportHtml,
-        `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`
-      );
-    } catch (error) {
-      if (error?.status === 403) {
-        setExportError('Sem permissão para exportar relatório.');
-        return;
-      }
-
-      setExportError('Falha ao gerar PDF.');
-      console.error('[Report] download PDF failed', error);
+      console.error('[Report] download tier pdf failed', error);
     } finally {
       setIsPreparingPdf(false);
     }
@@ -472,29 +554,21 @@ export default function Report() {
                   CSV Perfil
                 </Button>
                 <Button
-                  onClick={handleGeneratePdf}
+                  onClick={() => handleDownloadByType('standard')}
                   disabled={isPreparingPdf}
                   variant="outline"
                   className="rounded-xl"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  {isPreparingPdf ? 'Gerando PDF...' : 'Gerar PDF'}
+                  {isPreparingPdf ? 'Preparando...' : 'Baixar Relatório DISC Completo'}
                 </Button>
-                {generatedPdfUrl ? (
-                  <a href={generatedPdfUrl} target="_blank" rel="noreferrer">
-                    <Button variant="outline" className="rounded-xl">
-                      <Download className="w-4 h-4 mr-2" />
-                      Abrir PDF
-                    </Button>
-                  </a>
-                ) : null}
                 <Button
-                  onClick={handleDownloadPdf}
+                  onClick={() => handleDownloadByType('premium')}
                   disabled={isPreparingPdf}
                   className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  {isPreparingPdf ? 'Preparando...' : 'Baixar PDF'}
+                  {isPreparingPdf ? 'Preparando...' : 'Baixar Relatório DISC Premium'}
                 </Button>
                 </>
               ) : null}
