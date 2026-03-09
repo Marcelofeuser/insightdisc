@@ -141,6 +141,38 @@ export default function CandidateReport() {
     return /^https?:\/\//i.test(raw) ? raw : apiBaseUrl ? `${apiBaseUrl}${raw}` : raw;
   };
 
+  const resolveSavePortalErrorMessage = (error) => {
+    const payloadReason = String(error?.payload?.reason || '').toUpperCase();
+    const payloadError = String(error?.payload?.error || '').toUpperCase();
+    const message = String(error?.message || '').toUpperCase();
+    const code = payloadReason || payloadError || message;
+
+    if (code.includes('UNAUTHORIZED_WORKSPACE_SAVE') || code.includes('EMAIL_MISMATCH')) {
+      return 'Este relatório só pode ser salvo por um usuário autorizado deste workspace.';
+    }
+    if (code.includes('REPORT_ALREADY_CLAIMED')) {
+      return 'Este relatório já está vinculado a outro usuário.';
+    }
+    if (code.includes('AUTH_REQUIRED')) {
+      return 'Faça login para salvar este relatório no portal.';
+    }
+
+    return 'Não foi possível salvar o relatório no portal agora. Tente novamente em instantes.';
+  };
+
+  const resolvePdfErrorMessage = (error) => {
+    const payloadReason = String(error?.payload?.reason || '').toUpperCase();
+    const payloadError = String(error?.payload?.error || '').toUpperCase();
+    const message = String(error?.message || '').toUpperCase();
+    const code = payloadReason || payloadError || message;
+
+    if (code.includes('PDF_UNAVAILABLE') || code.includes('PDF_BY_TOKEN_FAILED') || code.includes('ENOENT')) {
+      return 'Não foi possível gerar o PDF agora. Tente novamente em instantes.';
+    }
+
+    return 'Não foi possível baixar o PDF agora. Tente novamente em instantes.';
+  };
+
   const isPremiumReportModel = (model) =>
     Boolean(
       model &&
@@ -397,7 +429,7 @@ export default function CandidateReport() {
 
       navigate('/c/portal');
     } catch (error) {
-      setClaimError(error?.message || 'Falha ao salvar relatório.');
+      setClaimError(resolveSavePortalErrorMessage(error));
     } finally {
       setClaiming(false);
     }
@@ -445,7 +477,7 @@ export default function CandidateReport() {
       toast({
         variant: 'destructive',
         title: 'Falha ao baixar relatório',
-        description: error?.message || 'Não foi possível gerar o PDF agora.',
+        description: resolvePdfErrorMessage(error),
       });
     } finally {
       setIsPreparingPdf(false);
@@ -536,7 +568,7 @@ export default function CandidateReport() {
       toast({
         variant: 'destructive',
         title: 'Falha ao salvar no portal',
-        description: error?.message || 'Não foi possível vincular o relatório.',
+        description: resolveSavePortalErrorMessage(error),
       });
     } finally {
       setIsSavingToPortal(false);

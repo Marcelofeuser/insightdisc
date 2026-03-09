@@ -4,12 +4,15 @@ import { generatePdfFromData } from '../../../../reporting/generatePdf.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const OUTPUT_DIR = path.resolve(__dirname, '../../../generated/reports');
+const OUTPUT_DIR = process.env.VERCEL
+  ? '/tmp/insightdisc-reports'
+  : path.resolve(__dirname, '../../../generated/reports');
 
-export async function generatePremiumPdf(reportModel, assessmentId, assessment = null) {
+export async function generatePremiumPdf(reportModel, assessmentId, assessment = null, options = {}) {
   const safeId = String(assessmentId || reportModel?.meta?.reportId || 'export')
     .replace(/[^a-zA-Z0-9_-]/g, '-');
   const fileName = `insightdisc-relatorio-${safeId}.pdf`;
+  const inMemory = Boolean(options.inMemory);
 
   const data = {
     ...reportModel,
@@ -17,13 +20,16 @@ export async function generatePremiumPdf(reportModel, assessmentId, assessment =
   };
 
   const result = await generatePdfFromData(data, {
-    outputDir: OUTPUT_DIR,
+    ...(inMemory ? {} : { outputDir: OUTPUT_DIR }),
+    returnBuffer: inMemory,
     fileName,
   });
 
   return {
-    pdfUrl: `/reports/${fileName}`,
-    outputPath: result.outputPath,
+    pdfUrl: inMemory ? '' : `/reports/${fileName}`,
+    outputPath: result.outputPath || null,
+    pdfBuffer: result.pdfBuffer || null,
+    fileName: result.fileName || fileName,
     html: result.html,
   };
 }

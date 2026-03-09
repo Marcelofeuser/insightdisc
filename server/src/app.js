@@ -19,6 +19,9 @@ import dossierRoutes from './routes/dossier.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const REPORTS_DIR = process.env.VERCEL
+  ? '/tmp/insightdisc-reports'
+  : path.resolve(__dirname, '../generated/reports');
 
 export function createApp() {
   const app = express();
@@ -28,7 +31,7 @@ export function createApp() {
 
   app.use('/brand', express.static(path.resolve(__dirname, '../../public/brand')));
   app.use('/report-assets', express.static(path.resolve(__dirname, '../../public/report-assets')));
-  app.use('/reports', express.static(path.resolve(__dirname, '../generated/reports')));
+  app.use('/reports', express.static(REPORTS_DIR));
   app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
   app.use('/health', healthRoutes);

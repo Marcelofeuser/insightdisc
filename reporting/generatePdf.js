@@ -116,12 +116,19 @@ export async function generatePdfFromData(rawData, options = {}) {
   const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
   const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);
 
-  const defaultOutputDir = resolvePath('dist', 'reports');
-  const outputDir = path.resolve(options.outputDir || defaultOutputDir);
-  await ensureDir(outputDir);
-
   const fileName = options.fileName || outputFileName(reportModel);
-  const outputPath = path.join(outputDir, fileName);
+  const shouldReturnBuffer = Boolean(options.returnBuffer);
+  let outputPath = '';
+  let pdfBuffer = null;
+  let outputRelative = '';
+
+  if (!shouldReturnBuffer) {
+    const defaultOutputDir = resolvePath('dist', 'reports');
+    const outputDir = path.resolve(options.outputDir || defaultOutputDir);
+    await ensureDir(outputDir);
+    outputPath = path.join(outputDir, fileName);
+    outputRelative = path.relative(ROOT_DIR, outputPath);
+  }
 
   const engine = await loadBrowserLauncher();
   const browser = await engine.launch();
@@ -153,8 +160,7 @@ export async function generatePdfFromData(rawData, options = {}) {
       await page.emulateMediaType('print');
     }
 
-    await page.pdf({
-      path: outputPath,
+    const pdfOptions = {
       format: 'A4',
       printBackground: true,
       margin: {
@@ -164,15 +170,26 @@ export async function generatePdfFromData(rawData, options = {}) {
         left: '0mm',
       },
       preferCSSPageSize: true,
-    });
+    };
+
+    if (shouldReturnBuffer) {
+      pdfBuffer = await page.pdf(pdfOptions);
+    } else {
+      await page.pdf({
+        ...pdfOptions,
+        path: outputPath,
+      });
+    }
   } finally {
     await browser.close();
   }
 
   return {
     engine: engine.name,
-    outputPath,
-    outputRelative: path.relative(ROOT_DIR, outputPath),
+    outputPath: outputPath || null,
+    outputRelative: outputRelative || null,
+    pdfBuffer,
+    fileName,
     html: htmlForPdf,
     reportModel,
   };

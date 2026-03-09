@@ -331,6 +331,7 @@ router.get('/report-by-token', async (req, res) => {
 router.get('/report-pdf-by-token', async (req, res) => {
   try {
     const token = String(req.query.token || '').trim();
+    const shouldDownload = String(req.query.download || '').toLowerCase() === '1';
     const result = await getValidInviteByToken(token, { allowUsed: true });
 
     if (!result.valid) {
@@ -352,18 +353,15 @@ router.get('/report-pdf-by-token', async (req, res) => {
       return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
     }
 
-    const reportExists = Boolean(assessment.report?.pdfUrl);
-    if (reportExists) {
-      const rawPdfUrl = String(assessment.report?.pdfUrl || '');
-      const absolutePdfUrl = /^https?:\/\//i.test(rawPdfUrl)
-        ? rawPdfUrl
-        : `${assetBaseUrl}${rawPdfUrl}`;
+    const downloadPath = `/assessment/report-pdf-by-token?token=${encodeURIComponent(token)}&download=1`;
+    const absoluteDownloadUrl = `${assetBaseUrl}${downloadPath}`;
+    if (!shouldDownload) {
       return res.status(200).json({
         ok: true,
         reportId: assessment.report?.id || null,
         assessmentId: assessment.id,
-        pdfUrl: absolutePdfUrl,
-        pdfPath: rawPdfUrl,
+        pdfUrl: absoluteDownloadUrl,
+        pdfPath: downloadPath,
       });
     }
 
@@ -374,40 +372,44 @@ router.get('/report-pdf-by-token', async (req, res) => {
       currentUser: assessment.creator || assessment.organization?.owner || null,
     });
 
-    const generated = await generatePremiumPdf(reportModel, assessment.id, assessment);
+    const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
+      inMemory: true,
+    });
 
-    const report = await prisma.report.upsert({
+    await prisma.report.upsert({
       where: { assessmentId: assessment.id },
       create: {
         assessmentId: assessment.id,
         discProfile: reportModel,
-        pdfUrl: generated.pdfUrl || null,
+        pdfUrl: downloadPath,
       },
       update: {
         discProfile: reportModel,
-        pdfUrl: generated.pdfUrl || null,
+        pdfUrl: downloadPath,
       },
     });
 
-    const rawPdfUrl = String(report.pdfUrl || generated.pdfUrl || '');
-    const absolutePdfUrl = /^https?:\/\//i.test(rawPdfUrl)
-      ? rawPdfUrl
-      : `${assetBaseUrl}${rawPdfUrl}`;
+    const buffer = generated.pdfBuffer;
+    if (!buffer || !Buffer.isBuffer(buffer)) {
+      return res.status(503).json({
+        ok: false,
+        reason: 'PDF_UNAVAILABLE',
+        message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+      });
+    }
 
-    return res.status(200).json({
-      ok: true,
-      reportId: report.id,
-      assessmentId: assessment.id,
-      pdfUrl: absolutePdfUrl,
-      pdfPath: rawPdfUrl,
-      generated: true,
-    });
+    const fileName = generated.fileName || `insightdisc-relatorio-${assessment.id}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+
+    return res.status(200).send(buffer);
   } catch (error) {
     const status = Number(error?.statusCode) || 400;
     return res.status(status).json({
       ok: false,
       reason: 'PDF_BY_TOKEN_FAILED',
-      error: error?.message || 'Falha ao gerar PDF público por token.',
+      message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
     });
   }
 });

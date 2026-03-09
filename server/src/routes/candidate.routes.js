@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { hashPassword, sha256, signJwt, verifyJwt, verifyPassword } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireRole } from '../middleware/rbac.js';
+import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 
 const router = Router();
 
@@ -83,6 +84,39 @@ async function resolveAuthenticatedUser(req) {
   }
 
   return { user: null, token: '' };
+}
+
+async function canSaveAssessmentToPortal({ user, assessment }) {
+  if (!user || !assessment) return false;
+
+  if (isSuperAdminUser(user)) return true;
+
+  const role = String(user.role || '').toUpperCase();
+  if (!assessment.organizationId) return false;
+
+  const [ownedOrganization, membership] = await Promise.all([
+    prisma.organization.findFirst({
+      where: {
+        id: assessment.organizationId,
+        ownerId: user.id,
+      },
+      select: { id: true },
+    }),
+    prisma.organizationMember.findFirst({
+      where: {
+        organizationId: assessment.organizationId,
+        userId: user.id,
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!ownedOrganization && !membership) return false;
+
+  // Candidate users from the same tenant still need respondent email match.
+  if (role === 'CANDIDATE') return false;
+
+  return true;
 }
 
 router.post('/register', async (req, res) => {
@@ -221,22 +255,39 @@ async function claimReport(req, res) {
     }
 
     const expectedEmail = String(assessment.candidateEmail || '').trim().toLowerCase();
-    if (expectedEmail && expectedEmail !== String(user.email || '').toLowerCase()) {
-      return res.status(403).json({ ok: false, reason: 'EMAIL_MISMATCH' });
+    const userEmail = String(user.email || '').trim().toLowerCase();
+    const emailMatches = !expectedEmail || expectedEmail === userEmail;
+    const workspaceAuthorized = await canSaveAssessmentToPortal({ user, assessment });
+
+    if (!emailMatches && !workspaceAuthorized) {
+      return res.status(403).json({
+        ok: false,
+        reason: 'UNAUTHORIZED_WORKSPACE_SAVE',
+        message: 'Este relatório só pode ser salvo por um usuário autorizado deste workspace.',
+      });
     }
 
-    if (assessment.candidateUserId && assessment.candidateUserId !== user.id) {
+    if (assessment.candidateUserId && assessment.candidateUserId !== user.id && !workspaceAuthorized) {
       return res.status(409).json({ ok: false, reason: 'REPORT_ALREADY_CLAIMED' });
     }
 
-    await prisma.assessment.update({
-      where: { id: assessment.id },
-      data: {
-        candidateUserId: user.id,
-        candidateEmail: assessment.candidateEmail || user.email,
-        candidateName: assessment.candidateName || input.name || user.name,
-      },
-    });
+    const updateData = {};
+    if (!assessment.candidateUserId && emailMatches) {
+      updateData.candidateUserId = user.id;
+    }
+    if (!assessment.candidateEmail) {
+      updateData.candidateEmail = user.email;
+    }
+    if (!assessment.candidateName && (input.name || user.name)) {
+      updateData.candidateName = input.name || user.name;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.assessment.update({
+        where: { id: assessment.id },
+        data: updateData,
+      });
+    }
 
     const token = issuedToken || signJwt({ sub: user.id, email: user.email, role: user.role });
 
@@ -250,9 +301,22 @@ async function claimReport(req, res) {
         role: user.role,
       },
       assessmentId: assessment.id,
+      associationMode: workspaceAuthorized && !emailMatches ? 'workspace_authorized' : 'respondent_match',
     });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'CLAIM_FAILED' });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        ok: false,
+        reason: 'CLAIM_PAYLOAD_INVALID',
+        message: 'Dados inválidos para salvar o relatório no portal.',
+      });
+    }
+
+    return res.status(500).json({
+      ok: false,
+      reason: 'CLAIM_FAILED',
+      message: 'Não foi possível salvar o relatório no portal agora. Tente novamente em instantes.',
+    });
   }
 }
 
