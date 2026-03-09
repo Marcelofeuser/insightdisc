@@ -19,9 +19,7 @@ function normalizeFactorMap(raw) {
 
     const value = toFiniteNumber(raw[factor]);
     map[factor] = value;
-    if (value > 0) {
-      hasAnyValue = true;
-    }
+    if (value > 0) hasAnyValue = true;
   }
 
   return hasAnyValue ? map : null;
@@ -30,16 +28,19 @@ function normalizeFactorMap(raw) {
 function firstValidMap(candidates = []) {
   for (const candidate of candidates) {
     const normalized = normalizeFactorMap(candidate);
-    if (normalized) {
-      return normalized;
-    }
+    if (normalized) return normalized;
   }
   return null;
 }
 
 function resolveTopFactors(summaryMap = {}, discProfile = {}) {
-  const explicitDominant = String(discProfile?.dominant || discProfile?.primary || '').trim().toUpperCase();
-  const explicitSecondary = String(discProfile?.secondary || discProfile?.secondaryFactor || '').trim().toUpperCase();
+  const explicitDominant = String(
+    discProfile?.dominant || discProfile?.primary || ''
+  ).trim().toUpperCase();
+
+  const explicitSecondary = String(
+    discProfile?.secondary || discProfile?.secondaryFactor || ''
+  ).trim().toUpperCase();
 
   if (DISC_FACTORS.includes(explicitDominant) && DISC_FACTORS.includes(explicitSecondary)) {
     return {
@@ -104,7 +105,10 @@ export function mapCandidateReportItem(item = {}, index = 0) {
   const assessmentId = String(item?.assessmentId || '').trim();
   const reportId = String(item?.reportId || '').trim();
   const candidateEmail = String(item?.candidateEmail || '').trim();
-  const discProfile = item?.discProfile && typeof item.discProfile === 'object' ? item.discProfile : null;
+  const discProfile = item?.discProfile && typeof item.discProfile === 'object'
+    ? item.discProfile
+    : null;
+
   const normalizedDisc = discProfile ? normalizeDiscSnapshot(discProfile) : null;
 
   const mapped = {
@@ -132,6 +136,7 @@ export function mapCandidateReportItem(item = {}, index = 0) {
       dominant_factor: normalizedDisc.dominantFactor,
       secondary_factor: normalizedDisc.secondaryFactor,
     };
+
     mapped.disc_results = {
       natural: normalizedDisc.natural,
       adapted: normalizedDisc.adapted,

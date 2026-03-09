@@ -135,7 +135,7 @@ const SECTION_ICON_SVGS = Object.freeze({
 const DEFAULT_BRANDING = Object.freeze({
   company_name: 'InsightDISC',
   logo_url: '/brand/insightdisc-report-logo.png',
-  cover_url: '/report-assets/cover-insightdisc-premium.png',
+  cover_url: '/brand/report-cover-standard.jpg',
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
@@ -146,6 +146,12 @@ const COVER_BACKGROUND_BY_TIER = Object.freeze({
   premium: '/brand/report-cover-premium.jpg',
   standard: '/brand/report-cover-standard.jpg',
 });
+
+function resolveCoverBackgroundByTier(reportType = 'standard') {
+  return reportType === 'premium'
+    ? COVER_BACKGROUND_BY_TIER.premium
+    : COVER_BACKGROUND_BY_TIER.standard;
+}
 
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
 
@@ -1169,7 +1175,7 @@ function buildPage({
 }) {
   if (cover) {
     const coverBrandName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
-    const coverArtUrl = safeText(coverBackgroundUrl, DEFAULT_BRANDING.cover_url);
+    const coverArtUrl = safeText(coverBackgroundUrl, COVER_BACKGROUND_BY_TIER.standard);
     return `
       <section class="page cover-page">
         <div class="cover-content" style="--cover-bg:url('${esc(coverArtUrl)}');" aria-label="Capa oficial ${esc(coverBrandName)}">
@@ -1339,9 +1345,7 @@ export function renderReportHtml(input = {}) {
   const coverPremiumNote = isPremiumTier
     ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
     : '';
-  const coverBackgroundUrl = isPremiumTier
-    ? COVER_BACKGROUND_BY_TIER.premium
-    : COVER_BACKGROUND_BY_TIER.standard;
+  const coverBackgroundUrl = resolveCoverBackgroundByTier(reportType);
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),

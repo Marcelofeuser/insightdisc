@@ -106,6 +106,8 @@ export default function Report() {
       }
 
       if (apiBaseUrl) {
+        let shouldFallbackToLegacyReports = false;
+
         try {
           setAccessDenied(false);
           console.info('[Report] loading report data', { assessmentId });
@@ -145,46 +147,59 @@ export default function Report() {
               return;
             }
           }
+
+          // Em modo API, se o endpoint respondeu sem reportItem, tratamos como ausência de relatório.
+          setAssessment(null);
+          setIsLoading(false);
+          return;
         } catch (error) {
-          if (Number(error?.status) === 401 || Number(error?.status) === 403) {
+          const status = Number(error?.status);
+          if (status === 401 || status === 403) {
             setAccessDenied(true);
             setAssessment(null);
             setIsLoading(false);
             return;
           }
 
-          if (Number(error?.status) !== 404) {
+          if (status === 404) {
+            shouldFallbackToLegacyReports = true;
+          } else {
             console.error('Error loading report data from API:', error);
+            setAssessment(null);
+            setIsLoading(false);
+            return;
           }
         }
 
-        try {
-          const payload = await apiRequest('/candidate/me/reports', {
-            method: 'GET',
-            requireAuth: true,
-          });
-
-          const reports = mapCandidateReports(payload?.reports || []);
-          const matched = findCandidateReportByIdentifier(reports, assessmentId);
-
-          if (matched) {
-            setAssessment({
-              ...matched,
-              id: matched?.assessmentId || matched?.id,
-              workspace_credits: Number(authAccess?.user?.credits ?? 0),
+        if (shouldFallbackToLegacyReports) {
+          try {
+            const payload = await apiRequest('/candidate/me/reports', {
+              method: 'GET',
+              requireAuth: true,
             });
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          if (Number(error?.status) === 401 || Number(error?.status) === 403) {
-            setAccessDenied(true);
-            setAssessment(null);
-            setIsLoading(false);
-            return;
-          }
 
-          console.error('Error loading assessment from API:', error);
+            const reports = mapCandidateReports(payload?.reports || []);
+            const matched = findCandidateReportByIdentifier(reports, assessmentId);
+
+            if (matched) {
+              setAssessment({
+                ...matched,
+                id: matched?.assessmentId || matched?.id,
+                workspace_credits: Number(authAccess?.user?.credits ?? 0),
+              });
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            if (Number(error?.status) === 401 || Number(error?.status) === 403) {
+              setAccessDenied(true);
+              setAssessment(null);
+              setIsLoading(false);
+              return;
+            }
+
+            console.error('Error loading assessment from API fallback:', error);
+          }
         }
       }
 
