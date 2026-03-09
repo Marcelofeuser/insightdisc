@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma.js';
+import {
+  isTransientPrismaConnectionError,
+  prisma,
+  withPrismaRetry,
+} from '../lib/prisma.js';
 import { hashPassword, signJwt, verifyPassword } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
@@ -187,19 +191,23 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const input = loginSchema.parse(req.body || {});
-    const user = await prisma.user.findUnique({
-      where: { email: input.email.toLowerCase() },
-      include: {
-        credits: true,
-        memberships: true,
-        organizationsOwned: true,
-        payments: {
-          where: { status: 'PAID' },
-          select: { id: true },
-          take: 1,
-        },
-      },
-    });
+    const user = await withPrismaRetry(
+      () =>
+        prisma.user.findUnique({
+          where: { email: input.email.toLowerCase() },
+          include: {
+            credits: true,
+            memberships: true,
+            organizationsOwned: true,
+            payments: {
+              where: { status: 'PAID' },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        }),
+      { retries: 1 },
+    );
     if (!user) {
       return res.status(401).json({ ok: false, error: 'Credenciais inválidas.' });
     }
@@ -216,7 +224,31 @@ router.post('/login', async (req, res) => {
       user: normalizeUserPayload(user),
     });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha no login.' });
+    if (isTransientPrismaConnectionError(error)) {
+      // eslint-disable-next-line no-console
+      console.error('[auth/login] transient database error:', error?.message || error);
+      return res.status(503).json({
+        ok: false,
+        error: 'AUTH_TEMPORARILY_UNAVAILABLE',
+        message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
+      });
+    }
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        ok: false,
+        error: 'INVALID_LOGIN_PAYLOAD',
+        message: 'Informe e-mail e senha válidos.',
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.error('[auth/login] failed:', error?.message || error);
+    return res.status(500).json({
+      ok: false,
+      error: 'AUTH_SERVER_ERROR',
+      message: 'Não foi possível concluir o login agora. Tente novamente.',
+    });
   }
 });
 
@@ -237,19 +269,23 @@ router.post('/super-admin-login', async (req, res) => {
     }
 
     const normalizedEmail = input.email.trim().toLowerCase();
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      include: {
-        credits: true,
-        memberships: true,
-        organizationsOwned: true,
-        payments: {
-          where: { status: 'PAID' },
-          select: { id: true },
-          take: 1,
-        },
-      },
-    });
+    const user = await withPrismaRetry(
+      () =>
+        prisma.user.findUnique({
+          where: { email: normalizedEmail },
+          include: {
+            credits: true,
+            memberships: true,
+            organizationsOwned: true,
+            payments: {
+              where: { status: 'PAID' },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        }),
+      { retries: 1 },
+    );
 
     if (!user) {
       registerFailedSuperAdminAttempt(key);
@@ -290,7 +326,31 @@ router.post('/super-admin-login', async (req, res) => {
       user: normalizeUserPayload(user),
     });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha no login do super admin.' });
+    if (isTransientPrismaConnectionError(error)) {
+      // eslint-disable-next-line no-console
+      console.error('[auth/super-admin-login] transient database error:', error?.message || error);
+      return res.status(503).json({
+        ok: false,
+        error: 'AUTH_TEMPORARILY_UNAVAILABLE',
+        message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
+      });
+    }
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        ok: false,
+        error: 'INVALID_LOGIN_PAYLOAD',
+        message: 'Informe e-mail, senha e chave administrativa válidos.',
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.error('[auth/super-admin-login] failed:', error?.message || error);
+    return res.status(500).json({
+      ok: false,
+      error: 'AUTH_SERVER_ERROR',
+      message: 'Não foi possível concluir o login do super admin agora. Tente novamente.',
+    });
   }
 });
 
