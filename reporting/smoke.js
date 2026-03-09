@@ -57,6 +57,7 @@ const REQUIRED_PROFILE_FIELDS = [
 function baseData() {
   return {
     strict: true,
+    reportType: 'premium',
     meta: {
       brand: 'InsightDISC',
       reportTitle: 'Relatorio de Analise Comportamental DISC',
@@ -159,7 +160,13 @@ function validateHtml(model, html) {
   const coverTitleMatches = [...html.matchAll(/class="cover-title"/g)];
   assert(coverTitleMatches.length === 0, `Estrutura antiga de titulo da capa ainda ativa (${coverTitleMatches.length}).`);
   assert(html.includes('>Sumário<') || html.includes('>Sumario<'), 'Pagina de sumario nao encontrada.');
-  assert(html.includes('Conclusão Estratégica do Perfil') || html.includes('Conclusao Estrategica do Perfil'), 'Pagina final premium nao encontrada.');
+  assert(
+    html.includes('Conclusão do Perfil Comportamental')
+      || html.includes('Conclusao do Perfil Comportamental')
+      || html.includes('Conclusão Estratégica do Perfil')
+      || html.includes('Conclusao Estrategica do Perfil'),
+    'Pagina final premium nao encontrada.'
+  );
   assert(
     html.includes(`${model?.participant?.name},`) || html.includes(`${model?.participant?.name} ,`),
     'Conclusao final personalizada nao inicia com nome do participante.',
@@ -250,9 +257,12 @@ async function run() {
 
     const result = await generatePdfFromData(scenario, { outputDir });
     const physicalPages = await countPhysicalPdfPages(result.outputPath);
+    const hasInstitutionalPage = /class="back-cover-page\b/.test(html);
+    const expectedPhysicalPages =
+      reportModel.meta.totalPages + (hasInstitutionalPage ? 1 : 0);
     assert(
-      physicalPages === reportModel.meta.totalPages,
-      `${scenario.meta.reportId}: esperado ${reportModel.meta.totalPages} paginas fisicas, encontrado ${physicalPages}.`
+      physicalPages === expectedPhysicalPages,
+      `${scenario.meta.reportId}: esperado ${expectedPhysicalPages} paginas fisicas, encontrado ${physicalPages}.`
     );
     // eslint-disable-next-line no-console
     console.log(`${scenario.meta.reportId}: ${result.outputRelative} (${physicalPages} páginas físicas)`);

@@ -276,12 +276,12 @@ function normalizeScores(input = {}) {
 }
 
 function listHtml(items, fallback) {
-  const list = safeArray(items, fallback);
+  const list = ensureUniqueItems(safeArray(items, fallback)).slice(0, 12);
   return `<ul class="bullet-list">${list.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>`;
 }
 
 function paragraphsHtml(items, fallback) {
-  const paragraphs = safeArray(items, fallback);
+  const paragraphs = ensureUniqueItems(safeArray(items, fallback)).slice(0, 6);
   return paragraphs.map((item) => `<p>${esc(item)}</p>`).join('');
 }
 
@@ -941,16 +941,72 @@ function applyUtf8Polish(html = '') {
     [/\banalise\b/g, 'análise'],
     [/\bComunicacao\b/g, 'Comunicação'],
     [/\bcomunicacao\b/g, 'comunicação'],
+    [/\bConexao\b/g, 'Conexão'],
+    [/\bconexao\b/g, 'conexão'],
+    [/\bConfianca\b/g, 'Confiança'],
+    [/\bconfianca\b/g, 'confiança'],
+    [/\bConsistencia\b/g, 'Consistência'],
+    [/\bconsistencia\b/g, 'consistência'],
+    [/\bEquilibrio\b/g, 'Equilíbrio'],
+    [/\bequilibrio\b/g, 'equilíbrio'],
+    [/\bContribuicao\b/g, 'Contribuição'],
+    [/\bcontribuicao\b/g, 'contribuição'],
+    [/\bContribuicoes\b/g, 'Contribuições'],
+    [/\bcontribuicoes\b/g, 'contribuições'],
+    [/\bCritérios\b/g, 'Critérios'],
+    [/\bcriterios\b/g, 'critérios'],
+    [/\bMudanca\b/g, 'Mudança'],
+    [/\bmudanca\b/g, 'mudança'],
+    [/\bMudancas\b/g, 'Mudanças'],
+    [/\bmudancas\b/g, 'mudanças'],
     [/\bLideranca\b/g, 'Liderança'],
     [/\blideranca\b/g, 'liderança'],
     [/\bDecisao\b/g, 'Decisão'],
     [/\bdecisao\b/g, 'decisão'],
-    [/\bEstratégico\b/g, 'Estratégico'],
+    [/\bDecisoes\b/g, 'Decisões'],
+    [/\bdecisoes\b/g, 'decisões'],
+    [/\bRelacao\b/g, 'Relação'],
+    [/\brelacao\b/g, 'relação'],
+    [/\bTensao\b/g, 'Tensão'],
+    [/\btensao\b/g, 'tensão'],
+    [/\bSeguranca\b/g, 'Segurança'],
+    [/\bseguranca\b/g, 'segurança'],
+    [/\bNecessidade\b/g, 'Necessidade'],
+    [/\bnecessidade\b/g, 'necessidade'],
+    [/\bRecomendacoes\b/g, 'Recomendações'],
+    [/\brecomendacoes\b/g, 'recomendações'],
+    [/\bObservaveis\b/g, 'Observáveis'],
+    [/\bobservaveis\b/g, 'observáveis'],
+    [/\bConsciencia\b/g, 'Consciência'],
+    [/\bconsciencia\b/g, 'consciência'],
+    [/\bRevisao\b/g, 'Revisão'],
+    [/\brevisao\b/g, 'revisão'],
+    [/\bCobranca\b/g, 'Cobrança'],
+    [/\bcobranca\b/g, 'cobrança'],
+    [/\bExecucao\b/g, 'Execução'],
+    [/\bexecucao\b/g, 'execução'],
+    [/\bEstrategico\b/g, 'Estratégico'],
     [/\bestrategico\b/g, 'estratégico'],
-    [/\bEstratégica\b/g, 'Estratégica'],
+    [/\bEstrategica\b/g, 'Estratégica'],
     [/\bestrategica\b/g, 'estratégica'],
+    [/\bManutencao\b/g, 'Manutenção'],
+    [/\bmanutencao\b/g, 'manutenção'],
+    [/\bReuniao\b/g, 'Reunião'],
+    [/\breuniao\b/g, 'reunião'],
+    [/\bSintese\b/g, 'Síntese'],
+    [/\bsintese\b/g, 'síntese'],
+    [/\bDinamica\b/g, 'Dinâmica'],
+    [/\bdinamica\b/g, 'dinâmica'],
+    [/\bPadrao\b/g, 'Padrão'],
+    [/\bpadrao\b/g, 'padrão'],
+    [/\bResponsavel\b/g, 'Responsável'],
+    [/\bresponsavel\b/g, 'responsável'],
+    [/\bResponsaveis\b/g, 'Responsáveis'],
+    [/\bresponsaveis\b/g, 'responsáveis'],
     [/\bAdaptacao\b/g, 'Adaptação'],
     [/\badaptacao\b/g, 'adaptação'],
+    [/\bAderencia\b/g, 'Aderência'],
+    [/\baderencia\b/g, 'aderência'],
     [/\bOrganizacao\b/g, 'Organização'],
     [/\borganizacao\b/g, 'organização'],
     [/\bAvaliacao\b/g, 'Avaliação'],
@@ -959,16 +1015,28 @@ function applyUtf8Polish(html = '') {
     [/\bconclusao\b/g, 'conclusão'],
     [/\bCriterio\b/g, 'Critério'],
     [/\bcriterio\b/g, 'critério'],
+    [/\bCritica\b/g, 'Crítica'],
+    [/\bcritica\b/g, 'crítica'],
+    [/\bRotulo\b/g, 'Rótulo'],
+    [/\brotulo\b/g, 'rótulo'],
+    [/\bCompreensao\b/g, 'Compreensão'],
+    [/\bcompreensao\b/g, 'compreensão'],
     [/\bValidacao\b/g, 'Validação'],
     [/\bvalidacao\b/g, 'validação'],
     [/\bAplicacao\b/g, 'Aplicação'],
     [/\baplicacao\b/g, 'aplicação'],
+    [/\bReunioes\b/g, 'Reuniões'],
+    [/\breunioes\b/g, 'reuniões'],
     [/\bEvolucao\b/g, 'Evolução'],
     [/\bevolucao\b/g, 'evolução'],
     [/\bGestao\b/g, 'Gestão'],
     [/\bgestao\b/g, 'gestão'],
     [/\bPressao\b/g, 'Pressão'],
     [/\bpressao\b/g, 'pressão'],
+    [/\bInformacao\b/g, 'Informação'],
+    [/\binformacao\b/g, 'informação'],
+    [/\bNao\b/g, 'Não'],
+    [/\bnao\b/g, 'não'],
     [/\bAcao\b/g, 'Ação'],
     [/\bacao\b/g, 'ação'],
     [/\bAcoes\b/g, 'Ações'],
@@ -1077,7 +1145,7 @@ function automaticEnrichment(title, subtitle) {
       )}
     </div>
     <div class="card compact-density-note">
-      <p><strong>Aplicação prática:</strong> conecte estes pontos com situações reais da rotina e revise o ajuste em ciclos curtos.</p>
+      <p><strong>Diretriz aplicada:</strong> conecte estes pontos ao seu contexto real e revise o ajuste em ciclos curtos com evidências observáveis.</p>
     </div>
   `;
 }
@@ -1109,7 +1177,7 @@ function buildPage({
   const parityClass = number % 2 === 0 ? 'page-even' : 'page-odd';
   const densityChars = stripHtml(content).length;
   const contentWithDensity =
-    enforceDensity && densityChars < 950
+    enforceDensity && densityChars < 760
       ? `${content}\n${automaticEnrichment(title, subtitle)}`
       : content;
 
@@ -1246,6 +1314,9 @@ export function renderReportHtml(input = {}) {
     '-'
   );
   const coverTierLabel = isPremiumTier ? 'Relatório DISC Premium' : 'Relatório DISC Completo';
+  const coverTierDescriptor = isPremiumTier
+    ? 'Edição executiva com profundidade estratégica e leitura avançada.'
+    : 'Edição completa com leitura prática para aplicação profissional.';
   const coverReportTitle = isPremiumTier
     ? 'RELATÓRIO DISC PREMIUM'
     : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
@@ -1322,6 +1393,14 @@ export function renderReportHtml(input = {}) {
     ...safeArray(profileContent?.naturalStrengths, []),
     ...safeArray(profileContent?.workStrengths, []),
   ]).filter((item) => !premiumTopStrengths.includes(item));
+  const premiumComplementaryStrengths =
+    premiumRemainingStrengths.length > 0
+      ? premiumRemainingStrengths
+      : ensureUniqueItems([
+          ...safeArray(profileContent?.developmentPoints, []),
+          ...safeArray(narratives?.careerFramework, []),
+          ...safeArray(narratives?.environmentEnergizers, []),
+        ]).slice(0, 8);
 
   const premiumTopRisks = ensureUniqueItems([
     ...safeArray(profileContent?.developmentRisks, []),
@@ -1333,6 +1412,14 @@ export function renderReportHtml(input = {}) {
     ...safeArray(profileContent?.workRisks, []),
     ...safeArray(profileContent?.leadershipRisks, []),
   ]).filter((item) => !premiumTopRisks.includes(item));
+  const premiumComplementaryRisks =
+    premiumRemainingRisks.length > 0
+      ? premiumRemainingRisks
+      : ensureUniqueItems([
+          ...safeArray(narratives?.environmentDrainers, []),
+          ...safeArray(narratives?.stressSignals, []),
+          ...safeArray(profileContent?.frictionMatches, []),
+        ]).slice(0, 8);
 
   const pages = [];
   pages.push(
@@ -1342,43 +1429,45 @@ export function renderReportHtml(input = {}) {
       cover: true,
       branding,
       content: `
-        <div class="cover-info-card">
-          ${coverTierBadge}
-          <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
-          <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
-          ${coverPremiumNote}
-          <div class="cover-info-grid">
-            <div class="cover-info-item">
-              <span>Nome</span>
-              <strong>${esc(coverParticipantName)}</strong>
+        <div class="cover-shell ${isPremiumTier ? 'cover-shell-premium' : 'cover-shell-standard'}">
+          <div class="cover-identity-block">
+            <div class="cover-brand-title">InsightDISC</div>
+            <div class="cover-brand-subtitle">Plataforma de Análise Comportamental</div>
+          </div>
+          <div class="cover-info-card ${isPremiumTier ? 'cover-info-card-premium' : 'cover-info-card-standard'}">
+            <div class="cover-info-header">
+              ${coverTierBadge}
+              <div class="cover-tier-caption">${esc(coverTierDescriptor)}</div>
             </div>
-            <div class="cover-info-item">
-              <span>E-mail</span>
-              <strong>${esc(coverParticipantEmail)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>Empresa</span>
-              <strong>${esc(coverCompanyName)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>Data</span>
-              <strong>${esc(coverGeneratedDate)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>Perfil predominante</span>
-              <strong>${esc(coverProfileKey)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>Arquétipo</span>
-              <strong>${esc(coverArchetype)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>Tier do relatório</span>
-              <strong>${esc(coverTierLabel)}</strong>
-            </div>
-            <div class="cover-info-item">
-              <span>ID da avaliação</span>
-              <strong>${esc(coverAssessmentId)}</strong>
+            <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
+            <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
+            <div class="cover-name-highlight">${esc(coverParticipantName)}</div>
+            ${coverPremiumNote}
+            <div class="cover-info-grid">
+              <div class="cover-info-item">
+                <span>Perfil predominante</span>
+                <strong>${esc(coverProfileKey)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span>Arquétipo</span>
+                <strong>${esc(coverArchetype)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span>Empresa</span>
+                <strong>${esc(coverCompanyName)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span>Data de geração</span>
+                <strong>${esc(coverGeneratedDate)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span>E-mail</span>
+                <strong>${esc(coverParticipantEmail)}</strong>
+              </div>
+              <div class="cover-info-item">
+                <span>ID da avaliação</span>
+                <strong>${esc(coverAssessmentId)}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -1401,7 +1490,7 @@ export function renderReportHtml(input = {}) {
           <p>Você pode ler em sequência completa ou priorizar as seções de acordo com seu contexto atual de atuação.</p>
           ${factorAccentBadge(profile, scores.summary, 'Assinatura predominante')}
         </div>
-        <div class="grid two summary-layout-grid">
+        <div class="grid two summary-layout-grid ${isPremiumTier ? '' : 'summary-layout-grid-standard'}">
           ${summaryRowsHtml(summaryItemsForTier, { singleColumn: !isPremiumTier })}
           <div class="card">
             <h3>${isPremiumTier ? 'Mapa técnico rápido' : 'Leitura rápida do perfil'}</h3>
@@ -1418,18 +1507,9 @@ export function renderReportHtml(input = {}) {
         ${
           isPremiumTier
             ? '<div class="card"><h3>Leitura recomendada para liderança</h3><p>Na versão premium, priorize Síntese Executiva, Dinâmica Geral, Estresse e Plano 90 dias para decisões de gestão com menor risco comportamental.</p></div>'
-            : `
-              <div class="card">
-                <h3>Como extrair valor deste relatório</h3>
-                ${listHtml(methodologyUse.slice(0, 3))}
-              </div>
-            `
+            : ''
         }
-        <div class="card">
-          <h3>Aviso de confidencialidade</h3>
-          <p>${esc(safeText(report?.lgpd?.notice, 'Documento confidencial para uso profissional. Compartilhamento externo somente com autorizacao do titular e responsavel pelo processo.'))}</p>
-        </div>
-        ${enrichmentCard('Leitura estratégica', safeText(insights?.executive, 'Priorize aplicação prática, rotina de acompanhamento e feedback observável para transformar leitura em ganho de performance.'))}
+        <div class="summary-confidential-line">${esc(safeText(report?.lgpd?.notice, 'Documento confidencial para uso profissional. Compartilhamento externo somente com autorização do titular e responsável pelo processo.'))}</div>
       `,
     })
   );
@@ -1490,7 +1570,7 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         ${executiveDivider('Panorama executivo do comportamento', 'Visão de liderança para tomada de decisão, comunicação e desenvolvimento')}
-        <div class="grid two summary-balance-grid">
+        <div class="grid two summary-balance-grid ${isPremiumTier ? '' : 'summary-balance-grid-standard'}">
           <div>
             ${scorePillsHtml(scores, profile, adaptation)}
             <div class="card executive-hero">
@@ -1501,11 +1581,23 @@ export function renderReportHtml(input = {}) {
               <p>${esc(adaptation.interpretation)}</p>
             </div>
           </div>
-          <div class="card">
-            <h3>Leitura técnica do eixo dominante</h3>
-            ${factorAccentBadge(profile, scores.summary, 'Fator de maior intensidade')}
-            ${miniDiscBarsHtml(scores.natural, 'Intensidade natural por fator')}
-          </div>
+          ${
+            isPremiumTier
+              ? `
+                <div class="card">
+                  <h3>Leitura técnica do eixo dominante</h3>
+                  ${factorAccentBadge(profile, scores.summary, 'Fator de maior intensidade')}
+                  ${miniDiscBarsHtml(scores.natural, 'Intensidade natural por fator')}
+                </div>
+              `
+              : `
+                <div class="card">
+                  <h3>Assinatura comportamental</h3>
+                  <p>Este perfil tende a responder primeiro por <strong>${esc(profilePrimaryLabel)}</strong> e calibrar decisões com <strong>${esc(profileSecondaryLabel)}</strong>.</p>
+                  ${factorAccentBadge(profile, scores.summary, 'Eixo dominante')}
+                </div>
+              `
+          }
         </div>
         ${
           isBalancedProfile
@@ -1539,11 +1631,11 @@ export function renderReportHtml(input = {}) {
               <div class="grid two stack-on-print">
                 <div class="card">
                   <h3>Resumo executivo</h3>
-                  ${listHtml((profileContent?.executiveSummary || []).slice(0, 6), ['Leitura executiva do perfil com foco em aplicação de negócio.'])}
+                  ${listHtml((profileContent?.executiveSummary || []).slice(0, 4), ['Leitura executiva do perfil com foco em aplicação de negócio.'])}
                 </div>
                 <div class="card">
                   <h3>Leitura geral</h3>
-                  ${paragraphsHtml((narratives?.summaryParagraphs || []).slice(0, 3), [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
+                  ${paragraphsHtml((narratives?.summaryParagraphs || []).slice(0, 2), [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
                   ${strategicNote('Recomendação executiva', 'Priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais.', 'Esse ajuste aumenta percepção de senioridade, previsibilidade de entrega e influência no time.')}
                 </div>
               </div>
@@ -1702,26 +1794,33 @@ export function renderReportHtml(input = {}) {
         <div class="grid two stack-on-print">
           <div class="card">
             <h3>Contribuição típica</h3>
-            ${listHtml((profileContent?.teamContribution || []).slice(0, 5), ['Apoio a direcao e estabilidade da equipe.'])}
+            ${listHtml((profileContent?.teamContribution || []).slice(0, 4), ['Apoio a direcao e estabilidade da equipe.'])}
           </div>
           <div class="card">
             <h3>Riscos de execução</h3>
-            ${listHtml((profileContent?.workRisks || []).slice(0, 5), ['Risco operacional relevante para monitorar em ciclos curtos.'])}
+            ${listHtml((profileContent?.workRisks || []).slice(0, 4), ['Risco operacional relevante para monitorar em ciclos curtos.'])}
           </div>
         </div>
-        <div class="grid two stack-on-print">
-          <div class="card">
-            <h3>Estilo de comunicacao predominante</h3>
-            ${listHtml((narratives?.communicationStyle || []).slice(0, 4), ['Comunicacao orientada ao contexto e ao impacto da mensagem.'])}
-          </div>
-          <div class="card">
-            <h3>Necessidades de comunicacao</h3>
-            ${listHtml((narratives?.communicationNeeds || []).slice(0, 4), ['Contexto claro, prioridade definida e proximo passo explicito.'])}
-          </div>
-        </div>
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>Leitura relacional do arquétipo</h3>
+                <div class="grid two stack-on-print">
+                  <div>${listHtml((narratives?.communicationStyle || []).slice(0, 2), ['Comunicação orientada ao contexto e ao impacto da mensagem.'])}</div>
+                  <div>${listHtml((narratives?.communicationNeeds || []).slice(0, 2), ['Contexto claro, prioridade definida e próximo passo explícito.'])}</div>
+                </div>
+              </div>
+            `
+            : ''
+        }
         <div class="card">
           ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.dynamics, 'Conecte a dinamica do perfil aos rituais da equipe para elevar previsibilidade de entrega.'))}
-          ${enrichmentCard(enrichment.insight, safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Leitura executiva para converter estilo em resultado sustentavel.')))}
+          ${
+            isPremiumTier
+              ? enrichmentCard(enrichment.insight, safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Leitura executiva para converter estilo em resultado sustentavel.')))
+              : strategicNote('Leitura final da dinâmica', 'Use essa página para alinhar estilo, contexto e expectativa de entrega com a liderança imediata.')
+          }
         </div>
       `,
     })
@@ -2027,39 +2126,33 @@ export function renderReportHtml(input = {}) {
         <div class="grid two stack-on-print">
           <div class="card">
             <h3>Padrão de estresse do perfil</h3>
-            ${listHtml((profileContent?.stressPattern || []).slice(0, 5), ['Sinais comportamentais de pressão que afetam clareza e colaboração.'])}
+            ${listHtml((profileContent?.stressPattern || []).slice(0, 4), ['Sinais comportamentais de pressão que afetam clareza e colaboração.'])}
           </div>
           <div class="card">
             <h3>Sinais de alerta universais</h3>
             ${listHtml(
-              [...safeArray(narratives?.stressSignals, []), ...safeArray(narratives?.stressSignalsShared, [])].slice(0, 6),
+              [...safeArray(narratives?.stressSignals, []), ...safeArray(narratives?.stressSignalsShared, [])].slice(0, 4),
               ['Reatividade, queda de clareza e oscilação de consistência.']
             )}
           </div>
         </div>
-        <div class="grid two stack-on-print">
-          <div class="card">
-            <h3>Reações emocionais prováveis</h3>
-            ${listHtml([
-              `Sob pressão, o fator ${profile.primary} tende a aumentar a intensidade de resposta.`,
-              'A percepção de perda de controle pode gerar comunicação mais curta e defensiva.',
-              'Quando não há alinhamento de prioridade, cresce o risco de tensão com pares e liderança.'
-            ])}
-          </div>
-          <div class="card">
-            <h3>Impacto no ambiente de trabalho</h3>
-            ${listHtml([
-              'Pode ocorrer queda de escuta em reuniões críticas.',
-              'Retrabalho cresce quando o time não tem checkpoint de risco.',
-              'Conflitos latentes tendem a escalar sem ritual de alinhamento.'
-            ])}
-          </div>
+        <div class="card">
+          <h3>Reflexos no ambiente profissional</h3>
+          ${listHtml([
+            `Sob pressão, o fator ${profile.primary} tende a aumentar a intensidade de resposta.`,
+            'A percepção de perda de controle pode gerar comunicação mais curta e defensiva.',
+            'Pode ocorrer queda de escuta em reuniões críticas e retrabalho por desalinhamento.',
+            'Conflitos latentes tendem a escalar quando não há checkpoint de prioridade.'
+          ])}
         </div>
         <div class="card">
           <h3>Como recuperar equilíbrio</h3>
-          ${listHtml(profileContent?.recoveryStrategy, ['Repriorizar, reduzir ruído e retomar rotina de acompanhamento.'])}
-          ${enrichmentCard('Leitura do gestor', safeText(insights?.practicalByPage?.stress, 'Gestores devem atuar cedo quando sinais de estresse aparecem para evitar escalada de conflito e queda de performance.'))}
-          ${strategicNote('Atenção comportamental', 'Sob pressão prolongada, esse perfil tende a repetir o fator dominante. Intervenções rápidas preservam qualidade de decisão e relacionamento.')}
+          ${listHtml((profileContent?.recoveryStrategy || []).slice(0, 4), ['Repriorizar, reduzir ruído e retomar rotina de acompanhamento.'])}
+          ${
+            isPremiumTier
+              ? strategicNote('Atenção comportamental', 'Sob pressão prolongada, esse perfil tende a repetir o fator dominante. Intervenções rápidas preservam qualidade de decisão e relacionamento.')
+              : strategicNote('Leitura do gestor', safeText(insights?.practicalByPage?.stress, 'Gestores devem atuar cedo quando sinais de estresse aparecem para evitar escalada de conflito e queda de performance.'))
+          }
         </div>
       `,
     })
@@ -2284,7 +2377,7 @@ export function renderReportHtml(input = {}) {
         <div class="card">
           <h3>${isPremiumTier ? 'Forças complementares para alavancagem' : 'Forças naturais prioritárias'}</h3>
           ${listHtml(
-            isPremiumTier ? premiumRemainingStrengths : profileContent?.naturalStrengths,
+            isPremiumTier ? premiumComplementaryStrengths : profileContent?.naturalStrengths,
             ['Força natural com impacto observável em colaboração e entrega.'],
           )}
         </div>
@@ -2333,7 +2426,7 @@ export function renderReportHtml(input = {}) {
         <div class="card">
           <h3>${isPremiumTier ? 'Riscos complementares para monitoramento' : 'Pontos de desenvolvimento prioritários'}</h3>
           ${listHtml(
-            isPremiumTier ? premiumRemainingRisks : profileContent?.developmentPoints,
+            isPremiumTier ? premiumComplementaryRisks : profileContent?.developmentPoints,
             ['Ponto de desenvolvimento com alto potencial de impacto no resultado.'],
           )}
         </div>
@@ -2892,26 +2985,75 @@ export function renderReportHtml(input = {}) {
       background: #020916;
     }
 
-    .cover-info-card {
+    .cover-shell {
       position: absolute;
       left: 20mm;
       right: 20mm;
-      bottom: 22mm;
+      top: 18mm;
+      bottom: 20mm;
       z-index: 2;
-      padding: 10mm 10mm 9mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12mm;
+    }
+
+    .cover-identity-block {
+      align-self: flex-start;
+      padding: 3.2mm 4.2mm;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(8, 20, 43, 0.38);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .cover-brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: 0.3px;
+      color: #f5f8ff;
+    }
+
+    .cover-brand-subtitle {
+      font-size: 10.6px;
+      color: rgba(233, 239, 250, 0.86);
+      line-height: 1.35;
+      margin-top: 1.2mm;
+    }
+
+    .cover-info-card {
+      padding: 8.5mm 9mm 8mm;
       border-radius: 16px;
-      background: rgba(7, 20, 45, 0.48);
       border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(6px);
       color: #ffffff;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
+    .cover-info-card-premium {
+      background: linear-gradient(180deg, rgba(7, 20, 45, 0.62), rgba(7, 20, 45, 0.42));
+      border-color: rgba(216, 164, 68, 0.35);
+    }
+
+    .cover-info-card-standard {
+      background: linear-gradient(180deg, rgba(8, 20, 43, 0.57), rgba(8, 20, 43, 0.38));
+      border-color: rgba(191, 209, 232, 0.35);
+    }
+
+    .cover-info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4.2mm;
+    }
+
     .cover-tier-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 4mm;
       padding: 1.6mm 4mm;
       border-radius: 999px;
       font-size: 10px;
@@ -2932,27 +3074,52 @@ export function renderReportHtml(input = {}) {
       color: #e8edf7;
     }
 
+    .cover-tier-caption {
+      font-size: 10px;
+      line-height: 1.35;
+      color: rgba(232, 239, 250, 0.86);
+      text-align: right;
+      max-width: 56%;
+    }
+
     .cover-report-kicker {
       margin: 0;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
-      letter-spacing: 1.4px;
+      letter-spacing: 1.1px;
       text-transform: uppercase;
-      margin-bottom: 4mm;
+      margin-bottom: 3.4mm;
     }
 
     .cover-report-subtitle {
-      font-size: 12.5px;
-      line-height: 1.45;
+      font-size: 12.4px;
+      line-height: 1.4;
       opacity: 0.92;
-      margin-bottom: 7mm;
+      margin-bottom: 5.2mm;
+      max-width: 96%;
+    }
+
+    .cover-name-highlight {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      margin-bottom: 4.6mm;
+      padding: 1.9mm 4.2mm;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+      letter-spacing: 0.2px;
     }
 
     .cover-report-premium-note {
-      margin-top: -3mm;
-      margin-bottom: 6mm;
-      font-size: 11px;
-      line-height: 1.45;
+      margin-top: -1.2mm;
+      margin-bottom: 4.8mm;
+      font-size: 10.7px;
+      line-height: 1.42;
       color: #f8e6bc;
       border-left: 2px solid rgba(216, 164, 68, 0.85);
       padding-left: 3mm;
@@ -2962,7 +3129,7 @@ export function renderReportHtml(input = {}) {
     .cover-info-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 5mm 8mm;
+      gap: 4.2mm 7mm;
     }
 
     .cover-info-item {
@@ -2980,7 +3147,7 @@ export function renderReportHtml(input = {}) {
 
     .cover-info-item strong {
       display: block;
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
       line-height: 1.25;
       overflow-wrap: anywhere;
@@ -3252,11 +3419,21 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 10px;
     }
 
+    .summary-layout-grid-standard {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
     .summary-balance-grid {
       grid-template-columns: 1.1fr 0.9fr;
       align-items: start;
       gap: 10px;
       margin-bottom: 10px;
+    }
+
+    .summary-balance-grid-standard {
+      grid-template-columns: 1fr;
+      gap: 8px;
     }
 
     .grid.two.stack-on-print {
@@ -3302,6 +3479,15 @@ export function renderReportHtml(input = {}) {
       font-size: 12.2px;
       color: #1f2937;
       line-height: 1.3;
+    }
+
+    .summary-confidential-line {
+      margin-top: 6px;
+      font-size: 10.8px;
+      color: #5d6b81;
+      line-height: 1.35;
+      border-top: 1px dashed #d5ddea;
+      padding-top: 6px;
     }
 
     .factor-accent-badge {
@@ -3772,6 +3958,98 @@ export function renderReportHtml(input = {}) {
       margin-top: 8px;
     }
 
+    .factor-tech-card {
+      background: #ffffff;
+      border: 1px solid color-mix(in srgb, var(--factor), #d8e2ef 68%);
+      border-top: 4px solid var(--factor);
+      border-radius: 14px;
+      padding: 11px 12px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .factor-tech-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .factor-tech-head h3 {
+      margin: 0;
+      font-size: 14px;
+      color: color-mix(in srgb, var(--factor), #0f172a 38%);
+      line-height: 1.22;
+    }
+
+    .factor-pill {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: color-mix(in srgb, var(--factor), #ffffff 74%);
+      border: 1px solid color-mix(in srgb, var(--factor), #ffffff 45%);
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .factor-mini-bars {
+      margin: 7px 0 8px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .factor-mini-row {
+      display: grid;
+      grid-template-columns: 58px 1fr 36px;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .factor-mini-row span {
+      font-size: 10px;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .factor-mini-row strong {
+      text-align: right;
+      font-size: 10.7px;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .factor-mini-track {
+      height: 7px;
+      border-radius: 999px;
+      background: #e4ebf4;
+      overflow: hidden;
+    }
+
+    .factor-mini-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--factor), #ffffff 25%), var(--factor));
+    }
+
+    .factor-mini-fill-soft {
+      opacity: 0.68;
+    }
+
+    .factor-mini-grid {
+      gap: 7px;
+    }
+
+    .factor-mini-grid h4 {
+      margin-bottom: 4px;
+    }
+
     .bullet-list {
       margin: 0;
       padding: 0;
@@ -3836,9 +4114,14 @@ export function renderReportHtml(input = {}) {
     .grid-two,
     .summary-grid,
     .factor-card,
+    .factor-tech-card,
     .kpi-grid,
     .visual-panel,
-    .bullet-list {
+    .bullet-list,
+    .mini-disc-chart,
+    .behavior-matrix,
+    .decision-path,
+    .stress-escalation {
       page-break-inside: avoid;
       break-inside: avoid;
     }
