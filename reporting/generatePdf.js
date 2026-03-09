@@ -90,10 +90,15 @@ async function loadBrowserLauncher() {
     tryRequire(localRequire, 'puppeteer') ||
     (serverRequire ? tryRequire(serverRequire, 'puppeteer') : null);
 
+  const launchOptions = {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  };
+
   if (puppeteer?.launch) {
     return {
       name: 'puppeteer',
-      launch: () => puppeteer.launch({ headless: 'new' }),
+      launch: () => puppeteer.launch(launchOptions),
     };
   }
 
@@ -101,7 +106,7 @@ async function loadBrowserLauncher() {
     const playwright = await import('playwright');
     return {
       name: 'playwright',
-      launch: () => playwright.chromium.launch({ headless: true }),
+      launch: () => playwright.chromium.launch(launchOptions),
     };
   } catch {
     throw new Error(
@@ -135,7 +140,9 @@ export async function generatePdfFromData(rawData, options = {}) {
 
   try {
     const page = await browser.newPage();
-    await page.setContent(htmlForPdf, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlForPdf, {
+      waitUntil: engine.name === 'playwright' ? 'networkidle' : 'networkidle0',
+    });
     const coverStatus = await page.evaluate(async () => {
       const cover = document.querySelector('.cover-art-image');
       if (!cover) return { found: false };

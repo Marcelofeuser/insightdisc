@@ -405,6 +405,8 @@ router.get('/report-pdf-by-token', async (req, res) => {
 
     return res.status(200).send(buffer);
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[assessment/report-pdf-by-token] failed:', error?.stack || error?.message || error);
     const status = Number(error?.statusCode) || 400;
     return res.status(status).json({
       ok: false,

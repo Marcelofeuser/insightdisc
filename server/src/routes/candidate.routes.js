@@ -325,10 +325,49 @@ router.post('/claim-report', claimReport);
 
 async function listCandidateReports(req, res) {
   try {
-    const where =
-      req.user?.role === 'CANDIDATE'
-        ? { candidateUserId: req.user.id }
-        : { createdBy: req.user.id };
+    const role = String(req.user?.role || '').toUpperCase();
+    const isSuperAdmin = isSuperAdminUser(req.user || {});
+    const userEmail = String(req.user?.email || '').trim().toLowerCase();
+
+    let where = {};
+    if (isSuperAdmin) {
+      where = {};
+    } else if (role === 'CANDIDATE' || role === 'USER') {
+      where = {
+        OR: [
+          { candidateUserId: req.user.id },
+          ...(userEmail ? [{ candidateEmail: userEmail }] : []),
+        ],
+      };
+    } else {
+      const [ownedOrganizations, memberships] = await Promise.all([
+        prisma.organization.findMany({
+          where: { ownerId: req.user.id },
+          select: { id: true },
+        }),
+        prisma.organizationMember.findMany({
+          where: { userId: req.user.id },
+          select: { organizationId: true },
+        }),
+      ]);
+
+      const allowedOrganizationIds = Array.from(
+        new Set([
+          ...ownedOrganizations.map((item) => item.id),
+          ...memberships.map((item) => item.organizationId),
+        ]),
+      ).filter(Boolean);
+
+      if (!allowedOrganizationIds.length) {
+        return res.status(200).json({ ok: true, reports: [] });
+      }
+
+      where = {
+        organizationId: {
+          in: allowedOrganizationIds,
+        },
+      };
+    }
 
     const assessments = await prisma.assessment.findMany({
       where,
@@ -357,7 +396,19 @@ async function listCandidateReports(req, res) {
   }
 }
 
-router.get('/me/reports', requireAuth, attachUser, requireRole('CANDIDATE', 'ADMIN', 'PRO'), listCandidateReports);
-router.get('/reports', requireAuth, attachUser, requireRole('CANDIDATE', 'ADMIN', 'PRO'), listCandidateReports);
+router.get(
+  '/me/reports',
+  requireAuth,
+  attachUser,
+  requireRole('CANDIDATE', 'USER', 'ADMIN', 'PRO', 'SUPER_ADMIN'),
+  listCandidateReports,
+);
+router.get(
+  '/reports',
+  requireAuth,
+  attachUser,
+  requireRole('CANDIDATE', 'USER', 'ADMIN', 'PRO', 'SUPER_ADMIN'),
+  listCandidateReports,
+);
 
 export default router;

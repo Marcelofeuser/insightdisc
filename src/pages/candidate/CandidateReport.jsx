@@ -173,6 +173,44 @@ export default function CandidateReport() {
     return 'Não foi possível baixar o PDF agora. Tente novamente em instantes.';
   };
 
+  const downloadPdfFromUrl = async (url, fileName) => {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'omit',
+    });
+
+    if (!response.ok) {
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+      const backendCode = String(payload?.reason || payload?.error || `HTTP_${response.status}`);
+      const error = new Error(backendCode);
+      error.payload = payload || {};
+      error.status = response.status;
+      throw error;
+    }
+
+    const blob = await response.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error('PDF_EMPTY');
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  };
+
   const isPremiumReportModel = (model) =>
     Boolean(
       model &&
@@ -449,20 +487,19 @@ export default function CandidateReport() {
       if (apiBaseUrl && token) {
         const publicPdfUrl = await ensurePublicPdfUrl();
         if (publicPdfUrl) {
-          const anchor = document.createElement('a');
-          anchor.href = publicPdfUrl;
-          anchor.target = '_blank';
-          anchor.rel = 'noreferrer';
-          anchor.download = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-
-          toast({
-            title: 'Download concluído',
-            description: 'Relatório salvo em PDF no seu dispositivo.',
-          });
-          return;
+          try {
+            await downloadPdfFromUrl(
+              publicPdfUrl,
+              `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`,
+            );
+            toast({
+              title: 'Download concluído',
+              description: 'Relatório salvo em PDF no seu dispositivo.',
+            });
+            return;
+          } catch (serverDownloadError) {
+            console.warn('[CandidateReport] backend pdf download failed, fallback to local export', serverDownloadError);
+          }
         }
       }
 

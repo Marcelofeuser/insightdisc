@@ -12,6 +12,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import TableShell from '@/components/ui/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -37,6 +38,7 @@ function getRespondent(assessment) {
 export default function MyAssessments() {
   const navigate = useNavigate();
   const { access: authAccess } = useAuth();
+  const apiBaseUrl = getApiBaseUrl();
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -76,6 +78,31 @@ export default function MyAssessments() {
   const { data: assessments = [], isLoading } = useQuery({
     queryKey: ['my-assessments', access?.tenantId, access?.userId, access?.email, canTenantView, canSelfView],
     queryFn: async () => {
+      if (apiBaseUrl && getApiToken()) {
+        const payload = await apiRequest('/candidate/me/reports', {
+          method: 'GET',
+          requireAuth: true,
+        });
+        const reports = Array.isArray(payload?.reports) ? payload.reports : [];
+
+        return reports.map((item, index) => ({
+          id:
+            item?.assessmentId ||
+            item?.reportId ||
+            `${item?.candidateEmail || 'report'}-${index}`,
+          assessmentId: item?.assessmentId || '',
+          completed_at: item?.completedAt || item?.createdAt || null,
+          created_date: item?.createdAt || null,
+          respondent_name: item?.candidateName || '',
+          lead_name: item?.candidateName || '',
+          lead_email: item?.candidateEmail || '',
+          user_email: item?.candidateEmail || '',
+          status: 'completed',
+          type: 'premium',
+          pdf_url: item?.pdfUrl || '',
+        }));
+      }
+
       if (canTenantView && access?.tenantId) {
         return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 200);
       }
