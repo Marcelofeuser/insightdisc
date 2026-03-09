@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -126,6 +126,7 @@ export default function CandidateReport() {
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [isSavingToPortal, setIsSavingToPortal] = useState(false);
   const [availablePdfUrl, setAvailablePdfUrl] = useState('');
+  const lastPdfErrorToastRef = useRef({ message: '', ts: 0 });
 
   const [showClaim, setShowClaim] = useState(false);
   const [claimMode, setClaimMode] = useState('register'); // register | login
@@ -171,6 +172,22 @@ export default function CandidateReport() {
     }
 
     return 'Não foi possível baixar o PDF agora. Tente novamente em instantes.';
+  };
+
+  const showPdfErrorToast = (description) => {
+    const now = Date.now();
+    const lastMessage = String(lastPdfErrorToastRef.current?.message || '');
+    const lastTs = Number(lastPdfErrorToastRef.current?.ts || 0);
+    if (lastMessage === description && now - lastTs < 3000) {
+      return;
+    }
+
+    lastPdfErrorToastRef.current = { message: description, ts: now };
+    toast({
+      variant: 'destructive',
+      title: 'Falha ao baixar relatório',
+      description,
+    });
   };
 
   const downloadPdfFromUrl = async (url, fileName) => {
@@ -234,26 +251,30 @@ export default function CandidateReport() {
       try {
         setRemoteReportModel(null);
         if (apiBaseUrl && token) {
-          const payload = await apiRequest(`/assessment/report-by-token?token=${encodeURIComponent(token)}`);
-          const normalizedAssessment = normalizeAssessmentFromApi(
-            payload?.assessment,
-            payload?.report?.discProfile,
-            payload?.report
-          );
-          if (
-            normalizedAssessment?.branding?.logo_url &&
-            normalizedAssessment.branding.logo_url.startsWith('/')
-          ) {
-            normalizedAssessment.branding.logo_url = `${apiBaseUrl}${normalizedAssessment.branding.logo_url}`;
+          try {
+            const payload = await apiRequest(`/assessment/report-by-token?token=${encodeURIComponent(token)}`);
+            const normalizedAssessment = normalizeAssessmentFromApi(
+              payload?.assessment,
+              payload?.report?.discProfile,
+              payload?.report
+            );
+            if (
+              normalizedAssessment?.branding?.logo_url &&
+              normalizedAssessment.branding.logo_url.startsWith('/')
+            ) {
+              normalizedAssessment.branding.logo_url = `${apiBaseUrl}${normalizedAssessment.branding.logo_url}`;
+            }
+            setAvailablePdfUrl(resolvePdfUrl(payload?.report?.pdfUrl));
+            if (isPremiumReportModel(payload?.report?.discProfile)) {
+              setRemoteReportModel(payload.report.discProfile);
+            }
+            setAssessment(normalizedAssessment);
+            setClaimName(normalizedAssessment.respondent_name || '');
+            setClaimEmail(normalizedAssessment.respondent_email || '');
+            return;
+          } catch (tokenReportError) {
+            console.warn('[CandidateReport] token report API unavailable, using fallback data source', tokenReportError);
           }
-          setAvailablePdfUrl(resolvePdfUrl(payload?.report?.pdfUrl));
-          if (isPremiumReportModel(payload?.report?.discProfile)) {
-            setRemoteReportModel(payload.report.discProfile);
-          }
-          setAssessment(normalizedAssessment);
-          setClaimName(normalizedAssessment.respondent_name || '');
-          setClaimEmail(normalizedAssessment.respondent_email || '');
-          return;
         }
 
         if (apiBaseUrl && assessmentId) {
@@ -475,6 +496,7 @@ export default function CandidateReport() {
 
   const downloadPdf = async () => {
     if (!assessment || !reportHtml) return;
+    if (isPreparingPdf) return;
 
     console.log('[CandidateReport] download click', {
       assessmentId: assessment?.id || assessmentId,
@@ -485,7 +507,13 @@ export default function CandidateReport() {
     setIsPreparingPdf(true);
     try {
       if (apiBaseUrl && token) {
-        const publicPdfUrl = await ensurePublicPdfUrl();
+        let publicPdfUrl = '';
+        try {
+          publicPdfUrl = await ensurePublicPdfUrl();
+        } catch (resolveError) {
+          console.warn('[CandidateReport] public pdf url unavailable, falling back to local export', resolveError);
+        }
+
         if (publicPdfUrl) {
           try {
             await downloadPdfFromUrl(
@@ -511,11 +539,7 @@ export default function CandidateReport() {
       console.log('[CandidateReport] download done', { assessmentId: assessment?.id || assessmentId });
     } catch (error) {
       console.error('[CandidateReport] download failed', error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao baixar relatório',
-        description: resolvePdfErrorMessage(error),
-      });
+      showPdfErrorToast(resolvePdfErrorMessage(error));
     } finally {
       setIsPreparingPdf(false);
     }

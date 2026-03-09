@@ -55,7 +55,22 @@ async function signupAndLoginNormalUser(page, email, password) {
   await expect(page.locator('#login-email')).toBeVisible();
   await page.locator('#login-email').fill(email);
   await page.locator('#login-password').fill(password);
-  await page.locator('form').getByRole('button', { name: /^Entrar$/i }).click();
+  const submit = page.locator('form').getByRole('button', { name: /^Entrar$/i });
+  await submit.click();
+
+  const targetUrlPattern = /\/Pricing(?:\?unlock=1)?|\/Dashboard(?:\?|$)/;
+  const reachedTarget = await page
+    .waitForURL(targetUrlPattern, { timeout: 8_000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!reachedTarget) {
+    const stillOnLogin = /\/Login(?:\?|$)/i.test(page.url());
+    if (stillOnLogin) {
+      await submit.click();
+      await page.waitForURL(targetUrlPattern, { timeout: 8_000 });
+    }
+  }
 }
 
 async function expectProtected(page, route) {
