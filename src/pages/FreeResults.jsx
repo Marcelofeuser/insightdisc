@@ -206,8 +206,13 @@ export default function FreeResults() {
   const profile = results.natural_profile || {};
   const isUnlocked = Boolean(assessment?.report_unlocked) || hasSuperAdminBypass;
   const assessmentToken = assessment?.access_token || '';
-  const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
-  const upgradeUrl = `/c/upgrade?assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}`;
+  const resolvedAssessmentId = String(assessment?.assessmentId || assessment?.id || '').trim();
+  const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(resolvedAssessmentId)}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
+  const continueReportUrl = resolvedAssessmentId
+    ? `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`
+    : assessmentToken
+      ? `/c/report?token=${encodeURIComponent(assessmentToken)}`
+      : createPageUrl('Dashboard');
   const reportUnlockPriceLabel = formatPriceBRL(PRODUCTS.REPORT_UNLOCK.price);
   const compareRelation = searchParams.get('relation') || '';
   const compareFromName = searchParams.get('fromName') || '';
@@ -420,7 +425,7 @@ export default function FreeResults() {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             {isUnlocked ? (
-              <Link to={upgradeUrl}>
+              <Link to={continueReportUrl}>
                 <Button
                   size="lg"
                   className="bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl shadow-lg"

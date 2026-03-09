@@ -285,10 +285,9 @@ export default function CheckoutSuccess() {
   }, [searchParams, apiBaseUrl]);
 
   const openReportHref = (() => {
-    const isCandidateFlow =
-      flow === 'candidate' || Boolean(candidateToken) || Boolean(searchParams.get('email'));
+    const isCandidateFlow = flow === 'candidate' || Boolean(candidateToken);
 
-    if (isCandidateFlow) {
+    if (isCandidateFlow && candidateToken) {
       const qs = new URLSearchParams();
       if (candidateToken) qs.set('token', candidateToken);
       if (assessmentId) qs.set('assessmentId', assessmentId);

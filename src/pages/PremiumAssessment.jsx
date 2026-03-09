@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,10 +20,27 @@ import AssessmentAchievements from '@/components/disc/AssessmentAchievements';
 import AnswerFeedback from '@/components/disc/AnswerFeedback';
 import { FULL_QUESTION_BANK, calculateDISCResults } from '@/components/disc/discEngine';
 import { base44 } from '@/api/base44Client';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const DRAFT_KEY = (id) => `disc_draft_${id}`;
+const QUICK_CONTEXT_STEP_KEY = (id) => `disc_quick_context_done_${id}`;
+const QUICK_CONTEXT_DATA_KEY = (id) => `disc_quick_context_data_${id}`;
 const TOTAL_QUESTIONS = 40;
+
+const QUICK_CONTEXT_DEFAULT = {
+  sex: '',
+  maritalStatus: '',
+  city: '',
+  smoker: '',
+  alcoholConsumption: '',
+  stressLevel: '',
+  sleepQuality: '',
+  physicalActivity: '',
+  usesMedication: '',
+  healthConditions: '',
+};
 
 function normalizeAnswer(answer) {
   if (!answer) return null;
@@ -81,12 +98,14 @@ export default function PremiumAssessment() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { access } = useAuth();
 
   const token = searchParams.get('token');
   const prefetchedId = searchParams.get('assessment_id');
   const resumeMode = searchParams.get('resume') === '1';
   const queryAnsweredCount = Number(searchParams.get('answeredCount') || 0);
   const apiBaseUrl = getApiBaseUrl();
+  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -98,6 +117,12 @@ export default function PremiumAssessment() {
   const [initError, setInitError] = useState(null);
   const [feedbackTrigger, setFeedbackTrigger] = useState(0);
   const [isProgressReady, setIsProgressReady] = useState(false);
+  const [showContextIntro, setShowContextIntro] = useState(false);
+  const [showQuickContextForm, setShowQuickContextForm] = useState(false);
+  const [isQuickContextSaving, setIsQuickContextSaving] = useState(false);
+  const [quickContextError, setQuickContextError] = useState('');
+  const [quickContext, setQuickContext] = useState(QUICK_CONTEXT_DEFAULT);
+  const advanceTimeoutRef = useRef(null);
 
   const questions = useMemo(() => FULL_QUESTION_BANK.slice(0, TOTAL_QUESTIONS), []);
 
@@ -105,6 +130,15 @@ export default function PremiumAssessment() {
     const timer = setInterval(() => setTimeSpent((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(
+    () => () => {
+      if (advanceTimeoutRef.current) {
+        clearTimeout(advanceTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (prefetchedId) {
@@ -206,11 +240,59 @@ export default function PremiumAssessment() {
           )
         : 0;
 
+      let shouldShowContextIntro = false;
+      let resolvedQuickContext = { ...QUICK_CONTEXT_DEFAULT };
+      let hasRemoteQuickContext = false;
+      const quickContextDoneLocally = localStorage.getItem(QUICK_CONTEXT_STEP_KEY(assessmentId)) === '1';
+
+      if (apiBaseUrl && token) {
+        try {
+          const quickPayload = await apiRequest(
+            `/api/anamnesis/quick/${encodeURIComponent(
+              assessmentId,
+            )}?token=${encodeURIComponent(token)}`,
+            { method: 'GET' },
+          );
+          if (quickPayload?.quickContext) {
+            hasRemoteQuickContext = true;
+            resolvedQuickContext = {
+              ...QUICK_CONTEXT_DEFAULT,
+              ...quickPayload.quickContext,
+            };
+          }
+        } catch {
+          // segue fluxo normal; contexto é opcional.
+        }
+      } else {
+        try {
+          const localQuickRaw = localStorage.getItem(QUICK_CONTEXT_DATA_KEY(assessmentId));
+          if (localQuickRaw) {
+            const parsed = JSON.parse(localQuickRaw);
+            if (parsed && typeof parsed === 'object') {
+              hasRemoteQuickContext = true;
+              resolvedQuickContext = {
+                ...QUICK_CONTEXT_DEFAULT,
+                ...parsed,
+              };
+            }
+          }
+        } catch {
+          // ignora falha de parse local
+        }
+      }
+
+      if (!quickContextDoneLocally && !hasRemoteQuickContext && inferredAnsweredCount === 0) {
+        shouldShowContextIntro = true;
+      }
+
       if (!mounted) return;
 
       setImportedAnswers(importedExtra);
       setAnswers(mergedMap);
       setResumeFloor(resumeStart);
+      setQuickContext(resolvedQuickContext);
+      setShowContextIntro(shouldShowContextIntro);
+      setShowQuickContextForm(false);
 
       if (savedQuestion !== null) {
         const clamped = Math.max(0, Math.min(questions.length - 1, savedQuestion));
@@ -231,6 +313,30 @@ export default function PremiumAssessment() {
 
   const initAssessment = async () => {
     try {
+      if (apiBaseUrl && hasSuperAdminBypass) {
+        const apiToken = getApiToken();
+        if (!apiToken) {
+          setInitError('Sessão do super admin não encontrada. Faça login novamente.');
+          return;
+        }
+
+        const payload = await apiRequest('/assessment/self/start', {
+          method: 'POST',
+          requireAuth: true,
+        });
+        if (!payload?.token) {
+          throw new Error('Falha ao iniciar autoavaliação interna.');
+        }
+
+        navigate(
+          `${createPageUrl('PremiumAssessment')}?token=${encodeURIComponent(
+            payload.token,
+          )}&self=1&from=dashboard`,
+          { replace: true },
+        );
+        return;
+      }
+
       const isAuth = await base44.auth.isAuthenticated();
       if (!isAuth) {
         base44.auth.redirectToLogin(window.location.href);
@@ -250,42 +356,12 @@ export default function PremiumAssessment() {
     }
   };
 
-  const handleAnswer = (answer) => {
-    const normalized = normalizeAnswer(answer);
-    if (!normalized) return;
+  const handleSubmit = async (answersOverride = null) => {
+    if (!assessmentId || isSubmitting) return;
 
-    const nextAnswers = { ...answers, [normalized.question_id]: normalized };
-    setAnswers(nextAnswers);
-
-    if (assessmentId) {
-      localStorage.setItem(
-        DRAFT_KEY(assessmentId),
-        JSON.stringify({
-          savedAnswers: nextAnswers,
-          savedQuestion: currentQuestion,
-        })
-      );
-    }
-
-    setFeedbackTrigger((prev) => prev + 1);
-
-    if (currentQuestion < questions.length - 1) {
-      setTimeout(() => setCurrentQuestion((prev) => prev + 1), 450);
-    }
-  };
-
-  const answeredCount = importedAnswers.length + Object.keys(answers).length;
-  const isComplete = answeredCount >= questions.length;
-  const currentQuestionId = questions[currentQuestion]?.id;
-  const currentAnswered =
-    currentQuestion < resumeFloor || Boolean(answers[currentQuestionId]);
-  const minQuestionIndex = resumeMode ? resumeFloor : 0;
-  const canGoBack = currentQuestion > minQuestionIndex;
-
-  const handleSubmit = async () => {
-    if (!assessmentId) return;
-
-    const answerList = mergeAnswerLists(importedAnswers, Object.values(answers));
+    const answerSource =
+      answersOverride && typeof answersOverride === 'object' ? answersOverride : answers;
+    const answerList = mergeAnswerLists(importedAnswers, Object.values(answerSource));
     if (answerList.length < questions.length) {
       return;
     }
@@ -351,6 +427,115 @@ export default function PremiumAssessment() {
     }
   };
 
+  const markQuickContextDone = () => {
+    if (assessmentId) {
+      localStorage.setItem(QUICK_CONTEXT_STEP_KEY(assessmentId), '1');
+    }
+    setShowQuickContextForm(false);
+    setShowContextIntro(false);
+    setQuickContextError('');
+  };
+
+  const handleQuickContextChange = (field, value) => {
+    setQuickContext((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuickContextSave = async () => {
+    if (!assessmentId) {
+      markQuickContextDone();
+      return;
+    }
+
+    setIsQuickContextSaving(true);
+    setQuickContextError('');
+
+    try {
+      if (apiBaseUrl) {
+        await apiRequest('/api/anamnesis/quick', {
+          method: 'POST',
+          body: {
+            assessmentId,
+            token: token || undefined,
+            ...quickContext,
+          },
+        });
+      } else {
+        localStorage.setItem(QUICK_CONTEXT_DATA_KEY(assessmentId), JSON.stringify(quickContext));
+      }
+
+      markQuickContextDone();
+    } catch (error) {
+      setQuickContextError(
+        String(error?.payload?.message || error?.message || '').trim() ||
+          'Não foi possível salvar o contexto agora.',
+      );
+    } finally {
+      setIsQuickContextSaving(false);
+    }
+  };
+
+  const handleNextQuestion = () => {
+    const nextIndex = currentQuestion + 1;
+    console.log('[PremiumAssessment] Current question:', currentQuestion);
+    console.log('[PremiumAssessment] Total questions:', questions.length);
+
+    if (nextIndex >= questions.length) {
+      void handleSubmit();
+      return;
+    }
+
+    setCurrentQuestion(nextIndex);
+  };
+
+  const handleAnswer = (answer) => {
+    const normalized = normalizeAnswer(answer);
+    if (!normalized) return;
+
+    const nextAnswers = { ...answers, [normalized.question_id]: normalized };
+    setAnswers(nextAnswers);
+
+    if (assessmentId) {
+      localStorage.setItem(
+        DRAFT_KEY(assessmentId),
+        JSON.stringify({
+          savedAnswers: nextAnswers,
+          savedQuestion: currentQuestion,
+        })
+      );
+    }
+
+    setFeedbackTrigger((prev) => prev + 1);
+
+    if (currentQuestion >= questions.length - 3) {
+      console.log('[PremiumAssessment] Current question:', currentQuestion);
+      console.log('[PremiumAssessment] Total questions:', questions.length);
+    }
+
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+    }
+
+    if (currentQuestion >= questions.length - 1) {
+      advanceTimeoutRef.current = setTimeout(() => {
+        void handleSubmit(nextAnswers);
+      }, 300);
+      return;
+    }
+
+    advanceTimeoutRef.current = setTimeout(() => {
+      handleNextQuestion();
+    }, 450);
+  };
+
+  const answeredCount = importedAnswers.length + Object.keys(answers).length;
+  const isComplete = answeredCount >= questions.length;
+  const currentQuestionData = questions[currentQuestion];
+  const currentQuestionId = currentQuestionData?.id;
+  const currentAnswered =
+    currentQuestion < resumeFloor || Boolean(answers[currentQuestionId]);
+  const minQuestionIndex = resumeMode ? resumeFloor : 0;
+  const canGoBack = currentQuestion > minQuestionIndex;
+
   if (initError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
@@ -376,6 +561,252 @@ export default function PremiumAssessment() {
             className="w-10 h-10 border-2 border-white border-t-transparent rounded-full mx-auto mb-3"
           />
           <p className="text-sm text-white/70">Carregando seu progresso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentQuestionData) {
+    console.error('[PremiumAssessment] Invalid question index', {
+      currentQuestion,
+      totalQuestions: questions.length,
+    });
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="text-center text-white">
+          <p className="text-sm text-white/70">Carregando pergunta...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showContextIntro || showQuickContextForm) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-6"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur text-white text-sm font-medium mb-3">
+              <Sparkles className="w-4 h-4" />
+              Avaliação Premium DISC
+            </div>
+          </motion.div>
+
+          <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+            {showContextIntro ? (
+              <div className="space-y-5">
+                <h2 className="text-2xl font-bold text-slate-900">Contexto Pessoal (Opcional)</h2>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  Antes de iniciar sua avaliação DISC, você pode responder uma breve ficha de
+                  contexto pessoal.
+                </p>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  Essas informações ajudam profissionais a interpretar melhor o relatório
+                  comportamental.
+                </p>
+                <p className="text-sm text-slate-500">Tempo estimado: menos de 1 minuto.</p>
+                <p className="text-xs text-slate-500">
+                  Estas informações são utilizadas apenas para contextualização da avaliação
+                  comportamental.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    onClick={() => {
+                      setQuickContextError('');
+                      setShowContextIntro(false);
+                      setShowQuickContextForm(true);
+                    }}
+                  >
+                    Responder contexto
+                  </Button>
+                  <Button variant="outline" onClick={markQuickContextDone}>
+                    Pular e iniciar avaliação
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-slate-900">Contexto Pessoal (Opcional)</h2>
+                  <p className="text-sm text-slate-600">
+                    Responda apenas o que desejar. Nenhuma resposta altera o cálculo DISC.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Sexo</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.sex}
+                      onChange={(event) => handleQuickContextChange('sex', event.target.value)}
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="feminino">Feminino</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="outro">Outro</option>
+                      <option value="prefiro não informar">Prefiro não informar</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Estado civil</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.maritalStatus}
+                      onChange={(event) =>
+                        handleQuickContextChange('maritalStatus', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="solteiro(a)">Solteiro(a)</option>
+                      <option value="casado(a)">Casado(a)</option>
+                      <option value="união estável">União estável</option>
+                      <option value="divorciado(a)">Divorciado(a)</option>
+                      <option value="viúvo(a)">Viúvo(a)</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
+                    <span>Cidade onde reside</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.city}
+                      onChange={(event) => handleQuickContextChange('city', event.target.value)}
+                      placeholder="Ex: São Paulo - SP"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Você fuma?</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.smoker}
+                      onChange={(event) => handleQuickContextChange('smoker', event.target.value)}
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="não">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Consome álcool?</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.alcoholConsumption}
+                      onChange={(event) =>
+                        handleQuickContextChange('alcoholConsumption', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="não">Não</option>
+                      <option value="ocasionalmente">Ocasionalmente</option>
+                      <option value="frequentemente">Frequentemente</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Nível de estresse atual</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.stressLevel}
+                      onChange={(event) =>
+                        handleQuickContextChange('stressLevel', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="baixo">Baixo</option>
+                      <option value="moderado">Moderado</option>
+                      <option value="alto">Alto</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Qualidade do sono</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.sleepQuality}
+                      onChange={(event) =>
+                        handleQuickContextChange('sleepQuality', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="boa">Boa</option>
+                      <option value="regular">Regular</option>
+                      <option value="ruim">Ruim</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Pratica atividade física?</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.physicalActivity}
+                      onChange={(event) =>
+                        handleQuickContextChange('physicalActivity', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="não">Não</option>
+                      <option value="1-2x semana">1-2x semana</option>
+                      <option value="3+ vezes semana">3+ vezes semana</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700">
+                    <span>Usa medicamento contínuo?</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.usesMedication}
+                      onChange={(event) =>
+                        handleQuickContextChange('usesMedication', event.target.value)
+                      }
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="não">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
+                    <span>Condição de saúde relevante (opcional)</span>
+                    <textarea
+                      rows={3}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900"
+                      value={quickContext.healthConditions}
+                      onChange={(event) =>
+                        handleQuickContextChange('healthConditions', event.target.value)
+                      }
+                      placeholder="Digite apenas se desejar compartilhar contexto adicional."
+                    />
+                  </label>
+                </div>
+
+                {quickContextError ? (
+                  <p className="text-sm text-red-600">{quickContextError}</p>
+                ) : null}
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    onClick={handleQuickContextSave}
+                    disabled={isQuickContextSaving}
+                  >
+                    {isQuickContextSaving ? 'Salvando...' : 'Salvar contexto e iniciar avaliação'}
+                  </Button>
+                  <Button variant="outline" onClick={markQuickContextDone} disabled={isQuickContextSaving}>
+                    Pular e iniciar avaliação
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -415,7 +846,7 @@ export default function PremiumAssessment() {
           <AnimatePresence mode="wait">
             <QuestionCard
               key={currentQuestion}
-              question={questions[currentQuestion]}
+              question={currentQuestionData}
               questionNumber={currentQuestion + 1}
               totalQuestions={questions.length}
               onAnswer={handleAnswer}
@@ -427,7 +858,7 @@ export default function PremiumAssessment() {
         <div className="flex items-center justify-between mt-6">
           <Button
             variant="outline"
-            onClick={() => setCurrentQuestion((prev) => prev - 1)}
+            onClick={() => setCurrentQuestion((prev) => Math.max(minQuestionIndex, prev - 1))}
             disabled={!canGoBack}
             className="rounded-xl bg-white/10 border-white/20 text-white hover:bg-white/20"
           >
@@ -436,7 +867,7 @@ export default function PremiumAssessment() {
 
           {currentQuestion < questions.length - 1 ? (
             <Button
-              onClick={() => setCurrentQuestion((prev) => prev + 1)}
+              onClick={handleNextQuestion}
               disabled={!currentAnswered}
               className="rounded-xl bg-white text-indigo-900 hover:bg-white/90 font-semibold"
             >

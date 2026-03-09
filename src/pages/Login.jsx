@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
@@ -46,7 +46,7 @@ export default function Login() {
   const { checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
   const isDev = import.meta.env.DEV;
-  const canUseMockAuth = isDev && ENABLE_DEV_LOGIN_SHORTCUTS && Boolean(base44?.__isMock);
+  const canUseMockAuth = isDev && ENABLE_DEV_LOGIN_SHORTCUTS;
   const canShowDevMockShortcuts = canUseMockAuth;
 
   const [email, setEmail] = useState('');
@@ -55,6 +55,17 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const nextPath = useMemo(() => sanitizeNextPath(searchParams.get('next')), [searchParams]);
+
+  useEffect(() => {
+    if (!isDev) return;
+    console.info('[Login] dev shortcut flags', {
+      isDev,
+      enableFlagRaw: import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS,
+      canUseMockAuth,
+      hasMockClient: Boolean(base44?.__isMock),
+      apiBaseUrl,
+    });
+  }, [isDev, canUseMockAuth, apiBaseUrl]);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -106,7 +117,49 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const mockUser = await base44.auth.login({ email: mockEmail });
+      let mockUser = null;
+      if (Boolean(base44?.__isMock) && typeof base44?.auth?.login === 'function') {
+        mockUser = await base44.auth.login({ email: mockEmail });
+      } else if (typeof window !== 'undefined') {
+        const normalizedEmail = String(mockEmail || '').trim().toLowerCase();
+        window.localStorage.setItem('disc_mock_user_email', normalizedEmail);
+        window.localStorage.setItem('disc_mock_active_tenant', 'workspace-1');
+
+        ['insightdisc_token', 'insightdisc_api_token', 'insight_api_token', 'server_api_token'].forEach((key) => {
+          window.localStorage.removeItem(key);
+          window.sessionStorage.removeItem(key);
+        });
+
+        if (normalizedEmail === 'user@example.com') {
+          mockUser = {
+            id: 'dev-user',
+            email: normalizedEmail,
+            role: 'user',
+            lifecycle_status: 'registered_no_purchase',
+            plan: 'free',
+          };
+        } else if (normalizedEmail === 'superadmin@example.com') {
+          mockUser = {
+            id: 'dev-super-admin',
+            email: normalizedEmail,
+            role: 'SUPER_ADMIN',
+            global_role: 'SUPER_ADMIN',
+            lifecycle_status: 'super_admin',
+            plan: 'enterprise',
+          };
+        } else {
+          mockUser = {
+            id: 'dev-pro',
+            email: normalizedEmail,
+            role: 'professional',
+            lifecycle_status: 'customer_active',
+            plan: 'premium',
+            has_paid_purchase: true,
+            credits: 100,
+          };
+        }
+      }
+
       await checkAppState();
       navigate(resolvePostLoginPath(mockUser, nextPath), { replace: true });
     } catch (loginError) {

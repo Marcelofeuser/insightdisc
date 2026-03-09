@@ -195,6 +195,12 @@ export default function CandidateReport() {
       method: 'GET',
       credentials: 'omit',
     });
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    console.info('[CandidateReport] pdf response', {
+      url,
+      status: response.status,
+      contentType,
+    });
 
     if (!response.ok) {
       let payload = null;
@@ -210,9 +216,33 @@ export default function CandidateReport() {
       throw error;
     }
 
+    if (contentType.includes('application/json')) {
+      const payload = await response.json().catch(() => ({}));
+      const followUpUrl = resolvePdfUrl(payload?.pdfUrl || payload?.pdfPath || '');
+      if (followUpUrl && followUpUrl !== url) {
+        console.info('[CandidateReport] JSON payload with follow-up PDF URL', {
+          followUpUrl,
+        });
+        return downloadPdfFromUrl(followUpUrl, fileName);
+      }
+      const error = new Error(payload?.reason || payload?.error || 'PDF_JSON_RESPONSE');
+      error.payload = payload;
+      error.status = response.status;
+      throw error;
+    }
+
     const blob = await response.blob();
     if (!blob || blob.size === 0) {
       throw new Error('PDF_EMPTY');
+    }
+    if (!contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
+      const bodyText = await blob.text().catch(() => '');
+      const error = new Error('PDF_INVALID_CONTENT_TYPE');
+      error.payload = {
+        message: bodyText && bodyText.length < 800 ? bodyText : 'Conteúdo de PDF inválido.',
+      };
+      error.status = 500;
+      throw error;
     }
 
     const objectUrl = URL.createObjectURL(blob);
@@ -507,19 +537,40 @@ export default function CandidateReport() {
     setIsPreparingPdf(true);
     try {
       if (apiBaseUrl && token) {
+        const fileName = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
+        const directDownloadUrl = `${apiBaseUrl}/assessment/report-pdf-by-token?token=${encodeURIComponent(
+          token,
+        )}&download=1`;
+        try {
+          console.info('[CandidateReport] trying direct token PDF endpoint', {
+            endpoint: directDownloadUrl,
+            assessmentId: assessment?.id || assessmentId,
+          });
+          await downloadPdfFromUrl(directDownloadUrl, fileName);
+          toast({
+            title: 'Download concluído',
+            description: 'Relatório salvo em PDF no seu dispositivo.',
+          });
+          return;
+        } catch (resolveError) {
+          console.warn(
+            '[CandidateReport] direct token PDF failed, resolving URL fallback',
+            resolveError,
+          );
+        }
+
         let publicPdfUrl = '';
         try {
           publicPdfUrl = await ensurePublicPdfUrl();
         } catch (resolveError) {
-          console.warn('[CandidateReport] public pdf url unavailable, falling back to local export', resolveError);
+          console.warn(
+            '[CandidateReport] public pdf url unavailable, falling back to local export',
+            resolveError,
+          );
         }
-
         if (publicPdfUrl) {
           try {
-            await downloadPdfFromUrl(
-              publicPdfUrl,
-              `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`,
-            );
+            await downloadPdfFromUrl(publicPdfUrl, fileName);
             toast({
               title: 'Download concluído',
               description: 'Relatório salvo em PDF no seu dispositivo.',
@@ -558,7 +609,7 @@ export default function CandidateReport() {
 
     setIsSavingToPortal(true);
     try {
-      if (!apiBaseUrl) {
+      const saveToLocalPortal = async () => {
         const isAuthenticated = typeof base44?.auth?.isAuthenticated === 'function'
           ? await base44.auth.isAuthenticated()
           : false;
@@ -590,11 +641,19 @@ export default function CandidateReport() {
         });
 
         navigate(createPageUrl('MyAssessments'));
+      };
+
+      if (!apiBaseUrl) {
+        await saveToLocalPortal();
         return;
       }
 
       const authToken = getAuthenticatedPortalToken();
       if (!authToken) {
+        if (base44?.__isMock) {
+          await saveToLocalPortal();
+          return;
+        }
         setClaimError('');
         setClaimMode('register');
         setShowClaim(true);

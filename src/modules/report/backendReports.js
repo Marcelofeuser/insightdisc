@@ -105,6 +105,9 @@ export function mapCandidateReportItem(item = {}, index = 0) {
   const assessmentId = String(item?.assessmentId || '').trim();
   const reportId = String(item?.reportId || '').trim();
   const candidateEmail = String(item?.candidateEmail || '').trim();
+  const candidateUserId = String(
+    item?.candidateUserId || item?.candidate_user_id || item?.candidateId || '',
+  ).trim();
   const discProfile = item?.discProfile && typeof item.discProfile === 'object'
     ? item.discProfile
     : null;
@@ -126,6 +129,8 @@ export function mapCandidateReportItem(item = {}, index = 0) {
     type: 'premium',
     pdf_url: item?.pdfUrl || '',
     disc_profile: discProfile,
+    candidateUserId,
+    candidate_user_id: candidateUserId,
   };
 
   if (normalizedDisc) {

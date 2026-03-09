@@ -8,6 +8,8 @@ const REQUIRED_DOSSIER_DELEGATES = [
   'dossierInsight',
   'developmentPlan',
   'reassessmentReminder',
+  'dossierAnamnesis',
+  'assessment',
 ];
 
 function serviceError(code, message = code) {
@@ -95,6 +97,39 @@ function normalizeDateValue(dateValue) {
     throw serviceError('INVALID_REMINDER_DATE');
   }
   return date;
+}
+
+function normalizeItemId(itemId) {
+  return normalizeRequiredId(itemId, 'ITEM_ID_REQUIRED');
+}
+
+function normalizeOptionalString(value) {
+  const normalized = String(value ?? '').trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeOptionalInteger(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.floor(parsed));
+}
+
+function normalizeOptionalDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function normalizeOptionalBoolean(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  if (['true', '1', 'sim', 'yes'].includes(normalized)) return true;
+  if (['false', '0', 'nao', 'não', 'no'].includes(normalized)) return false;
+  return null;
 }
 
 async function listAssessmentsHistory({ candidate, workspaceId }) {
@@ -306,6 +341,93 @@ export async function addReassessmentReminder(candidateId, workspaceId, date, no
   return { ...snapshot, createdReminder };
 }
 
+async function deleteDossierEntity({
+  candidateId,
+  workspaceId,
+  itemId,
+  entityName,
+  notFoundCode,
+}) {
+  const candidate = await ensureCandidate(candidateId);
+  const normalizedItemId = normalizeItemId(itemId);
+  const dossier = await prisma.behavioralDossier.findUnique({
+    where: {
+      candidateId_workspaceId: {
+        candidateId: candidate.id,
+        workspaceId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!dossier?.id) {
+    throw serviceError('DOSSIER_NOT_FOUND');
+  }
+
+  const delegate = prisma[entityName];
+  const item = await delegate.findFirst({
+    where: {
+      id: normalizedItemId,
+      dossierId: dossier.id,
+    },
+    select: { id: true },
+  });
+
+  if (!item?.id) {
+    throw serviceError(notFoundCode);
+  }
+
+  await delegate.delete({
+    where: { id: normalizedItemId },
+  });
+
+  const snapshot = await loadDossierSnapshot({ candidate, workspaceId });
+  return {
+    ...snapshot,
+    deletedItemId: normalizedItemId,
+  };
+}
+
+export async function deleteDossierNote(candidateId, workspaceId, noteId) {
+  return deleteDossierEntity({
+    candidateId,
+    workspaceId,
+    itemId: noteId,
+    entityName: 'dossierNote',
+    notFoundCode: 'NOTE_NOT_FOUND',
+  });
+}
+
+export async function deleteDossierInsight(candidateId, workspaceId, insightId) {
+  return deleteDossierEntity({
+    candidateId,
+    workspaceId,
+    itemId: insightId,
+    entityName: 'dossierInsight',
+    notFoundCode: 'INSIGHT_NOT_FOUND',
+  });
+}
+
+export async function deleteDevelopmentPlan(candidateId, workspaceId, planId) {
+  return deleteDossierEntity({
+    candidateId,
+    workspaceId,
+    itemId: planId,
+    entityName: 'developmentPlan',
+    notFoundCode: 'PLAN_NOT_FOUND',
+  });
+}
+
+export async function deleteReassessmentReminder(candidateId, workspaceId, reminderId) {
+  return deleteDossierEntity({
+    candidateId,
+    workspaceId,
+    itemId: reminderId,
+    entityName: 'reassessmentReminder',
+    notFoundCode: 'REMINDER_NOT_FOUND',
+  });
+}
+
 export async function getDossierReminderSummary(workspaceId) {
   assertDossierClient();
   const normalizedWorkspaceId = normalizeRequiredId(workspaceId, 'WORKSPACE_ID_REQUIRED');
@@ -355,3 +477,146 @@ export async function getDossierReminderSummary(workspaceId) {
   };
 }
 
+async function resolveAssessmentForWorkspace(assessmentId, workspaceId) {
+  const normalizedAssessmentId = normalizeRequiredId(assessmentId, 'ASSESSMENT_ID_REQUIRED');
+  const normalizedWorkspaceId = normalizeRequiredId(workspaceId, 'WORKSPACE_ID_REQUIRED');
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: normalizedAssessmentId,
+      organizationId: normalizedWorkspaceId,
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      candidateUserId: true,
+      candidateName: true,
+      candidateEmail: true,
+      completedAt: true,
+      createdAt: true,
+      report: {
+        select: {
+          discProfile: true,
+        },
+      },
+    },
+  });
+
+  if (!assessment) {
+    throw serviceError('ASSESSMENT_NOT_FOUND');
+  }
+
+  return assessment;
+}
+
+function normalizeDossierAnamnesisInput(input = {}) {
+  return {
+    fullName: normalizeOptionalString(input.fullName),
+    birthDate: normalizeOptionalDate(input.birthDate),
+    age: normalizeOptionalInteger(input.age),
+    sex: normalizeOptionalString(input.sex),
+    maritalStatus: normalizeOptionalString(input.maritalStatus),
+    spouseName: normalizeOptionalString(input.spouseName),
+    spouseAge: normalizeOptionalInteger(input.spouseAge),
+    hasChildren: normalizeOptionalBoolean(input.hasChildren),
+    childrenCount: normalizeOptionalInteger(input.childrenCount),
+    childrenInfo: normalizeOptionalString(input.childrenInfo),
+    city: normalizeOptionalString(input.city),
+    address: normalizeOptionalString(input.address),
+    profession: normalizeOptionalString(input.profession),
+    education: normalizeOptionalString(input.education),
+    stressLevel: normalizeOptionalString(input.stressLevel),
+    sleepQuality: normalizeOptionalString(input.sleepQuality),
+    physicalActivity: normalizeOptionalString(input.physicalActivity),
+    smoker: normalizeOptionalString(input.smoker),
+    alcoholConsumption: normalizeOptionalString(input.alcoholConsumption),
+    usesMedication: normalizeOptionalString(input.usesMedication),
+    medicationList: normalizeOptionalString(input.medicationList),
+    healthConditions: normalizeOptionalString(input.healthConditions),
+    familyHealthHistory: normalizeOptionalString(input.familyHealthHistory),
+    psychologicalHistory: normalizeOptionalString(input.psychologicalHistory),
+    mainComplaint: normalizeOptionalString(input.mainComplaint),
+    evaluationReason: normalizeOptionalString(input.evaluationReason),
+    professionalNotes: normalizeOptionalString(input.professionalNotes),
+  };
+}
+
+function hasAnyAnamnesisValue(anamnesis = null) {
+  if (!anamnesis || typeof anamnesis !== 'object') return false;
+  const ignored = new Set(['id', 'assessmentId', 'createdAt', 'updatedAt']);
+  return Object.entries(anamnesis).some(([key, value]) => {
+    if (ignored.has(key)) return false;
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && !value.trim()) return false;
+    return true;
+  });
+}
+
+function buildAssessmentSummary(assessment = {}) {
+  const profile =
+    String(
+      assessment?.report?.discProfile?.profile?.key ||
+        assessment?.report?.discProfile?.profileKey ||
+        '',
+    ).trim() || 'DISC';
+
+  return {
+    assessmentId: assessment.id,
+    candidateId: assessment.candidateUserId || '',
+    candidateName: assessment.candidateName || 'Participante',
+    candidateEmail: assessment.candidateEmail || '',
+    profile,
+    completedAt: assessment.completedAt || null,
+    createdAt: assessment.createdAt || null,
+  };
+}
+
+export async function getDossierAnamnesisByAssessment(assessmentId, workspaceId) {
+  assertDossierClient();
+  const assessment = await resolveAssessmentForWorkspace(assessmentId, workspaceId);
+  const anamnesis = await prisma.dossierAnamnesis.findUnique({
+    where: { assessmentId: assessment.id },
+  });
+
+  return {
+    workspaceId,
+    assessment: buildAssessmentSummary(assessment),
+    anamnesis,
+    hasData: hasAnyAnamnesisValue(anamnesis),
+  };
+}
+
+export async function saveDossierAnamnesisByAssessment({
+  assessmentId,
+  workspaceId,
+  input = {},
+}) {
+  assertDossierClient();
+  const assessment = await resolveAssessmentForWorkspace(assessmentId, workspaceId);
+  const payload = normalizeDossierAnamnesisInput(input);
+
+  if (payload.hasChildren === false) {
+    payload.childrenCount = null;
+    payload.childrenInfo = null;
+  }
+
+  if (payload.usesMedication === 'não' || payload.usesMedication === 'nao') {
+    payload.medicationList = null;
+  }
+
+  const anamnesis = await prisma.dossierAnamnesis.upsert({
+    where: { assessmentId: assessment.id },
+    create: {
+      assessmentId: assessment.id,
+      ...payload,
+    },
+    update: payload,
+  });
+
+  return {
+    workspaceId,
+    assessment: buildAssessmentSummary(assessment),
+    anamnesis,
+    hasData: hasAnyAnamnesisValue(anamnesis),
+  };
+}

@@ -304,7 +304,7 @@ router.get('/report-by-token', async (req, res) => {
 
     const assessment = await prisma.assessment.findUnique({
       where: { id: result.invite.assessmentId },
-      include: { report: true, response: true, organization: true },
+      include: { report: true, response: true, organization: true, quickContext: true },
     });
 
     if (!assessment) {
@@ -379,6 +379,7 @@ router.get(
           report: true,
           response: true,
           organization: true,
+          quickContext: true,
         },
       });
 
@@ -417,6 +418,7 @@ router.get(
         reportItem: {
           assessmentId: assessment.id,
           reportId: assessment.report.id,
+          candidateUserId: assessment.candidateUserId || '',
           candidateName: assessment.candidateName || '',
           candidateEmail: assessment.candidateEmail || '',
           createdAt: assessment.createdAt,
@@ -537,14 +539,15 @@ router.get('/report-pdf-by-token', async (req, res) => {
     }
 
     const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: result.invite.assessmentId },
-      include: {
-        report: true,
-        creator: true,
-        organization: { include: { owner: true } },
-      },
-    });
+      const assessment = await prisma.assessment.findUnique({
+        where: { id: result.invite.assessmentId },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+          quickContext: true,
+        },
+      });
 
     if (!assessment) {
       return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
@@ -649,6 +652,7 @@ router.post(
           report: true,
           creator: true,
           organization: { include: { owner: true } },
+          quickContext: true,
         },
       });
 
@@ -754,6 +758,7 @@ router.get(
           report: true,
           creator: true,
           organization: { include: { owner: true } },
+          quickContext: true,
         },
       });
 

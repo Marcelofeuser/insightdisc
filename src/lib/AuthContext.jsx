@@ -18,6 +18,88 @@ const ENABLE_DEV_LOGIN_SHORTCUTS =
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
 const CAN_USE_DEV_BASE44_FALLBACK = import.meta.env.DEV;
 
+function buildDevShortcutUser() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+
+  const email = String(window.localStorage.getItem('disc_mock_user_email') || '')
+    .trim()
+    .toLowerCase();
+  if (!email) return null;
+
+  const activeWorkspaceId =
+    String(window.localStorage.getItem('disc_mock_active_tenant') || '').trim() || 'workspace-1';
+
+  if (email === 'superadmin@example.com') {
+    return {
+      id: 'dev-super-admin',
+      email,
+      full_name: 'Super Admin E2E',
+      role: 'SUPER_ADMIN',
+      global_role: 'SUPER_ADMIN',
+      tenant_role: null,
+      tenant_id: activeWorkspaceId,
+      active_workspace_id: activeWorkspaceId,
+      entitlements: ['*'],
+      plan: 'enterprise',
+      credits: 999999,
+      lifecycle_status: 'super_admin',
+      has_paid_purchase: true,
+    };
+  }
+
+  if (email === 'admin@example.com') {
+    return {
+      id: 'dev-admin',
+      email,
+      full_name: 'Admin E2E',
+      role: 'admin',
+      global_role: 'PLATFORM_ADMIN',
+      tenant_role: 'TENANT_ADMIN',
+      tenant_id: activeWorkspaceId,
+      active_workspace_id: activeWorkspaceId,
+      entitlements: ['report.pro', 'report.export.pdf', 'report.export.csv'],
+      plan: 'premium',
+      credits: 500,
+      lifecycle_status: 'customer_active',
+      has_paid_purchase: true,
+    };
+  }
+
+  if (email === 'user@example.com') {
+    return {
+      id: 'dev-user',
+      email,
+      full_name: 'Usuario E2E',
+      role: 'user',
+      global_role: null,
+      tenant_role: 'TENANT_USER',
+      tenant_id: activeWorkspaceId,
+      active_workspace_id: activeWorkspaceId,
+      entitlements: [],
+      plan: 'free',
+      credits: 0,
+      lifecycle_status: 'registered_no_purchase',
+      has_paid_purchase: false,
+    };
+  }
+
+  return {
+    id: `dev-${email.replace(/[^a-z0-9]/g, '-')}`,
+    email,
+    full_name: 'Profissional E2E',
+    role: 'professional',
+    global_role: null,
+    tenant_role: 'TENANT_ADMIN',
+    tenant_id: activeWorkspaceId,
+    active_workspace_id: activeWorkspaceId,
+    entitlements: ['report.pro', 'report.export.pdf'],
+    plan: 'premium',
+    credits: 100,
+    lifecycle_status: 'customer_active',
+    has_paid_purchase: true,
+  };
+}
+
 export const AuthProvider = ({ children }) => {
   const setAuthContextStore = useUserStore((state) => state.setAuthContext);
   const resetAuthContextStore = useUserStore((state) => state.resetAuthContext);
@@ -167,6 +249,25 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       console.info('[AuthContext] loading auth session...');
+
+      const devShortcutUser = buildDevShortcutUser();
+      if (devShortcutUser) {
+        setUser(devShortcutUser);
+        setIsAuthenticated(true);
+        const normalizedAccess = createAccessContext(devShortcutUser);
+        setAuthContextStore({
+          user: devShortcutUser,
+          plan: inferPlan(devShortcutUser),
+          tenantId: normalizedAccess.tenantId,
+          globalRole: normalizedAccess.globalRole,
+          tenantRole: normalizedAccess.tenantRole,
+          entitlements: normalizedAccess.entitlements,
+          lifecycleStatus: normalizedAccess.lifecycleStatus,
+          creditsBalance: normalizedAccess.creditsBalance,
+        });
+        setIsLoadingAuth(false);
+        return;
+      }
 
       if (apiBaseUrl) {
         const token = getApiToken();

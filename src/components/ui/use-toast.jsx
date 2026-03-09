@@ -1,7 +1,9 @@
 import * as React from "react";
 
 const TOAST_LIMIT = 5;
-const TOAST_REMOVE_DELAY = 4000;
+const TOAST_REMOVE_DELAY = 0;
+const DEFAULT_TOAST_DURATION = 3000;
+const DEDUPE_WINDOW_MS = 1500;
 
 let count = 0;
 
@@ -13,6 +15,7 @@ function genId() {
 const listeners = new Set();
 
 let memoryState = { toasts: [] };
+const recentToastSignatures = new Map();
 
 function dispatch(action) {
   memoryState = reducer(memoryState, action);
@@ -59,6 +62,7 @@ function reducer(state, action) {
 }
 
 const toastTimeouts = new Map();
+const toastDismissTimeouts = new Map();
 
 function addToRemoveQueue(toastId) {
   if (toastTimeouts.has(toastId)) return;
@@ -71,13 +75,58 @@ function addToRemoveQueue(toastId) {
   toastTimeouts.set(toastId, timeout);
 }
 
-export function toast({ title, description, variant = "default" } = {}) {
+function clearDismissTimer(toastId) {
+  const timeout = toastDismissTimeouts.get(toastId);
+  if (!timeout) return;
+  clearTimeout(timeout);
+  toastDismissTimeouts.delete(toastId);
+}
+
+function scheduleDismiss(toastId, duration = DEFAULT_TOAST_DURATION) {
+  const safeDuration = Number(duration);
+  if (!Number.isFinite(safeDuration) || safeDuration <= 0) return;
+  clearDismissTimer(toastId);
+
+  const timeout = setTimeout(() => {
+    clearDismissTimer(toastId);
+    dismiss(toastId);
+  }, safeDuration);
+
+  toastDismissTimeouts.set(toastId, timeout);
+}
+
+export function toast({ title, description, variant = "default", duration = DEFAULT_TOAST_DURATION } = {}) {
+  const normalizedTitle = String(title || '').trim();
+  const normalizedDescription = String(description || '').trim();
+  const signature = `${variant}::${normalizedTitle}::${normalizedDescription}`;
+  const now = Date.now();
+
+  const lastTimestamp = Number(recentToastSignatures.get(signature) || 0);
+  const duplicatedTooSoon = now - lastTimestamp < DEDUPE_WINDOW_MS;
+  const existingToast = memoryState.toasts.find((toastItem) => toastItem.signature === signature && toastItem.open);
+  if (duplicatedTooSoon && existingToast) {
+    scheduleDismiss(existingToast.id, duration);
+    return {
+      id: existingToast.id,
+      dismiss: () => dismiss(existingToast.id),
+      update: (props) => {
+        dispatch({ type: "UPDATE_TOAST", toast: { id: existingToast.id, ...props } });
+        if (props?.duration !== undefined) {
+          scheduleDismiss(existingToast.id, props.duration);
+        }
+      },
+    };
+  }
+
+  recentToastSignatures.set(signature, now);
+
   const id = genId();
 
   dispatch({
     type: "ADD_TOAST",
     toast: {
       id,
+      signature,
       title,
       description,
       variant,
@@ -88,14 +137,23 @@ export function toast({ title, description, variant = "default" } = {}) {
     },
   });
 
+  scheduleDismiss(id, duration);
+
   return {
     id,
     dismiss: () => dismiss(id),
-    update: (props) => dispatch({ type: "UPDATE_TOAST", toast: { id, ...props } }),
+    update: (props) => {
+      dispatch({ type: "UPDATE_TOAST", toast: { id, ...props } });
+      if (props?.duration !== undefined) {
+        scheduleDismiss(id, props.duration);
+      }
+    },
   };
 }
 
 export function dismiss(toastId) {
+  if (toastId) clearDismissTimer(toastId);
+  else memoryState.toasts.forEach((t) => clearDismissTimer(t.id));
   dispatch({ type: "DISMISS_TOAST", toastId });
   if (toastId) addToRemoveQueue(toastId);
   else memoryState.toasts.forEach((t) => addToRemoveQueue(t.id));

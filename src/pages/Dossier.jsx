@@ -8,6 +8,7 @@ import {
   Lightbulb,
   LineChart,
   NotebookPen,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 
@@ -24,6 +25,37 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 
 const LOCAL_DOSSIER_KEY = 'insightdisc_behavioral_dossiers';
+const LOCAL_DOSSIER_ANAMNESIS_KEY = 'insightdisc_dossier_anamnesis';
+
+const DOSSIER_ANAMNESIS_DEFAULT = {
+  fullName: '',
+  birthDate: '',
+  age: '',
+  sex: '',
+  maritalStatus: '',
+  spouseName: '',
+  spouseAge: '',
+  hasChildren: '',
+  childrenCount: '',
+  childrenInfo: '',
+  city: '',
+  address: '',
+  profession: '',
+  education: '',
+  stressLevel: '',
+  sleepQuality: '',
+  physicalActivity: '',
+  smoker: '',
+  alcoholConsumption: '',
+  usesMedication: '',
+  medicationList: '',
+  healthConditions: '',
+  familyHealthHistory: '',
+  psychologicalHistory: '',
+  mainComplaint: '',
+  evaluationReason: '',
+  professionalNotes: '',
+};
 
 function formatDate(value) {
   if (!value) return '-';
@@ -153,6 +185,76 @@ function profileEvolutionRows(assessmentsHistory = []) {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+function readLocalAnamnesisStore() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_DOSSIER_ANAMNESIS_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalAnamnesisStore(value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOCAL_DOSSIER_ANAMNESIS_KEY, JSON.stringify(value || {}));
+}
+
+function makeAnamnesisStoreKey(workspaceId, assessmentId) {
+  return `${String(workspaceId || 'default-workspace').trim()}:${String(assessmentId || '').trim()}`;
+}
+
+function mapAnamnesisForForm(input = {}) {
+  const next = { ...DOSSIER_ANAMNESIS_DEFAULT };
+  for (const field of Object.keys(next)) {
+    if (input[field] === undefined || input[field] === null) continue;
+    if (field === 'birthDate') {
+      const parsed = new Date(input[field]);
+      next.birthDate = Number.isNaN(parsed.getTime())
+        ? ''
+        : parsed.toISOString().slice(0, 10);
+      continue;
+    }
+    if (field === 'hasChildren') {
+      const value = input[field];
+      if (typeof value === 'boolean') {
+        next.hasChildren = value ? 'sim' : 'não';
+      } else {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (normalized === 'true' || normalized === 'sim') next.hasChildren = 'sim';
+        else if (normalized === 'false' || normalized === 'não' || normalized === 'nao') {
+          next.hasChildren = 'não';
+        } else next.hasChildren = '';
+      }
+      continue;
+    }
+    next[field] = String(input[field] ?? '');
+  }
+  return next;
+}
+
+function buildAnamnesisPayload(form = {}) {
+  const payload = {};
+  for (const [key, value] of Object.entries(form || {})) {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) {
+      payload[key] = '';
+      continue;
+    }
+    if (['age', 'spouseAge', 'childrenCount'].includes(key)) {
+      const parsed = Number(normalized);
+      payload[key] = Number.isFinite(parsed) ? parsed : '';
+      continue;
+    }
+    if (key === 'hasChildren') {
+      payload[key] = normalized === 'sim' ? true : normalized === 'não' ? false : '';
+      continue;
+    }
+    payload[key] = normalized;
+  }
+  return payload;
+}
+
 function InlineStat({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -189,7 +291,7 @@ export default function Dossier() {
       location.state?.candidate?.id ||
       ''
   ).trim();
-  const assessmentId = searchParams.get('assessmentId') || '';
+  const assessmentId = String(searchParams.get('assessmentId') || '').trim();
   const dossierQueryKey = useMemo(
     () => ['behavioral-dossier', apiBaseUrl, workspaceId, candidateId],
     [apiBaseUrl, workspaceId, candidateId]
@@ -202,7 +304,15 @@ export default function Dossier() {
   const [reminderDate, setReminderDate] = useState('');
   const [reminderNote, setReminderNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingItemKey, setDeletingItemKey] = useState('');
+  const [anamnesisForm, setAnamnesisForm] = useState(DOSSIER_ANAMNESIS_DEFAULT);
+  const [isSavingAnamnesis, setIsSavingAnamnesis] = useState(false);
+  const [anamnesisSaveError, setAnamnesisSaveError] = useState('');
+  const [anamnesisStatusLabel, setAnamnesisStatusLabel] = useState('');
+  const [hasAnamnesisData, setHasAnamnesisData] = useState(false);
   const linkedAssessmentRef = useRef(false);
+  const anamnesisLoadedRef = useRef(false);
+  const anamnesisDirtyRef = useRef(false);
 
   const dossierQuery = useQuery({
     queryKey: dossierQueryKey,
@@ -257,6 +367,53 @@ export default function Dossier() {
         requireAuth: true,
       });
       return Array.isArray(payload?.history) ? payload.history : [];
+    },
+  });
+
+  const effectiveAssessmentId = useMemo(() => {
+    if (assessmentId) return assessmentId;
+    const fallbackAssessment = dossierQuery.data?.assessmentsHistory?.[0]?.id;
+    return String(fallbackAssessment || '').trim();
+  }, [assessmentId, dossierQuery.data?.assessmentsHistory]);
+
+  const anamnesisQuery = useQuery({
+    queryKey: ['dossier-anamnesis', apiBaseUrl, workspaceId, effectiveAssessmentId],
+    enabled: Boolean(candidateId) && Boolean(effectiveAssessmentId),
+    queryFn: async () => {
+      if (apiBaseUrl) {
+        return apiRequest(
+          `/api/dossier/anamnesis/${encodeURIComponent(
+            effectiveAssessmentId,
+          )}?workspaceId=${encodeURIComponent(workspaceId)}`,
+          {
+            method: 'GET',
+            requireAuth: true,
+          },
+        );
+      }
+
+      const store = readLocalAnamnesisStore();
+      const key = makeAnamnesisStoreKey(workspaceId, effectiveAssessmentId);
+      const localValue = store[key] || null;
+      return {
+        ok: true,
+        assessment: {
+          assessmentId: effectiveAssessmentId,
+          candidateId,
+          candidateName:
+            searchParams.get('candidateName') ||
+            location.state?.candidateName ||
+            location.state?.candidate?.name ||
+            'Participante',
+          candidateEmail:
+            searchParams.get('candidateEmail') ||
+            location.state?.candidateEmail ||
+            location.state?.candidate?.email ||
+            '',
+        },
+        anamnesis: localValue,
+        hasData: Boolean(localValue),
+      };
     },
   });
 
@@ -338,6 +495,88 @@ export default function Dossier() {
     queryClient,
     dossierQueryKey,
   ]);
+
+  useEffect(() => {
+    if (!candidateId || !effectiveAssessmentId) return;
+    if (!anamnesisQuery.isSuccess) return;
+
+    const mapped = mapAnamnesisForForm(anamnesisQuery.data?.anamnesis || {});
+    setAnamnesisForm(mapped);
+    setHasAnamnesisData(Boolean(anamnesisQuery.data?.hasData));
+    setAnamnesisSaveError('');
+    setAnamnesisStatusLabel('');
+    anamnesisLoadedRef.current = true;
+    anamnesisDirtyRef.current = false;
+  }, [
+    candidateId,
+    effectiveAssessmentId,
+    anamnesisQuery.isSuccess,
+    anamnesisQuery.data?.anamnesis,
+    anamnesisQuery.data?.hasData,
+  ]);
+
+  useEffect(() => {
+    if (!anamnesisLoadedRef.current || !anamnesisDirtyRef.current) return;
+    if (!candidateId || !effectiveAssessmentId) return;
+
+    const timeout = setTimeout(async () => {
+      const payload = buildAnamnesisPayload(anamnesisForm);
+      setIsSavingAnamnesis(true);
+      setAnamnesisSaveError('');
+      setAnamnesisStatusLabel('Salvando...');
+
+      try {
+        if (apiBaseUrl) {
+          const response = await apiRequest('/api/dossier/anamnesis/save', {
+            method: 'POST',
+            requireAuth: true,
+            body: {
+              workspaceId,
+              assessmentId: effectiveAssessmentId,
+              ...payload,
+            },
+          });
+          setHasAnamnesisData(Boolean(response?.hasData));
+          queryClient.setQueryData(
+            ['dossier-anamnesis', apiBaseUrl, workspaceId, effectiveAssessmentId],
+            response,
+          );
+        } else {
+          const store = readLocalAnamnesisStore();
+          const key = makeAnamnesisStoreKey(workspaceId, effectiveAssessmentId);
+          store[key] = payload;
+          writeLocalAnamnesisStore(store);
+          setHasAnamnesisData(true);
+        }
+
+        anamnesisDirtyRef.current = false;
+        setAnamnesisStatusLabel('Salvo automaticamente');
+      } catch (error) {
+        const message =
+          String(error?.payload?.message || error?.message || '').trim() ||
+          'Não foi possível salvar a anamnese agora.';
+        setAnamnesisSaveError(message);
+        setAnamnesisStatusLabel('');
+      } finally {
+        setIsSavingAnamnesis(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [
+    anamnesisForm,
+    candidateId,
+    effectiveAssessmentId,
+    apiBaseUrl,
+    workspaceId,
+    queryClient,
+  ]);
+
+  const handleAnamnesisChange = (field, value) => {
+    anamnesisDirtyRef.current = true;
+    setAnamnesisStatusLabel('Alterações pendentes');
+    setAnamnesisForm((prev) => ({ ...prev, [field]: value }));
+  };
 
   const createRecord = async (kind) => {
     if (!candidateId) {
@@ -628,6 +867,104 @@ export default function Dossier() {
     }
   };
 
+  const deleteRecord = async (kind, itemId) => {
+    if (!candidateId) {
+      toast({
+        variant: 'destructive',
+        title: 'Ação indisponível',
+        description: 'Selecione um avaliado antes de excluir um registro.',
+      });
+      return;
+    }
+
+    const normalizedKind = String(kind || '').trim();
+    const normalizedItemId = String(itemId || '').trim();
+    if (!normalizedKind || !normalizedItemId) return;
+
+    const entryKey = `${normalizedKind}:${normalizedItemId}`;
+    setDeletingItemKey(entryKey);
+
+    try {
+      const kindConfig = {
+        note: { endpoint: 'note', label: 'anotação', collection: 'notes' },
+        insight: { endpoint: 'insight', label: 'insight', collection: 'insights' },
+        plan: { endpoint: 'plan', label: 'plano', collection: 'plans' },
+        reminder: { endpoint: 'reminder', label: 'agendamento', collection: 'reminders' },
+      }[normalizedKind];
+
+      if (!kindConfig) return;
+
+      const syncQueryWithPayload = (payload) => {
+        if (!payload?.dossier) return false;
+        queryClient.setQueryData(dossierQueryKey, payload);
+        return true;
+      };
+
+      if (apiBaseUrl) {
+        const payload = await apiRequest(
+          `/api/dossier/${encodeURIComponent(candidateId)}/${kindConfig.endpoint}/${encodeURIComponent(
+            normalizedItemId,
+          )}?workspaceId=${encodeURIComponent(workspaceId)}`,
+          {
+            method: 'DELETE',
+            requireAuth: true,
+          },
+        );
+        syncQueryWithPayload(payload);
+      } else {
+        const payload = updateLocalRecord({
+          workspaceId,
+          candidateId,
+          updater: (current) => ({
+            ...current,
+            dossier: {
+              ...current.dossier,
+              [kindConfig.collection]: (current?.dossier?.[kindConfig.collection] || []).filter(
+                (item) => String(item?.id || '') !== normalizedItemId,
+              ),
+              updatedAt: new Date().toISOString(),
+            },
+          }),
+        });
+
+        queryClient.setQueryData(dossierQueryKey, {
+          ok: true,
+          workspaceId,
+          candidate: payload.candidate,
+          dossier: payload.dossier,
+          assessmentsHistory: payload.assessmentsHistory,
+          overview: payload.overview,
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: dossierQueryKey });
+      toast({
+        title: 'Registro removido',
+        description: `${kindConfig.label} excluído com sucesso.`,
+      });
+    } catch (error) {
+      const code = String(error?.payload?.error || error?.message || '').toUpperCase();
+      const labelByKind = {
+        note: 'anotação',
+        insight: 'insight',
+        plan: 'plano',
+        reminder: 'agendamento',
+      };
+      const label = labelByKind[normalizedKind] || 'registro';
+
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao excluir',
+        description:
+          code.includes('NOT_FOUND') || code.includes('ITEM_ID_REQUIRED')
+            ? `Não foi possível localizar este ${label} para exclusão.`
+            : 'Não foi possível excluir o registro.',
+      });
+    } finally {
+      setDeletingItemKey('');
+    }
+  };
+
   if ((!isPremium && !hasSuperAdminBypass) || !hasDossierAccess) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
@@ -770,6 +1107,7 @@ export default function Dossier() {
           <TabsTrigger value="insights" className="border border-slate-200 rounded-xl">Insights</TabsTrigger>
           <TabsTrigger value="plans" className="border border-slate-200 rounded-xl">Plano de Desenvolvimento</TabsTrigger>
           <TabsTrigger value="reminders" className="border border-slate-200 rounded-xl">Agendamentos</TabsTrigger>
+          <TabsTrigger value="anamnesis" className="border border-slate-200 rounded-xl">Anamnese</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -890,7 +1228,20 @@ export default function Dossier() {
                 <div className="space-y-3">
                   {(dossier?.notes || []).map((note) => (
                     <div key={note.id} className="rounded-xl border border-slate-200 p-3 bg-white">
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{note.content}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{note.content}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={deletingItemKey === `note:${note.id}`}
+                          onClick={() => deleteRecord('note', note.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Apagar
+                        </Button>
+                      </div>
                       <p className="text-xs text-slate-500 mt-2">{formatDateTime(note.createdAt)}</p>
                     </div>
                   ))}
@@ -934,7 +1285,20 @@ export default function Dossier() {
                 <div className="space-y-3">
                   {(dossier?.insights || []).map((insight) => (
                     <div key={insight.id} className="rounded-xl border border-slate-200 p-3 bg-white">
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap">{insight.insight}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{insight.insight}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={deletingItemKey === `insight:${insight.id}`}
+                          onClick={() => deleteRecord('insight', insight.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Apagar
+                        </Button>
+                      </div>
                       <p className="text-xs text-slate-500 mt-2">{formatDateTime(insight.createdAt)}</p>
                     </div>
                   ))}
@@ -983,7 +1347,20 @@ export default function Dossier() {
                 <div className="space-y-3">
                   {(dossier?.plans || []).map((plan) => (
                     <div key={plan.id} className="rounded-xl border border-slate-200 p-3">
-                      <p className="font-medium text-slate-900">{plan.goal}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-medium text-slate-900">{plan.goal}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={deletingItemKey === `plan:${plan.id}`}
+                          onClick={() => deleteRecord('plan', plan.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Apagar
+                        </Button>
+                      </div>
                       <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{plan.description}</p>
                       <p className="text-xs text-slate-500 mt-2">{formatDateTime(plan.createdAt)}</p>
                     </div>
@@ -1035,7 +1412,20 @@ export default function Dossier() {
                     <div key={reminder.id} className="rounded-xl border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="font-medium text-slate-900">{formatDateTime(reminder.date)}</p>
-                        <Badge variant="outline">Agendado</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">Agendado</Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={deletingItemKey === `reminder:${reminder.id}`}
+                            onClick={() => deleteRecord('reminder', reminder.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Apagar
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{reminder.note}</p>
                       <p className="text-xs text-slate-500 mt-2">Criado em {formatDateTime(reminder.createdAt)}</p>
@@ -1045,6 +1435,281 @@ export default function Dossier() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="anamnesis" className="space-y-4">
+          <Card className="rounded-2xl border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Anamnese profissional</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Estas informações são utilizadas apenas para contextualização da avaliação
+                comportamental.
+              </p>
+              {!effectiveAssessmentId ? (
+                <p className="text-sm text-slate-500">
+                  Selecione uma avaliação deste participante para preencher a anamnese.
+                </p>
+              ) : null}
+              {anamnesisQuery.isLoading ? (
+                <div className="space-y-2">
+                  <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                  <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                  <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
+                </div>
+              ) : null}
+              {!anamnesisQuery.isLoading && effectiveAssessmentId && !hasAnamnesisData ? (
+                <p className="text-sm text-slate-500">Anamnese ainda não preenchida.</p>
+              ) : null}
+              {!anamnesisQuery.isLoading && effectiveAssessmentId ? (
+                <div className="text-xs text-slate-500">
+                  {isSavingAnamnesis ? 'Salvando...' : anamnesisStatusLabel || 'Edite os campos abaixo.'}
+                </div>
+              ) : null}
+              {anamnesisSaveError ? (
+                <p className="text-sm text-red-600">{anamnesisSaveError}</p>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          {effectiveAssessmentId ? (
+            <>
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Identificação</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-3">
+                  <Input
+                    value={anamnesisForm.fullName}
+                    onChange={(event) => handleAnamnesisChange('fullName', event.target.value)}
+                    placeholder="Nome completo"
+                  />
+                  <Input
+                    type="date"
+                    value={anamnesisForm.birthDate}
+                    onChange={(event) => handleAnamnesisChange('birthDate', event.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={anamnesisForm.age}
+                    onChange={(event) => handleAnamnesisChange('age', event.target.value)}
+                    placeholder="Idade"
+                  />
+                  <Input
+                    value={anamnesisForm.sex}
+                    onChange={(event) => handleAnamnesisChange('sex', event.target.value)}
+                    placeholder="Sexo"
+                  />
+                  <Input
+                    value={anamnesisForm.maritalStatus}
+                    onChange={(event) =>
+                      handleAnamnesisChange('maritalStatus', event.target.value)
+                    }
+                    placeholder="Estado civil"
+                  />
+                  <Input
+                    value={anamnesisForm.profession}
+                    onChange={(event) => handleAnamnesisChange('profession', event.target.value)}
+                    placeholder="Profissão"
+                  />
+                  <Input
+                    value={anamnesisForm.education}
+                    onChange={(event) => handleAnamnesisChange('education', event.target.value)}
+                    placeholder="Escolaridade"
+                  />
+                  <Input
+                    value={anamnesisForm.city}
+                    onChange={(event) => handleAnamnesisChange('city', event.target.value)}
+                    placeholder="Cidade"
+                  />
+                  <div className="md:col-span-2">
+                    <Input
+                      value={anamnesisForm.address}
+                      onChange={(event) => handleAnamnesisChange('address', event.target.value)}
+                      placeholder="Endereço"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Família</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-3">
+                  <Input
+                    value={anamnesisForm.spouseName}
+                    onChange={(event) => handleAnamnesisChange('spouseName', event.target.value)}
+                    placeholder="Nome do cônjuge"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={anamnesisForm.spouseAge}
+                    onChange={(event) => handleAnamnesisChange('spouseAge', event.target.value)}
+                    placeholder="Idade do cônjuge"
+                  />
+                  <Input
+                    value={anamnesisForm.hasChildren}
+                    onChange={(event) => handleAnamnesisChange('hasChildren', event.target.value)}
+                    placeholder="Tem filhos? (sim/não)"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={anamnesisForm.childrenCount}
+                    onChange={(event) => handleAnamnesisChange('childrenCount', event.target.value)}
+                    placeholder="Quantidade de filhos"
+                  />
+                  <div className="md:col-span-2">
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.childrenInfo}
+                      onChange={(event) => handleAnamnesisChange('childrenInfo', event.target.value)}
+                      placeholder="Informações dos filhos"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Saúde</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-3">
+                  <Input
+                    value={anamnesisForm.stressLevel}
+                    onChange={(event) => handleAnamnesisChange('stressLevel', event.target.value)}
+                    placeholder="Nível de estresse"
+                  />
+                  <Input
+                    value={anamnesisForm.sleepQuality}
+                    onChange={(event) => handleAnamnesisChange('sleepQuality', event.target.value)}
+                    placeholder="Qualidade do sono"
+                  />
+                  <Input
+                    value={anamnesisForm.physicalActivity}
+                    onChange={(event) =>
+                      handleAnamnesisChange('physicalActivity', event.target.value)
+                    }
+                    placeholder="Atividade física"
+                  />
+                  <Input
+                    value={anamnesisForm.smoker}
+                    onChange={(event) => handleAnamnesisChange('smoker', event.target.value)}
+                    placeholder="Tabagismo"
+                  />
+                  <Input
+                    value={anamnesisForm.alcoholConsumption}
+                    onChange={(event) =>
+                      handleAnamnesisChange('alcoholConsumption', event.target.value)
+                    }
+                    placeholder="Álcool"
+                  />
+                  <Input
+                    value={anamnesisForm.usesMedication}
+                    onChange={(event) =>
+                      handleAnamnesisChange('usesMedication', event.target.value)
+                    }
+                    placeholder="Uso de medicamentos"
+                  />
+                  <div className="md:col-span-2">
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.medicationList}
+                      onChange={(event) =>
+                        handleAnamnesisChange('medicationList', event.target.value)
+                      }
+                      placeholder="Lista de medicamentos"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Histórico de saúde</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    rows={3}
+                    value={anamnesisForm.healthConditions}
+                    onChange={(event) =>
+                      handleAnamnesisChange('healthConditions', event.target.value)
+                    }
+                    placeholder="Condições de saúde"
+                  />
+                  <Textarea
+                    rows={3}
+                    value={anamnesisForm.familyHealthHistory}
+                    onChange={(event) =>
+                      handleAnamnesisChange('familyHealthHistory', event.target.value)
+                    }
+                    placeholder="Histórico familiar de doenças"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Histórico psicológico</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    rows={4}
+                    value={anamnesisForm.psychologicalHistory}
+                    onChange={(event) =>
+                      handleAnamnesisChange('psychologicalHistory', event.target.value)
+                    }
+                    placeholder="Já fez terapia? Diagnósticos anteriores?"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Motivo da avaliação</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    rows={3}
+                    value={anamnesisForm.evaluationReason}
+                    onChange={(event) =>
+                      handleAnamnesisChange('evaluationReason', event.target.value)
+                    }
+                    placeholder="Motivo principal"
+                  />
+                  <Textarea
+                    rows={3}
+                    value={anamnesisForm.mainComplaint}
+                    onChange={(event) => handleAnamnesisChange('mainComplaint', event.target.value)}
+                    placeholder="Queixa principal"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Observações do profissional</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    rows={7}
+                    value={anamnesisForm.professionalNotes}
+                    onChange={(event) =>
+                      handleAnamnesisChange('professionalNotes', event.target.value)
+                    }
+                    placeholder="Campo livre para observações relevantes."
+                  />
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

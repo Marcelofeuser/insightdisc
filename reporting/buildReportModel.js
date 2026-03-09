@@ -807,6 +807,158 @@ function resolveScoreInput(input = {}) {
   return { natural, adapted, summary, deltas };
 }
 
+function resolveAnswerList(input = {}) {
+  const candidates = [
+    input?.answers,
+    input?.assessment?.response?.answersJson,
+    input?.assessment?.answers,
+    input?.assessment?.answers_json,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length) return candidate;
+  }
+
+  return [];
+}
+
+function resolveAssessmentDurationSeconds(input = {}, answeredCount = 0) {
+  const fromPayload = Number(
+    input?.assessment?.time_spent_seconds ||
+      input?.assessment?.timeSpentSeconds ||
+      input?.meta?.timeSpentSeconds ||
+      0,
+  );
+  if (Number.isFinite(fromPayload) && fromPayload > 0) return fromPayload;
+
+  const startedAt = input?.assessment?.startedAt || input?.assessment?.started_at || input?.assessment?.createdAt;
+  const completedAt =
+    input?.assessment?.completedAt ||
+    input?.assessment?.completed_at ||
+    input?.meta?.generatedAt;
+  const startDate = startedAt ? new Date(startedAt) : null;
+  const endDate = completedAt ? new Date(completedAt) : null;
+
+  if (startDate && endDate && !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
+    const seconds = Math.round((endDate.getTime() - startDate.getTime()) / 1000);
+    if (seconds > 0) return seconds;
+  }
+
+  return answeredCount > 0 ? answeredCount * 18 : 0;
+}
+
+function detectRepetitivePatternRate(answers = []) {
+  if (!Array.isArray(answers) || answers.length === 0) return 0;
+
+  const pairCounts = new Map();
+  for (const item of answers) {
+    const most = safeText(item?.most, '');
+    const least = safeText(item?.least, '');
+    const pairKey = `${most}|${least}`;
+    pairCounts.set(pairKey, Number(pairCounts.get(pairKey) || 0) + 1);
+  }
+
+  const maxRepeated = Math.max(...Array.from(pairCounts.values()));
+  const repeatedRatio = maxRepeated / answers.length;
+  return Number.isFinite(repeatedRatio) ? repeatedRatio : 0;
+}
+
+export function computeReliabilityScore({
+  answers = [],
+  scores = {},
+  adaptation = {},
+  expectedQuestions = 40,
+  durationSeconds = 0,
+} = {}) {
+  const totalAnswers = Array.isArray(answers) ? answers.length : 0;
+  const expected = Math.max(1, Number(expectedQuestions || 40));
+  const answeredRatio = Math.min(1, totalAnswers / expected);
+  const seconds = Math.max(0, Number(durationSeconds || 0));
+  const secondsPerQuestion = totalAnswers > 0 ? seconds / totalAnswers : 0;
+
+  let score = 100;
+
+  let timingPenalty = 0;
+  if (secondsPerQuestion > 0 && secondsPerQuestion < 4) timingPenalty = 18;
+  else if (secondsPerQuestion > 0 && secondsPerQuestion < 7) timingPenalty = 10;
+  else if (secondsPerQuestion > 120) timingPenalty = 8;
+  score -= timingPenalty;
+
+  let completionPenalty = 0;
+  if (answeredRatio < 0.6) completionPenalty = 20;
+  else if (answeredRatio < 0.85) completionPenalty = 12;
+  score -= completionPenalty;
+
+  const repeatedPatternRate = detectRepetitivePatternRate(answers);
+  let repetitivePenalty = 0;
+  if (repeatedPatternRate > 0.55) repetitivePenalty = 16;
+  else if (repeatedPatternRate > 0.4) repetitivePenalty = 10;
+  score -= repetitivePenalty;
+
+  const scoreSpread =
+    Math.max(...FACTORS.map((factor) => clamp(scores?.summary?.[factor] ?? scores?.natural?.[factor] ?? 0))) -
+    Math.min(...FACTORS.map((factor) => clamp(scores?.summary?.[factor] ?? scores?.natural?.[factor] ?? 0)));
+  let extremesPenalty = 0;
+  if (scoreSpread >= 60) extremesPenalty = 8;
+  else if (scoreSpread >= 50) extremesPenalty = 4;
+  score -= extremesPenalty;
+
+  const adaptationDelta = Number(adaptation?.avgAbsDelta || 0);
+  let consistencyPenalty = 0;
+  if (adaptationDelta > 24) consistencyPenalty = 15;
+  else if (adaptationDelta > 16) consistencyPenalty = 8;
+  score -= consistencyPenalty;
+
+  score = clamp(score, 0, 100);
+
+  const level = score >= 80 ? 'alto' : score >= 60 ? 'moderado' : 'baixo';
+
+  const notes = [];
+  if (timingPenalty > 0) notes.push('Tempo por pergunta abaixo do ideal para leitura reflexiva.');
+  if (repetitivePenalty > 0) notes.push('Padrão repetitivo identificado em parte das respostas.');
+  if (extremesPenalty > 0) notes.push('Distribuição muito extrema entre fatores comportamentais.');
+  if (consistencyPenalty > 0) notes.push('Diferença elevada entre perfil natural e adaptado.');
+  if (completionPenalty > 0) notes.push('Quantidade de respostas abaixo do esperado.');
+  if (!notes.length) notes.push('Padrão de respostas consistente para leitura comportamental.');
+
+  return {
+    score,
+    level,
+    answeredCount: totalAnswers,
+    expectedQuestions: expected,
+    answeredRatio: Number(answeredRatio.toFixed(2)),
+    secondsPerQuestion: Number(secondsPerQuestion.toFixed(2)),
+    repeatedPatternRate: Number(repeatedPatternRate.toFixed(2)),
+    scoreSpread: Number(scoreSpread.toFixed(2)),
+    adaptationDelta: Number(adaptationDelta.toFixed(2)),
+    notes,
+  };
+}
+
+function resolveQuickContext(input = {}) {
+  const source =
+    input?.quickContext ||
+    input?.assessment?.quickContext ||
+    input?.assessment?.assessmentQuickContext ||
+    {};
+
+  const normalized = {
+    sex: safeText(source?.sex, ''),
+    maritalStatus: safeText(source?.maritalStatus || source?.marital_status, ''),
+    city: safeText(source?.city, ''),
+    stressLevel: safeText(source?.stressLevel || source?.stress_level, ''),
+    sleepQuality: safeText(source?.sleepQuality || source?.sleep_quality, ''),
+    physicalActivity: safeText(source?.physicalActivity || source?.physical_activity, ''),
+    smoker: safeText(source?.smoker, ''),
+    alcoholConsumption: safeText(source?.alcoholConsumption || source?.alcohol_consumption, ''),
+    usesMedication: safeText(source?.usesMedication || source?.uses_medication, ''),
+    healthConditions: safeText(source?.healthConditions || source?.health_conditions, ''),
+  };
+
+  const hasData = Object.values(normalized).some((value) => String(value || '').trim());
+  return { ...normalized, hasData };
+}
+
 function resolveProfile(profiles = {}, selected = {}) {
   const preferred = profiles?.[selected.key];
   const primaryFallback = profiles?.[selected.primary];
@@ -946,6 +1098,19 @@ export async function buildReportModel(input = {}) {
   };
 
   const adaptation = computeAdaptation(scores.natural, scores.adapted, rules.adaptationBand);
+  const answers = resolveAnswerList(input);
+  const expectedQuestions = Math.max(
+    answers.length,
+    Number(input?.assessment?.expectedQuestions || input?.meta?.expectedQuestions || 40) || 40,
+  );
+  const reliability = computeReliabilityScore({
+    answers,
+    scores,
+    adaptation,
+    expectedQuestions,
+    durationSeconds: resolveAssessmentDurationSeconds(input, answers.length),
+  });
+  const quickContext = resolveQuickContext(input);
   const factorAnalysis = buildFactorAnalysis(scores, content?.shared?.factors || {}, rules);
   const benchmarkRows = buildBenchmarkRows(scores, profile);
   const responsible = resolveResponsible(input, participant);
@@ -1007,6 +1172,8 @@ export async function buildReportModel(input = {}) {
     profile,
     scores,
     adaptation,
+    reliability,
+    quickContext,
     factors: factorAnalysis,
     benchmark: {
       rows: benchmarkRows,

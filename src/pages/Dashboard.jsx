@@ -189,13 +189,23 @@ export default function Dashboard() {
 
   const handleStartSelfAssessment = async () => {
     if (isStartingSelfAssessment) return;
+    if (hasSuperAdminBypass) {
+      navigate(createPageUrl('PremiumAssessment'));
+      return;
+    }
+
+    const hasApiToken = Boolean(getApiToken());
+    if (apiBaseUrl && base44?.__isMock && !hasApiToken) {
+      navigate(createPageUrl('PremiumAssessment'));
+      return;
+    }
 
     if (!apiBaseUrl) {
       navigate(createPageUrl('PremiumAssessment'));
       return;
     }
 
-    if (!hasSuperAdminBypass && Number(workspace?.credits_balance || 0) < 1) {
+    if (Number(workspace?.credits_balance || 0) < 1) {
       navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
       return;
     }
@@ -212,7 +222,7 @@ export default function Dashboard() {
 
       navigate(`/c/assessment?token=${encodeURIComponent(payload.token)}&self=1&from=dashboard`);
     } catch (error) {
-      if (!hasSuperAdminBypass && Number(error?.status) === 402) {
+      if (Number(error?.status) === 402) {
         navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
         return;
       }

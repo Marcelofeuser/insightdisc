@@ -9,9 +9,16 @@ const hasValidAppId = Boolean(
   appId !== 'null' &&
   appId !== 'undefined'
 );
+const rawApiUrl = String(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '').trim();
+const forceMockInDev =
+  import.meta.env.DEV &&
+  (
+    String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true' ||
+    !rawApiUrl
+  );
 
 //Create a client with authentication required
-export const base44 = hasValidAppId
+export const base44 = hasValidAppId && !forceMockInDev
   ? createClient({
       appId,
       token,

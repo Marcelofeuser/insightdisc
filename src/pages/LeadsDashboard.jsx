@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Download, MessageCircle, Search } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import {
   apiRequest,
   getApiAuthHeaders,
   getApiBaseUrl,
+  getApiToken,
 } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +53,15 @@ function loadLocalLeads() {
     return parsed.map((item, index) => normalizeLocalLead(item, index));
   } catch {
     return [];
+  }
+}
+
+function saveLocalLeads(leads = []) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify(leads));
+  } catch {
+    // ignore quota/storage errors
   }
 }
 
@@ -108,11 +119,24 @@ export default function LeadsDashboard() {
         if (statusFilter) params.set('status', statusFilter);
         if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
-        const payload = await apiRequest(`/api/leads?${params.toString()}`, {
-          method: 'GET',
-          requireAuth: true,
-        });
-        return payload?.leads || [];
+        try {
+          const payload = await apiRequest(`/api/leads?${params.toString()}`, {
+            method: 'GET',
+            requireAuth: true,
+          });
+          const apiLeads = Array.isArray(payload?.leads) ? payload.leads : [];
+          if (apiLeads.length > 0) return apiLeads;
+          if (base44?.__isMock) {
+            return loadLocalLeads();
+          }
+          return apiLeads;
+        } catch (error) {
+          if (base44?.__isMock) {
+            console.warn('[LeadsDashboard] API indisponível em modo mock, usando fallback local', error);
+            return loadLocalLeads();
+          }
+          throw error;
+        }
       }
 
       return loadLocalLeads();
@@ -131,27 +155,41 @@ export default function LeadsDashboard() {
     if (!lead?.id) return;
     setUpdatingLeadId(lead.id);
     try {
-      if (apiBaseUrl) {
+      const shouldUseLocal = !apiBaseUrl || (base44?.__isMock && String(lead.id).startsWith('local-'));
+      if (!shouldUseLocal) {
         await apiRequest(`/api/leads/${lead.id}`, {
           method: 'PATCH',
           requireAuth: true,
           body: patch,
         });
-        await queryClient.invalidateQueries({ queryKey: ['leads-dashboard'] });
       } else {
         const current = loadLocalLeads();
         const next = current.map((item) =>
           item.id === lead.id ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item
         );
-        window.localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify(next));
-        await queryClient.invalidateQueries({ queryKey: ['leads-dashboard'] });
+        saveLocalLeads(next);
       }
+
+      await queryClient.invalidateQueries({ queryKey: ['leads-dashboard'] });
 
       toast({
         title: 'Lead atualizado',
         description: 'Alterações salvas com sucesso.',
       });
     } catch (error) {
+      if (base44?.__isMock) {
+        const current = loadLocalLeads();
+        const next = current.map((item) =>
+          item.id === lead.id ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item
+        );
+        saveLocalLeads(next);
+        await queryClient.invalidateQueries({ queryKey: ['leads-dashboard'] });
+        toast({
+          title: 'Lead atualizado',
+          description: 'Alterações salvas com sucesso.',
+        });
+        return;
+      }
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar lead',
@@ -164,7 +202,10 @@ export default function LeadsDashboard() {
 
   const handleExportCsv = async () => {
     try {
-      if (apiBaseUrl) {
+      const apiToken = getApiToken();
+      const canUseApiExport = Boolean(apiBaseUrl && apiToken && !base44?.__isMock);
+
+      if (canUseApiExport) {
         const response = await fetch(`${apiBaseUrl}/api/leads/export/csv`, {
           method: 'GET',
           headers: {

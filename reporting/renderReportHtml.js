@@ -153,6 +153,38 @@ function resolveCoverBackgroundByTier(reportType = 'standard') {
     : COVER_BACKGROUND_BY_TIER.standard;
 }
 
+function toAbsoluteAssetUrl(assetPath = '', assetBaseUrl = '') {
+  const normalizedPath = String(assetPath || '').trim();
+  const normalizedBase = String(assetBaseUrl || '').trim().replace(/\/+$/, '');
+  if (!normalizedPath || !normalizedPath.startsWith('/') || !normalizedBase) return '';
+  return `${normalizedBase}${normalizedPath}`;
+}
+
+function resolvePdfImageSrc(primarySrc = '', options = {}) {
+  const fallbackSrc = String(options?.fallbackSrc || '').trim();
+  const assetBaseUrl = String(options?.assetBaseUrl || '').trim();
+  const candidates = [primarySrc, fallbackSrc]
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (/^data:image\//i.test(candidate)) return candidate;
+    if (/^https?:\/\//i.test(candidate)) return candidate;
+    if (/^file:\/\//i.test(candidate)) return candidate;
+
+    if (candidate.startsWith('/')) {
+      const absoluteUrl = toAbsoluteAssetUrl(candidate, assetBaseUrl);
+      if (absoluteUrl) return absoluteUrl;
+      if (/^\/(brand|report-assets|assets)\//i.test(candidate)) {
+        return candidate;
+      }
+      continue;
+    }
+  }
+
+  return '';
+}
+
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
 
 function createBadRequest(message) {
@@ -234,12 +266,6 @@ function ensureCriticalData(report) {
   const participantName = safeText(report?.participant?.name);
   if (!participantName) {
     throw createBadRequest('Dado obrigatorio ausente: participant.name');
-  }
-
-  const brandingCompany = safeText(report?.branding?.company_name || report?.meta?.brand);
-  const brandingLogo = safeText(report?.branding?.logo_url);
-  if (!brandingCompany || !brandingLogo) {
-    throw createBadRequest('Branding incompleto para geracao white-label');
   }
 }
 
@@ -1100,6 +1126,7 @@ function buildBackCoverPage(branding = {}, options = {}) {
   const companyName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
   const supportEmail = safeText(branding?.support_email, 'contato@insightdisc.app');
   const website = safeText(branding?.website, 'www.insightdisc.app');
+  const logoSrc = safeText(options?.logoSrc);
   const variant = safeText(options?.variant, options?.isPremiumTier ? 'premium-opening' : 'standard-closing');
   const isPremiumOpening = variant === 'premium-opening';
   const isStandardClosing = variant === 'standard-closing';
@@ -1114,7 +1141,11 @@ function buildBackCoverPage(branding = {}, options = {}) {
       <div class="back-cover">
         ${isPremiumOpening ? '<div class="back-cover-ribbon">Abertura institucional</div>' : ''}
         <div class="back-cover-tier">${esc(tierLabel)}</div>
-        <img src="/assets/logo-insightdisc.png" alt="${esc(companyName)}" class="back-cover-logo" />
+        ${
+          logoSrc
+            ? `<img src="${esc(logoSrc)}" alt="${esc(companyName)}" class="back-cover-logo" />`
+            : `<div class="back-cover-logo-fallback">${esc(companyName)}</div>`
+        }
         <div class="back-cover-title">${esc(companyName)}</div>
         <div class="back-cover-subtitle">Plataforma de Análise Comportamental</div>
         <div class="back-cover-divider"></div>
@@ -1157,6 +1188,115 @@ function automaticEnrichment(title, subtitle) {
     </div>
     <div class="card compact-density-note">
       <p><strong>Diretriz aplicada:</strong> conecte estes pontos ao seu contexto real e revise o ajuste em ciclos curtos com evidências observáveis.</p>
+    </div>
+  `;
+}
+
+function normalizeQuickContextForDisplay(quickContext = {}) {
+  const normalized = {
+    sex: safeText(quickContext?.sex, ''),
+    maritalStatus: safeText(quickContext?.maritalStatus, ''),
+    city: safeText(quickContext?.city, ''),
+    stressLevel: safeText(quickContext?.stressLevel, ''),
+    sleepQuality: safeText(quickContext?.sleepQuality, ''),
+    physicalActivity: safeText(quickContext?.physicalActivity, ''),
+    smoker: safeText(quickContext?.smoker, ''),
+    alcoholConsumption: safeText(quickContext?.alcoholConsumption, ''),
+    usesMedication: safeText(quickContext?.usesMedication, ''),
+    healthConditions: safeText(quickContext?.healthConditions, ''),
+  };
+
+  const hasData = Object.values(normalized).some((value) => String(value || '').trim());
+  return { ...normalized, hasData };
+}
+
+function quickContextPanelHtml(quickContext = {}) {
+  const context = normalizeQuickContextForDisplay(quickContext);
+  if (!context.hasData) return '';
+
+  const rows = [
+    ['Sexo', context.sex],
+    ['Estado civil', context.maritalStatus],
+    ['Cidade', context.city],
+    ['Estresse atual', context.stressLevel],
+    ['Qualidade do sono', context.sleepQuality],
+    ['Atividade física', context.physicalActivity],
+    ['Tabagismo', context.smoker],
+    ['Álcool', context.alcoholConsumption],
+    ['Uso de medicação', context.usesMedication],
+    ['Condições de saúde', context.healthConditions],
+  ].filter(([, value]) => String(value || '').trim());
+
+  return `
+    <div class="card">
+      <h3>Contexto atual do participante</h3>
+      <p>Dados opcionais de anamnese curta para contextualização da leitura comportamental.</p>
+      <table class="table compact">
+        <tbody>
+          ${rows
+            .map(
+              ([label, value]) => `
+                <tr>
+                  <th style="width: 42%;">${esc(label)}</th>
+                  <td>${esc(value)}</td>
+                </tr>
+              `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function reliabilityPanelHtml(reliability = {}) {
+  const score = clamp(reliability?.score, 0, 100);
+  const level = safeText(reliability?.level, score >= 80 ? 'alto' : score >= 60 ? 'moderado' : 'baixo');
+  const secondsPerQuestion = Number(reliability?.secondsPerQuestion || 0);
+  const repeatRate = Number(reliability?.repeatedPatternRate || 0);
+  const answeredRatio = Number(reliability?.answeredRatio || 0);
+  const scoreSpread = Number(reliability?.scoreSpread || 0);
+  const notes = safeArray(reliability?.notes, ['Padrão de respostas consistente para leitura comportamental.']);
+
+  return `
+    <div class="card">
+      <h3>Índice de confiabilidade das respostas</h3>
+      <div class="kpi-grid">
+        <div class="kpi-pill">
+          <div class="kpi-chip" style="background: color-mix(in srgb, var(--factor-primary), #ffffff 76%);">R</div>
+          <div class="kpi-copy">
+            <span>Score</span>
+            <strong>${esc(String(score))}/100</strong>
+            <small>Nível ${esc(level)}</small>
+          </div>
+        </div>
+        <div class="kpi-pill">
+          <div class="kpi-chip" style="background: color-mix(in srgb, var(--disc-c), #ffffff 76%);">T</div>
+          <div class="kpi-copy">
+            <span>Tempo médio</span>
+            <strong>${esc(secondsPerQuestion.toFixed(1))}s</strong>
+            <small>por pergunta</small>
+          </div>
+        </div>
+        <div class="kpi-pill">
+          <div class="kpi-chip" style="background: color-mix(in srgb, var(--disc-d), #ffffff 76%);">P</div>
+          <div class="kpi-copy">
+            <span>Padrão repetitivo</span>
+            <strong>${esc(`${Math.round(repeatRate * 100)}%`)}</strong>
+            <small>repetição máxima</small>
+          </div>
+        </div>
+      </div>
+      ${miniDiscBarsHtml(
+        {
+          D: score,
+          I: clamp(answeredRatio * 100, 0, 100),
+          S: clamp(100 - repeatRate * 100, 0, 100),
+          C: clamp(100 - scoreSpread, 0, 100),
+        },
+        'Painel técnico de confiabilidade',
+      )}
+      ${listHtml(notes.slice(0, 4))}
     </div>
   `;
 }
@@ -1270,8 +1410,24 @@ export function renderReportHtml(input = {}) {
     reportType,
   };
 
+  const assetBaseUrl = safeText(
+    report?.meta?.assetBaseUrl,
+    safeText(input?.assetBaseUrl, '')
+  );
   const branding = normalizeBranding(report?.branding || {}, report?.meta || {});
   const participant = normalizeParticipant(report?.participant || {}, report?.meta || {});
+  const coverLogoSrc = resolvePdfImageSrc(branding.logo_url, {
+    fallbackSrc: DEFAULT_BRANDING.logo_url,
+    assetBaseUrl,
+  });
+  const institutionalLogoSrc = resolvePdfImageSrc(branding.logo_url, {
+    fallbackSrc: DEFAULT_BRANDING.logo_url,
+    assetBaseUrl,
+  });
+  const finalLockupLogoSrc = resolvePdfImageSrc(DEFAULT_BRANDING.logo_url, {
+    fallbackSrc: branding.logo_url,
+    assetBaseUrl,
+  });
 
   const scores = {
     natural: normalizeScores(report?.scores?.natural),
@@ -1355,6 +1511,18 @@ export function renderReportHtml(input = {}) {
       'A diferenca entre natural e adaptado indica calibragem comportamental relevante para sustentar performance sem desgaste.'
     ),
   };
+  const reliability = {
+    score: clamp(report?.reliability?.score ?? 0, 0, 100),
+    level: safeText(report?.reliability?.level, ''),
+    secondsPerQuestion: Number(report?.reliability?.secondsPerQuestion || 0),
+    repeatedPatternRate: Number(report?.reliability?.repeatedPatternRate || 0),
+    answeredRatio: Number(report?.reliability?.answeredRatio || 0),
+    scoreSpread: Number(report?.reliability?.scoreSpread || 0),
+    notes: safeArray(report?.reliability?.notes, []),
+  };
+  const quickContext = normalizeQuickContextForDisplay(
+    report?.quickContext || assessment?.quickContext || {},
+  );
 
   const profileContent = report?.profileContent || {};
   const narratives = report?.narratives || {};
@@ -1444,7 +1612,11 @@ export function renderReportHtml(input = {}) {
       content: `
         <div class="cover-shell ${isPremiumTier ? 'cover-shell-premium' : 'cover-shell-standard'}">
           <div class="cover-identity-block">
-            <img src="${esc(branding.logo_url)}" alt="Logo ${esc(branding.company_name)}" class="cover-brand-logo" />
+            ${
+              coverLogoSrc
+                ? `<img src="${esc(coverLogoSrc)}" alt="Logo ${esc(branding.company_name)}" class="cover-brand-logo" />`
+                : `<div class="cover-brand-logo-fallback">${esc(branding.company_name)}</div>`
+            }
             <div class="cover-brand-title">InsightDISC</div>
             <div class="cover-brand-subtitle">Plataforma de Análise Comportamental</div>
           </div>
@@ -1584,6 +1756,18 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         ${executiveDivider('Panorama executivo do comportamento', 'Visão de liderança para tomada de decisão, comunicação e desenvolvimento')}
+        <div class="grid two stack-on-print">
+          ${reliabilityPanelHtml(reliability)}
+          ${
+            quickContext.hasData
+              ? quickContextPanelHtml(quickContext)
+              : strategicNote(
+                  'Contexto atual do participante',
+                  'A anamnese curta é opcional. Não há dados contextuais adicionais para esta avaliação.',
+                  'Quando disponível, o contexto ajuda profissionais a interpretar o comportamento com maior precisão situacional.',
+                )
+          }
+        </div>
         <div class="grid two summary-balance-grid ${isPremiumTier ? '' : 'summary-balance-grid-standard'}">
           <div>
             ${scorePillsHtml(scores, profile, adaptation)}
@@ -2675,7 +2859,11 @@ export function renderReportHtml(input = {}) {
           </div>
         </div>
         <div class="card final-lockup">
-          <img src="${esc(DEFAULT_BRANDING.logo_url)}" alt="InsightDISC" class="final-lockup-logo" />
+          ${
+            finalLockupLogoSrc
+              ? `<img src="${esc(finalLockupLogoSrc)}" alt="InsightDISC" class="final-lockup-logo" />`
+              : '<div class="final-lockup-logo-fallback">InsightDISC</div>'
+          }
           <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
         </div>
         ${
@@ -2697,6 +2885,7 @@ export function renderReportHtml(input = {}) {
     isPremiumTier,
     generatedAt: coverGeneratedDate,
     variant: isPremiumTier ? 'premium-opening' : 'standard-closing',
+    logoSrc: institutionalLogoSrc,
   });
 
   let selectedPagesRaw = isPremiumTier
@@ -3053,6 +3242,22 @@ export function renderReportHtml(input = {}) {
       height: auto;
       margin-bottom: 2.6mm;
       object-fit: contain;
+    }
+
+    .cover-brand-logo-fallback {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 16mm;
+      margin-bottom: 2.6mm;
+      padding: 2.2mm 4mm;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(11, 31, 59, 0.35);
+      color: #f8fbff;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
     }
 
     .cover-brand-subtitle {
@@ -4174,6 +4379,23 @@ export function renderReportHtml(input = {}) {
       break-after: avoid;
     }
 
+    img {
+      max-width: 100%;
+      height: auto;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .summary-item,
+    .summary-col,
+    .executive-hero,
+    .cover-info-card,
+    .cover-info-grid,
+    .final-lockup {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
     .action-plan-card {
       border-top: 4px solid var(--secondary);
       background: linear-gradient(180deg, #fffdf7, #ffffff);
@@ -4251,6 +4473,21 @@ export function renderReportHtml(input = {}) {
       height: auto;
       object-fit: contain;
       display: block;
+    }
+
+    .final-lockup-logo-fallback {
+      width: 108px;
+      min-height: 52px;
+      border-radius: 10px;
+      border: 1px solid rgba(11, 31, 59, 0.18);
+      background: linear-gradient(180deg, #f3f7ff, #ffffff);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #0b1f3b;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
     }
 
     .final-lockup p {
@@ -4346,6 +4583,23 @@ export function renderReportHtml(input = {}) {
       height: auto;
       margin-bottom: 8mm;
       object-fit: contain;
+    }
+
+    .back-cover-logo-fallback {
+      max-width: 78mm;
+      min-height: 22mm;
+      margin-bottom: 8mm;
+      padding: 3.2mm 6mm;
+      border-radius: 12px;
+      border: 1px solid #d8e2ef;
+      background: linear-gradient(180deg, #f8fbff, #eef4fc);
+      color: #0b1f3b;
+      font-size: 22px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.2px;
     }
 
     .back-cover-title {

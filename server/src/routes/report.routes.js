@@ -25,7 +25,12 @@ router.get(
       const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
       const assessment = await prisma.assessment.findUnique({
         where: { id: req.params.assessmentId },
-        include: { report: true, creator: true, organization: { include: { owner: true } } },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+          quickContext: true,
+        },
       });
 
       if (!assessment) {
@@ -74,7 +79,12 @@ router.post(
 
       const assessment = await prisma.assessment.findUnique({
         where: { id: input.assessmentId },
-        include: { report: true, creator: true, organization: { include: { owner: true } } },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+          quickContext: true,
+        },
       });
       if (!assessment) {
         return res.status(404).json({ ok: false, error: 'Assessment não encontrado.' });

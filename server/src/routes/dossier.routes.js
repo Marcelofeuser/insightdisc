@@ -4,12 +4,18 @@ import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requirePremiumFeature, requireRole } from '../middleware/rbac.js';
 import {
   addDevelopmentPlan,
+  getDossierAnamnesisByAssessment,
   addDossierInsight,
   addDossierNote,
   addReassessmentReminder,
+  deleteDevelopmentPlan,
+  deleteDossierInsight,
+  deleteDossierNote,
+  deleteReassessmentReminder,
   getDossierByCandidate,
   getDossierReminderSummary,
   resolveWorkspaceId,
+  saveDossierAnamnesisByAssessment,
 } from '../modules/dossier/dossier.service.js';
 
 const router = Router();
@@ -36,6 +42,37 @@ const reminderSchema = workspaceSchema.extend({
   note: z.string().trim().min(2).max(500),
 });
 
+const dossierAnamnesisSchema = workspaceSchema.extend({
+  assessmentId: z.string().trim().min(1),
+  fullName: z.string().trim().max(180).optional().or(z.literal('')),
+  birthDate: z.string().trim().optional().or(z.literal('')),
+  age: z.coerce.number().int().min(0).max(120).optional(),
+  sex: z.string().trim().max(80).optional().or(z.literal('')),
+  maritalStatus: z.string().trim().max(120).optional().or(z.literal('')),
+  spouseName: z.string().trim().max(180).optional().or(z.literal('')),
+  spouseAge: z.coerce.number().int().min(0).max(120).optional(),
+  hasChildren: z.union([z.boolean(), z.string()]).optional(),
+  childrenCount: z.coerce.number().int().min(0).max(20).optional(),
+  childrenInfo: z.string().trim().max(4000).optional().or(z.literal('')),
+  city: z.string().trim().max(180).optional().or(z.literal('')),
+  address: z.string().trim().max(280).optional().or(z.literal('')),
+  profession: z.string().trim().max(180).optional().or(z.literal('')),
+  education: z.string().trim().max(180).optional().or(z.literal('')),
+  stressLevel: z.string().trim().max(120).optional().or(z.literal('')),
+  sleepQuality: z.string().trim().max(120).optional().or(z.literal('')),
+  physicalActivity: z.string().trim().max(120).optional().or(z.literal('')),
+  smoker: z.string().trim().max(120).optional().or(z.literal('')),
+  alcoholConsumption: z.string().trim().max(120).optional().or(z.literal('')),
+  usesMedication: z.string().trim().max(120).optional().or(z.literal('')),
+  medicationList: z.string().trim().max(4000).optional().or(z.literal('')),
+  healthConditions: z.string().trim().max(4000).optional().or(z.literal('')),
+  familyHealthHistory: z.string().trim().max(4000).optional().or(z.literal('')),
+  psychologicalHistory: z.string().trim().max(4000).optional().or(z.literal('')),
+  mainComplaint: z.string().trim().max(4000).optional().or(z.literal('')),
+  evaluationReason: z.string().trim().max(4000).optional().or(z.literal('')),
+  professionalNotes: z.string().trim().max(8000).optional().or(z.literal('')),
+});
+
 const ERROR_STATUS = {
   UNAUTHORIZED: 401,
   CANDIDATE_ID_REQUIRED: 400,
@@ -51,7 +88,15 @@ const ERROR_STATUS = {
   PLAN_DESCRIPTION_REQUIRED: 400,
   REMINDER_NOTE_REQUIRED: 400,
   INVALID_REMINDER_DATE: 400,
+  ITEM_ID_REQUIRED: 400,
+  NOTE_NOT_FOUND: 404,
+  INSIGHT_NOT_FOUND: 404,
+  PLAN_NOT_FOUND: 404,
+  REMINDER_NOT_FOUND: 404,
+  DOSSIER_NOT_FOUND: 404,
   DOSSIER_PRISMA_CLIENT_OUTDATED: 500,
+  ASSESSMENT_ID_REQUIRED: 400,
+  ASSESSMENT_NOT_FOUND: 404,
 };
 
 function readCandidateId(req) {
@@ -87,6 +132,7 @@ function dossierSuccessPayload(payload = {}) {
     createdInsight: payload.createdInsight || null,
     createdPlan: payload.createdPlan || null,
     createdReminder: payload.createdReminder || null,
+    deletedItemId: payload.deletedItemId || null,
   };
 }
 
@@ -109,6 +155,64 @@ router.get('/reminders/summary', async (req, res) => {
     return res.status(200).json({ ok: true, summary });
   } catch (error) {
     return sendDossierError(res, error, 'DOSSIER_SUMMARY_FAILED');
+  }
+});
+
+router.get('/anamnesis/:assessmentId', async (req, res) => {
+  try {
+    const assessmentId = String(req.params.assessmentId || '').trim();
+    if (!assessmentId) {
+      return res.status(400).json({ ok: false, error: 'ASSESSMENT_ID_REQUIRED' });
+    }
+
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: String(req.query.workspaceId || ''),
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await getDossierAnamnesisByAssessment(assessmentId, workspaceId);
+    return res.status(200).json({
+      ok: true,
+      workspaceId: payload.workspaceId,
+      assessment: payload.assessment,
+      anamnesis: payload.anamnesis,
+      hasData: payload.hasData,
+    });
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_ANAMNESIS_FETCH_FAILED');
+  }
+});
+
+router.post('/anamnesis/save', async (req, res) => {
+  try {
+    const input = dossierAnamnesisSchema.parse(req.body || {});
+    const assessmentId = String(input.assessmentId || '').trim();
+    if (!assessmentId) {
+      return res.status(400).json({ ok: false, error: 'ASSESSMENT_ID_REQUIRED' });
+    }
+
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: input.workspaceId || '',
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await saveDossierAnamnesisByAssessment({
+      assessmentId,
+      workspaceId,
+      input,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      workspaceId: payload.workspaceId,
+      assessment: payload.assessment,
+      anamnesis: payload.anamnesis,
+      hasData: payload.hasData,
+    });
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_ANAMNESIS_SAVE_FAILED');
   }
 });
 
@@ -238,5 +342,112 @@ router.post('/:candidateId/reminder', async (req, res) => {
   }
 });
 
-export default router;
+router.delete('/:candidateId/note/:noteId', async (req, res) => {
+  try {
+    const candidateId = readCandidateId(req);
+    if (!candidateId) {
+      return res.status(400).json({ ok: false, error: 'CANDIDATE_ID_REQUIRED' });
+    }
 
+    const noteId = String(req.params.noteId || '').trim();
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: String(req.query.workspaceId || ''),
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await deleteDossierNote(candidateId, workspaceId, noteId);
+    console.info('[dossier/delete-note] success', {
+      candidateId,
+      workspaceId,
+      noteId,
+      deletedItemId: payload?.deletedItemId || null,
+    });
+    return res.status(200).json(dossierSuccessPayload(payload));
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_NOTE_DELETE_FAILED');
+  }
+});
+
+router.delete('/:candidateId/insight/:insightId', async (req, res) => {
+  try {
+    const candidateId = readCandidateId(req);
+    if (!candidateId) {
+      return res.status(400).json({ ok: false, error: 'CANDIDATE_ID_REQUIRED' });
+    }
+
+    const insightId = String(req.params.insightId || '').trim();
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: String(req.query.workspaceId || ''),
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await deleteDossierInsight(candidateId, workspaceId, insightId);
+    console.info('[dossier/delete-insight] success', {
+      candidateId,
+      workspaceId,
+      insightId,
+      deletedItemId: payload?.deletedItemId || null,
+    });
+    return res.status(200).json(dossierSuccessPayload(payload));
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_INSIGHT_DELETE_FAILED');
+  }
+});
+
+router.delete('/:candidateId/plan/:planId', async (req, res) => {
+  try {
+    const candidateId = readCandidateId(req);
+    if (!candidateId) {
+      return res.status(400).json({ ok: false, error: 'CANDIDATE_ID_REQUIRED' });
+    }
+
+    const planId = String(req.params.planId || '').trim();
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: String(req.query.workspaceId || ''),
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await deleteDevelopmentPlan(candidateId, workspaceId, planId);
+    console.info('[dossier/delete-plan] success', {
+      candidateId,
+      workspaceId,
+      planId,
+      deletedItemId: payload?.deletedItemId || null,
+    });
+    return res.status(200).json(dossierSuccessPayload(payload));
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_PLAN_DELETE_FAILED');
+  }
+});
+
+router.delete('/:candidateId/reminder/:reminderId', async (req, res) => {
+  try {
+    const candidateId = readCandidateId(req);
+    if (!candidateId) {
+      return res.status(400).json({ ok: false, error: 'CANDIDATE_ID_REQUIRED' });
+    }
+
+    const reminderId = String(req.params.reminderId || '').trim();
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: String(req.query.workspaceId || ''),
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await deleteReassessmentReminder(candidateId, workspaceId, reminderId);
+    console.info('[dossier/delete-reminder] success', {
+      candidateId,
+      workspaceId,
+      reminderId,
+      deletedItemId: payload?.deletedItemId || null,
+    });
+    return res.status(200).json(dossierSuccessPayload(payload));
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_REMINDER_DELETE_FAILED');
+  }
+});
+
+export default router;

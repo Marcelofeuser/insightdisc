@@ -402,6 +402,11 @@ export default function SuperAdminDashboard() {
     async (report = {}) => {
       const previewPath = resolveReportPreviewPath(report);
       const absoluteLink = toAbsoluteAppUrl(previewPath);
+      console.info('[SuperAdminDashboard] report link generated', {
+        reportId: report?.id || report?.reportId || '',
+        assessmentId: inferReportAssessmentId(report),
+        link: absoluteLink,
+      });
       await handleCopyText(absoluteLink, 'Link do relatório');
     },
     [handleCopyText, resolveReportPreviewPath, toAbsoluteAppUrl],

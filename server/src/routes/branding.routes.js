@@ -129,6 +129,14 @@ router.post('/:workspaceId/logo', runLogoUpload, async (req, res) => {
       ...branding,
     });
   } catch (error) {
+    const code = String(error?.code || error?.message || '').toUpperCase();
+    if (code.includes('UPLOAD_STORAGE_NOT_CONFIGURED')) {
+      return res.status(422).json({
+        ok: false,
+        error:
+          'Upload de arquivo indisponível neste ambiente. Use uma URL pública do logotipo no campo de logo.',
+      });
+    }
     return res.status(400).json({ ok: false, error: error?.message || 'Falha ao enviar logo.' });
   }
 });

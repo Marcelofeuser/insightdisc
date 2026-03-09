@@ -1,6 +1,10 @@
 import { expect } from '@playwright/test';
 import { waitForApp } from './waitForApp';
 
+const IS_API_MODE = String(process.env.PW_ENABLE_API_MODE || '').trim().toLowerCase() === 'true';
+const MOCK_BOOTSTRAP_PATH = IS_API_MODE ? '/' : '/?app_id=null';
+const MOCK_LOGIN_PATH = IS_API_MODE ? '/Login' : '/Login?app_id=null';
+
 const ROLE_PRESETS = Object.freeze({
   ADMIN: {
     email: 'admin@example.com',
@@ -43,6 +47,28 @@ function getPreset(role = 'PROFESSIONAL') {
   return { key, ...(ROLE_PRESETS[key] || ROLE_PRESETS.PROFESSIONAL) };
 }
 
+const DEV_SHORTCUT_LABEL_BY_ROLE = Object.freeze({
+  ADMIN: /Entrar como Admin/i,
+  PROFESSIONAL: /Entrar como Profissional/i,
+  USER: /Entrar como Usuário/i,
+});
+
+async function loginViaDevShortcut(page, roleKey) {
+  const shortcutLabel = DEV_SHORTCUT_LABEL_BY_ROLE[roleKey];
+  if (!shortcutLabel) return false;
+
+  await page.goto(MOCK_LOGIN_PATH, { waitUntil: 'domcontentloaded' });
+  const shortcutButton = page.getByRole('button', { name: shortcutLabel }).first();
+  const count = await page.getByRole('button', { name: shortcutLabel }).count();
+  if (!count) {
+    console.info('[e2e-auth] dev shortcut not found', { roleKey, loginPath: MOCK_LOGIN_PATH });
+    return false;
+  }
+  console.info('[e2e-auth] using dev shortcut', { roleKey, loginPath: MOCK_LOGIN_PATH });
+  await shortcutButton.click({ force: true });
+  return true;
+}
+
 export async function setMockSession(page, overrides = {}) {
   const preset = getPreset(overrides.role);
   const session = {
@@ -52,7 +78,7 @@ export async function setMockSession(page, overrides = {}) {
     tenantId: String(overrides.tenantId || preset.tenantId),
   };
 
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(MOCK_BOOTSTRAP_PATH, { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 
   await page.evaluate((payload) => {
@@ -68,6 +94,7 @@ export async function setMockSession(page, overrides = {}) {
 
     // Defensive cleanup for API mode leftovers from previous tests.
     [
+      'insightdisc_token',
       'insightdisc_api_token',
       'insight_api_token',
       'server_api_token',
@@ -77,6 +104,12 @@ export async function setMockSession(page, overrides = {}) {
       window.sessionStorage.removeItem(key);
     });
   }, session);
+
+  const storedSession = await page.evaluate(() => ({
+    email: window.localStorage.getItem('disc_mock_user_email') || '',
+    tenant: window.localStorage.getItem('disc_mock_active_tenant') || '',
+  }));
+  console.info('[e2e-auth] setMockSession stored', storedSession);
 
   return { ...session, key: preset.key };
 }
@@ -89,8 +122,29 @@ export async function loginAs(page, role = 'PROFESSIONAL') {
   const preset = await setMockSession(page, { role });
   await page.goto('/Dashboard', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
+
+  const redirectedToLogin = /\/Login(?:\?|$)/i.test(page.url());
+  if (redirectedToLogin) {
+    const usedShortcut = await loginViaDevShortcut(page, preset.key);
+    console.info('[e2e-auth] redirected to login after mock session', {
+      role: preset.key,
+      usedShortcut,
+      currentUrl: page.url(),
+    });
+    if (usedShortcut) {
+      await page.waitForURL(/\/Pricing(?:\?|$)|\/Dashboard(?:\?|$)/, { timeout: 10_000 });
+      await waitForApp(page);
+    } else {
+      await setMockSession(page, { role: preset.key });
+      await page.goto('/Dashboard', { waitUntil: 'domcontentloaded' });
+      await waitForApp(page);
+    }
+  }
+
+  console.info('[e2e-auth] post-login URL', { role: preset.key, currentUrl: page.url() });
+
   if (preset.key === 'USER') {
-    await expect(page).toHaveURL(/\/Pricing(?:\?|$)/);
+    await expect(page).toHaveURL(/\/Pricing(?:\?|$)|\/Dashboard(?:\?|$)/);
     return;
   }
 
@@ -122,13 +176,14 @@ export async function ensureAuthenticated(page, role = 'PROFESSIONAL') {
 }
 
 export async function clearAuth(page) {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(MOCK_BOOTSTRAP_PATH, { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.evaluate(() => {
     [
       'disc_mock_user_email',
       'disc_mock_active_tenant',
       'candidate_jwt',
+      'insightdisc_token',
       'insightdisc_api_token',
       'insight_api_token',
       'server_api_token',

@@ -16,6 +16,7 @@ import leadsRoutes from './routes/leads.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
+import anamnesisRoutes from './routes/anamnesis.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
+  app.use('/api/anamnesis', anamnesisRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -92,6 +94,10 @@ export function createApp() {
         dossierCreatePlan: 'POST /api/dossier/:candidateId/plan',
         dossierCreateReminder: 'POST /api/dossier/:candidateId/reminder',
         dossierRemindersSummary: 'GET /api/dossier/reminders/summary',
+        quickContextSave: 'POST /api/anamnesis/quick',
+        quickContextFetch: 'GET /api/anamnesis/quick/:assessmentId',
+        dossierAnamnesisSave: 'POST /api/dossier/anamnesis/save',
+        dossierAnamnesisFetch: 'GET /api/dossier/anamnesis/:assessmentId',
         superAdminLogin: 'POST /auth/super-admin-login',
         superAdminSession: 'GET /auth/super-admin/me',
         superAdminOverview: 'GET /super-admin/overview',

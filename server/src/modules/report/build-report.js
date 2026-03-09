@@ -67,18 +67,23 @@ function resolveBranding(assessment = {}, assetBaseUrl = '') {
     };
   }
 
-  const companyName = String(organization?.companyName || '').trim();
-  const logoUrl = String(organization?.logoUrl || '').trim();
-
-  if (!companyName || !logoUrl) {
-    throw createBadRequest('Branding incompleto para geracao white-label');
-  }
-
   const normalized = normalizeBrandingFromOrganization(organization);
+  const companyName = firstNonEmpty([
+    organization?.companyName,
+    organization?.name,
+    normalized?.company_name,
+    'InsightDISC',
+  ]);
+  const logoUrl = firstNonEmpty([
+    organization?.logoUrl,
+    normalized?.logo_url,
+    '/brand/insightdisc-report-logo.png',
+  ]);
   const absoluteLogo =
     logoUrl.startsWith('/') && assetBaseUrl
       ? `${assetBaseUrl}${logoUrl}`
       : logoUrl;
+
   return {
     company_name: companyName,
     logo_url: absoluteLogo,
@@ -133,6 +138,7 @@ export async function buildPremiumReportModel({
     responsibleName: resolveResponsibleName({ assessment, currentUser }),
     responsibleRole: 'Analista Comportamental',
     reportType: normalizedReportType,
+    assetBaseUrl: firstNonEmpty([assetBaseUrl, process.env.APP_BASE_URL]),
   };
 
   const participant = resolveParticipantFromAssessment(assessment, meta);

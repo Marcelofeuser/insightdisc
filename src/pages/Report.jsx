@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiAuthHeaders, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiAuthHeaders, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import {
@@ -95,6 +95,14 @@ export default function Report() {
   const apiBaseUrl = getApiBaseUrl();
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.info('[Report] runtime context', {
+      mode: import.meta.env.MODE,
+      apiBaseUrl,
+    });
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
     const loadAssessment = async () => {
       const assessmentId = searchParams.get('id');
       setIsLoading(true);
@@ -107,100 +115,146 @@ export default function Report() {
 
       if (apiBaseUrl) {
         let shouldFallbackToLegacyReports = false;
+        const hasApiSession = Boolean(getApiToken() || authAccess?.email);
 
-        try {
-          setAccessDenied(false);
-          console.info('[Report] loading report data', { assessmentId });
-          const reportDataPayload = await apiRequest(
-            `/assessment/report-data?id=${encodeURIComponent(assessmentId)}`,
-            {
-              method: 'GET',
-              requireAuth: true,
-            },
-          );
+        if (!hasApiSession && base44?.__isMock) {
+          shouldFallbackToLegacyReports = true;
+        } else {
+          try {
+            setAccessDenied(false);
+            console.info('[Report] loading report data', { assessmentId });
+            const reportDataPayload = await apiRequest(
+              `/assessment/report-data?id=${encodeURIComponent(assessmentId)}`,
+              {
+                method: 'GET',
+                requireAuth: true,
+              },
+            );
 
-          const reportItem =
-            reportDataPayload?.reportItem ||
-            (reportDataPayload?.assessment?.id
-              ? {
-                  assessmentId: reportDataPayload.assessment.id,
-                  reportId: reportDataPayload?.report?.id || null,
-                  candidateName: reportDataPayload?.assessment?.candidateName || '',
-                  candidateEmail: reportDataPayload?.assessment?.candidateEmail || '',
-                  createdAt: reportDataPayload?.assessment?.createdAt || null,
-                  completedAt: reportDataPayload?.assessment?.completedAt || null,
-                  pdfUrl: reportDataPayload?.report?.pdfUrl || null,
-                  discProfile: reportDataPayload?.report?.discProfile || null,
-                }
-              : null);
+            const reportItem =
+              reportDataPayload?.reportItem ||
+              (reportDataPayload?.assessment?.id
+                ? {
+                    assessmentId: reportDataPayload.assessment.id,
+                    reportId: reportDataPayload?.report?.id || null,
+                    candidateUserId: reportDataPayload?.assessment?.candidateUserId || '',
+                    candidateName: reportDataPayload?.assessment?.candidateName || '',
+                    candidateEmail: reportDataPayload?.assessment?.candidateEmail || '',
+                    createdAt: reportDataPayload?.assessment?.createdAt || null,
+                    completedAt: reportDataPayload?.assessment?.completedAt || null,
+                    pdfUrl: reportDataPayload?.report?.pdfUrl || null,
+                    discProfile: reportDataPayload?.report?.discProfile || null,
+                  }
+                : null);
 
-          if (reportItem) {
-            const reports = mapCandidateReports([reportItem]);
-            const matched = findCandidateReportByIdentifier(reports, assessmentId) || reports[0];
-            if (matched) {
-              setAssessment({
-                ...matched,
-                id: matched?.assessmentId || matched?.id,
-                workspace_credits: Number(authAccess?.user?.credits ?? 0),
-              });
+            if (reportItem) {
+              const reports = mapCandidateReports([reportItem]);
+              const matched = findCandidateReportByIdentifier(reports, assessmentId) || reports[0];
+              if (matched) {
+                setAssessment({
+                  ...matched,
+                  id: matched?.assessmentId || matched?.id,
+                  workspace_credits: Number(authAccess?.user?.credits ?? 0),
+                });
+                setIsLoading(false);
+                return;
+              }
+            }
+
+            // Em modo API, se o endpoint respondeu sem reportItem, tratamos como ausência de relatório.
+            if (base44?.__isMock) {
+              shouldFallbackToLegacyReports = true;
+            } else {
+              setAssessment(null);
               setIsLoading(false);
               return;
             }
-          }
+          } catch (error) {
+            const status = Number(error?.status);
+            const reason = String(error?.message || '').trim().toUpperCase();
+            const rawMessage = String(error?.message || '').trim().toLowerCase();
+            const shouldFallbackMockFromApiError = Boolean(base44?.__isMock) && (
+              !Number.isFinite(status) ||
+              status === 0 ||
+              reason === 'API_AUTH_MISSING' ||
+              reason === 'API_BASE_URL_NOT_CONFIGURED' ||
+              rawMessage.includes('failed to fetch') ||
+              rawMessage.includes('networkerror')
+            );
 
-          // Em modo API, se o endpoint respondeu sem reportItem, tratamos como ausência de relatório.
-          setAssessment(null);
-          setIsLoading(false);
-          return;
-        } catch (error) {
-          const status = Number(error?.status);
-          if (status === 401 || status === 403) {
-            setAccessDenied(true);
-            setAssessment(null);
-            setIsLoading(false);
-            return;
-          }
-
-          if (status === 404) {
-            shouldFallbackToLegacyReports = true;
-          } else {
-            console.error('Error loading report data from API:', error);
-            setAssessment(null);
-            setIsLoading(false);
-            return;
+            if (status === 401 || status === 403) {
+              if (base44?.__isMock || reason === 'API_AUTH_MISSING') {
+                shouldFallbackToLegacyReports = true;
+              } else {
+                setAccessDenied(true);
+                setAssessment(null);
+                setIsLoading(false);
+                return;
+              }
+            } else if (status === 404) {
+              shouldFallbackToLegacyReports = true;
+            } else if (shouldFallbackMockFromApiError) {
+              console.warn('[Report] API unavailable in mock/dev mode, using legacy fallback', {
+                status,
+                reason,
+                message: error?.message,
+              });
+              shouldFallbackToLegacyReports = true;
+            } else {
+              console.error('Error loading report data from API:', error);
+              setAssessment(null);
+              setIsLoading(false);
+              return;
+            }
           }
         }
 
         if (shouldFallbackToLegacyReports) {
           try {
-            const payload = await apiRequest('/candidate/me/reports', {
-              method: 'GET',
-              requireAuth: true,
-            });
-
-            const reports = mapCandidateReports(payload?.reports || []);
-            const matched = findCandidateReportByIdentifier(reports, assessmentId);
-
-            if (matched) {
-              setAssessment({
-                ...matched,
-                id: matched?.assessmentId || matched?.id,
-                workspace_credits: Number(authAccess?.user?.credits ?? 0),
+            if (hasApiSession) {
+              const payload = await apiRequest('/candidate/me/reports', {
+                method: 'GET',
+                requireAuth: true,
               });
-              setIsLoading(false);
-              return;
+
+              const reports = mapCandidateReports(payload?.reports || []);
+              const matched = findCandidateReportByIdentifier(reports, assessmentId);
+
+              if (matched) {
+                setAssessment({
+                  ...matched,
+                  id: matched?.assessmentId || matched?.id,
+                  workspace_credits: Number(authAccess?.user?.credits ?? 0),
+                });
+                setIsLoading(false);
+                return;
+              }
             }
           } catch (error) {
             if (Number(error?.status) === 401 || Number(error?.status) === 403) {
-              setAccessDenied(true);
-              setAssessment(null);
-              setIsLoading(false);
-              return;
+              if (!base44?.__isMock) {
+                setAccessDenied(true);
+                setAssessment(null);
+                setIsLoading(false);
+                return;
+              }
+            } else {
+              console.error('Error loading assessment from API fallback:', error);
             }
-
-            console.error('Error loading assessment from API fallback:', error);
           }
         }
+
+        if (!base44?.__isMock && !shouldFallbackToLegacyReports) {
+          setAssessment(null);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!base44?.__isMock && shouldFallbackToLegacyReports) {
+            setAssessment(null);
+            setIsLoading(false);
+            return;
+          }
       }
 
       try {
@@ -332,7 +386,11 @@ export default function Report() {
     : Boolean(remoteReportHtml || reportModel);
 
   const handleAddToDossier = () => {
-    if (!assessment?.id) return;
+    const assessmentId = resolveAssessmentId();
+    if (!assessmentId) {
+      setExportError('Não foi possível abrir o dossiê: avaliação sem identificação válida.');
+      return;
+    }
     if (!dossierCandidateId) {
       setExportError('Este avaliado ainda não está vinculado a um usuário para abrir o dossiê.');
       return;
@@ -341,12 +399,12 @@ export default function Report() {
     trackEvent('dossier_cta_click', {
       source: 'report_header_action',
       path: '/dossie-comportamental',
-      assessmentId: assessment.id,
+      assessmentId,
     });
 
     const params = new URLSearchParams({
       candidateId: dossierCandidateId,
-      assessmentId: assessment.id,
+      assessmentId,
     });
     navigate(`/Dossier?${params.toString()}`);
   };
@@ -414,22 +472,77 @@ export default function Report() {
     }
   };
 
-  const downloadTierPdfFromApi = async (reportType = 'standard') => {
-    const params = new URLSearchParams({
-      assessmentId: assessment.id,
-      type: reportType,
-    });
-    const endpoint = `${apiBaseUrl}/assessment/report-pdf?${params.toString()}`;
+  const resolveAssessmentId = () =>
+    String(assessment?.assessmentId || assessment?.id || '').trim();
+
+  const resolveApiErrorMessage = (error, fallback = 'Falha ao gerar PDF.') => {
+    const status = Number(error?.status || 0);
+    const payload = error?.payload || {};
+    const reason = String(payload?.reason || payload?.error || error?.message || '').toUpperCase();
+    const message = String(payload?.message || '').trim();
+
+    if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
+    if (status === 402 || reason.includes('PAYWALL') || reason.includes('CREDIT')) {
+      return 'Créditos insuficientes para gerar o PDF.';
+    }
+    if (status === 403 || reason.includes('FORBIDDEN') || reason.includes('REPORT_EXPORT')) {
+      return 'Sua conta não possui permissão para exportar este relatório.';
+    }
+    if (status === 404 || reason.includes('CANNOT GET') || reason.includes('NOT_FOUND')) {
+      return 'Endpoint de PDF indisponível no backend. Verifique o deploy da API.';
+    }
+    if (message) return message;
+    return fallback;
+  };
+
+  const toApiAbsoluteUrl = (rawUrl = '') => {
+    const normalized = String(rawUrl || '').trim();
+    if (!normalized) return '';
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (!apiBaseUrl) return normalized;
+    return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
+  };
+
+  const fetchPdfEndpoint = async (endpoint, depth = 0) => {
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
         ...getApiAuthHeaders(),
       },
     });
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+
+    console.info('[Report] pdf endpoint response', {
+      endpoint,
+      status: response.status,
+      contentType,
+    });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
+      const rawBody = await response.text().catch(() => '');
+      let payload = {};
+      try {
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        payload = rawBody ? { message: rawBody.slice(0, 300) } : {};
+      }
       const error = new Error(payload?.reason || payload?.error || `HTTP_${response.status}`);
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
+
+    if (contentType.includes('application/json')) {
+      const payload = await response.json().catch(() => ({}));
+      const nextPdfUrl = toApiAbsoluteUrl(payload?.pdfUrl || payload?.pdfPath || '');
+      if (nextPdfUrl && depth < 2) {
+        console.info('[Report] pdf endpoint returned JSON with pdfUrl, retrying', {
+          nextPdfUrl,
+          depth,
+        });
+        return fetchPdfEndpoint(nextPdfUrl, depth + 1);
+      }
+      const error = new Error(payload?.reason || payload?.error || 'PDF_JSON_RESPONSE');
       error.status = response.status;
       error.payload = payload;
       throw error;
@@ -437,17 +550,99 @@ export default function Report() {
 
     const blob = await response.blob();
     if (!blob || blob.size === 0) {
-      throw new Error('PDF_EMPTY');
+      const error = new Error('PDF_EMPTY');
+      error.status = 503;
+      throw error;
     }
+
+    if (!contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
+      const bodyText = await blob.text().catch(() => '');
+      const error = new Error('PDF_INVALID_CONTENT_TYPE');
+      error.status = 500;
+      error.payload = {
+        message:
+          bodyText && bodyText.length < 800
+            ? bodyText
+            : 'Resposta inválida ao baixar PDF.',
+      };
+      throw error;
+    }
+
+    return blob;
+  };
+
+  const downloadTierPdfFromApi = async (reportType = 'standard') => {
+    const assessmentId = resolveAssessmentId();
+    if (!assessmentId) {
+      const error = new Error('ASSESSMENT_ID_REQUIRED');
+      error.status = 400;
+      throw error;
+    }
+
+    const authHeaders = getApiAuthHeaders();
+    if (!authHeaders.Authorization && !authHeaders['x-insight-user-email']) {
+      const error = new Error('API_AUTH_MISSING');
+      error.status = 401;
+      throw error;
+    }
+
+    const params = new URLSearchParams({
+      assessmentId,
+      type: reportType,
+    });
+    const endpoint = toApiAbsoluteUrl(`/assessment/report-pdf?${params.toString()}`);
+    console.info('[Report] downloading pdf', {
+      assessmentId,
+      reportType,
+      endpoint,
+    });
+
+    try {
+      const blob = await fetchPdfEndpoint(endpoint);
+      downloadPdfBlob(
+        blob,
+        `insightdisc-relatorio-${reportType}-${assessmentId || 'export'}.pdf`
+      );
+      return;
+    } catch (error) {
+      const status = Number(error?.status || 0);
+      if (status !== 404 && status !== 405) {
+        throw error;
+      }
+    }
+
+    console.info('[Report] /assessment/report-pdf not available, trying regeneration fallback', {
+      assessmentId,
+      reportType,
+    });
+
+    const generated = await apiRequest('/assessment/generate-report', {
+      method: 'POST',
+      requireAuth: true,
+      body: {
+        assessmentId,
+        type: reportType,
+      },
+    });
+
+    const generatedPdfUrl = String(generated?.pdfUrl || generated?.report?.pdfUrl || '').trim();
+    const regeneratedEndpoint = generatedPdfUrl ? toApiAbsoluteUrl(generatedPdfUrl) : endpoint;
+    console.info('[Report] regeneration payload', {
+      assessmentId,
+      reportType,
+      regeneratedEndpoint,
+      generatedPdfUrl,
+    });
+    const blob = await fetchPdfEndpoint(regeneratedEndpoint);
 
     downloadPdfBlob(
       blob,
-      `insightdisc-relatorio-${reportType}-${assessment?.id || 'export'}.pdf`
+      `insightdisc-relatorio-${reportType}-${assessmentId || 'export'}.pdf`
     );
   };
 
   const handleDownloadByType = async (reportType = 'standard') => {
-    if (!assessment || !reportHtml) return;
+    if (!assessment) return;
     if (!canShowExport) {
       setExportError(
         canExportReport
@@ -487,9 +682,14 @@ export default function Report() {
         setExportError('Sem permissão para exportar relatório.');
         return;
       }
-
-      setExportError('Falha ao gerar PDF.');
-      console.error('[Report] download tier pdf failed', error);
+      setExportError(resolveApiErrorMessage(error, 'Falha ao gerar PDF.'));
+      console.error('[Report] pdf download failed', {
+        reportType,
+        assessmentId: resolveAssessmentId(),
+        status: error?.status,
+        payload: error?.payload,
+        message: error?.message,
+      });
     } finally {
       setIsPreparingPdf(false);
     }
@@ -554,7 +754,7 @@ export default function Report() {
                 onClick={handleAddToDossier}
                 variant="outline"
                 className="rounded-xl"
-                disabled={!dossierCandidateId}
+                disabled={!dossierCandidateId || !resolveAssessmentId()}
               >
                 Adicionar ao Dossiê
               </Button>
@@ -625,7 +825,7 @@ export default function Report() {
                 trackEvent('dossier_cta_click', {
                   source: 'report_footer_link',
                   path: '/dossie-comportamental',
-                  assessmentId: assessment?.id || '',
+                  assessmentId: resolveAssessmentId(),
                 })
               }
             >

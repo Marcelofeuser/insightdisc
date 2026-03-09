@@ -125,10 +125,72 @@ model Assessment {
   invites      Invite[]
   response     Response?
   report       Report?
+  quickContext AssessmentQuickContext?
+  dossierAnamnesis DossierAnamnesis?
 
   @@index([organizationId])
   @@index([candidateUserId])
   @@map("assessments")
+}
+
+model AssessmentQuickContext {
+  id                 String   @id @default(cuid())
+  assessmentId       String   @unique @map("assessment_id")
+  sex                String?
+  maritalStatus      String?  @map("marital_status")
+  city               String?
+  stressLevel        String?  @map("stress_level")
+  sleepQuality       String?  @map("sleep_quality")
+  physicalActivity   String?  @map("physical_activity")
+  smoker             String?
+  alcoholConsumption String?  @map("alcohol_consumption")
+  usesMedication     String?  @map("uses_medication")
+  healthConditions   String?  @map("health_conditions")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("assessment_quick_context")
+}
+
+model DossierAnamnesis {
+  id                      String   @id @default(cuid())
+  assessmentId            String   @unique @map("assessment_id")
+  fullName                String?  @map("full_name")
+  birthDate               DateTime? @map("birth_date")
+  age                     Int?
+  sex                     String?
+  maritalStatus           String?  @map("marital_status")
+  spouseName              String?  @map("spouse_name")
+  spouseAge               Int?     @map("spouse_age")
+  hasChildren             Boolean? @map("has_children")
+  childrenCount           Int?     @map("children_count")
+  childrenInfo            String?  @map("children_info")
+  city                    String?
+  address                 String?
+  profession              String?
+  education               String?
+  stressLevel             String?  @map("stress_level")
+  sleepQuality            String?  @map("sleep_quality")
+  physicalActivity        String?  @map("physical_activity")
+  smoker                  String?
+  alcoholConsumption      String?  @map("alcohol_consumption")
+  usesMedication          String?  @map("uses_medication")
+  medicationList          String?  @map("medication_list")
+  healthConditions        String?  @map("health_conditions")
+  familyHealthHistory     String?  @map("family_health_history")
+  psychologicalHistory    String?  @map("psychological_history")
+  mainComplaint           String?  @map("main_complaint")
+  evaluationReason        String?  @map("evaluation_reason")
+  professionalNotes       String?  @map("professional_notes")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("dossier_anamnesis")
 }
 
 model Invite {

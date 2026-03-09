@@ -23,6 +23,14 @@ const EXT_BY_MIME = {
   'image/svg+xml': 'svg',
 };
 
+function isReadOnlyServerlessRuntime() {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.AWS_EXECUTION_ENV,
+  );
+}
+
 function safeId(value) {
   return String(value || 'workspace')
     .replace(/[^a-zA-Z0-9_-]/g, '-')
@@ -50,6 +58,14 @@ export const brandingLogoUpload = multer({
 export async function saveBrandingLogo({ workspaceId, file }) {
   if (!file || !file.buffer) {
     throw new Error('Arquivo de logotipo não enviado.');
+  }
+
+  if (isReadOnlyServerlessRuntime()) {
+    const error = new Error(
+      'UPLOAD_STORAGE_NOT_CONFIGURED: envio de arquivo está desabilitado neste ambiente. Informe a URL pública do logo.',
+    );
+    error.code = 'UPLOAD_STORAGE_NOT_CONFIGURED';
+    throw error;
   }
 
   const safeWorkspaceId = safeId(workspaceId);

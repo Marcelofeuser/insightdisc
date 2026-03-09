@@ -24,6 +24,20 @@ function isLoopbackHost(hostname = '') {
 }
 
 export function getApiBaseUrl() {
+  const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
+  const devShortcutsEnabled =
+    import.meta.env.DEV &&
+    String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
+
+  if (runtimeMode === 'e2e-core') {
+    return '';
+  }
+
+  // In dev with mock login shortcuts, force local/mock mode unless explicitly running API E2E mode.
+  if (devShortcutsEnabled && runtimeMode !== 'e2e-api') {
+    return '';
+  }
+
   const configured = normalizeBaseUrl(
     import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || ''
   );

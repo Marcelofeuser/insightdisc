@@ -239,16 +239,15 @@ export function useInsightChatbot() {
       }
     }
 
-    if (!sentToApi) {
-      const leads = loadJson(LEADS_STORAGE_KEY, []);
-      const nextLeads = Array.isArray(leads) ? leads : [];
-      nextLeads.push({
-        createdAt: getNowIso(),
-        source: 'chatbot',
-        payload: leadRecord,
-      });
-      saveJson(LEADS_STORAGE_KEY, nextLeads);
-    }
+    const leads = loadJson(LEADS_STORAGE_KEY, []);
+    const nextLeads = Array.isArray(leads) ? leads : [];
+    nextLeads.push({
+      createdAt: getNowIso(),
+      source: 'chatbot',
+      payload: leadRecord,
+      syncedToApi: sentToApi,
+    });
+    saveJson(LEADS_STORAGE_KEY, nextLeads);
 
     setSession((prev) => ({
       ...prev,

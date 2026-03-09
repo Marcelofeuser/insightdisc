@@ -79,23 +79,13 @@ export default function MyAssessments() {
   const { data: assessments = [], isLoading } = useQuery({
     queryKey: ['my-assessments', apiBaseUrl, access?.tenantId, access?.userId, access?.email, canTenantView, canSelfView],
     queryFn: async () => {
-      if (apiBaseUrl) {
-        if (!getApiToken()) {
-          return [];
+      const loadLocalAssessments = async () => {
+        if (canTenantView && access?.tenantId) {
+          return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 200);
         }
 
-        const payload = await apiRequest('/candidate/me/reports', {
-          method: 'GET',
-          requireAuth: true,
-        });
-        return mapCandidateReports(payload?.reports || []);
-      }
+        if (!canSelfView) return [];
 
-      if (canTenantView && access?.tenantId) {
-        return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 200);
-      }
-
-      if (canSelfView) {
         const resultByUserId = access?.userId
           ? await base44.entities.Assessment.filter({ user_id: access.userId }, '-created_date', 200)
           : [];
@@ -121,9 +111,33 @@ export default function MyAssessments() {
           seen.add(item.id);
           return true;
         });
+      };
+
+      if (apiBaseUrl) {
+        const token = getApiToken();
+        if (token) {
+          try {
+            const payload = await apiRequest('/candidate/me/reports', {
+              method: 'GET',
+              requireAuth: true,
+            });
+            const mapped = mapCandidateReports(payload?.reports || []);
+            if (mapped.length > 0 || !base44?.__isMock) {
+              return mapped;
+            }
+          } catch (error) {
+            console.warn('[MyAssessments] API reports unavailable, fallback local mode', error);
+          }
+        }
+
+        if (base44?.__isMock) {
+          return loadLocalAssessments();
+        }
+
+        return [];
       }
 
-      return [];
+      return loadLocalAssessments();
     },
     enabled: Boolean(access?.userId || access?.email),
   });
