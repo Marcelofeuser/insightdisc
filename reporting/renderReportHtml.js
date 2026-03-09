@@ -13,6 +13,7 @@ const SUMMARY_ITEMS = [
   'Síntese Executiva do Perfil',
   'Gráficos DISC',
   'Radar Comportamental',
+  'Insights Comportamentais Estratégicos',
   'Benchmark do Perfil',
   'Dinâmica Geral do Perfil',
   'Processo de Decisão',
@@ -26,8 +27,27 @@ const SUMMARY_ITEMS = [
   'Conflitos',
   'Relacionamento com Equipe',
   'Sinergia com Outros Perfis',
-  'Conclusão Estratégica do Perfil',
+  'Plano de Desenvolvimento Comportamental',
+  'Conclusão do Perfil Comportamental',
 ];
+
+const STANDARD_PAGE_SEQUENCE = Object.freeze([
+  1,  // Capa
+  3,  // O que é DISC
+  5,  // Síntese executiva
+  6,  // Gráficos DISC
+  7,  // Radar comportamental
+  8,  // Natural vs Adaptado (benchmark comparativo)
+  14, // Comunicação
+  10, // Processo de decisão
+  21, // Ambiente ideal
+  23, // Forças
+  24, // Pontos de atenção
+  25, // Recomendações práticas
+  13, // Comportamento no ambiente de trabalho
+  28, // Sugestões de desenvolvimento
+  30, // Conclusão
+]);
 
 const SECTION_ICON_SVGS = Object.freeze({
   chart: `
@@ -152,6 +172,16 @@ function safeArray(value, fallback = []) {
   }
 
   return [...fallback];
+}
+
+function ensureUniqueItems(items = []) {
+  return Array.from(
+    new Set(
+      safeArray(items, [])
+        .map((item) => String(item || '').trim())
+        .filter(Boolean),
+    ),
+  );
 }
 
 function normalizeHexColor(color, fallback) {
@@ -621,21 +651,129 @@ function summaryRowsHtml(items = []) {
   `;
 }
 
-function finalConclusionBlocks({ participant, profile, profileContent, insights, plans }) {
-  const strengths = safeArray(profileContent?.naturalStrengths, ['Capacidade de gerar resultado com consistência e consciência comportamental.']).slice(0, 3);
-  const developments = safeArray(profileContent?.developmentPoints, ['Aprimorar calibragem comportamental em contextos de alta pressão.']).slice(0, 2);
-  const plan90 = safeArray(plans?.days90, profileContent?.plan90 || ['Consolidar rotina de melhoria contínua com acompanhamento observável.']).slice(0, 2);
+function remapPageForTier(pageHtml = '', pageNumber = 1, totalPages = 1, premiumFooterLabel = '') {
+  let normalized = String(pageHtml || '');
+  const parityClass = pageNumber % 2 === 0 ? 'page-even' : 'page-odd';
 
-  return [
-    `${safeText(participant?.name, 'Profissional avaliado')}, seu perfil ${safeText(profile?.key, '')} revela uma combinação valiosa de repertório comportamental para gerar impacto real no ambiente profissional.`,
-    `Sua principal força está em ${strengths[0].toLowerCase()}. Quando isso é aplicado com contexto claro, você amplia influência, previsibilidade de entrega e percepção de senioridade.`,
-    `Ao mesmo tempo, o salto mais estratégico aparece ao evoluir ${developments.map((item) => item.toLowerCase()).join(' e ')}. Esse ajuste reduz desgaste e fortalece sua atuação em cenários complexos.`,
-    `Nos próximos ciclos, priorize ${plan90.map((item) => item.toLowerCase()).join(' e ')} para transformar potencial em rotina de alta performance sustentável.`,
-    safeText(
-      insights?.executiveByPage?.career,
-      'Este relatório foi construído para apoiar sua evolução com clareza, profundidade e aplicação prática. O valor está na execução consistente do que foi identificado aqui.'
-    ),
+  normalized = normalized.replace(/\bpage-(odd|even)\b/g, parityClass);
+  normalized = normalized.replace(/Página\s+\d+\s+de\s+\d+/g, `Página ${pageNumber} de ${totalPages}`);
+
+  if (
+    premiumFooterLabel &&
+    normalized.includes('<footer class="footer">') &&
+    !normalized.includes('premium-footer-label')
+  ) {
+    normalized = normalized.replace(
+      '<footer class="footer">',
+      `<footer class="footer"><span class="premium-footer-label">${esc(premiumFooterLabel)}</span>`,
+    );
+  }
+
+  return normalized;
+}
+
+function strategicInsightsSection(isBalancedProfile) {
+  return `
+    <div class="card">
+      <h3>INSIGHTS COMPORTAMENTAIS ESTRATÉGICOS</h3>
+      <p>Leitura aplicada para transformar observação comportamental em decisões mais consistentes no ambiente profissional.</p>
+      <div class="grid two">
+        <div>
+          <h4>Principais forças comportamentais</h4>
+          ${listHtml(
+            isBalancedProfile
+              ? [
+                  'Capacidade de adaptação a diferentes contextos.',
+                  'Facilidade em compreender diferentes perspectivas.',
+                  'Tendência a colaborar na construção de soluções.',
+                  'Equilíbrio entre análise e relacionamento interpessoal.',
+                ]
+              : [
+                  'Capacidade de adaptação conforme o contexto da equipe.',
+                  'Leitura de cenário para ajustar decisão e comunicação.',
+                  'Tendência a colaborar na construção de soluções.',
+                  'Equilíbrio entre análise e relacionamento interpessoal.',
+                ]
+          )}
+        </div>
+        <div>
+          <h4>Pontos de atenção</h4>
+          ${listHtml([
+            'Possível demora em decisões quando existem muitas alternativas.',
+            'Tendência a evitar conflitos desnecessários.',
+            'Risco de dispersão quando prioridades não estão claras.',
+          ])}
+        </div>
+      </div>
+      <h4>Alavancas de desenvolvimento</h4>
+      ${listHtml([
+        'Definição clara de prioridades.',
+        'Estruturação de critérios de decisão.',
+        'Uso de feedback estruturado.',
+        'Definição de indicadores claros de resultado.',
+      ])}
+    </div>
+  `;
+}
+
+function applyGlobalWordingCorrections(html = '') {
+  return String(html || '')
+    .replaceAll(
+      'Não use o DISC como rótulo definitivo.',
+      'O modelo DISC não deve ser utilizado como um rótulo definitivo, mas sim como uma ferramenta de compreensão comportamental.'
+    )
+    .replaceAll(
+      'Nao use o DISC como rotulo definitivo.',
+      'O modelo DISC nao deve ser utilizado como um rotulo definitivo, mas sim como uma ferramenta de compreensao comportamental.'
+    )
+    .replaceAll(
+      'Queda de clareza quando aumenta a pressão',
+      'Pode ocorrer redução de clareza quando o nível de pressão aumenta.'
+    )
+    .replaceAll(
+      'Queda de clareza quando aumenta a pressao',
+      'Pode ocorrer reducao de clareza quando o nivel de pressao aumenta.'
+    )
+    .replaceAll(
+      'Usar checkpoint curto para decisão de risco',
+      'Utilizar checkpoints curtos para validação de decisões de risco.'
+    )
+    .replaceAll(
+      'Usar checkpoint curto para decisao de risco',
+      'Utilizar checkpoints curtos para validacao de decisoes de risco.'
+    )
+    .replaceAll('Contribuição típica: contribuição para', 'Contribuição típica: apoio à')
+    .replaceAll('Contribuicao tipica: contribuicao para', 'Contribuicao tipica: apoio a');
+}
+
+function finalConclusionBlocks({ participant, profile, isPremiumTier = false }) {
+  const isBalancedProfile = profile?.mode === 'balanced' || profile?.key === 'DISC';
+  const profileDescriptor = isBalancedProfile
+    ? 'uma distribuição equilibrada entre os quatro fatores do modelo DISC'
+    : `predominância de ${safeText(profile?.primary, 'D')} com apoio de ${safeText(profile?.secondary, 'I')}`;
+  const participantName = safeText(participant?.name, 'Participante');
+  const base = [
+    `${participantName}, o perfil apresentado demonstra ${profileDescriptor}.`,
+    'Essa característica indica um comportamento adaptativo, com capacidade de ajustar a forma de atuação conforme o ambiente, os desafios e o perfil das pessoas ao redor.',
+    'Quando apoiado por critérios claros de decisão e objetivos bem definidos, esse perfil tende a contribuir significativamente para ambientes organizacionais colaborativos, equilibrados e orientados a resultados sustentáveis.',
+    'O desenvolvimento contínuo deve priorizar:',
+    '• clareza de prioridades',
+    '• estruturação de processos de decisão',
+    '• manutenção da consistência comportamental em ambientes de maior pressão',
+    'Quando bem desenvolvido, esse perfil pode atuar como elemento de equilíbrio dentro de equipes e organizações.',
   ];
+
+  if (!isPremiumTier) {
+    base.push(
+      'Para a versão completa, recomenda-se transformar os três pilares acima em metas observáveis de 30, 60 e 90 dias com acompanhamento quinzenal.'
+    );
+  } else {
+    base.push(
+      'Na versão premium, esse direcionamento ganha profundidade quando integrado à matriz de compatibilidade, leitura de estresse e plano executivo de evolução comportamental.'
+    );
+  }
+
+  return base;
 }
 
 function buildBackCoverPage(branding = {}) {
@@ -768,6 +906,12 @@ export function renderReportHtml(input = {}) {
   };
 
   ensureCriticalData(report);
+  const reportType =
+    safeText(report?.meta?.reportType, safeText(report?.reportType, 'standard')).toLowerCase() === 'premium'
+      ? 'premium'
+      : 'standard';
+  const isPremiumTier = reportType === 'premium';
+  const logicalPageTarget = isPremiumTier ? 30 : 15;
 
   const meta = {
     reportTitle: safeText(report?.meta?.reportTitle, 'Relatório de Análise Comportamental DISC'),
@@ -779,7 +923,8 @@ export function renderReportHtml(input = {}) {
     reportId: safeText(report?.meta?.reportId, `report-${Date.now()}`),
     responsibleName: safeText(report?.meta?.responsibleName, 'Especialista InsightDISC'),
     responsibleRole: safeText(report?.meta?.responsibleRole, 'Especialista em Análise Comportamental'),
-    totalPages: 30,
+    totalPages: logicalPageTarget,
+    reportType,
   };
 
   const branding = normalizeBranding(report?.branding || {}, report?.meta || {});
@@ -828,11 +973,21 @@ export function renderReportHtml(input = {}) {
     participant?.assessmentId,
     '-'
   );
-  const coverReportTitle = safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
-  const coverReportSubtitle = safeText(
-    meta.reportSubtitle,
-    'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
-  );
+  const coverReportTitle = isPremiumTier
+    ? 'RELATÓRIO DISC PREMIUM'
+    : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
+  const coverReportSubtitle = isPremiumTier
+    ? 'Análise comportamental avançada para decisão, liderança e evolução de performance'
+    : safeText(
+        meta.reportSubtitle,
+        'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
+      );
+  const coverPremiumBadge = isPremiumTier
+    ? '<div class="cover-premium-badge">RELATÓRIO PREMIUM EXECUTIVO</div>'
+    : '';
+  const coverPremiumNote = isPremiumTier
+    ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
+    : '';
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),
@@ -872,12 +1027,16 @@ export function renderReportHtml(input = {}) {
   ]);
 
   const responsibleReading = safeArray(narratives?.methodologyResponsibleReading, [
-    'Nao use o DISC como rotulo definitivo.',
+    'O modelo DISC nao deve ser utilizado como um rotulo definitivo, mas sim como uma ferramenta de compreensao comportamental.',
     'Cruze leitura comportamental com desempenho real.',
     'Considere contexto, cultura e maturidade da equipe.',
     'Evite decisao critica sem evidencia complementar.',
     'Use o relatorio para desenvolvimento continuo.',
   ]);
+
+  const isBalancedProfile = profile.mode === 'balanced' || profile.key === 'DISC';
+  const profilePrimaryLabel = safeText(profile?.displayPrimary, profile.primary);
+  const profileSecondaryLabel = safeText(profile?.displaySecondary, profile.secondary);
 
   const pages = [];
   pages.push(
@@ -888,8 +1047,10 @@ export function renderReportHtml(input = {}) {
       branding,
       content: `
         <div class="cover-info-card">
+          ${coverPremiumBadge}
           <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
           <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
+          ${coverPremiumNote}
           <div class="cover-info-grid">
             <div class="cover-info-item">
               <span>Nome</span>
@@ -1023,22 +1184,48 @@ export function renderReportHtml(input = {}) {
         ${scorePillsHtml(scores, profile, adaptation)}
         <div class="card executive-hero">
           <p><strong>Perfil identificado:</strong> ${esc(profile.key)} (${esc(profile.mode)})</p>
-          <p><strong>Perfil primário:</strong> ${esc(profile.primary)} • <strong>Perfil secundário:</strong> ${esc(profile.secondary)}</p>
+          <p><strong>Perfil primário:</strong> ${esc(profilePrimaryLabel)} • <strong>Perfil secundário:</strong> ${esc(profileSecondaryLabel)}</p>
           <p><strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
           <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
           <p>${esc(adaptation.interpretation)}</p>
         </div>
-        <div class="grid two">
-          <div class="card">
-            <h3>Resumo executivo</h3>
-            ${listHtml(profileContent?.executiveSummary, ['Leitura executiva do perfil com foco em aplicação de negócio.'])}
-          </div>
-          <div class="card">
-            <h3>Leitura geral</h3>
-            ${paragraphsHtml(narratives?.summaryParagraphs, [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
-            ${strategicNote('Recomendação executiva', 'Priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais.', 'Esse ajuste aumenta percepção de senioridade, previsibilidade de entrega e influência no time.')}
-          </div>
-        </div>
+        ${
+          isBalancedProfile
+            ? `
+              <div class="card">
+                <h3>SÍNTESE EXECUTIVA DO PERFIL</h3>
+                <p>O perfil apresentado indica uma distribuição comportamental equilibrada entre os fatores do modelo DISC.</p>
+                <p>Isso sugere uma pessoa com capacidade adaptativa elevada, capaz de ajustar seu estilo comportamental conforme o contexto, as demandas da equipe e os objetivos estratégicos do ambiente de trabalho.</p>
+                <p>Perfis equilibrados costumam apresentar:</p>
+                ${listHtml([
+                  'boa capacidade de adaptação',
+                  'leitura contextual do ambiente',
+                  'flexibilidade comportamental',
+                  'facilidade em atuar em diferentes tipos de equipe',
+                ])}
+                <p>No entanto, quando não há dominância clara de um fator, pode ocorrer:</p>
+                ${listHtml([
+                  'demora maior na tomada de decisão',
+                  'tendência a buscar validação externa',
+                  'dificuldade em priorizar quando múltiplos caminhos são possíveis',
+                ])}
+                <p>O desenvolvimento desse perfil passa principalmente pelo fortalecimento de critérios de decisão, clareza de prioridades e estruturação de processos de análise.</p>
+              </div>
+            `
+            : `
+              <div class="grid two">
+                <div class="card">
+                  <h3>Resumo executivo</h3>
+                  ${listHtml(profileContent?.executiveSummary, ['Leitura executiva do perfil com foco em aplicação de negócio.'])}
+                </div>
+                <div class="card">
+                  <h3>Leitura geral</h3>
+                  ${paragraphsHtml(narratives?.summaryParagraphs, [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
+                  ${strategicNote('Recomendação executiva', 'Priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais.', 'Esse ajuste aumenta percepção de senioridade, previsibilidade de entrega e influência no time.')}
+                </div>
+              </div>
+            `
+        }
       `,
     })
   );
@@ -1104,6 +1291,7 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Comparação do participante com faixa típica',
       branding,
       content: `
+        ${strategicInsightsSection(isBalancedProfile)}
         ${executiveDivider('Leitura comparativa de aderência', 'Análise de posição relativa por fator e por contexto de negócio')}
         <div class="card">
           <table class="table">
@@ -1161,6 +1349,19 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Como opera, influencia e se posiciona no ambiente',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>ARQUÉTIPO COMPORTAMENTAL</h3>
+                <p>A combinação predominante dos fatores DISC revela um padrão de atuação recorrente em contextos de pressão, colaboração e tomada de decisão.</p>
+                <p><strong>Arquétipo identificado:</strong> ${esc(safeText(profile.archetype, 'Estrategista Adaptativo'))}</p>
+                <p>Este arquétipo tende a operar com leitura situacional elevada, alternando entre firmeza de direção e calibragem relacional conforme o risco do cenário.</p>
+                <p>Na prática executiva, o ganho de valor aparece quando esse padrão é utilizado para acelerar decisões sem perder qualidade de alinhamento com equipe e stakeholders.</p>
+              </div>
+            `
+            : ''
+        }
         <div class="card">
           ${paragraphsHtml(
             profileContent?.identityDynamics || narratives?.identityDynamics,
@@ -1170,7 +1371,7 @@ export function renderReportHtml(input = {}) {
         <div class="grid two">
           <div class="card">
             <h3>Contribuicao tipica</h3>
-            ${listHtml(profileContent?.teamContribution, ['Contribuicao para direcao e estabilidade da equipe.'])}
+            ${listHtml(profileContent?.teamContribution, ['Apoio a direcao e estabilidade da equipe.'])}
           </div>
           <div class="card">
             <h3>Risco de execucao</h3>
@@ -1223,7 +1424,7 @@ export function renderReportHtml(input = {}) {
             'Registrar dono, prazo e risco principal.',
             'Revisar resultado da decisao em ciclos curtos.'
           ])}
-          ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.decision, 'O perfil decide melhor quando combina clareza de impacto com checkpoint rapido de risco.'))}
+          ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.decision, 'O perfil decide melhor quando combina clareza de impacto com checkpoints curtos para validacao de decisoes de risco.'))}
           ${enrichmentCard(enrichment.riskLens, safeText(insights?.riskOfExcess, safeText(insights?.behavioralRisk, 'Monitorar exagero comportamental ajuda a preservar qualidade de decisao.')))}
         </div>
       `,
@@ -1436,7 +1637,7 @@ export function renderReportHtml(input = {}) {
               'Delimitar fronteira de decisao por impacto.',
               'Definir quando escalar e quando decidir localmente.',
               'Documentar racional para temas criticos.',
-              'Usar checkpoint curto para decisao de alto risco.',
+              'Utilizar checkpoints curtos para validacao de decisoes de alto risco.',
               'Revisar resultado com foco em aprendizado.'
             ])}
           </div>
@@ -1468,6 +1669,22 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Sinais de alerta e estratégia de recuperação',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>GATILHOS DE ESTRESSE</h3>
+                ${listHtml([
+                  'Prazos comprimidos com prioridades conflitantes e ausência de critério explícito de decisão.',
+                  'Conflitos recorrentes sem fechamento de acordo e sem dono responsável por destravar o impasse.',
+                  'Mudanças inesperadas com baixa previsibilidade operacional e comunicação incompleta de impacto.',
+                  'Ambiguidade em decisões de alto risco, especialmente quando não há fronteira clara de autonomia.',
+                  'Cobrança elevada sem feedback observável sobre qualidade de entrega e evolução comportamental.',
+                ])}
+              </div>
+            `
+            : ''
+        }
         <div class="grid two">
           <div class="card">
             <h3>Padrão de estresse do perfil</h3>
@@ -1578,9 +1795,30 @@ export function renderReportHtml(input = {}) {
       number: 20,
       totalPages: meta.totalPages,
       title: 'Sinergia com Outros Perfis DISC',
-      subtitle: 'Combinações complementares e pontos de atrito',
+      subtitle: 'Matriz estratégica de colaboração, complementaridade e risco relacional',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>COMPATIBILIDADE COM OUTROS PERFIS DISC</h3>
+                <table class="table compact">
+                  <thead>
+                    <tr><th>Perfil</th><th>Compatibilidade</th><th>Leitura</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Perfil D</td><td>Média</td><td>Gera tração e decisão rápida quando existe contrato claro de prioridade, dono e limite de autonomia.</td></tr>
+                    <tr><td>Perfil I</td><td>Alta</td><td>Eleva influência, engajamento e velocidade de mobilização, com melhor resultado quando há disciplina de fechamento.</td></tr>
+                    <tr><td>Perfil S</td><td>Alta</td><td>Fortalece estabilidade, confiança e continuidade operacional, reduzindo atritos em ciclos de execução prolongados.</td></tr>
+                    <tr><td>Perfil C</td><td>Média</td><td>Aumenta precisão analítica e gestão de risco, exigindo alinhamento explícito sobre ritmo e profundidade técnica.</td></tr>
+                  </tbody>
+                </table>
+                <p>Leitura executiva: compatibilidade não depende apenas de “fit” natural. Ela cresce quando o sistema de trabalho define critérios de decisão, rituais de alinhamento e regras de convivência entre perfis.</p>
+              </div>
+            `
+            : ''
+        }
         <div class="grid two">
           <div class="card">
             <h3>Perfis complementares</h3>
@@ -1642,6 +1880,18 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Áreas recomendadas e baixa aderência',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>ORIENTAÇÃO PROFISSIONAL</h3>
+                <p>Este perfil tende a performar acima da média em ambientes com objetivo estratégico claro, fronteiras de autonomia bem definidas e critérios transparentes de qualidade e decisão.</p>
+                <p>O valor profissional aumenta quando a pessoa atua em papéis que combinam exigência técnica, previsibilidade de execução e espaço para influência contextual sobre decisões relevantes.</p>
+                <p>Em termos de posicionamento de carreira, o diferencial está menos no cargo em si e mais no nível de aderência entre estilo comportamental, arquitetura de gestão e tipo de desafio predominante.</p>
+              </div>
+            `
+            : ''
+        }
         <div class="grid two">
           <div class="card">
             <h3>Funções recomendadas</h3>
@@ -1680,6 +1930,23 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Oito forcas principais e aplicacao no trabalho',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>TOP 10 FORÇAS COMPORTAMENTAIS DE ALTO IMPACTO</h3>
+                <p>Estas forças representam ativos comportamentais com maior potencial de geração de valor em contexto corporativo quando associados a metas, prazos e critérios de qualidade claramente definidos.</p>
+                ${listHtml(
+                  ensureUniqueItems([
+                    ...safeArray(profileContent?.naturalStrengths, []),
+                    ...safeArray(profileContent?.workStrengths, []),
+                  ]).slice(0, 10),
+                  ['Capacidade de adaptação a diferentes contextos organizacionais.'],
+                )}
+              </div>
+            `
+            : ''
+        }
         <div class="card">
           ${listHtml(profileContent?.naturalStrengths, ['Forca natural com impacto observavel em colaboracao e entrega.'])}
         </div>
@@ -1711,6 +1978,24 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Áreas de maturidade para reduzir risco de exagero',
       branding,
       content: `
+        ${
+          isPremiumTier
+            ? `
+              <div class="card">
+                <h3>TOP 10 RISCOS COMPORTAMENTAIS PRIORITÁRIOS</h3>
+                <p>Os riscos abaixo indicam padrões que podem comprometer previsibilidade de entrega, qualidade relacional e consistência decisória quando o perfil opera sob pressão sem calibragem.</p>
+                ${listHtml(
+                  ensureUniqueItems([
+                    ...safeArray(profileContent?.developmentRisks, []),
+                    ...safeArray(profileContent?.workRisks, []),
+                    ...safeArray(profileContent?.leadershipRisks, []),
+                  ]).slice(0, 10),
+                  ['Risco de oscilação de clareza quando a pressão aumenta sem critério de decisão.'],
+                )}
+              </div>
+            `
+            : ''
+        }
         <div class="card">
           ${listHtml(profileContent?.developmentPoints, ['Ponto de desenvolvimento com alto potencial de impacto no resultado.'])}
         </div>
@@ -1824,22 +2109,40 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 28,
       totalPages: meta.totalPages,
-      title: 'Plano de Ação 30/60/90 Dias',
-      subtitle: 'Roteiro prático com indicadores de acompanhamento',
+      title: 'PLANO DE DESENVOLVIMENTO COMPORTAMENTAL',
+      subtitle: 'Plano sugerido para evolução comportamental em ciclos de 90 dias',
       branding,
       content: `
+        <div class="card">
+          <p>Plano sugerido para evolução comportamental em ciclos de 90 dias.</p>
+        </div>
         <div class="grid three">
           <div class="card action-plan-card">
-            <h3>30 dias</h3>
-            ${listHtml(plans?.days30, ['Definir foco comportamental e rotina de checkpoint semanal.'])}
+            <h3>Primeiros 30 dias</h3>
+            ${listHtml([
+              'Mapear decisões recorrentes do trabalho.',
+              'Identificar padrões de comportamento sob pressão.',
+              'Definir critérios objetivos para priorização de tarefas.',
+              ...safeArray(plans?.days30, []),
+            ].slice(0, 6))}
           </div>
           <div class="card action-plan-card">
-            <h3>60 dias</h3>
-            ${listHtml(plans?.days60, ['Consolidar ajuste de comunicação e decisão em contexto real.'])}
+            <h3>Entre 30 e 60 dias</h3>
+            ${listHtml([
+              'Aplicar métodos estruturados de tomada de decisão.',
+              'Utilizar feedback de colegas ou liderança para validação de decisões importantes.',
+              'Criar rotinas de revisão semanal de prioridades.',
+              ...safeArray(plans?.days60, []),
+            ].slice(0, 6))}
           </div>
           <div class="card action-plan-card">
-            <h3>90 dias</h3>
-            ${listHtml(plans?.days90, ['Escalar rotina de alta performance sustentável com feedback estruturado.'])}
+            <h3>Entre 60 e 90 dias</h3>
+            ${listHtml([
+              'Consolidar práticas de análise antes de decisões críticas.',
+              'Fortalecer autonomia na tomada de decisão.',
+              'Avaliar evolução comportamental com base em resultados observáveis.',
+              ...safeArray(plans?.days90, []),
+            ].slice(0, 6))}
           </div>
         </div>
         <div class="card">
@@ -1894,15 +2197,15 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 30,
       totalPages: meta.totalPages,
-      title: 'Conclusão Estratégica do Perfil',
-      subtitle: 'Síntese personalizada, próximos passos e assinatura institucional',
+      title: 'CONCLUSÃO DO PERFIL COMPORTAMENTAL',
+      subtitle: 'Síntese final, direcionadores de evolução e assinatura institucional',
       branding,
       enforceDensity: false,
       content: `
         <div class="card">
-          <h3>Mensagem final personalizada</h3>
+          <h3>Conclusão do perfil comportamental</h3>
           ${paragraphsHtml(
-            finalConclusionBlocks({ participant, profile, profileContent, insights, plans }),
+            finalConclusionBlocks({ participant, profile, profileContent, insights, plans, isPremiumTier }),
             [
               `${safeText(participant.name)}, sua leitura comportamental evidencia potencial de impacto profissional quando aplicada com disciplina, contexto e evolução contínua.`,
             ]
@@ -1916,6 +2219,7 @@ export function renderReportHtml(input = {}) {
             <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
             <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
             <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, 'suporte@insightdisc.app'))}</p>
+            <p>Este relatório utiliza o modelo DISC como ferramenta de análise comportamental e não constitui diagnóstico psicológico.</p>
           </div>
           <div class="card">
             <h3>Assinatura institucional</h3>
@@ -1929,14 +2233,33 @@ export function renderReportHtml(input = {}) {
           <img src="${esc(DEFAULT_BRANDING.logo_url)}" alt="InsightDISC" class="final-lockup-logo" />
           <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
         </div>
-        ${strategicNote('Encerramento premium', 'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina, contexto e acompanhamento real.')}
+        ${
+          isPremiumTier
+            ? strategicNote(
+                'Encerramento premium',
+                'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina, contexto e acompanhamento real.'
+              )
+            : strategicNote(
+                'Próximos passos recomendados',
+                'Selecione duas prioridades comportamentais, defina indicadores simples de evolução e revise o progresso em um ciclo de 30 dias com feedback estruturado.'
+              )
+        }
       `,
     })
   );
 
   const backCoverPage = buildBackCoverPage(branding);
+  const selectedPagesRaw = isPremiumTier
+    ? pages
+    : STANDARD_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  const visibleTotalPages = selectedPagesRaw.length || meta.totalPages;
+  const premiumFooterLabel = isPremiumTier ? 'Relatório Premium InsightDISC' : '';
+  const selectedPages = selectedPagesRaw.map((pageHtml, index) =>
+    remapPageForTier(pageHtml, index + 1, visibleTotalPages, premiumFooterLabel),
+  );
+  const includeBackCover = isPremiumTier;
 
-  return `<!doctype html>
+  const html = `<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
@@ -2161,6 +2484,25 @@ export function renderReportHtml(input = {}) {
       color: #5b6474;
     }
 
+    .premium-footer-label {
+      position: absolute;
+      left: 0;
+      top: -7mm;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 1.4mm 3.2mm;
+      border-radius: 999px;
+      border: 1px solid rgba(216, 164, 68, 0.45);
+      background: linear-gradient(180deg, rgba(216, 164, 68, 0.14), rgba(216, 164, 68, 0.04));
+      color: #8a651e;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
     .cover-page {
       background: #020916;
       border: none;
@@ -2208,6 +2550,22 @@ export function renderReportHtml(input = {}) {
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
+    .cover-premium-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4mm;
+      padding: 1.6mm 4mm;
+      border-radius: 999px;
+      border: 1px solid rgba(216, 164, 68, 0.78);
+      background: linear-gradient(180deg, rgba(216, 164, 68, 0.26), rgba(216, 164, 68, 0.08));
+      color: #ffe7b3;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
     .cover-report-kicker {
       margin: 0;
       font-size: 11px;
@@ -2222,6 +2580,17 @@ export function renderReportHtml(input = {}) {
       line-height: 1.45;
       opacity: 0.92;
       margin-bottom: 7mm;
+    }
+
+    .cover-report-premium-note {
+      margin-top: -3mm;
+      margin-bottom: 6mm;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #f8e6bc;
+      border-left: 2px solid rgba(216, 164, 68, 0.85);
+      padding-left: 3mm;
+      max-width: 92%;
     }
 
     .cover-info-grid {
@@ -2879,10 +3248,12 @@ export function renderReportHtml(input = {}) {
   </style>
 </head>
 <body>
-  ${pages.join('\n')}
-  ${backCoverPage}
+  ${selectedPages.join('\n')}
+  ${includeBackCover ? backCoverPage : ''}
 </body>
 </html>`;
+
+  return applyGlobalWordingCorrections(html);
 }
 
 export default renderReportHtml;
