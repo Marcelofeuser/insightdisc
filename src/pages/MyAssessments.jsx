@@ -13,6 +13,7 @@ import TableShell from '@/components/ui/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { mapCandidateReports } from '@/modules/report/backendReports.js';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -76,31 +77,18 @@ export default function MyAssessments() {
   const canSelfView = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF);
 
   const { data: assessments = [], isLoading } = useQuery({
-    queryKey: ['my-assessments', access?.tenantId, access?.userId, access?.email, canTenantView, canSelfView],
+    queryKey: ['my-assessments', apiBaseUrl, access?.tenantId, access?.userId, access?.email, canTenantView, canSelfView],
     queryFn: async () => {
-      if (apiBaseUrl && getApiToken()) {
+      if (apiBaseUrl) {
+        if (!getApiToken()) {
+          return [];
+        }
+
         const payload = await apiRequest('/candidate/me/reports', {
           method: 'GET',
           requireAuth: true,
         });
-        const reports = Array.isArray(payload?.reports) ? payload.reports : [];
-
-        return reports.map((item, index) => ({
-          id:
-            item?.assessmentId ||
-            item?.reportId ||
-            `${item?.candidateEmail || 'report'}-${index}`,
-          assessmentId: item?.assessmentId || '',
-          completed_at: item?.completedAt || item?.createdAt || null,
-          created_date: item?.createdAt || null,
-          respondent_name: item?.candidateName || '',
-          lead_name: item?.candidateName || '',
-          lead_email: item?.candidateEmail || '',
-          user_email: item?.candidateEmail || '',
-          status: 'completed',
-          type: 'premium',
-          pdf_url: item?.pdfUrl || '',
-        }));
+        return mapCandidateReports(payload?.reports || []);
       }
 
       if (canTenantView && access?.tenantId) {
@@ -229,28 +217,41 @@ export default function MyAssessments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAssessments.map((assessment) => (
-                <TableRow key={assessment.id}>
-                  <TableCell>{formatDate(assessment?.completed_at || assessment?.created_date)}</TableCell>
-                  <TableCell className="max-w-xs truncate">{getRespondent(assessment)}</TableCell>
-                  <TableCell className="capitalize">{assessment?.type || '-'}</TableCell>
-                  <TableCell>
-                    <Badge variant={assessment?.status === 'completed' ? 'default' : 'secondary'}>
-                      {assessment?.status || '-'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <Link to={`${createPageUrl('FreeResults')}?id=${assessment.id}`}>
-                        <Button variant="outline" size="sm">Ver resultado</Button>
-                      </Link>
-                      <Link to={`${createPageUrl('Report')}?id=${assessment.id}`}>
-                        <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">Ver relatório</Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredAssessments.map((assessment) => {
+                const targetAssessmentId = assessment?.assessmentId || assessment?.id || '';
+                const encodedAssessmentId = encodeURIComponent(targetAssessmentId);
+
+                return (
+                  <TableRow key={assessment.id}>
+                    <TableCell>{formatDate(assessment?.completed_at || assessment?.created_date)}</TableCell>
+                    <TableCell className="max-w-xs truncate">{getRespondent(assessment)}</TableCell>
+                    <TableCell className="capitalize">{assessment?.type || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant={assessment?.status === 'completed' ? 'default' : 'secondary'}>
+                        {assessment?.status || '-'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        {targetAssessmentId ? (
+                          <>
+                            <Link to={`${createPageUrl('FreeResults')}?id=${encodedAssessmentId}`}>
+                              <Button variant="outline" size="sm">Ver resultado</Button>
+                            </Link>
+                            <Link to={`${createPageUrl('Report')}?id=${encodedAssessmentId}`}>
+                              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">Ver relatório</Button>
+                            </Link>
+                          </>
+                        ) : (
+                          <Button variant="outline" size="sm" disabled>
+                            Sem vínculo
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}

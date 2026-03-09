@@ -111,26 +111,35 @@ export async function buildPremiumReportModel({
   discResult = {},
   assetBaseUrl = '',
   currentUser = null,
+  reportType = 'standard',
 }) {
   const branding = resolveBranding(assessment, assetBaseUrl);
+  const normalizedReportType = String(reportType || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
 
   const meta = {
     brand: branding.company_name,
-    reportTitle: 'Relatorio de Analise Comportamental DISC',
+    reportTitle:
+      normalizedReportType === 'premium'
+        ? 'RELATÓRIO DISC PREMIUM'
+        : 'Relatorio de Analise Comportamental DISC',
     reportSubtitle:
-      'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento',
+      normalizedReportType === 'premium'
+        ? 'Analise comportamental avancada'
+        : 'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento',
     generatedAt: new Date().toISOString(),
     reportId: assessment?.id || 'sem-id',
     version: '4.0',
     workspaceId: assessment?.organizationId || '',
     responsibleName: resolveResponsibleName({ assessment, currentUser }),
     responsibleRole: 'Analista Comportamental',
+    reportType: normalizedReportType,
   };
 
   const participant = resolveParticipantFromAssessment(assessment, meta);
 
   const input = {
     strict: true,
+    reportType: normalizedReportType,
     meta,
     participant,
     assessment,

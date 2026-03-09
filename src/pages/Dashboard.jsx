@@ -16,7 +16,7 @@ import {
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import {
   hasPermission,
   isSuperAdminAccess,
 } from '@/modules/auth/access-control';
+import { mapCandidateReports } from '@/modules/report/backendReports.js';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -131,10 +132,18 @@ export default function Dashboard() {
   const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const { data: assessments = [], isLoading } = useQuery({
-    queryKey: ['dashboard-assessments-v2', access?.tenantId, access?.userId, access?.email],
+    queryKey: ['dashboard-assessments-v2', apiBaseUrl, access?.tenantId, access?.userId, access?.email],
     queryFn: async () => {
       if (apiBaseUrl) {
-        return [];
+        if (!getApiToken()) {
+          return [];
+        }
+
+        const payload = await apiRequest('/candidate/me/reports', {
+          method: 'GET',
+          requireAuth: true,
+        });
+        return mapCandidateReports(payload?.reports || []);
       }
 
       if (access?.tenantId) {
@@ -443,7 +452,11 @@ export default function Dashboard() {
                     <Badge variant="secondary">{assessment?.type || 'disc'}</Badge>
                   </div>
                 </div>
-                <Link to={`${createPageUrl('Report')}?id=${assessment.id}`}>
+                <Link
+                  to={`${createPageUrl('Report')}?id=${encodeURIComponent(
+                    assessment?.assessmentId || assessment?.id || ''
+                  )}`}
+                >
                   <Button variant="outline" size="sm">Abrir relatório</Button>
                 </Link>
               </div>

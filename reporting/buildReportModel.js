@@ -230,9 +230,28 @@ function computeAdaptation(natural = {}, adapted = {}, adaptationRule = {}) {
   };
 }
 
-function selectProfileKey(ranked = [], rules = {}) {
+function selectProfileKey(ranked = [], rules = {}, scores = {}) {
   const top1 = ranked[0] || { factor: 'D', score: 25 };
   const top2 = ranked[1] || { factor: 'I', score: 25 };
+  const scoreValues = FACTORS.map((factor) => clamp(scores?.[factor]));
+  const maxScore = Math.max(...scoreValues);
+  const minScore = Math.min(...scoreValues);
+  const spread = clamp(maxScore - minScore, 0, 100);
+  const balancedThreshold = Number(rules?.top2Selection?.balancedThreshold || 10);
+
+  if (spread <= balancedThreshold) {
+    return {
+      key: 'DISC',
+      mode: 'balanced',
+      primary: top1.factor,
+      secondary: top2.factor,
+      displayPrimary: 'Balanceado',
+      displaySecondary: 'Adaptativo',
+      topDiff: clamp(top1.score - top2.score, 0, 100),
+      spread,
+    };
+  }
+
   const pureThreshold = Number(rules?.top2Selection?.pureThreshold || 18);
   const diff = clamp(top1.score - top2.score, 0, 100);
   const tieBehavior = safeText(rules?.top2Selection?.tieBehavior, 'pure');
@@ -249,7 +268,10 @@ function selectProfileKey(ranked = [], rules = {}) {
     mode: shouldUsePure ? 'pure' : 'combo',
     primary: top1.factor,
     secondary: top2.factor,
+    displayPrimary: top1.factor,
+    displaySecondary: top2.factor,
     topDiff: diff,
+    spread,
   };
 }
 
@@ -832,14 +854,40 @@ function resolvePagesStructure(sharedPages = {}) {
     'Recomendacoes de desenvolvimento',
     'Como liderar este perfil',
     'Como este perfil deve liderar',
-    'Plano de acao 30/60/90 dias',
+    'Plano de desenvolvimento comportamental',
     'Glossário e leitura técnica',
-    'Fechamento executivo',
+    'Conclusao do perfil comportamental',
   ];
+}
+
+function resolveStandardPagesStructure() {
+  return [
+    'Capa',
+    'O que e DISC',
+    'Graficos DISC',
+    'Natural vs Adaptado',
+    'Radar comportamental',
+    'Sintese executiva',
+    'Comunicacao',
+    'Processo de decisao',
+    'Ambiente ideal',
+    'Forcas naturais',
+    'Pontos de atencao',
+    'Recomendacoes praticas',
+    'Relacao no ambiente de trabalho',
+    'Sugestoes de desenvolvimento',
+    'Conclusao final',
+  ];
+}
+
+function resolveReportType(input = {}) {
+  const value = safeText(input?.reportType, safeText(input?.meta?.reportType, 'standard')).toLowerCase();
+  return value === 'premium' ? 'premium' : 'standard';
 }
 
 export async function buildReportModel(input = {}) {
   const strict = Boolean(input?.strict || input?.options?.strict);
+  const reportType = resolveReportType(input);
   const content = await ensureContentLoaded();
 
   const participant = resolveParticipant(input, strict);
@@ -864,21 +912,37 @@ export async function buildReportModel(input = {}) {
   };
 
   const ranked = rankFactors(scores.natural);
-  const selectedProfile = selectProfileKey(ranked, rules);
+  const selectedProfile = selectProfileKey(ranked, rules, scores.natural);
   const profileContent = resolveProfile(content.profiles, selectedProfile);
 
   const profile = {
     primary: selectedProfile.primary,
     secondary: selectedProfile.secondary,
-    key: PROFILE_KEYS.includes(selectedProfile.key) ? selectedProfile.key : selectedProfile.primary,
+    displayPrimary: selectedProfile.displayPrimary,
+    displaySecondary: selectedProfile.displaySecondary,
+    key:
+      selectedProfile.mode === 'balanced'
+        ? 'DISC'
+        : PROFILE_KEYS.includes(selectedProfile.key)
+          ? selectedProfile.key
+          : selectedProfile.primary,
     mode: selectedProfile.mode,
     topDiff: selectedProfile.topDiff,
+    spread: selectedProfile.spread,
     label:
-      selectedProfile.mode === 'pure'
+      selectedProfile.mode === 'balanced'
+        ? 'Distribuicao equilibrada entre os quatro fatores DISC'
+        : selectedProfile.mode === 'pure'
         ? `Predominancia de ${FACTOR_LABELS[selectedProfile.primary]}`
         : `${FACTOR_LABELS[selectedProfile.primary]} com apoio de ${FACTOR_LABELS[selectedProfile.secondary]}`,
-    archetype: profileContent.archetype,
-    title: profileContent.title,
+    archetype:
+      selectedProfile.mode === 'balanced'
+        ? 'Adaptativo Estrategico'
+        : profileContent.archetype,
+    title:
+      selectedProfile.mode === 'balanced'
+        ? 'Perfil Balanceado (DISC)'
+        : profileContent.title,
   };
 
   const adaptation = computeAdaptation(scores.natural, scores.adapted, rules.adaptationBand);
@@ -907,8 +971,12 @@ export async function buildReportModel(input = {}) {
   };
 
   const pagesMeta = content?.shared?.pages || {};
-  const pageTitles = resolvePagesStructure(pagesMeta);
+  const pageTitles =
+    reportType === 'premium'
+      ? resolvePagesStructure(pagesMeta)
+      : resolveStandardPagesStructure();
   const enrichmentBlocks = pagesMeta?.enrichmentBlocks || {};
+  const totalPages = reportType === 'premium' ? 30 : 15;
 
   return {
     meta: {
@@ -923,7 +991,8 @@ export async function buildReportModel(input = {}) {
         participant.assessmentId
       ),
       version: safeText(input?.meta?.version, '5.0'),
-      totalPages: 30,
+      totalPages,
+      reportType,
       workspaceId: safeText(
         input?.meta?.workspaceId || input?.workspaceId || input?.assessment?.organizationId,
         ''

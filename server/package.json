@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "build": "prisma generate",
+    "vercel-build": "prisma generate",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
-    "seed:super-admin": "node scripts/seed-super-admin.js"
+    "seed:super-admin": "node scripts/seed-super-admin.js",
+    "create:super-admin": "node scripts/create-super-admin.js"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

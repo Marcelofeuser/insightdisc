@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -15,9 +15,11 @@ import DISCRadarChart from '@/components/disc/DISCRadarChart';
 import DISCFactorCard from '@/components/disc/DISCFactorCard';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -64,21 +66,55 @@ const FACTOR_INFO = {
 export default function FreeResults() {
   const { access } = useAuth();
   const [searchParams] = useSearchParams();
+  const apiBaseUrl = getApiBaseUrl();
   const [assessment, setAssessment] = useState(null);
   const [comparisonAssessment, setComparisonAssessment] = useState(null);
   const [comparisonError, setComparisonError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadAssessment();
-  }, []);
-
-  const loadAssessment = async () => {
+  const loadAssessment = useCallback(async () => {
     const assessmentId = searchParams.get('id');
     const compareWith = searchParams.get('compareWith');
     let loaded = false;
+    let loadedComparison = false;
+    let apiReports = [];
+
+    setIsLoading(true);
+    setAssessment(null);
+    setComparisonError('');
+    setComparisonAssessment(null);
+
+    if (apiBaseUrl && getApiToken()) {
+      try {
+        const payload = await apiRequest('/candidate/me/reports', {
+          method: 'GET',
+          requireAuth: true,
+        });
+        apiReports = mapCandidateReports(payload?.reports || []);
+
+        if (assessmentId) {
+          const matched = findCandidateReportByIdentifier(apiReports, assessmentId);
+          if (matched?.results) {
+            setAssessment(matched);
+            loaded = true;
+          }
+        }
+
+        if (compareWith) {
+          const comparison = findCandidateReportByIdentifier(apiReports, compareWith);
+          if (comparison?.results) {
+            setComparisonAssessment(comparison);
+            loadedComparison = true;
+          } else {
+            setComparisonError('Não foi possível localizar o perfil de referência para comparação.');
+          }
+        }
+      } catch {
+        // fallback Base44/localStorage abaixo
+      }
+    }
     
-    if (assessmentId) {
+    if (assessmentId && !loaded) {
       try {
         const data = await base44.entities.Assessment.filter({ id: assessmentId });
         if (data.length > 0) {
@@ -102,11 +138,12 @@ export default function FreeResults() {
       }
     }
 
-    if (compareWith) {
+    if (compareWith && !loadedComparison && apiReports.length === 0) {
       try {
         const comparisonRows = await base44.entities.Assessment.filter({ id: compareWith });
         if (comparisonRows.length > 0) {
           setComparisonAssessment(comparisonRows[0]);
+          loadedComparison = true;
         } else {
           setComparisonError('Não foi possível localizar o perfil de referência para comparação.');
         }
@@ -117,7 +154,14 @@ export default function FreeResults() {
     }
     
     setIsLoading(false);
-  };
+  }, [apiBaseUrl, searchParams]);
+
+  useEffect(() => {
+    const run = async () => {
+      await loadAssessment();
+    };
+    run();
+  }, [loadAssessment]);
 
   if (isLoading) {
     return (
@@ -157,9 +201,9 @@ export default function FreeResults() {
   }
 
   const { results } = assessment;
-  const dominant = results.dominant_factor;
-  const dominantInfo = FACTOR_INFO[dominant];
-  const profile = results.natural_profile;
+  const dominant = results.dominant_factor || 'D';
+  const dominantInfo = FACTOR_INFO[dominant] || FACTOR_INFO.D;
+  const profile = results.natural_profile || {};
   const isUnlocked = Boolean(assessment?.report_unlocked) || hasSuperAdminBypass;
   const assessmentToken = assessment?.access_token || '';
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(assessment?.id || '')}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;

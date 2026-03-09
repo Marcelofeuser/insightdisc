@@ -19,7 +19,7 @@ import {
   isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
-import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports';
+import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
 
 async function exportLocalPdfFromHtml(html, fileName) {

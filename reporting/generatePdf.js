@@ -40,14 +40,37 @@ function normalizeHtmlAssetPaths(html) {
 }
 
 async function inlineOfficialCoverAsset(html) {
-  const coverPath = resolvePath('public', 'report-assets', 'cover-insightdisc-premium.png');
-  try {
-    const bytes = await fs.readFile(coverPath);
-    const dataUrl = `data:image/png;base64,${bytes.toString('base64')}`;
-    return String(html || '').replaceAll('/report-assets/cover-insightdisc-premium.png', dataUrl);
-  } catch {
-    return String(html || '');
+  const replacements = [
+    {
+      publicPath: '/brand/report-cover-premium.jpg',
+      diskPath: resolvePath('public', 'brand', 'report-cover-premium.jpg'),
+      mimeType: 'image/jpeg',
+    },
+    {
+      publicPath: '/brand/report-cover-standard.jpg',
+      diskPath: resolvePath('public', 'brand', 'report-cover-standard.jpg'),
+      mimeType: 'image/jpeg',
+    },
+    {
+      publicPath: '/report-assets/cover-insightdisc-premium.png',
+      diskPath: resolvePath('public', 'report-assets', 'cover-insightdisc-premium.png'),
+      mimeType: 'image/png',
+    },
+  ];
+
+  let normalizedHtml = String(html || '');
+
+  for (const entry of replacements) {
+    try {
+      const bytes = await fs.readFile(entry.diskPath);
+      const dataUrl = `data:${entry.mimeType};base64,${bytes.toString('base64')}`;
+      normalizedHtml = normalizedHtml.replaceAll(entry.publicPath, dataUrl);
+    } catch {
+      // Keep the original path if local asset is not available.
+    }
   }
+
+  return normalizedHtml;
 }
 
 async function readJson(filePath) {
@@ -116,7 +139,20 @@ async function loadBrowserLauncher() {
 }
 
 export async function generatePdfFromData(rawData, options = {}) {
-  const reportModel = await buildReportModel(rawData || {});
+  const normalizedType =
+    String(options?.reportType || rawData?.reportType || rawData?.meta?.reportType || 'standard').toLowerCase() === 'premium'
+      ? 'premium'
+      : 'standard';
+  const input = {
+    ...(rawData || {}),
+    reportType: normalizedType,
+    meta: {
+      ...(rawData?.meta || {}),
+      reportType: normalizedType,
+    },
+  };
+
+  const reportModel = await buildReportModel(input);
   const html = renderReportHtml({ reportModel });
   const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
   const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);
@@ -143,24 +179,25 @@ export async function generatePdfFromData(rawData, options = {}) {
     await page.setContent(htmlForPdf, {
       waitUntil: engine.name === 'playwright' ? 'networkidle' : 'networkidle0',
     });
-    const coverStatus = await page.evaluate(async () => {
-      const cover = document.querySelector('.cover-art-image');
+    const coverStatus = await page.evaluate(() => {
+      const cover = document.querySelector('.cover-content');
       if (!cover) return { found: false };
-      if (typeof cover.decode === 'function') {
-        try {
-          await cover.decode();
-        } catch {
-          // no-op
-        }
-      }
+      const rect = cover.getBoundingClientRect();
+      const computed = window.getComputedStyle(cover);
+      const backgroundImage = String(computed.backgroundImage || '');
       return {
         found: true,
-        complete: Boolean(cover.complete),
-        naturalWidth: Number(cover.naturalWidth || 0),
-        naturalHeight: Number(cover.naturalHeight || 0),
+        width: Number(rect.width || 0),
+        height: Number(rect.height || 0),
+        hasBackgroundImage: Boolean(backgroundImage && backgroundImage !== 'none'),
       };
     });
-    if (!coverStatus?.found || coverStatus.naturalWidth === 0 || coverStatus.naturalHeight === 0) {
+    if (
+      !coverStatus?.found ||
+      !coverStatus?.hasBackgroundImage ||
+      coverStatus.width === 0 ||
+      coverStatus.height === 0
+    ) {
       throw new Error('Falha ao carregar a capa oficial do relatório no HTML antes de gerar PDF.');
     }
     if (typeof page.emulateMediaType === 'function') {

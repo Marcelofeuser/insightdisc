@@ -142,6 +142,11 @@ const DEFAULT_BRANDING = Object.freeze({
   logo_contains_tagline: false,
 });
 
+const COVER_BACKGROUND_BY_TIER = Object.freeze({
+  premium: '/brand/report-cover-premium.jpg',
+  standard: '/brand/report-cover-standard.jpg',
+});
+
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
 
 function createBadRequest(message) {
@@ -1157,17 +1162,17 @@ function buildPage({
   subtitle,
   content,
   cover = false,
+  coverBackgroundUrl = '',
   branding,
   enforceDensity = true,
   hideInternalBranding = false,
 }) {
   if (cover) {
     const coverBrandName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
-    const coverArtUrl = DEFAULT_BRANDING.cover_url;
+    const coverArtUrl = safeText(coverBackgroundUrl, DEFAULT_BRANDING.cover_url);
     return `
       <section class="page cover-page">
-        <div class="cover-content">
-          <img src="${esc(coverArtUrl)}" alt="Capa oficial ${esc(coverBrandName)}" class="cover-art-image" />
+        <div class="cover-content" style="--cover-bg:url('${esc(coverArtUrl)}');" aria-label="Capa oficial ${esc(coverBrandName)}">
           ${content}
         </div>
       </section>
@@ -1334,6 +1339,9 @@ export function renderReportHtml(input = {}) {
   const coverPremiumNote = isPremiumTier
     ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
     : '';
+  const coverBackgroundUrl = isPremiumTier
+    ? COVER_BACKGROUND_BY_TIER.premium
+    : COVER_BACKGROUND_BY_TIER.standard;
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),
@@ -1427,10 +1435,12 @@ export function renderReportHtml(input = {}) {
       number: 1,
       totalPages: meta.totalPages,
       cover: true,
+      coverBackgroundUrl,
       branding,
       content: `
         <div class="cover-shell ${isPremiumTier ? 'cover-shell-premium' : 'cover-shell-standard'}">
           <div class="cover-identity-block">
+            <img src="${esc(branding.logo_url)}" alt="Logo ${esc(branding.company_name)}" class="cover-brand-logo" />
             <div class="cover-brand-title">InsightDISC</div>
             <div class="cover-brand-subtitle">Plataforma de Análise Comportamental</div>
           </div>
@@ -2972,6 +2982,22 @@ export function renderReportHtml(input = {}) {
       align-items: stretch;
       justify-content: stretch;
       overflow: hidden;
+      background-image: var(--cover-bg);
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+    }
+
+    .cover-content::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        rgba(0, 0, 0, 0.25),
+        rgba(0, 0, 0, 0.45)
+      );
+      z-index: 1;
+      pointer-events: none;
     }
 
     .cover-art-image {
@@ -3014,6 +3040,15 @@ export function renderReportHtml(input = {}) {
       line-height: 1.1;
       letter-spacing: 0.3px;
       color: #f5f8ff;
+    }
+
+    .cover-brand-logo {
+      display: block;
+      width: 54mm;
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 2.6mm;
+      object-fit: contain;
     }
 
     .cover-brand-subtitle {
