@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, canAccessOrganization, requireActiveCustomer } from '../middleware/rbac.js';
 import { requireReportExport } from '../middleware/require-report-export.js';
@@ -22,7 +23,7 @@ router.get(
   requireReportExport,
   async (req, res) => {
     try {
-      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assetBaseUrl = getRequestBaseUrl(req);
       const assessment = await prisma.assessment.findUnique({
         where: { id: req.params.assessmentId },
         include: {
@@ -69,7 +70,7 @@ router.post(
   requireReportExport,
   async (req, res) => {
     try {
-      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assetBaseUrl = getRequestBaseUrl(req);
       const schema = z.object({
         assessmentId: z.string().min(1),
         reportType: z.enum(['standard', 'premium']).optional(),

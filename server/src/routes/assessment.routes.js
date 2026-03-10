@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
@@ -599,7 +600,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
       return res.status(statusCodeByReason(reason)).json({ ok: false, reason });
     }
 
-    const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const assetBaseUrl = getRequestBaseUrl(req);
       const assessment = await prisma.assessment.findUnique({
         where: { id: result.invite.assessmentId },
         include: {
@@ -707,7 +708,7 @@ router.post(
       const reportType = normalizeReportType(input.type || input.reportType);
       const assessmentId = String(input.assessmentId || '').trim();
 
-      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assetBaseUrl = getRequestBaseUrl(req);
       const assessment = await prisma.assessment.findUnique({
         where: { id: assessmentId },
         include: {
@@ -817,7 +818,7 @@ router.get(
         return res.status(400).json({ ok: false, reason: 'ASSESSMENT_ID_REQUIRED' });
       }
 
-      const assetBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const assetBaseUrl = getRequestBaseUrl(req);
       const assessment = await prisma.assessment.findUnique({
         where: { id: assessmentId },
         include: {

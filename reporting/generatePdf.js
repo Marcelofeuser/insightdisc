@@ -171,7 +171,7 @@ export async function generatePdfFromData(rawData, options = {}) {
     outputRelative = path.relative(ROOT_DIR, outputPath);
   }
 
-  const engine = await loadBrowserLauncher();
+  const engine = options.browserLauncher || (await loadBrowserLauncher());
   const browser = await engine.launch();
 
   try {

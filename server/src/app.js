@@ -27,6 +27,7 @@ const REPORTS_DIR = process.env.VERCEL
 export function createApp() {
   const app = express();
 
+  app.set('trust proxy', true);
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '2mb' }));
 

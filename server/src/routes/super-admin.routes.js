@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
@@ -40,7 +41,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/overview', async (req, res) => {
-  const appBaseUrl = `${req.protocol}://${req.get('host')}`;
+  const appBaseUrl = getRequestBaseUrl(req);
   const toAbsoluteUrl = (rawPath = '') => {
     const normalized = String(rawPath || '').trim();
     if (!normalized) return '';

@@ -185,6 +185,10 @@ export function requireRoles(...allowedRoles) {
       }
 
       const userRole = String(req.user?.role || '').trim().toUpperCase()
+      if (userRole === 'SUPER_ADMIN') {
+        return next()
+      }
+
       const normalizedAllowed = allowedRoles.map((role) =>
         String(role || '').trim().toUpperCase()
       )
