@@ -7,6 +7,7 @@ import { normalizeBrandingFromOrganization } from '../modules/branding/branding-
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
   attachUser,
@@ -254,7 +255,6 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
         role: true,
         credits: {
           select: { balance: true },
-          take: 1,
         },
       },
     });
@@ -268,7 +268,7 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
     }
 
     const isSuperAdmin = isSuperAdminUser(user);
-    const balance = Number(user.credits?.[0]?.balance || 0);
+    const balance = getUserCreditsBalance(user);
     if (!isSuperAdmin && balance < 1) {
       return res.status(402).json({
         ok: false,
@@ -995,12 +995,11 @@ router.post('/submit', async (req, res) => {
           role: true,
           credits: {
             select: { balance: true },
-            take: 1,
           },
         },
       });
       isSuperAdminSelfAssessment = isSuperAdminUser(owner || {});
-      const balance = Number(owner?.credits?.[0]?.balance || 0);
+      const balance = getUserCreditsBalance(owner);
       if (!isSuperAdminSelfAssessment && balance < 1) {
         return res.status(402).json({
           ok: false,

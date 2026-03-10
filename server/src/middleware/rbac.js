@@ -1,162 +1,272 @@
-import { prisma } from '../lib/prisma.js';
-import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import { prisma } from '../lib/prisma.js'
+import { getUserCreditsBalance } from '../modules/auth/user-credits.js'
 
-export async function attachUser(req, _res, next) {
-  if (!req.auth?.userId) return next();
+async function loadUserWithRelations(userId) {
+  if (!userId) return null
 
   const user = await prisma.user.findUnique({
-    where: { id: req.auth.userId },
-    include: {
-      credits: {
-        select: { balance: true },
-        take: 1,
-      },
-      payments: {
-        where: { status: 'PAID' },
-        select: { id: true, status: true },
-        take: 1,
+    where: { id: userId }
+  })
+
+  if (!user) return null
+
+  const latestCredit = await prisma.credit.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    select: { balance: true }
+  })
+
+  const latestPaidPayment = await prisma.payment.findFirst({
+    where: {
+      userId,
+      status: 'PAID'
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      status: true
+    }
+  })
+
+  return {
+    ...user,
+    credits: latestCredit ? [latestCredit] : [],
+    payments: latestPaidPayment ? [latestPaidPayment] : []
+  }
+}
+
+function normalizeRole(value) {
+  return String(value || '').trim().toUpperCase()
+}
+
+function hasPaidPayment(user = {}) {
+  const payments = Array.isArray(user?.payments) ? user.payments : []
+  return payments.some((payment) => normalizeRole(payment?.status) === 'PAID')
+}
+
+function isPrivilegedRole(user = {}) {
+  const role = normalizeRole(user?.role)
+  return role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'PRO'
+}
+
+async function ensureRequestUser(req) {
+  if (req.user?.id) return req.user
+
+  const authUserId =
+    req.auth?.userId ||
+    req.auth?.id ||
+    req.userId ||
+    null
+
+  if (!authUserId) return null
+
+  req.user = await loadUserWithRelations(authUserId)
+  return req.user
+}
+
+async function resolveOrganizationAccess(userId, organizationId) {
+  const normalizedUserId = String(userId || '').trim()
+  const normalizedOrganizationId = String(organizationId || '').trim()
+
+  if (!normalizedUserId || !normalizedOrganizationId) {
+    return { canAccess: false, canManage: false }
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: normalizedUserId },
+    select: { id: true, role: true },
+  })
+
+  if (!user) {
+    return { canAccess: false, canManage: false }
+  }
+
+  if (normalizeRole(user.role) === 'SUPER_ADMIN') {
+    return { canAccess: true, canManage: true }
+  }
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: normalizedOrganizationId },
+    select: { id: true, ownerId: true },
+  })
+
+  if (!organization) {
+    return { canAccess: false, canManage: false }
+  }
+
+  if (organization.ownerId === normalizedUserId) {
+    return { canAccess: true, canManage: true }
+  }
+
+  const membership = await prisma.organizationMember.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: normalizedOrganizationId,
+        userId: normalizedUserId,
       },
     },
-  });
-  req.user = user || null;
-  return next();
-}
+    select: { role: true },
+  })
 
-export function requireRole(...roles) {
-  const allowed = new Set(roles);
-  return (req, res, next) => {
-    if (isSuperAdminUser(req.user || req.auth || {})) {
-      return next();
-    }
-    const role = String(req.user?.role || '').toUpperCase();
-    if (!role || !allowed.has(role)) {
-      return res.status(403).json({ ok: false, error: 'Forbidden' });
-    }
-    return next();
-  };
-}
-
-export function requireSuperAdmin(req, res, next) {
-  const authUser = {
-    role: req.user?.role || req.auth?.role,
-    global_role: req.user?.global_role || req.auth?.global_role,
-    globalRole: req.user?.globalRole || req.auth?.globalRole,
-  };
-  const role = String(authUser?.role || '').toUpperCase();
-  const scope = String(req.auth?.scope || '').toLowerCase();
-  if (!isSuperAdminUser(authUser) && role !== 'SUPER_ADMIN' && scope !== 'super_admin') {
-    return res.status(403).json({ error: 'FORBIDDEN' });
-  }
-  return next();
-}
-
-export function isActiveCustomer(user = {}) {
-  const role = String(user?.role || '').toUpperCase();
-  if (isSuperAdminUser(user) || role === 'ADMIN') return true;
-  if (role === 'CANDIDATE') return false;
-
-  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
-  const paidPayments = Number(user?.payments?.length || 0);
-  return creditsBalance > 0 || paidPayments > 0;
-}
-
-export function requireActiveCustomer(req, res, next) {
-  if (isActiveCustomer(req.user || {})) {
-    return next();
+  if (!membership) {
+    return { canAccess: false, canManage: false }
   }
 
-  return res.status(402).json({
-    ok: false,
-    error: 'PAYWALL_REQUIRED',
-    message: 'Conta sem compra ativa. Compre créditos para desbloquear recursos premium.',
-  });
+  const membershipRole = normalizeRole(membership.role)
+  return {
+    canAccess: true,
+    canManage: membershipRole === 'OWNER' || membershipRole === 'ADMIN',
+  }
 }
 
-const PREMIUM_PLANS = new Set([
-  'professional',
-  'business',
-  'enterprise',
-  'premium',
-  'pro',
-]);
-
-export function hasPremiumFeatureAccess(user = {}) {
-  const role = String(user?.role || '').toUpperCase();
-  if (isSuperAdminUser(user) || role === 'SUPER_ADMIN') return true;
-
-  const declaredPlan = String(
-    user?.plan || user?.workspacePlan || user?.workspace_plan || ''
-  )
-    .trim()
-    .toLowerCase();
-  if (PREMIUM_PLANS.has(declaredPlan)) return true;
-
-  if (role === 'ADMIN') return true;
-
-  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
-  const paidPayments = Number(user?.payments?.length || 0);
-  return creditsBalance > 0 || paidPayments > 0;
+function isActiveCustomerProfile(user = {}) {
+  if (!user?.id) return false
+  if (isPrivilegedRole(user)) return true
+  if (getUserCreditsBalance(user) > 0) return true
+  if (hasPaidPayment(user)) return true
+  return false
 }
 
-export function requirePremiumFeature(errorCode = 'PREMIUM_REQUIRED') {
-  return (req, res, next) => {
-    if (hasPremiumFeatureAccess(req.user || req.auth || {})) {
-      return next();
+export async function attachUser(req, res, next) {
+  try {
+    if (req.user?.id) return next()
+
+    const authUserId =
+      req.auth?.userId ||
+      req.auth?.id ||
+      req.userId ||
+      null
+
+    if (!authUserId) {
+      req.user = null
+      return next()
+    }
+
+    req.user = await loadUserWithRelations(authUserId)
+    return next()
+  } catch (error) {
+    console.error('[RBAC] erro ao anexar usuário:', error)
+    req.user = null
+    return next()
+  }
+}
+
+export function requireAuth(req, res, next) {
+  const authUserId =
+    req.user?.id ||
+    req.auth?.userId ||
+    req.auth?.id ||
+    req.userId
+
+  if (!authUserId) {
+    return res.status(401).json({
+      ok: false,
+      error: 'AUTH_REQUIRED',
+      message: 'Autenticação necessária.'
+    })
+  }
+
+  return next()
+}
+
+export function requireRoles(...allowedRoles) {
+  return async function (req, res, next) {
+    try {
+      if (!req.user?.id) {
+        const authUserId =
+          req.auth?.userId ||
+          req.auth?.id ||
+          req.userId ||
+          null
+
+        if (authUserId) {
+          req.user = await loadUserWithRelations(authUserId)
+        }
+      }
+
+      const userRole = String(req.user?.role || '').trim().toUpperCase()
+      const normalizedAllowed = allowedRoles.map((role) =>
+        String(role || '').trim().toUpperCase()
+      )
+
+      if (!userRole || !normalizedAllowed.includes(userRole)) {
+        return res.status(403).json({
+          ok: false,
+          error: 'FORBIDDEN',
+          message: 'Acesso negado.'
+        })
+      }
+
+      return next()
+    } catch (error) {
+      console.error('[RBAC] erro ao validar papel:', error)
+      return res.status(500).json({
+        ok: false,
+        error: 'RBAC_ERROR',
+        message: 'Falha ao validar permissões.'
+      })
+    }
+  }
+}
+
+export function requireRole(...allowedRoles) {
+  return requireRoles(...allowedRoles)
+}
+
+export async function canAccessOrganization(userId, organizationId) {
+  const access = await resolveOrganizationAccess(userId, organizationId)
+  return access.canAccess
+}
+
+export async function canManageOrganization(userId, organizationId) {
+  const access = await resolveOrganizationAccess(userId, organizationId)
+  return access.canManage
+}
+
+export async function requireActiveCustomer(req, res, next) {
+  try {
+    const user = await ensureRequestUser(req)
+    if (isActiveCustomerProfile(user || {})) {
+      return next()
     }
 
     return res.status(403).json({
       ok: false,
-      error: errorCode,
-      message: 'Recurso disponível apenas para planos premium.',
-    });
-  };
+      error: 'PREMIUM_REQUIRED',
+      message: 'Plano premium necessário.'
+    })
+  } catch (error) {
+    console.error('[RBAC] erro ao validar cliente ativo:', error)
+    return res.status(500).json({
+      ok: false,
+      error: 'RBAC_ERROR',
+      message: 'Falha ao validar acesso premium.'
+    })
+  }
 }
 
-export async function canAccessOrganization(userId, organizationId) {
-  if (!userId || !organizationId) return false;
+export function requirePremiumFeature(errorCode = 'PREMIUM_REQUIRED') {
+  return async function (req, res, next) {
+    try {
+      const user = await ensureRequestUser(req)
+      if (isActiveCustomerProfile(user || {})) {
+        return next()
+      }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true },
-  });
-  if (!user) return false;
-  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
-
-  const membership = await prisma.organizationMember.findFirst({
-    where: { organizationId, userId },
-  });
-  if (membership) return true;
-
-  const ownerOrg = await prisma.organization.findFirst({
-    where: { id: organizationId, ownerId: userId },
-  });
-  return Boolean(ownerOrg);
+      return res.status(403).json({
+        ok: false,
+        error: String(errorCode || 'PREMIUM_REQUIRED'),
+        message: 'Plano premium necessário.'
+      })
+    } catch (error) {
+      console.error('[RBAC] erro ao validar recurso premium:', error)
+      return res.status(500).json({
+        ok: false,
+        error: 'RBAC_ERROR',
+        message: 'Falha ao validar acesso premium.'
+      })
+    }
+  }
 }
 
-export async function canManageOrganization(userId, organizationId) {
-  if (!userId || !organizationId) return false;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true },
-  });
-  if (!user) return false;
-  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
-
-  const ownerOrg = await prisma.organization.findFirst({
-    where: { id: organizationId, ownerId: userId },
-    select: { id: true },
-  });
-  if (ownerOrg) return true;
-
-  const privilegedMembership = await prisma.organizationMember.findFirst({
-    where: {
-      organizationId,
-      userId,
-      role: { in: ['OWNER', 'ADMIN'] },
-    },
-    select: { id: true },
-  });
-
-  return Boolean(privilegedMembership);
-}
+export const requireSuperAdmin = requireRoles('SUPER_ADMIN')

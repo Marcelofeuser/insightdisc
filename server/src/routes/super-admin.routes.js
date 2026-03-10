@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
+import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 
 const router = Router();
 
@@ -179,7 +180,7 @@ router.get('/overview', async (req, res) => {
     role: user.role,
     createdAt: user.createdAt,
     workspace: user.memberships?.[0]?.organization?.name || '-',
-    credits: Number(user.credits?.[0]?.balance || 0),
+    credits: getUserCreditsBalance(user),
     status: 'ativo',
   }));
 
@@ -249,7 +250,7 @@ router.get('/overview', async (req, res) => {
     ownerEmail: workspace.owner?.email || '-',
     usersCount: Number(workspace._count?.memberships || 0),
     assessmentsCount: Number(workspace._count?.assessments || 0),
-    creditsAvailable: Number(workspace.owner?.credits?.[0]?.balance || 0),
+    creditsAvailable: getUserCreditsBalance(workspace.owner),
     brandingConfigured: Boolean(workspace.companyName && workspace.logoUrl),
     createdAt: workspace.createdAt,
   }));

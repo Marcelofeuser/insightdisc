@@ -11,6 +11,7 @@ import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { env } from '../config/env.js';
 import { findSeedSuperAdminUser } from '../modules/auth/super-admin-bootstrap.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 
 const router = Router();
 
@@ -74,7 +75,7 @@ function resolvePrimaryOrganizationId(user = {}) {
 
 function hasActivePaidPurchase(user = {}) {
   const paymentsCount = Number(user?.payments?.length || 0);
-  const creditsBalance = Number(user?.credits?.[0]?.balance || 0);
+  const creditsBalance = getUserCreditsBalance(user);
   return paymentsCount > 0 || creditsBalance > 0;
 }
 
@@ -85,7 +86,7 @@ function normalizeUserPayload(user = {}) {
   const isSuperAdmin = isSuperAdminUser(user);
   const isAdmin = role === 'ADMIN';
   const hasPaidPurchase = isSuperAdmin ? true : hasActivePaidPurchase(user);
-  const creditsBalance = isSuperAdmin ? 999999 : Number(user?.credits?.[0]?.balance || 0);
+  const creditsBalance = isSuperAdmin ? 999999 : getUserCreditsBalance(user);
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
     ? 'super_admin'

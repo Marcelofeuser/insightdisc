@@ -2,11 +2,11 @@
   "routes": [
     {
       "src": "/(auth|super-admin|payments|assessment|assessments|report|candidate|branding|jobs|admin|health)(?:/(.*))?$",
-      "dest": "/api/proxy/$1/$2"
+      "dest": "/api/proxy?path=$1/$2"
     },
     {
       "src": "/api/(leads|dossier)(?:/(.*))?$",
-      "dest": "/api/proxy/api/$1/$2"
+      "dest": "/api/proxy?path=api/$1/$2"
     },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
