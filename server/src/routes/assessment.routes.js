@@ -814,7 +814,7 @@ router.get(
         },
       });
 
-      const fileName = 'insightdisc-report.pdf';
+      const fileName = `insightdisc-relatorio-${reportType}-${assessment.id}.pdf`;
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Cache-Control', 'no-store');
