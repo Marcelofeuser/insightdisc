@@ -3,7 +3,8 @@ import { clearAuth } from './helpers/auth';
 import { capturePdfDownload } from './helpers/downloads';
 import { waitForApp } from './helpers/waitForApp';
 
-const HAS_API = Boolean(process.env.VITE_API_URL || process.env.E2E_API_URL);
+const IS_API_MODE = String(process.env.PW_ENABLE_API_MODE || '').trim().toLowerCase() === 'true';
+const HAS_API = IS_API_MODE && Boolean(process.env.VITE_API_URL || process.env.E2E_API_URL);
 const SUPER_ADMIN = {
   email: process.env.SUPER_ADMIN_EMAIL || '',
   password: process.env.SUPER_ADMIN_PASSWORD || '',

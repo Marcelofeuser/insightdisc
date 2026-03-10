@@ -46,8 +46,10 @@ export default function Login() {
   const { checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
   const isDev = import.meta.env.DEV;
+  const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
+  const isE2ERuntime = runtimeMode.startsWith('e2e');
   const canUseMockAuth = isDev && ENABLE_DEV_LOGIN_SHORTCUTS;
-  const canShowDevMockShortcuts = canUseMockAuth;
+  const canShowDevMockShortcuts = canUseMockAuth && !isE2ERuntime;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,14 +60,16 @@ export default function Login() {
 
   useEffect(() => {
     if (!isDev) return;
-    console.info('[Login] dev shortcut flags', {
-      isDev,
-      enableFlagRaw: import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS,
-      canUseMockAuth,
-      hasMockClient: Boolean(base44?.__isMock),
-      apiBaseUrl,
-    });
-  }, [isDev, canUseMockAuth, apiBaseUrl]);
+      console.info('[Login] dev shortcut flags', {
+        isDev,
+        runtimeMode,
+        enableFlagRaw: import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS,
+        canUseMockAuth,
+        canShowDevMockShortcuts,
+        hasMockClient: Boolean(base44?.__isMock),
+        apiBaseUrl,
+      });
+  }, [isDev, runtimeMode, canUseMockAuth, canShowDevMockShortcuts, apiBaseUrl]);
 
   const handleLogin = async (event) => {
     event.preventDefault();

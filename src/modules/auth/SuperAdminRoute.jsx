@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { GLOBAL_ROLES, hasAnyGlobalRole } from '@/modules/auth/access-control';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -24,8 +24,9 @@ function SuperAdminDenied({ message = 'Acesso restrito à administração global
 
 export default function SuperAdminRoute({ children }) {
   const location = useLocation();
-  const { access, isLoadingAuth, isLoadingPublicSettings } = useAuth();
+  const { access, user, isLoadingAuth, isLoadingPublicSettings } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const apiToken = getApiToken();
   const [validation, setValidation] = useState({
     state: 'idle',
     message: '',
@@ -35,6 +36,14 @@ export default function SuperAdminRoute({ children }) {
     () => hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]),
     [access],
   );
+  const isDevMockSuperAdmin = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      isSuperAdminRole &&
+      !apiToken &&
+      String(user?.email || '').trim().toLowerCase() === 'superadmin@example.com',
+    [apiToken, isSuperAdminRole, user?.email],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -42,6 +51,11 @@ export default function SuperAdminRoute({ children }) {
     async function validateSuperAdmin() {
       if (!access?.userId) {
         if (mounted) setValidation({ state: 'unauthenticated', message: '' });
+        return;
+      }
+
+      if (isDevMockSuperAdmin) {
+        if (mounted) setValidation({ state: 'ready', message: '' });
         return;
       }
 
@@ -91,7 +105,7 @@ export default function SuperAdminRoute({ children }) {
     return () => {
       mounted = false;
     };
-  }, [access?.userId, apiBaseUrl, isSuperAdminRole]);
+  }, [access?.userId, apiBaseUrl, isDevMockSuperAdmin, isSuperAdminRole]);
 
   if (isLoadingPublicSettings || isLoadingAuth || validation.state === 'checking' || validation.state === 'idle') {
     return (
