@@ -48,6 +48,28 @@ function resolveAssessmentProfile(report = {}) {
   );
 }
 
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function resolveAssessmentParticipantName(assessment = {}) {
+  const reportParticipant = assessment?.report?.discProfile?.participant || {};
+  return firstNonEmptyText(
+    assessment?.candidateName,
+    assessment?.respondent_name,
+    assessment?.respondentName,
+    reportParticipant?.name,
+    reportParticipant?.candidateName,
+    reportParticipant?.respondent_name,
+    assessment?.candidateEmail,
+    assessment?.email,
+  );
+}
+
 async function canAccessAssessmentRecord(user, authUserId, assessment = {}) {
   if (!assessment?.id || !authUserId) return false;
   if (isSuperAdminUser(user || {})) return true;
@@ -325,7 +347,7 @@ router.get('/report-by-token', async (req, res) => {
       });
     }
 
-    const participantName = String(assessment?.candidateName || '').trim();
+    const participantName = resolveAssessmentParticipantName(assessment);
     if (!participantName) {
       return res.status(400).json({
         ok: false,
@@ -401,7 +423,7 @@ router.get(
         assessment: {
           id: assessment.id,
           status: assessment.status,
-          candidateName: assessment.candidateName || '',
+          candidateName: resolveAssessmentParticipantName(assessment),
           candidateEmail: assessment.candidateEmail || '',
           candidateUserId: assessment.candidateUserId || '',
           createdAt: assessment.createdAt,
@@ -419,7 +441,7 @@ router.get(
           assessmentId: assessment.id,
           reportId: assessment.report.id,
           candidateUserId: assessment.candidateUserId || '',
-          candidateName: assessment.candidateName || '',
+          candidateName: resolveAssessmentParticipantName(assessment),
           candidateEmail: assessment.candidateEmail || '',
           createdAt: assessment.createdAt,
           completedAt: assessment.completedAt,

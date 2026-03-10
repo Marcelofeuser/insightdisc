@@ -1,12 +1,6 @@
 import { buildReportModel } from '../../../../reporting/buildReportModel.js';
 import { normalizeBrandingFromOrganization } from '../branding/branding-service.js';
 
-function createBadRequest(message) {
-  const error = new Error(message);
-  error.statusCode = 400;
-  return error;
-}
-
 function firstNonEmpty(values = []) {
   for (const value of values) {
     const text = String(value || '').trim();
@@ -15,18 +9,24 @@ function firstNonEmpty(values = []) {
   return '';
 }
 
-function resolveParticipantFromAssessment(assessment = {}, meta = {}) {
+function resolveParticipantFromAssessment(assessment = {}, meta = {}, discResult = {}) {
+  const reportParticipant = assessment?.report?.discProfile?.participant || {};
   const name = firstNonEmpty([
     assessment?.candidateName,
     assessment?.respondent_name,
     assessment?.respondentName,
     assessment?.user_name,
     assessment?.name,
+    discResult?.participant?.name,
+    discResult?.participant?.candidateName,
+    discResult?.participant?.respondent_name,
+    reportParticipant?.name,
+    reportParticipant?.candidateName,
+    reportParticipant?.respondent_name,
+    assessment?.candidateEmail,
+    assessment?.email,
+    'Participante DISC',
   ]);
-
-  if (!name) {
-    throw createBadRequest('Dado obrigatorio ausente: participant.name');
-  }
 
   const email = firstNonEmpty([
     assessment?.candidateEmail,
@@ -34,14 +34,33 @@ function resolveParticipantFromAssessment(assessment = {}, meta = {}) {
     assessment?.respondentEmail,
     assessment?.user_email,
     assessment?.email,
+    discResult?.participant?.email,
+    discResult?.participant?.candidateEmail,
+    discResult?.participant?.respondent_email,
+    reportParticipant?.email,
+    reportParticipant?.candidateEmail,
+    reportParticipant?.respondent_email,
   ]);
 
   return {
     name,
     email: email || 'contato@participante.disc',
     assessmentId: firstNonEmpty([assessment?.id, meta?.reportId]) || `report-${Date.now()}`,
-    role: firstNonEmpty([assessment?.candidateRole, assessment?.role, 'Profissional em desenvolvimento']),
-    company: firstNonEmpty([assessment?.candidateCompany, assessment?.company, assessment?.organization?.name, 'Organizacao avaliada']),
+    role: firstNonEmpty([
+      assessment?.candidateRole,
+      assessment?.role,
+      discResult?.participant?.role,
+      reportParticipant?.role,
+      'Profissional em desenvolvimento',
+    ]),
+    company: firstNonEmpty([
+      assessment?.candidateCompany,
+      assessment?.company,
+      discResult?.participant?.company,
+      reportParticipant?.company,
+      assessment?.organization?.name,
+      'Organizacao avaliada',
+    ]),
   };
 }
 
@@ -141,7 +160,7 @@ export async function buildPremiumReportModel({
     assetBaseUrl: firstNonEmpty([assetBaseUrl, process.env.APP_BASE_URL]),
   };
 
-  const participant = resolveParticipantFromAssessment(assessment, meta);
+  const participant = resolveParticipantFromAssessment(assessment, meta, discResult);
 
   const input = {
     strict: true,

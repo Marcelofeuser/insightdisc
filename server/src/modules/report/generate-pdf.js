@@ -8,6 +8,19 @@ const OUTPUT_DIR = process.env.VERCEL
   ? '/tmp/insightdisc-reports'
   : path.resolve(__dirname, '../../../generated/reports');
 
+function normalizePdfBuffer(pdfBuffer) {
+  if (!pdfBuffer) return null;
+  if (Buffer.isBuffer(pdfBuffer)) return pdfBuffer;
+  if (pdfBuffer instanceof Uint8Array) return Buffer.from(pdfBuffer);
+  if (ArrayBuffer.isView(pdfBuffer)) {
+    return Buffer.from(pdfBuffer.buffer, pdfBuffer.byteOffset, pdfBuffer.byteLength);
+  }
+  if (pdfBuffer instanceof ArrayBuffer) {
+    return Buffer.from(pdfBuffer);
+  }
+  return null;
+}
+
 export async function generatePremiumPdf(reportModel, assessmentId, assessment = null, options = {}) {
   const safeId = String(assessmentId || reportModel?.meta?.reportId || 'export')
     .replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -24,11 +37,12 @@ export async function generatePremiumPdf(reportModel, assessmentId, assessment =
     returnBuffer: inMemory,
     fileName,
   });
+  const normalizedPdfBuffer = normalizePdfBuffer(result?.pdfBuffer);
 
   return {
     pdfUrl: inMemory ? '' : `/reports/${fileName}`,
     outputPath: result.outputPath || null,
-    pdfBuffer: result.pdfBuffer || null,
+    pdfBuffer: normalizedPdfBuffer,
     fileName: result.fileName || fileName,
     html: result.html,
   };
