@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { createPageUrl } from '@/utils';
 
 const LOCAL_DOSSIER_KEY = 'insightdisc_behavioral_dossiers';
 const LOCAL_DOSSIER_ANAMNESIS_KEY = 'insightdisc_dossier_anamnesis';
@@ -255,6 +256,21 @@ function buildAnamnesisPayload(form = {}) {
   return payload;
 }
 
+function asArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item !== null && item !== undefined);
+}
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function devDossierLog(message, payload = {}) {
+  if (!import.meta.env.DEV) return;
+  // eslint-disable-next-line no-console
+  console.info(`[Dossier] ${message}`, payload);
+}
+
 function InlineStat({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -372,7 +388,7 @@ export default function Dossier() {
 
   const effectiveAssessmentId = useMemo(() => {
     if (assessmentId) return assessmentId;
-    const fallbackAssessment = dossierQuery.data?.assessmentsHistory?.[0]?.id;
+    const fallbackAssessment = asArray(dossierQuery.data?.assessmentsHistory)?.[0]?.id;
     return String(fallbackAssessment || '').trim();
   }, [assessmentId, dossierQuery.data?.assessmentsHistory]);
 
@@ -417,18 +433,39 @@ export default function Dossier() {
     },
   });
 
-  const data = dossierQuery.data || null;
+  const data = asObject(dossierQuery.data);
+  const candidate = asObject(data?.candidate);
+  const dossier = asObject(data?.dossier);
+  const overview = asObject(data?.overview);
+  const assessmentsHistory = asArray(data?.assessmentsHistory);
+  const historyRows = asArray(historyQuery.data).filter(
+    (item) => item && typeof item === 'object',
+  );
+  const dossierNotes = asArray(dossier?.notes);
+  const dossierInsights = asArray(dossier?.insights);
+  const dossierPlans = asArray(dossier?.plans);
+  const dossierReminders = asArray(dossier?.reminders);
+  const hasRenderableDossierData = Boolean(
+    String(candidate?.id || '').trim() ||
+      String(candidate?.name || '').trim() ||
+      String(dossier?.id || '').trim() ||
+      assessmentsHistory.length ||
+      dossierNotes.length ||
+      dossierInsights.length ||
+      dossierPlans.length ||
+      dossierReminders.length,
+  );
 
   const evolutionRows = useMemo(
-    () => profileEvolutionRows(data?.assessmentsHistory || []),
-    [data?.assessmentsHistory]
+    () => profileEvolutionRows(assessmentsHistory),
+    [assessmentsHistory]
   );
 
   useEffect(() => {
     if (!assessmentId || linkedAssessmentRef.current || !candidateId) return;
-    if (!data?.dossier) return;
+    if (!hasRenderableDossierData) return;
 
-    const alreadyLinked = (data?.dossier?.notes || []).some((note) =>
+    const alreadyLinked = dossierNotes.some((note) =>
       String(note?.content || '').includes(assessmentId)
     );
 
@@ -489,7 +526,8 @@ export default function Dossier() {
     apiBaseUrl,
     assessmentId,
     candidateId,
-    data?.dossier,
+    dossierNotes,
+    hasRenderableDossierData,
     workspaceId,
     access?.userId,
     queryClient,
@@ -986,57 +1024,73 @@ export default function Dossier() {
   }
 
   if (!candidateId) {
-    const rows = historyQuery.data || [];
     return (
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Selecione um avaliado</CardTitle>
+            <CardTitle>Nenhum dossiê selecionado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-slate-600">
-              Escolha um participante para abrir o Dossiê Comportamental.
+              Abra um relatório ou selecione um avaliado para visualizar o dossiê comportamental.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => navigate(createPageUrl('Dashboard'))}
+              >
+                Ir para Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
+                Minhas Avaliações
+              </Button>
+            </div>
             {historyQuery.isLoading ? (
               <div className="space-y-2">
                 <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
                 <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
                 <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
               </div>
-            ) : rows.length === 0 ? (
+            ) : historyRows.length ? (
+              <div className="space-y-2 pt-2">
+                {historyRows.map((item, index) => {
+                  const rowCandidateId = String(item?.candidateId || '').trim();
+                  const rowAssessmentId = String(item?.assessmentId || '').trim();
+                  return (
+                    <div
+                      key={`${rowCandidateId || 'candidate'}-${rowAssessmentId || String(index)}`}
+                      className="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {item?.candidateName || 'Participante'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {item?.candidateEmail || '-'} • Perfil {toUpperProfile(item?.profile)} •{' '}
+                          {formatDate(item?.createdAt)}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={!rowCandidateId || !rowAssessmentId}
+                        onClick={() =>
+                          navigate(
+                            `/Dossier?candidateId=${encodeURIComponent(
+                              rowCandidateId,
+                            )}&assessmentId=${encodeURIComponent(rowAssessmentId)}`,
+                          )
+                        }
+                      >
+                        Abrir dossiê
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
               <p className="text-sm text-slate-500">
                 Nenhum histórico de avaliação disponível para este workspace.
               </p>
-            ) : (
-              <div className="space-y-2">
-                {rows.map((item) => (
-                  <div
-                    key={`${item.candidateId}-${item.assessmentId}`}
-                    className="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {item.candidateName || 'Participante'}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">
-                        {item.candidateEmail || '-'} • Perfil {toUpperProfile(item.profile)} • {formatDate(item.createdAt)}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        navigate(
-                          `/Dossier?candidateId=${encodeURIComponent(
-                            item.candidateId,
-                          )}&assessmentId=${encodeURIComponent(item.assessmentId)}`,
-                        )
-                      }
-                    >
-                      Abrir dossiê
-                    </Button>
-                  </div>
-                ))}
-              </div>
             )}
           </CardContent>
         </Card>
@@ -1055,32 +1109,79 @@ export default function Dossier() {
   }
 
   if (dossierQuery.isError) {
+    const status = Number(dossierQuery.error?.status || 0);
     const errorCode = String(
       dossierQuery.error?.payload?.error || dossierQuery.error?.message || 'DOSSIER_FETCH_FAILED'
     ).toUpperCase();
+    const isNotFoundError =
+      status === 404 ||
+      errorCode.includes('CANDIDATE_NOT_FOUND') ||
+      errorCode.includes('DOSSIER_NOT_FOUND') ||
+      errorCode.includes('NOT_FOUND');
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Não foi possível carregar o Dossiê</CardTitle>
+            <CardTitle>{isNotFoundError ? 'Dossiê não encontrado' : 'Não foi possível carregar o Dossiê'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-slate-600">
-              {errorCode.includes('CANDIDATE_NOT_FOUND')
-                ? 'Avaliado não encontrado para o candidateId informado.'
+              {isNotFoundError
+                ? 'Não encontramos dados para os parâmetros informados.'
                 : errorCode.includes('DOSSIER_PRISMA_CLIENT_OUTDATED')
                   ? 'Backend com Prisma desatualizado. Execute prisma generate.'
                   : 'Falha ao buscar os dados do dossiê.'}
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => navigate(createPageUrl('Dashboard'))}
+              >
+                Voltar ao Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
+                Minhas Avaliações
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const candidate = data?.candidate || {};
-  const dossier = data?.dossier || {};
-  const overview = data?.overview || {};
+  if (!hasRenderableDossierData) {
+    devDossierLog('payload vazio para candidateId informado', {
+      candidateId,
+      assessmentId,
+      hasApiBaseUrl: Boolean(apiBaseUrl),
+      dataKeys: Object.keys(data || {}),
+    });
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle>Dossiê não encontrado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Não encontramos dados para os parâmetros informados.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => navigate(createPageUrl('Dashboard'))}
+              >
+                Voltar ao Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
+                Minhas Avaliações
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
@@ -1170,21 +1271,21 @@ export default function Dossier() {
               <CardTitle className="text-base">Timeline de avaliações</CardTitle>
             </CardHeader>
             <CardContent>
-              {(data?.assessmentsHistory || []).length === 0 ? (
+              {assessmentsHistory.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhuma avaliação vinculada ainda.</p>
               ) : (
                 <div className="space-y-3">
-                  {(data?.assessmentsHistory || []).map((item) => (
-                    <div key={item.id} className="rounded-xl border border-slate-200 p-3">
+                  {assessmentsHistory.map((item, index) => (
+                    <div key={String(item?.id || index)} className="rounded-xl border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div className="font-medium text-slate-900">
-                          {item.candidateName || candidate?.name || 'Avaliado'}
+                          {item?.candidateName || candidate?.name || 'Avaliado'}
                         </div>
-                        <Badge variant="outline">{toUpperProfile(item.profileKey)}</Badge>
+                        <Badge variant="outline">{toUpperProfile(item?.profileKey)}</Badge>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        Criada em {formatDateTime(item.createdAt)}
-                        {item.completedAt ? ` • Concluída em ${formatDateTime(item.completedAt)}` : ''}
+                        Criada em {formatDateTime(item?.createdAt)}
+                        {item?.completedAt ? ` • Concluída em ${formatDateTime(item?.completedAt)}` : ''}
                       </p>
                     </div>
                   ))}
@@ -1222,27 +1323,27 @@ export default function Dossier() {
               <CardTitle className="text-base">Histórico de anotações</CardTitle>
             </CardHeader>
             <CardContent>
-              {(dossier?.notes || []).length === 0 ? (
+              {dossierNotes.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhuma anotação registrada.</p>
               ) : (
                 <div className="space-y-3">
-                  {(dossier?.notes || []).map((note) => (
-                    <div key={note.id} className="rounded-xl border border-slate-200 p-3 bg-white">
+                  {dossierNotes.map((note, index) => (
+                    <div key={String(note?.id || index)} className="rounded-xl border border-slate-200 p-3 bg-white">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{note.content}</p>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{note?.content || ''}</p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={deletingItemKey === `note:${note.id}`}
-                          onClick={() => deleteRecord('note', note.id)}
+                          disabled={deletingItemKey === `note:${note?.id}`}
+                          onClick={() => deleteRecord('note', note?.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Apagar
                         </Button>
                       </div>
-                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(note.createdAt)}</p>
+                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(note?.createdAt)}</p>
                     </div>
                   ))}
                 </div>
@@ -1279,27 +1380,27 @@ export default function Dossier() {
               <CardTitle className="text-base">Insights estratégicos</CardTitle>
             </CardHeader>
             <CardContent>
-              {(dossier?.insights || []).length === 0 ? (
+              {dossierInsights.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhum insight registrado.</p>
               ) : (
                 <div className="space-y-3">
-                  {(dossier?.insights || []).map((insight) => (
-                    <div key={insight.id} className="rounded-xl border border-slate-200 p-3 bg-white">
+                  {dossierInsights.map((insight, index) => (
+                    <div key={String(insight?.id || index)} className="rounded-xl border border-slate-200 p-3 bg-white">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{insight.insight}</p>
+                        <p className="text-sm text-slate-800 whitespace-pre-wrap">{insight?.insight || ''}</p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={deletingItemKey === `insight:${insight.id}`}
-                          onClick={() => deleteRecord('insight', insight.id)}
+                          disabled={deletingItemKey === `insight:${insight?.id}`}
+                          onClick={() => deleteRecord('insight', insight?.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Apagar
                         </Button>
                       </div>
-                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(insight.createdAt)}</p>
+                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(insight?.createdAt)}</p>
                     </div>
                   ))}
                 </div>
@@ -1341,28 +1442,28 @@ export default function Dossier() {
               <CardTitle className="text-base">Planos ativos</CardTitle>
             </CardHeader>
             <CardContent>
-              {(dossier?.plans || []).length === 0 ? (
+              {dossierPlans.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhum plano cadastrado.</p>
               ) : (
                 <div className="space-y-3">
-                  {(dossier?.plans || []).map((plan) => (
-                    <div key={plan.id} className="rounded-xl border border-slate-200 p-3">
+                  {dossierPlans.map((plan, index) => (
+                    <div key={String(plan?.id || index)} className="rounded-xl border border-slate-200 p-3">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-medium text-slate-900">{plan.goal}</p>
+                        <p className="font-medium text-slate-900">{plan?.goal || ''}</p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={deletingItemKey === `plan:${plan.id}`}
-                          onClick={() => deleteRecord('plan', plan.id)}
+                          disabled={deletingItemKey === `plan:${plan?.id}`}
+                          onClick={() => deleteRecord('plan', plan?.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Apagar
                         </Button>
                       </div>
-                      <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{plan.description}</p>
-                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(plan.createdAt)}</p>
+                      <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{plan?.description || ''}</p>
+                      <p className="text-xs text-slate-500 mt-2">{formatDateTime(plan?.createdAt)}</p>
                     </div>
                   ))}
                 </div>
@@ -1404,14 +1505,14 @@ export default function Dossier() {
               <CardTitle className="text-base">Próximas reavaliações</CardTitle>
             </CardHeader>
             <CardContent>
-              {(dossier?.reminders || []).length === 0 ? (
+              {dossierReminders.length === 0 ? (
                 <p className="text-sm text-slate-500">Nenhum lembrete programado.</p>
               ) : (
                 <div className="space-y-3">
-                  {(dossier?.reminders || []).map((reminder) => (
-                    <div key={reminder.id} className="rounded-xl border border-slate-200 p-3">
+                  {dossierReminders.map((reminder, index) => (
+                    <div key={String(reminder?.id || index)} className="rounded-xl border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <p className="font-medium text-slate-900">{formatDateTime(reminder.date)}</p>
+                        <p className="font-medium text-slate-900">{formatDateTime(reminder?.date)}</p>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">Agendado</Badge>
                           <Button
@@ -1419,16 +1520,16 @@ export default function Dossier() {
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={deletingItemKey === `reminder:${reminder.id}`}
-                            onClick={() => deleteRecord('reminder', reminder.id)}
+                            disabled={deletingItemKey === `reminder:${reminder?.id}`}
+                            onClick={() => deleteRecord('reminder', reminder?.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
                             Apagar
                           </Button>
                         </div>
                       </div>
-                      <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{reminder.note}</p>
-                      <p className="text-xs text-slate-500 mt-2">Criado em {formatDateTime(reminder.createdAt)}</p>
+                      <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{reminder?.note || ''}</p>
+                      <p className="text-xs text-slate-500 mt-2">Criado em {formatDateTime(reminder?.createdAt)}</p>
                     </div>
                   ))}
                 </div>

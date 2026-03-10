@@ -491,6 +491,15 @@ export default function Report() {
     if (status === 404 || reason.includes('CANNOT GET') || reason.includes('NOT_FOUND')) {
       return 'Endpoint de PDF indisponível no backend. Verifique o deploy da API.';
     }
+    if (reason.includes('PDF_FOLLOW_UP_LOOP')) {
+      return 'URL de download inválida retornada pelo backend.';
+    }
+    if (reason.includes('PDF_INVALID_CONTENT_TYPE') || reason.includes('PDF_JSON_RESPONSE')) {
+      return 'Resposta inválida ao baixar PDF. Tente novamente em instantes.';
+    }
+    if (message && /<html|<!doctype/i.test(message)) {
+      return 'Resposta inválida ao baixar PDF. Tente novamente em instantes.';
+    }
     if (message) return message;
     return fallback;
   };
@@ -503,8 +512,32 @@ export default function Report() {
     return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
   };
 
-  const fetchPdfEndpoint = async (endpoint, depth = 0) => {
-    const response = await fetch(endpoint, {
+  const extractPdfFollowUpUrl = (payload = {}) => {
+    const safePayload = payload && typeof payload === 'object' ? payload : {};
+    return toApiAbsoluteUrl(
+      safePayload?.pdfUrl ||
+        safePayload?.pdfPath ||
+        safePayload?.report?.pdfUrl ||
+        safePayload?.report?.pdfPath ||
+        ''
+    );
+  };
+
+  const fetchPdfEndpoint = async (endpoint, depth = 0, visited = new Set()) => {
+    const normalizedEndpoint = String(endpoint || '').trim();
+    if (!normalizedEndpoint) {
+      const error = new Error('PDF_ENDPOINT_REQUIRED');
+      error.status = 400;
+      throw error;
+    }
+    if (visited.has(normalizedEndpoint) || depth > 4) {
+      const error = new Error('PDF_FOLLOW_UP_LOOP');
+      error.status = 500;
+      throw error;
+    }
+    visited.add(normalizedEndpoint);
+
+    const response = await fetch(normalizedEndpoint, {
       method: 'GET',
       headers: {
         ...getApiAuthHeaders(),
@@ -513,7 +546,7 @@ export default function Report() {
     const contentType = String(response.headers.get('content-type') || '').toLowerCase();
 
     console.info('[Report] pdf endpoint response', {
-      endpoint,
+      endpoint: normalizedEndpoint,
       status: response.status,
       contentType,
     });
@@ -534,13 +567,13 @@ export default function Report() {
 
     if (contentType.includes('application/json')) {
       const payload = await response.json().catch(() => ({}));
-      const nextPdfUrl = toApiAbsoluteUrl(payload?.pdfUrl || payload?.pdfPath || '');
-      if (nextPdfUrl && depth < 2) {
+      const nextPdfUrl = extractPdfFollowUpUrl(payload);
+      if (nextPdfUrl && depth < 4) {
         console.info('[Report] pdf endpoint returned JSON with pdfUrl, retrying', {
           nextPdfUrl,
           depth,
         });
-        return fetchPdfEndpoint(nextPdfUrl, depth + 1);
+        return fetchPdfEndpoint(nextPdfUrl, depth + 1, visited);
       }
       const error = new Error(payload?.reason || payload?.error || 'PDF_JSON_RESPONSE');
       error.status = response.status;
@@ -606,7 +639,13 @@ export default function Report() {
       return;
     } catch (error) {
       const status = Number(error?.status || 0);
-      if (status !== 404 && status !== 405) {
+      const reason = String(error?.message || '').toUpperCase();
+      const shouldTryFallback =
+        status === 404 ||
+        status === 405 ||
+        reason.includes('PDF_INVALID_CONTENT_TYPE') ||
+        reason.includes('PDF_JSON_RESPONSE');
+      if (!shouldTryFallback) {
         throw error;
       }
     }
@@ -625,7 +664,9 @@ export default function Report() {
       },
     });
 
-    const generatedPdfUrl = String(generated?.pdfUrl || generated?.report?.pdfUrl || '').trim();
+    const generatedPdfUrl = String(
+      generated?.pdfUrl || generated?.pdfPath || generated?.report?.pdfUrl || generated?.report?.pdfPath || ''
+    ).trim();
     const regeneratedEndpoint = generatedPdfUrl ? toApiAbsoluteUrl(generatedPdfUrl) : endpoint;
     console.info('[Report] regeneration payload', {
       assessmentId,

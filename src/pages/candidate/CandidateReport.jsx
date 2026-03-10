@@ -170,6 +170,9 @@ export default function CandidateReport() {
     if (code.includes('PDF_UNAVAILABLE') || code.includes('PDF_BY_TOKEN_FAILED') || code.includes('ENOENT')) {
       return 'Não foi possível gerar o PDF agora. Tente novamente em instantes.';
     }
+    if (code.includes('PDF_FOLLOW_UP_LOOP')) {
+      return 'A URL de download retornada está inválida.';
+    }
 
     return 'Não foi possível baixar o PDF agora. Tente novamente em instantes.';
   };
@@ -190,14 +193,32 @@ export default function CandidateReport() {
     });
   };
 
-  const downloadPdfFromUrl = async (url, fileName) => {
-    const response = await fetch(url, {
+  const extractPdfFollowUpUrl = (payload = {}) =>
+    resolvePdfUrl(
+      payload?.pdfUrl ||
+        payload?.pdfPath ||
+        payload?.report?.pdfUrl ||
+        payload?.report?.pdfPath ||
+        '',
+    );
+
+  const downloadPdfFromUrl = async (url, fileName, depth = 0, visited = new Set()) => {
+    const normalizedUrl = String(url || '').trim();
+    if (!normalizedUrl) {
+      throw new Error('PDF_URL_REQUIRED');
+    }
+    if (visited.has(normalizedUrl) || depth > 4) {
+      throw new Error('PDF_FOLLOW_UP_LOOP');
+    }
+    visited.add(normalizedUrl);
+
+    const response = await fetch(normalizedUrl, {
       method: 'GET',
       credentials: 'omit',
     });
     const contentType = String(response.headers.get('content-type') || '').toLowerCase();
     console.info('[CandidateReport] pdf response', {
-      url,
+      url: normalizedUrl,
       status: response.status,
       contentType,
     });
@@ -218,12 +239,12 @@ export default function CandidateReport() {
 
     if (contentType.includes('application/json')) {
       const payload = await response.json().catch(() => ({}));
-      const followUpUrl = resolvePdfUrl(payload?.pdfUrl || payload?.pdfPath || '');
-      if (followUpUrl && followUpUrl !== url) {
+      const followUpUrl = extractPdfFollowUpUrl(payload);
+      if (followUpUrl && !visited.has(followUpUrl)) {
         console.info('[CandidateReport] JSON payload with follow-up PDF URL', {
           followUpUrl,
         });
-        return downloadPdfFromUrl(followUpUrl, fileName);
+        return downloadPdfFromUrl(followUpUrl, fileName, depth + 1, visited);
       }
       const error = new Error(payload?.reason || payload?.error || 'PDF_JSON_RESPONSE');
       error.payload = payload;
@@ -418,7 +439,7 @@ export default function CandidateReport() {
       { method: 'GET' }
     );
 
-    const resolvedPdfUrl = resolvePdfUrl(payload?.pdfUrl || payload?.pdfPath || '');
+    const resolvedPdfUrl = extractPdfFollowUpUrl(payload);
     if (!resolvedPdfUrl) {
       throw new Error('PDF indisponível no momento.');
     }
