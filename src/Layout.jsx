@@ -53,6 +53,8 @@ const PAGE_TITLES = {
   BrandingSettings: { title: 'Marca', subtitle: 'Configuração white-label do workspace' },
   AdminDashboard: { title: 'Admin Console', subtitle: 'Gestão global da plataforma' },
   TeamMapping: { title: 'Mapeamento de Equipes', subtitle: 'Dinâmica e distribuição comportamental' },
+  CompareProfiles: { title: 'Comparar Perfis', subtitle: 'Comparação DISC entre avaliações selecionadas' },
+  TeamMap: { title: 'Mapa de Equipes', subtitle: 'Distribuição coletiva dos fatores comportamentais' },
   JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
   SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },

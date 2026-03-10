@@ -21,8 +21,6 @@ import AnswerFeedback from '@/components/disc/AnswerFeedback';
 import { FULL_QUESTION_BANK, calculateDISCResults } from '@/components/disc/discEngine';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
-import { useAuth } from '@/lib/AuthContext';
-import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const DRAFT_KEY = (id) => `disc_draft_${id}`;
 const QUICK_CONTEXT_STEP_KEY = (id) => `disc_quick_context_done_${id}`;
@@ -98,14 +96,12 @@ export default function PremiumAssessment() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { access } = useAuth();
 
   const token = searchParams.get('token');
   const prefetchedId = searchParams.get('assessment_id');
   const resumeMode = searchParams.get('resume') === '1';
   const queryAnsweredCount = Number(searchParams.get('answeredCount') || 0);
   const apiBaseUrl = getApiBaseUrl();
-  const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -313,10 +309,43 @@ export default function PremiumAssessment() {
 
   const initAssessment = async () => {
     try {
-      if (apiBaseUrl && hasSuperAdminBypass) {
+      if (apiBaseUrl) {
+        if (token) {
+          try {
+            const validationPayload = await apiRequest(
+              `/assessment/validate-token?token=${encodeURIComponent(token)}`,
+              { method: 'GET' },
+            );
+            const resolvedAssessmentId = validationPayload?.assessment?.id || '';
+            if (resolvedAssessmentId) {
+              setAssessmentId(resolvedAssessmentId);
+              return;
+            }
+          } catch {
+            // Fallback below: some tokens can be used/legacy but still resolvable via report endpoint.
+          }
+
+          try {
+            const reportPayload = await apiRequest(
+              `/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+              { method: 'GET' },
+            );
+            const resolvedAssessmentId = reportPayload?.assessment?.id || '';
+            if (resolvedAssessmentId) {
+              setAssessmentId(resolvedAssessmentId);
+              return;
+            }
+          } catch {
+            // Handled with friendly initError below.
+          }
+
+          setInitError('Não foi possível validar o link da avaliação.');
+          return;
+        }
+
         const apiToken = getApiToken();
         if (!apiToken) {
-          setInitError('Sessão do super admin não encontrada. Faça login novamente.');
+          setInitError('Sessão não encontrada. Faça login novamente para iniciar sua avaliação.');
           return;
         }
 
@@ -328,10 +357,12 @@ export default function PremiumAssessment() {
           throw new Error('Falha ao iniciar autoavaliação interna.');
         }
 
+        const assessmentPath = location.pathname.startsWith('/c')
+          ? '/c/assessment'
+          : createPageUrl('PremiumAssessment');
+
         navigate(
-          `${createPageUrl('PremiumAssessment')}?token=${encodeURIComponent(
-            payload.token,
-          )}&self=1&from=dashboard`,
+          `${assessmentPath}?token=${encodeURIComponent(payload.token)}&self=1&from=assessment`,
           { replace: true },
         );
         return;

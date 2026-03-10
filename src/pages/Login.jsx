@@ -45,11 +45,11 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
-  const isDev = import.meta.env.DEV;
+  const isDev = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || "").toLowerCase() === "true";
   const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
   const isE2ERuntime = runtimeMode.startsWith('e2e');
   const canUseMockAuth = isDev && ENABLE_DEV_LOGIN_SHORTCUTS;
-  const canShowDevMockShortcuts = canUseMockAuth && !isE2ERuntime;
+  const canShowDevMockShortcuts = isDev && String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || "").toLowerCase() === "true";
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -24,6 +24,8 @@ import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
+import CompareProfiles from '@/pages/CompareProfiles';
+import TeamMap from '@/pages/TeamMap';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -129,6 +131,29 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
+      <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
+
+      <Route
+        path="/compare"
+        element={
+          <ProtectedRoute pageName="CompareProfiles" policy={getPagePolicy('CompareProfiles')}>
+            <LayoutWrapper currentPageName="CompareProfiles">
+              <CompareProfiles />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/team-map"
+        element={
+          <ProtectedRoute pageName="TeamMap" policy={getPagePolicy('TeamMap')}>
+            <LayoutWrapper currentPageName="TeamMap">
+              <TeamMap />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
       {APP_ALIAS_ROUTES.map(({ path, pageName }) =>

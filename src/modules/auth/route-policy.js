@@ -106,6 +106,20 @@ const PAGE_POLICIES = Object.freeze({
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
   },
+  CompareProfiles: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  TeamMap: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
   SuperAdminDashboard: {
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN],
   },

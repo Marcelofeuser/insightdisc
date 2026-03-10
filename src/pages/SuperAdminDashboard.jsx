@@ -694,7 +694,7 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table data-testid="super-admin-reports-table" className="w-full text-sm">
                 <thead className="text-left text-slate-500 border-b">
                   <tr>
                     <th className="py-2 pr-3">Nome</th>

@@ -18,6 +18,9 @@ import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
 import anamnesisRoutes from './routes/anamnesis.routes.js';
 import campaignsRoutes from './routes/campaigns.routes.js';
+import profileComparisonRoutes from './routes/profile-comparison.routes.js';
+import teamMapRoutes from './routes/team-map.routes.js';
+import checkoutRoutes from './routes/checkout.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +54,9 @@ export function createApp() {
   app.use('/api/dossier', dossierRoutes);
   app.use('/api/anamnesis', anamnesisRoutes);
   app.use('/api/campaigns', campaignsRoutes);
+  app.use('/api/profile-comparison', profileComparisonRoutes);
+  app.use('/api/team-map', teamMapRoutes);
+  app.use('/api/checkout', checkoutRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -104,6 +110,12 @@ export function createApp() {
         campaignRedeem: 'POST /api/campaigns/redeem',
         campaignOverview: 'GET /api/campaigns/overview',
         campaignCreate: 'POST /api/campaigns',
+        profileComparisonAssessments: 'GET /api/profile-comparison/assessments',
+        profileComparisonCompare: 'POST /api/profile-comparison/compare',
+        teamMapAssessments: 'GET /api/team-map/assessments',
+        teamMapAnalyze: 'POST /api/team-map/analyze',
+        checkoutProducts: 'GET /api/checkout/products',
+        checkoutCreate: 'POST /api/checkout/create',
         superAdminLogin: 'POST /auth/super-admin-login',
         superAdminSession: 'GET /auth/super-admin/me',
         superAdminOverview: 'GET /super-admin/overview',
