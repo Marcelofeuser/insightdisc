@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
+import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -44,6 +45,7 @@ export default function MyAssessments() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [isStartingSelfAssessment, setIsStartingSelfAssessment] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -171,6 +173,32 @@ export default function MyAssessments() {
 
   const controls = (
     <>
+      <Button
+        type="button"
+        onClick={async () => {
+          if (isStartingSelfAssessment) return;
+          setIsStartingSelfAssessment(true);
+          try {
+            await startSelfAssessment({
+              apiBaseUrl,
+              navigate,
+              access: authAccess,
+              source: 'my-assessments',
+            });
+          } catch (error) {
+            // eslint-disable-next-line no-alert
+            alert(error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.');
+          } finally {
+            setIsStartingSelfAssessment(false);
+          }
+        }}
+        className="bg-slate-900 hover:bg-slate-800"
+        data-testid="my-assessments-new-assessment-btn"
+        disabled={isStartingSelfAssessment}
+      >
+        {isStartingSelfAssessment ? 'Iniciando...' : 'Nova Avaliação'}
+      </Button>
+
       <div className="relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <Input
@@ -216,8 +244,24 @@ export default function MyAssessments() {
             icon={FileText}
             title="Nenhuma avaliação encontrada"
             description="Ajuste os filtros ou inicie uma nova avaliação."
-            ctaLabel="Iniciar avaliação"
-            onCtaClick={() => navigate(createPageUrl('StartFree'))}
+            ctaLabel="Nova Avaliação"
+            onCtaClick={async () => {
+              if (isStartingSelfAssessment) return;
+              setIsStartingSelfAssessment(true);
+              try {
+                await startSelfAssessment({
+                  apiBaseUrl,
+                  navigate,
+                  access: authAccess,
+                  source: 'my-assessments-empty',
+                });
+              } catch (error) {
+                // eslint-disable-next-line no-alert
+                alert(error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.');
+              } finally {
+                setIsStartingSelfAssessment(false);
+              }
+            }}
           />
         ) : (
           <Table>

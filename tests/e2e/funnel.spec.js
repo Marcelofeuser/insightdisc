@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { loginAsAdmin, loginAsProfessional, loginAsUser } from './helpers/auth';
+import { loginAsAdmin, loginAsProfessional, loginAsSuperAdmin, loginAsUser } from './helpers/auth';
+
+const IS_API_MODE = String(process.env.PW_ENABLE_API_MODE || '').trim().toLowerCase() === 'true';
 
 test('Visitante público não acessa dashboard premium', async ({ page }) => {
   await page.goto('/Dashboard');
@@ -109,7 +111,76 @@ test('Fazer minha avaliação inicia fluxo de autoavaliação', async ({ page })
   await loginAsProfessional(page);
   await page.goto('/Dashboard');
   await page.getByTestId('dashboard-self-assessment-btn').click();
+  if (IS_API_MODE) {
+    await expect(page).toHaveURL(/\/c\/assessment\?token=/);
+    return;
+  }
   await expect(page).toHaveURL(/\/PremiumAssessment|\/c\/assessment/);
+});
+
+test('Super admin sempre consegue iniciar autoavaliação', async ({ page }) => {
+  await loginAsSuperAdmin(page);
+  await page.goto('/Dashboard');
+  await page.getByTestId('dashboard-self-assessment-btn').click();
+  await expect(page).toHaveURL(/\/PremiumAssessment|\/c\/assessment/);
+});
+
+test('Token válido carrega fluxo de avaliação sem redirecionar para login', async ({ page }) => {
+  test.skip(!IS_API_MODE, 'Validação de token é coberta no modo API.');
+  await loginAsProfessional(page);
+
+  await page.route('**/assessment/validate-token*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        valid: true,
+        reason: 'VALID',
+        assessment: {
+          id: 'asm-e2e-token-valid',
+          status: 'IN_PROGRESS',
+          candidateEmail: 'pro@example.com',
+          candidateName: 'Profissional E2E',
+        },
+      }),
+    });
+  });
+  await page.route('**/assessment/report-by-token*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        assessment: {
+          id: 'asm-e2e-token-valid',
+          candidateName: 'Profissional E2E',
+          candidateEmail: 'pro@example.com',
+        },
+        answers: [],
+      }),
+    });
+  });
+
+  await page.goto('/PremiumAssessment?token=tok-e2e-valid', { waitUntil: 'domcontentloaded' });
+  await expect(page).not.toHaveURL(/\/Login(?:\?|$)/);
+  await expect(page.getByText(/Contexto Pessoal \(Opcional\)|Pergunta 1 de 40/i).first()).toBeVisible();
+});
+
+test('Usuário sem créditos vai para checkout ao iniciar autoavaliação (API)', async ({ page }) => {
+  test.skip(!IS_API_MODE, 'Fluxo de créditos depende do modo API.');
+
+  await loginAsProfessional(page);
+  await page.route('**/assessment/credits', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, credits: 0, isSuperAdmin: false }),
+    });
+  });
+
+  await page.goto('/Dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('dashboard-self-assessment-btn').click();
+  await expect(page).toHaveURL(/\/checkout(?:\?|$)/);
 });
 
 test('CheckoutSuccess mock mantém página estável e abre fluxo público quando solicitado', async ({ page }) => {

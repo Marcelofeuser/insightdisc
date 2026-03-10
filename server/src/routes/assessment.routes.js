@@ -325,6 +325,38 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
   }
 });
 
+router.get('/credits', requireAuth, attachUser, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.auth.userId },
+      select: {
+        id: true,
+        role: true,
+        credits: {
+          select: { balance: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
+    }
+
+    const isSuperAdmin = isSuperAdminUser(user);
+    const credits = isSuperAdmin ? 999999 : getUserCreditsBalance(user);
+    return res.status(200).json({
+      ok: true,
+      credits: Number(credits || 0),
+      isSuperAdmin,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      ok: false,
+      error: error?.message || 'ASSESSMENT_CREDITS_FAILED',
+    });
+  }
+});
+
 router.get('/validate-token', async (req, res) => {
   try {
     const token = String(req.query.token || '').trim();

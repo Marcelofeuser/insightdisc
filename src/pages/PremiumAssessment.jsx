@@ -21,6 +21,7 @@ import AnswerFeedback from '@/components/disc/AnswerFeedback';
 import { FULL_QUESTION_BANK, calculateDISCResults } from '@/components/disc/discEngine';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 
 const DRAFT_KEY = (id) => `disc_draft_${id}`;
 const QUICK_CONTEXT_STEP_KEY = (id) => `disc_quick_context_done_${id}`;
@@ -96,6 +97,7 @@ export default function PremiumAssessment() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { access: authAccess, user: authUser } = useAuth();
 
   const token = searchParams.get('token');
   const prefetchedId = searchParams.get('assessment_id');
@@ -171,7 +173,7 @@ export default function PremiumAssessment() {
         }
       }
 
-      if (existingAnswers.length === 0) {
+      if (!apiBaseUrl && existingAnswers.length === 0) {
         try {
           const local = await base44.entities.Assessment.filter({ id: assessmentId });
           if (local?.length) {
@@ -368,14 +370,32 @@ export default function PremiumAssessment() {
         return;
       }
 
-      const isAuth = await base44.auth.isAuthenticated();
-      if (!isAuth) {
-        base44.auth.redirectToLogin(window.location.href);
+      const fallbackUserId =
+        authAccess?.userId ||
+        authUser?.id ||
+        authUser?.email ||
+        (typeof window !== 'undefined'
+          ? String(window.localStorage.getItem('disc_mock_user_email') || '').trim()
+          : '') ||
+        null;
+
+      let resolvedUserId = fallbackUserId;
+      if (!resolvedUserId) {
+        try {
+          const currentUser = await base44.auth.me();
+          resolvedUserId = currentUser?.id || currentUser?.email || null;
+        } catch {
+          resolvedUserId = null;
+        }
+      }
+
+      if (!resolvedUserId) {
+        setInitError('Sessão não encontrada. Faça login novamente para iniciar sua avaliação.');
         return;
       }
-      const user = await base44.auth.me();
+
       const assessment = await base44.entities.Assessment.create({
-        user_id: user.id,
+        user_id: resolvedUserId,
         type: 'premium',
         status: 'in_progress',
         access_token: token || null,
@@ -401,7 +421,11 @@ export default function PremiumAssessment() {
     const results = calculateDISCResults(answerList, questions);
 
     try {
-      if (apiBaseUrl && token) {
+      if (apiBaseUrl) {
+        if (!token) {
+          throw new Error('TOKEN_REQUIRED_FOR_API_SUBMIT');
+        }
+
         const payload = await apiRequest('/assessment/submit', {
           method: 'POST',
           body: {

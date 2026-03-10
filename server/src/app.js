@@ -70,6 +70,7 @@ export function createApp() {
         createAssessment: 'POST /assessments/create',
         generateLink: 'POST /assessments/generate-link',
         validateToken: 'GET /assessment/validate-token?token=...',
+        assessmentCredits: 'GET /assessment/credits',
         reportPdfByToken: 'GET /assessment/report-pdf-by-token?token=...',
         consumeInvite: 'POST /assessment/consume',
         submitAssessment: 'POST /assessment/submit',

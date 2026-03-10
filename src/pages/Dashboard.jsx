@@ -18,6 +18,7 @@ import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
+import { startSelfAssessment } from '@/utils/assessmentFlow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,6 +130,7 @@ export default function Dashboard() {
   const canManageAssessments = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
   const canViewCredits = hasPermission(access, PERMISSIONS.CREDIT_VIEW) || hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
   const canManageCredits = hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
+  const canExploreTeamFeatures = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
   const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   const { data: assessments = [], isLoading } = useQuery({
@@ -189,43 +191,16 @@ export default function Dashboard() {
 
   const handleStartSelfAssessment = async () => {
     if (isStartingSelfAssessment) return;
-    if (hasSuperAdminBypass) {
-      navigate(createPageUrl('PremiumAssessment'));
-      return;
-    }
-
-    const hasApiToken = Boolean(getApiToken());
-    if (apiBaseUrl && base44?.__isMock && !hasApiToken) {
-      navigate(createPageUrl('PremiumAssessment'));
-      return;
-    }
-
-    if (!apiBaseUrl) {
-      navigate(createPageUrl('PremiumAssessment'));
-      return;
-    }
-
-    if (Number(workspace?.credits_balance || 0) < 1) {
-      navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
-      return;
-    }
 
     setIsStartingSelfAssessment(true);
     try {
-      const payload = await apiRequest('/assessment/self/start', {
-        method: 'POST',
-        requireAuth: true,
+      await startSelfAssessment({
+        apiBaseUrl,
+        navigate,
+        access: authAccess,
+        source: 'dashboard',
       });
-      if (!payload?.token) {
-        throw new Error('Falha ao iniciar autoavaliação.');
-      }
-
-      navigate(`/c/assessment?token=${encodeURIComponent(payload.token)}&self=1&from=dashboard`);
     } catch (error) {
-      if (Number(error?.status) === 402) {
-        navigate(`${createPageUrl('Pricing')}?unlock=1&reason=no_credits`, { replace: false });
-        return;
-      }
       // eslint-disable-next-line no-alert
       alert(error?.payload?.message || error?.message || 'Não foi possível iniciar sua avaliação.');
     } finally {
@@ -349,8 +324,26 @@ export default function Dashboard() {
               </Button>
             </Link>
 
-            {canManageCredits ? (
-              <Link to={createPageUrl('Pricing')}>
+            {canExploreTeamFeatures ? (
+              <Link to="/compare-profiles">
+                <Button variant="outline" className="w-full">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Comparar Perfis
+                </Button>
+              </Link>
+            ) : null}
+
+            {canExploreTeamFeatures ? (
+              <Link to="/team-map">
+                <Button variant="outline" className="w-full">
+                  <Users className="w-4 h-4 mr-2" />
+                  Mapa de Equipes
+                </Button>
+              </Link>
+            ) : null}
+
+            {canViewCredits || canManageCredits ? (
+              <Link to="/checkout">
                 <Button variant="outline" className="w-full">
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Comprar Créditos
