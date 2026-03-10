@@ -306,7 +306,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+    <div className="w-full min-w-0 max-w-6xl mx-auto px-6 py-8 space-y-6">
       <section className="space-y-1">
         <h2 className="text-2xl font-bold text-slate-900">Visão geral</h2>
         <p className="text-sm text-slate-500">Resumo operacional da sua conta DISC SaaS</p>

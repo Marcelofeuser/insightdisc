@@ -25,13 +25,18 @@ const defaultModeIgnore = [
   '**/audit-api-authorization.spec.js',
   '**/audit-auth-routes.spec.js',
 ];
+const configuredWorkers = Number(process.env.PW_WORKERS || '');
+const resolvedWorkers =
+  Number.isFinite(configuredWorkers) && configuredWorkers > 0
+    ? configuredWorkers
+    : 1;
 
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: isApiMode ? baseTestIgnore : [...baseTestIgnore, ...defaultModeIgnore],
   timeout: 60_000,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 1 : undefined,
+  workers: resolvedWorkers,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report' }],

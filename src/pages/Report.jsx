@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import { ArrowLeft, Download, FileSpreadsheet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -84,12 +85,14 @@ async function exportLocalPdfFromHtml(html, fileName) {
 export default function Report() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   const [assessment, setAssessment] = useState(null);
   const [remoteReportHtml, setRemoteReportHtml] = useState('');
   const [remoteReportError, setRemoteReportError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
+  const [isAddingToDossier, setIsAddingToDossier] = useState(false);
   const [exportError, setExportError] = useState('');
   const { access: authAccess } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
@@ -154,6 +157,10 @@ export default function Report() {
                 setAssessment({
                   ...matched,
                   id: matched?.assessmentId || matched?.id,
+                  organizationId:
+                    reportDataPayload?.assessment?.organizationId ||
+                    matched?.organizationId ||
+                    '',
                   workspace_credits: Number(authAccess?.user?.credits ?? 0),
                 });
                 setIsLoading(false);
@@ -386,27 +393,94 @@ export default function Report() {
     : Boolean(remoteReportHtml || reportModel);
 
   const handleAddToDossier = () => {
-    const assessmentId = resolveAssessmentId();
-    if (!assessmentId) {
-      setExportError('Não foi possível abrir o dossiê: avaliação sem identificação válida.');
-      return;
-    }
-    if (!dossierCandidateId) {
-      setExportError('Este avaliado ainda não está vinculado a um usuário para abrir o dossiê.');
-      return;
-    }
+    const openLinkedDossier = (candidateId, assessmentId) => {
+      const params = new URLSearchParams({
+        candidateId,
+        assessmentId,
+      });
+      navigate(`/Dossier?${params.toString()}`);
+    };
 
-    trackEvent('dossier_cta_click', {
-      source: 'report_header_action',
-      path: '/dossie-comportamental',
-      assessmentId,
-    });
+    const run = async () => {
+      const assessmentId = resolveAssessmentId();
+      if (!assessmentId) {
+        setExportError('Não foi possível abrir o dossiê: avaliação sem identificação válida.');
+        return;
+      }
 
-    const params = new URLSearchParams({
-      candidateId: dossierCandidateId,
-      assessmentId,
-    });
-    navigate(`/Dossier?${params.toString()}`);
+      trackEvent('dossier_cta_click', {
+        source: 'report_header_action',
+        path: '/dossie-comportamental',
+        assessmentId,
+      });
+
+      if (!apiBaseUrl) {
+        if (!dossierCandidateId) {
+          setExportError('Este avaliado ainda não está vinculado a um usuário para abrir o dossiê.');
+          return;
+        }
+        setExportError('');
+        openLinkedDossier(dossierCandidateId, assessmentId);
+        return;
+      }
+
+      setIsAddingToDossier(true);
+      setExportError('');
+
+      try {
+        const payload = await apiRequest('/api/dossier/add', {
+          method: 'POST',
+          requireAuth: true,
+          body: {
+            assessmentId,
+            candidateId: dossierCandidateId || undefined,
+            workspaceId:
+              assessment?.organizationId ||
+              authAccess?.tenantId ||
+              authAccess?.workspaceId ||
+              authAccess?.user?.active_workspace_id ||
+              '',
+          },
+        });
+
+        const resolvedCandidateId = String(
+          payload?.candidate?.id ||
+            payload?.assessment?.candidateId ||
+            dossierCandidateId ||
+            '',
+        ).trim();
+
+        if (!resolvedCandidateId) {
+          throw new Error('CANDIDATE_ID_REQUIRED');
+        }
+
+        toast({
+          title: payload?.alreadyLinked ? 'Dossiê já atualizado' : 'Avaliação adicionada ao Dossiê',
+          description: payload?.alreadyLinked
+            ? 'A avaliação já estava vinculada a este dossiê.'
+            : 'A avaliação foi vinculada com sucesso.',
+        });
+
+        openLinkedDossier(resolvedCandidateId, assessmentId);
+      } catch (error) {
+        const reason = String(error?.payload?.error || error?.message || '').toUpperCase();
+        const nextMessage =
+          reason.includes('ASSESSMENT_ID_REQUIRED')
+            ? 'Não foi possível vincular ao dossiê: assessmentId ausente.'
+            : reason.includes('CANDIDATE_NOT_FOUND') || reason.includes('CANDIDATE_ID_REQUIRED')
+              ? 'Não foi possível localizar o avaliado para vincular este relatório ao dossiê.'
+              : reason.includes('ASSESSMENT_NOT_FOUND')
+                ? 'Não foi possível localizar a avaliação para vincular ao dossiê.'
+                : reason.includes('ASSESSMENT_CANDIDATE_MISMATCH')
+                  ? 'Esta avaliação já está vinculada a outro avaliado.'
+                  : 'Não foi possível adicionar este relatório ao dossiê agora.';
+        setExportError(nextMessage);
+      } finally {
+        setIsAddingToDossier(false);
+      }
+    };
+
+    run();
   };
 
   const exportCSV = (sectionName, rows) => {
@@ -738,7 +812,7 @@ export default function Report() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="w-full min-w-0 min-h-[60vh] flex items-center justify-center bg-slate-50">
         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -751,7 +825,7 @@ export default function Report() {
       : remoteReportError || 'O assessment não possui dados suficientes para gerar o relatório premium.';
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="w-full min-w-0 min-h-[60vh] flex items-center justify-center bg-slate-50 p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-4">{title}</h1>
           {message && <p className="text-slate-500 mb-4">{message}</p>}
@@ -764,7 +838,7 @@ export default function Report() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-w-0 bg-slate-50">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -795,9 +869,9 @@ export default function Report() {
                 onClick={handleAddToDossier}
                 variant="outline"
                 className="rounded-xl"
-                disabled={!dossierCandidateId || !resolveAssessmentId()}
+                disabled={!resolveAssessmentId() || isAddingToDossier}
               >
-                Adicionar ao Dossiê
+                {isAddingToDossier ? 'Vinculando...' : 'Adicionar ao Dossiê'}
               </Button>
               {canShowExport ? (
                 <>
@@ -844,7 +918,7 @@ export default function Report() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="w-full min-w-0 max-w-6xl mx-auto px-4 py-6">
         <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
           <iframe
             title="Prévia do relatório"
@@ -854,9 +928,9 @@ export default function Report() {
         </div>
 
         <div className="mt-8">
-          {dossierCandidateId ? (
-            <Button variant="outline" onClick={handleAddToDossier}>
-              Abrir Dossiê Comportamental
+          {dossierCandidateId || apiBaseUrl ? (
+            <Button variant="outline" onClick={handleAddToDossier} disabled={!resolveAssessmentId() || isAddingToDossier}>
+              {isAddingToDossier ? 'Vinculando...' : 'Abrir Dossiê Comportamental'}
             </Button>
           ) : (
             <Link

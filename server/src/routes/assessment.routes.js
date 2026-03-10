@@ -70,6 +70,45 @@ function resolveAssessmentParticipantName(assessment = {}) {
   );
 }
 
+function hasBinaryPdfPayload(buffer) {
+  return Boolean(buffer) && Number(buffer?.length || 0) > 0;
+}
+
+function buildPdfFailure(error, fallbackReason = 'REPORT_PDF_FAILED') {
+  const code = String(error?.code || error?.message || '').trim().toUpperCase();
+
+  if (code.includes('PARTICIPANT.NAME')) {
+    return {
+      status: 400,
+      reason: 'PARTICIPANT_NAME_MISSING',
+      message: 'Não foi possível gerar o PDF porque a avaliação não possui nome de participante válido.',
+    };
+  }
+
+  if (code.includes('BRANDING')) {
+    return {
+      status: 400,
+      reason: 'BRANDING_INCOMPLETE',
+      message: 'Não foi possível gerar o PDF porque o branding do workspace está incompleto.',
+    };
+  }
+
+  if (code.includes('NOT_FOUND')) {
+    return {
+      status: 404,
+      reason: 'NOT_FOUND',
+      message: 'Não foi possível localizar a avaliação solicitada para gerar o PDF.',
+    };
+  }
+
+  return {
+    status: Number(error?.statusCode) || 400,
+    reason: fallbackReason,
+    message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+    detail: code || fallbackReason,
+  };
+}
+
 async function canAccessAssessmentRecord(user, authUserId, assessment = {}) {
   if (!assessment?.id || !authUserId) return false;
   if (isSuperAdminUser(user || {})) return true;
@@ -619,7 +658,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
     });
 
     const buffer = generated.pdfBuffer;
-    if (!buffer || !Buffer.isBuffer(buffer)) {
+    if (!hasBinaryPdfPayload(buffer)) {
       return res.status(503).json({
         ok: false,
         reason: 'PDF_UNAVAILABLE',
@@ -641,11 +680,12 @@ router.get('/report-pdf-by-token', async (req, res) => {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[assessment/report-pdf-by-token] failed:', error?.stack || error?.message || error);
-    const status = Number(error?.statusCode) || 400;
-    return res.status(status).json({
+    const failure = buildPdfFailure(error, 'PDF_BY_TOKEN_FAILED');
+    return res.status(failure.status).json({
       ok: false,
-      reason: 'PDF_BY_TOKEN_FAILED',
-      message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+      reason: failure.reason,
+      message: failure.message,
+      ...(failure.detail ? { detail: failure.detail } : {}),
     });
   }
 });
@@ -706,7 +746,7 @@ router.post(
       });
 
       const buffer = generated.pdfBuffer;
-      if (!buffer || !Buffer.isBuffer(buffer)) {
+      if (!hasBinaryPdfPayload(buffer)) {
         return res.status(503).json({
           ok: false,
           reason: 'PDF_UNAVAILABLE',
@@ -749,11 +789,15 @@ router.post(
         pdfUrl: report.pdfUrl || pdfPath,
       });
     } catch (error) {
-      const status = Number(error?.statusCode) || 400;
-      return res.status(status).json({
+      const failure = buildPdfFailure(error, 'GENERATE_REPORT_FAILED');
+      return res.status(failure.status).json({
         ok: false,
-        reason: 'GENERATE_REPORT_FAILED',
-        message: 'Não foi possível regenerar o relatório agora. Tente novamente.',
+        reason: failure.reason,
+        message:
+          failure.reason === 'GENERATE_REPORT_FAILED'
+            ? 'Não foi possível regenerar o relatório agora. Tente novamente.'
+            : failure.message,
+        ...(failure.detail ? { detail: failure.detail } : {}),
       });
     }
   },
@@ -812,7 +856,7 @@ router.get(
       });
 
       const buffer = generated.pdfBuffer;
-      if (!buffer || !Buffer.isBuffer(buffer)) {
+      if (!hasBinaryPdfPayload(buffer)) {
         return res.status(503).json({
           ok: false,
           reason: 'PDF_UNAVAILABLE',
@@ -850,11 +894,12 @@ router.get(
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[assessment/report-pdf] failed:', error?.stack || error?.message || error);
-      const status = Number(error?.statusCode) || 400;
-      return res.status(status).json({
+      const failure = buildPdfFailure(error, 'REPORT_PDF_FAILED');
+      return res.status(failure.status).json({
         ok: false,
-        reason: 'REPORT_PDF_FAILED',
-        message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+        reason: failure.reason,
+        message: failure.message,
+        ...(failure.detail ? { detail: failure.detail } : {}),
       });
     }
   },

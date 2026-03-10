@@ -203,7 +203,7 @@ export default function MyAssessments() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+    <div className="w-full min-w-0 max-w-6xl mx-auto px-6 py-8 space-y-6">
       <TableShell title="Minhas Avaliações" controls={controls}>
         {isLoading ? (
           <div className="space-y-3">

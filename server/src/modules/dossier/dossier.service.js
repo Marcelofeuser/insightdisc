@@ -91,6 +91,23 @@ async function ensureCandidate(candidateId) {
   return candidate;
 }
 
+async function findCandidateByEmail(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const candidate = await prisma.user.findFirst({
+    where: {
+      email: {
+        equals: normalizedEmail,
+        mode: 'insensitive',
+      },
+    },
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
+  });
+
+  return candidate || null;
+}
+
 function normalizeDateValue(dateValue) {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) {
@@ -130,6 +147,10 @@ function normalizeOptionalBoolean(value) {
   if (['true', '1', 'sim', 'yes'].includes(normalized)) return true;
   if (['false', '0', 'nao', 'não', 'no'].includes(normalized)) return false;
   return null;
+}
+
+function buildAssessmentLinkNote(assessment = {}) {
+  return `Avaliação vinculada ao dossiê. ID da avaliação: ${String(assessment?.id || '').trim()}.`;
 }
 
 async function listAssessmentsHistory({ candidate, workspaceId }) {
@@ -262,6 +283,94 @@ export async function getDossierByCandidate(candidateId, workspaceId, createdBy 
   const authorId = String(createdBy || '').trim() || candidate.id;
   await getOrCreateDossier(candidate.id, workspaceId, authorId);
   return loadDossierSnapshot({ candidate, workspaceId });
+}
+
+export async function addAssessmentToDossier({
+  assessmentId,
+  candidateId = '',
+  workspaceId,
+  authorId,
+}) {
+  assertDossierClient();
+
+  const normalizedAssessmentId = normalizeRequiredId(assessmentId, 'ASSESSMENT_ID_REQUIRED');
+  const normalizedWorkspaceId = normalizeRequiredId(workspaceId, 'WORKSPACE_ID_REQUIRED');
+  const normalizedAuthorId = normalizeRequiredId(authorId, 'AUTHOR_ID_REQUIRED');
+  const assessment = await resolveAssessmentForWorkspace(normalizedAssessmentId, normalizedWorkspaceId);
+
+  const resolvedCandidate =
+    String(candidateId || '').trim()
+      ? await ensureCandidate(candidateId)
+      : String(assessment?.candidateUserId || '').trim()
+        ? await ensureCandidate(assessment.candidateUserId)
+        : await findCandidateByEmail(assessment?.candidateEmail || '');
+
+  if (!resolvedCandidate?.id) {
+    throw serviceError('CANDIDATE_NOT_FOUND');
+  }
+
+  if (assessment.candidateUserId && assessment.candidateUserId !== resolvedCandidate.id) {
+    throw serviceError('ASSESSMENT_CANDIDATE_MISMATCH', 'Assessment já vinculado a outro candidato.');
+  }
+
+  const dossier = await getOrCreateDossier(resolvedCandidate.id, normalizedWorkspaceId, normalizedAuthorId);
+
+  let updatedAssessment = assessment;
+  if (!assessment.candidateUserId) {
+    updatedAssessment = await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: {
+        candidateUserId: resolvedCandidate.id,
+      },
+      select: {
+        id: true,
+        organizationId: true,
+        candidateUserId: true,
+        candidateName: true,
+        candidateEmail: true,
+        completedAt: true,
+        createdAt: true,
+        report: {
+          select: {
+            discProfile: true,
+          },
+        },
+      },
+    });
+  }
+
+  const linkNoteContent = buildAssessmentLinkNote(assessment);
+  const existingLinkNote = await prisma.dossierNote.findFirst({
+    where: {
+      dossierId: dossier.id,
+      content: linkNoteContent,
+    },
+    select: { id: true },
+  });
+
+  let createdNote = null;
+  if (!existingLinkNote?.id) {
+    createdNote = await prisma.dossierNote.create({
+      data: {
+        dossierId: dossier.id,
+        authorId: normalizedAuthorId,
+        content: linkNoteContent,
+      },
+    });
+  }
+
+  const snapshot = await loadDossierSnapshot({ candidate: resolvedCandidate, workspaceId: normalizedWorkspaceId });
+  const alreadyLinked = Boolean(
+    assessment.candidateUserId === resolvedCandidate.id && existingLinkNote?.id,
+  );
+
+  return {
+    ...snapshot,
+    assessment: buildAssessmentSummary(updatedAssessment),
+    createdNote,
+    linked: true,
+    alreadyLinked,
+  };
 }
 
 export async function addDossierNote(candidateId, workspaceId, authorId, content) {

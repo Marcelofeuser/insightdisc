@@ -465,31 +465,30 @@ export default function Dossier() {
     if (!assessmentId || linkedAssessmentRef.current || !candidateId) return;
     if (!hasRenderableDossierData) return;
 
-    const alreadyLinked = dossierNotes.some((note) =>
-      String(note?.content || '').includes(assessmentId)
-    );
-
-    if (alreadyLinked) {
-      linkedAssessmentRef.current = true;
-      return;
-    }
-
     linkedAssessmentRef.current = true;
-
-    const autoNote = `Avaliação vinculada ao dossiê. ID da avaliação: ${assessmentId}.`;
 
     const createAutoLink = async () => {
       try {
         if (apiBaseUrl) {
-          await apiRequest(`/api/dossier/${encodeURIComponent(candidateId)}/note`, {
+          await apiRequest('/api/dossier/add', {
             method: 'POST',
             requireAuth: true,
             body: {
-              content: autoNote,
+              assessmentId,
+              candidateId,
               workspaceId,
             },
           });
         } else {
+          const alreadyLinked = dossierNotes.some((note) =>
+            String(note?.content || '').includes(assessmentId)
+          );
+
+          if (alreadyLinked) {
+            return;
+          }
+
+          const autoNote = `Avaliação vinculada ao dossiê. ID da avaliação: ${assessmentId}.`;
           updateLocalRecord({
             workspaceId,
             candidateId,
@@ -1005,7 +1004,7 @@ export default function Dossier() {
 
   if ((!isPremium && !hasSuperAdminBypass) || !hasDossierAccess) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-6 py-8">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>Dossiê Comportamental</CardTitle>
@@ -1025,7 +1024,7 @@ export default function Dossier() {
 
   if (!candidateId) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-6 py-8 space-y-4">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>Nenhum dossiê selecionado</CardTitle>
@@ -1100,7 +1099,7 @@ export default function Dossier() {
 
   if (dossierQuery.isLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-4">
+      <div className="w-full min-w-0 max-w-6xl mx-auto px-6 py-8 space-y-4">
         <div className="h-16 rounded-xl bg-slate-100 animate-pulse" />
         <div className="h-52 rounded-xl bg-slate-100 animate-pulse" />
         <div className="h-80 rounded-xl bg-slate-100 animate-pulse" />
@@ -1119,7 +1118,7 @@ export default function Dossier() {
       errorCode.includes('DOSSIER_NOT_FOUND') ||
       errorCode.includes('NOT_FOUND');
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-6 py-8">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>{isNotFoundError ? 'Dossiê não encontrado' : 'Não foi possível carregar o Dossiê'}</CardTitle>
@@ -1157,7 +1156,7 @@ export default function Dossier() {
       dataKeys: Object.keys(data || {}),
     });
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-6 py-8">
         <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle>Dossiê não encontrado</CardTitle>
@@ -1184,7 +1183,7 @@ export default function Dossier() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+    <div className="w-full min-w-0 max-w-6xl mx-auto px-6 py-8 space-y-6">
       <header className="space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold text-slate-900">Dossiê Comportamental</h1>

@@ -148,6 +148,133 @@ function normalizeScores(...scoreSources) {
   };
 }
 
+function hasFiniteScoreMap(source = {}) {
+  if (!source || typeof source !== 'object') return false;
+  return FACTORS.some((factor) => Number.isFinite(Number(source?.[factor])));
+}
+
+function firstScoreMap(candidates = []) {
+  for (const candidate of candidates) {
+    if (hasFiniteScoreMap(candidate)) {
+      return normalizeScores(candidate);
+    }
+  }
+  return null;
+}
+
+function isUniformScoreMap(source = {}, target = null) {
+  if (!source || typeof source !== 'object') return false;
+  const values = FACTORS.map((factor) => Number(source?.[factor]));
+  if (!values.every(Number.isFinite)) return false;
+  const [firstValue] = values;
+  if (target !== null && firstValue !== target) return false;
+  return values.every((value) => value === firstValue);
+}
+
+function normalizeProfileKey(value = '') {
+  const cleaned = String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^DISC]/g, '');
+
+  if (!cleaned) return '';
+  if (cleaned === 'DISC') return 'DISC';
+  if (FACTOR_LABELS[cleaned]) return cleaned;
+  if (PROFILE_KEYS.includes(cleaned)) return cleaned;
+  return '';
+}
+
+function resolveProfileHint(input = {}) {
+  const candidates = [
+    input?.profile,
+    input?.assessment?.report?.discProfile?.profile,
+    input?.assessment?.report?.profile,
+    input?.meta?.profile,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    const primary = normalizeProfileKey(candidate?.primary);
+    const secondary = normalizeProfileKey(candidate?.secondary);
+    const key = normalizeProfileKey(
+      typeof candidate === 'string'
+        ? candidate
+        : candidate?.key || candidate?.profileKey || `${primary}${secondary}`
+    );
+
+    if (!key) continue;
+
+    if (key === 'DISC') {
+      return {
+        key,
+        mode: 'balanced',
+        primary: 'D',
+        secondary: 'I',
+        displayPrimary: 'Balanceado',
+        displaySecondary: 'Adaptativo',
+        topDiff: 0,
+        spread: 0,
+      };
+    }
+
+    if (FACTOR_LABELS[key]) {
+      return {
+        key,
+        mode: 'pure',
+        primary: key,
+        secondary: secondary && secondary !== key ? secondary : 'I',
+        displayPrimary: key,
+        displaySecondary: secondary && secondary !== key ? secondary : 'I',
+        topDiff: 0,
+        spread: 0,
+      };
+    }
+
+    return {
+      key,
+      mode: key.length === 1 ? 'pure' : 'combo',
+      primary: key[0] || 'D',
+      secondary: key[1] || secondary || 'I',
+      displayPrimary: key[0] || 'D',
+      displaySecondary: key[1] || secondary || 'I',
+      topDiff: 0,
+      spread: 0,
+    };
+  }
+
+  return null;
+}
+
+function normalizeGlossaryItems(items = [], fallback = []) {
+  const source = Array.isArray(items) && items.length ? items : fallback;
+  const normalized = source
+    .map((item) => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        const term = safeText(item?.term, safeText(item?.title));
+        const definition = safeText(item?.definition, safeText(item?.description));
+        if (term || definition) {
+          return {
+            term: term || 'Termo',
+            definition: definition || 'Definição indisponível.',
+          };
+        }
+      }
+
+      const serialized = safeText(item);
+      if (!serialized) return null;
+      const [term, ...definitionParts] = serialized.split(':');
+      const definition = definitionParts.join(':').trim();
+      return {
+        term: safeText(term, 'Termo'),
+        definition: definition || 'Definição indisponível.',
+      };
+    })
+    .filter(Boolean);
+
+  return normalized.length ? normalized : normalizeGlossaryItems(fallback, []);
+}
+
 function rankFactors(scores = {}) {
   return FACTORS.map((factor) => ({
     factor,
@@ -512,6 +639,7 @@ function normalizeProfileContent(rawProfile = {}, profileKey = 'DI') {
 }
 
 function buildExecutiveInsight(profile, pageKey, scores, profileContent, adaptation) {
+  const hasQuantitativeData = scores?.quantitativeAvailable !== false;
   const primaryScore = clamp(scores?.natural?.[profile.primary]);
   const secondaryScore = clamp(scores?.natural?.[profile.secondary]);
   const summary = safeText(profileContent?.summary, `Perfil ${profile.key} com alta aplicacao em contexto corporativo.`);
@@ -519,7 +647,9 @@ function buildExecutiveInsight(profile, pageKey, scores, profileContent, adaptat
   const delta = Number(adaptation?.avgAbsDelta || 0).toFixed(2);
 
   const byPage = {
-    dynamics: `Na dinamica geral, ${profile.key} tende a iniciar acao por ${profile.primary} (${primaryScore}%) e ajustar colaboracao por ${profile.secondary} (${secondaryScore}%).`,
+    dynamics: hasQuantitativeData
+      ? `Na dinamica geral, ${profile.key} tende a iniciar acao por ${profile.primary} (${primaryScore}%) e ajustar colaboracao por ${profile.secondary} (${secondaryScore}%).`
+      : `Na dinamica geral, ${profile.key} preserva predominancia qualitativa de ${profile.primary} com apoio de ${profile.secondary}, mesmo sem score numerico confiavel nesta avaliacao legada.`,
     decision: `No processo decisorio, ${profile.key} opera melhor com criterio curto, dono definido e revisao de risco proporcional ao impacto.`,
     communication: `Em comunicacao, ${profile.key} ganha eficiencia quando canal, nivel de detalhe e tom sao alinhados ao contexto e ao interlocutor.`,
     leadership: `Em lideranca, ${profile.key} gera melhor resposta quando combina direcao objetiva, proximidade de follow-up e consistencia de cobranca.`,
@@ -528,7 +658,11 @@ function buildExecutiveInsight(profile, pageKey, scores, profileContent, adaptat
     career: `Na carreira, ${profile.key} avanca quando atua em funcoes aderentes ao seu estilo natural e acompanha evolucao com indicadores objetivos.`,
   };
 
-  return `${summary} ${byPage[pageKey] || byPage.dynamics} O custo de adaptacao atual e ${adaptationLabel}, com delta medio de ${delta} pontos.`;
+  const adaptationSentence = hasQuantitativeData
+    ? `O custo de adaptacao atual e ${adaptationLabel}, com delta medio de ${delta} pontos.`
+    : 'Os indicadores quantitativos desta avaliacao nao foram preservados com confianca; por isso, a leitura abaixo prioriza a interpretacao qualitativa do perfil.';
+
+  return `${summary} ${byPage[pageKey] || byPage.dynamics} ${adaptationSentence}`;
 }
 
 function buildPracticalApplication(profile, pageKey, profileContent) {
@@ -583,19 +717,24 @@ function buildCareerCallout(profile, profileContent) {
 }
 
 function buildFactorAnalysis(scores, sharedFactors, rules) {
+  const hasQuantitativeData = scores?.quantitativeAvailable !== false;
   const byFactor = {};
 
   for (const factor of FACTORS) {
     const score = clamp(scores.natural[factor]);
-    const band = resolveFactorBand(score, rules.factorBands);
-    const shared = sharedFactors?.[factor]?.[band] || {};
+    const band = hasQuantitativeData ? resolveFactorBand(score, rules.factorBands) : 'qualitative';
+    const shared = hasQuantitativeData
+      ? sharedFactors?.[factor]?.[band] || {}
+      : sharedFactors?.[factor]?.mid || {};
 
     byFactor[factor] = {
       factor,
       label: FACTOR_LABELS[factor],
-      score,
+      score: hasQuantitativeData ? score : null,
       band,
-      headline: safeText(shared?.headline, `${FACTOR_LABELS[factor]} em banda ${band}.`),
+      headline: hasQuantitativeData
+        ? safeText(shared?.headline, `${FACTOR_LABELS[factor]} em banda ${band}.`)
+        : `${FACTOR_LABELS[factor]} com leitura qualitativa disponivel, sem score numerico confiavel nesta avaliacao.`,
       paragraphs: ensureMinParagraphs(
         shared?.paragraphs,
         2,
@@ -618,6 +757,18 @@ function buildFactorAnalysis(scores, sharedFactors, rules) {
 }
 
 function buildBenchmarkRows(scores, profile) {
+  const hasQuantitativeData = scores?.quantitativeAvailable !== false;
+
+  if (!hasQuantitativeData) {
+    return FACTORS.map((factor) => ({
+      factor,
+      label: FACTOR_LABELS[factor],
+      score: null,
+      typicalRange: 'n/d',
+      reading: `Medicao quantitativa indisponivel nesta avaliacao legada. A interpretacao qualitativa continua alinhada ao perfil ${profile.key}.`,
+    }));
+  }
+
   return FACTORS.map((factor) => {
     const score = clamp(scores.natural[factor]);
     const isPrimary = factor === profile.primary;
@@ -687,6 +838,7 @@ function toIsoDateString(value) {
 }
 
 function composeNarratives({ profile, profileContent, adaptation, scores, shared }) {
+  const hasQuantitativeData = scores?.quantitativeAvailable !== false;
   const methodology = shared?.methodology || {};
   const communication = shared?.communication || {};
   const leadership = shared?.leadership || {};
@@ -700,7 +852,9 @@ function composeNarratives({ profile, profileContent, adaptation, scores, shared
     [
       safeText(profileContent?.summary),
       `O perfil ${profile.key} combina ${profile.primary} e ${profile.secondary} com foco em aplicacao pratica de resultado.`,
-      `A leitura indica maior expressao de ${profile.primary} (${scores.natural[profile.primary]}%) e apoio de ${profile.secondary} (${scores.natural[profile.secondary]}%).`,
+      hasQuantitativeData
+        ? `A leitura indica maior expressao de ${profile.primary} (${scores.natural[profile.primary]}%) e apoio de ${profile.secondary} (${scores.natural[profile.secondary]}%).`
+        : 'Esta avaliacao legada nao preservou distribuicao numerica confiavel dos fatores DISC; por isso, a leitura executiva abaixo prioriza a interpretacao qualitativa do perfil.',
       adaptation.interpretation,
     ],
     4,
@@ -775,36 +929,102 @@ function composeNarratives({ profile, profileContent, adaptation, scores, shared
 function resolveScoreInput(input = {}) {
   const scores = input?.scores || {};
   const assessment = input?.assessment || {};
+  const reportDisc = assessment?.report?.discProfile || {};
 
-  const natural = normalizeScores(
-    scores?.natural,
-    scores?.summary,
-    assessment?.results?.natural_profile,
-    assessment?.disc_results?.natural,
-    assessment?.disc_results?.normalized,
-    assessment?.natural_profile,
-    assessment?.scores
-  );
+  const natural =
+    firstScoreMap([
+      scores?.natural,
+      scores?.summary,
+      reportDisc?.normalized,
+      reportDisc?.natural,
+      reportDisc?.scores?.natural,
+      reportDisc?.scores,
+      assessment?.results?.natural_profile,
+      assessment?.disc_results?.natural,
+      assessment?.disc_results?.normalized,
+      assessment?.natural_profile,
+      assessment?.scores,
+    ]) || normalizeScores({});
 
-  const adapted = normalizeScores(
-    scores?.adapted,
-    assessment?.results?.adapted_profile,
-    assessment?.disc_results?.adapted,
-    assessment?.adapted_profile,
-    natural
-  );
+  const adapted =
+    firstScoreMap([
+      scores?.adapted,
+      reportDisc?.adapted,
+      reportDisc?.scores?.adapted,
+      assessment?.results?.adapted_profile,
+      assessment?.disc_results?.adapted,
+      assessment?.adapted_profile,
+      natural,
+    ]) || natural;
 
-  const summary = FACTORS.reduce((accumulator, factor) => {
-    accumulator[factor] = clamp((natural[factor] + adapted[factor]) / 2);
-    return accumulator;
-  }, {});
+  const summary =
+    firstScoreMap([
+      scores?.summary,
+      reportDisc?.summary,
+      reportDisc?.scores?.summary,
+      assessment?.results?.summary_profile,
+      assessment?.disc_results?.summary,
+    ]) ||
+    FACTORS.reduce((accumulator, factor) => {
+      accumulator[factor] = clamp((natural[factor] + adapted[factor]) / 2);
+      return accumulator;
+    }, {});
 
   const deltas = FACTORS.reduce((accumulator, factor) => {
     accumulator[factor] = clamp(adapted[factor] - natural[factor], -100, 100);
     return accumulator;
   }, {});
 
-  return { natural, adapted, summary, deltas };
+  const uniformLegacyFallback =
+    isUniformScoreMap(natural, 25) &&
+    isUniformScoreMap(adapted, 25) &&
+    isUniformScoreMap(summary, 25) &&
+    isUniformScoreMap(deltas, 0);
+  const quantitativeAvailable = !uniformLegacyFallback;
+  const availabilityMessage = quantitativeAvailable
+    ? ''
+    : 'Esta avaliacao legada nao preservou scores numericos confiaveis. O relatorio manteve apenas a interpretacao qualitativa disponivel.';
+
+  const attachScoreMeta = (map) => ({
+    ...map,
+    quantitativeAvailable,
+    availabilityMessage,
+  });
+
+  return {
+    natural: attachScoreMeta(natural),
+    adapted: attachScoreMeta(adapted),
+    summary: attachScoreMeta(summary),
+    deltas: attachScoreMeta(deltas),
+    quantitativeAvailable,
+    availabilityMessage,
+    hasRealData:
+      quantitativeAvailable &&
+      Boolean(
+        hasFiniteScoreMap(scores?.natural) ||
+          hasFiniteScoreMap(scores?.summary) ||
+          hasFiniteScoreMap(scores?.adapted) ||
+          hasFiniteScoreMap(reportDisc?.normalized) ||
+          hasFiniteScoreMap(reportDisc?.natural) ||
+          hasFiniteScoreMap(reportDisc?.adapted) ||
+          hasFiniteScoreMap(reportDisc?.summary) ||
+          hasFiniteScoreMap(reportDisc?.scores?.natural) ||
+          hasFiniteScoreMap(reportDisc?.scores?.adapted) ||
+          hasFiniteScoreMap(reportDisc?.scores?.summary) ||
+          hasFiniteScoreMap(reportDisc?.scores) ||
+          hasFiniteScoreMap(assessment?.results?.natural_profile) ||
+          hasFiniteScoreMap(assessment?.results?.adapted_profile) ||
+          hasFiniteScoreMap(assessment?.results?.summary_profile) ||
+          hasFiniteScoreMap(assessment?.disc_results?.natural) ||
+          hasFiniteScoreMap(assessment?.disc_results?.adapted) ||
+          hasFiniteScoreMap(assessment?.disc_results?.summary) ||
+          hasFiniteScoreMap(assessment?.disc_results?.normalized) ||
+          hasFiniteScoreMap(assessment?.natural_profile) ||
+          hasFiniteScoreMap(assessment?.adapted_profile) ||
+          hasFiniteScoreMap(assessment?.summary_profile) ||
+          hasFiniteScoreMap(assessment?.scores)
+      ),
+  };
 }
 
 function resolveAnswerList(input = {}) {
@@ -872,9 +1092,11 @@ export function computeReliabilityScore({
 } = {}) {
   const totalAnswers = Array.isArray(answers) ? answers.length : 0;
   const expected = Math.max(1, Number(expectedQuestions || 40));
-  const answeredRatio = Math.min(1, totalAnswers / expected);
+  const hasAnswerData = totalAnswers > 0;
+  const hasQuantitativeScoreData = scores?.quantitativeAvailable !== false;
+  const answeredRatio = hasAnswerData ? Math.min(1, totalAnswers / expected) : 0;
   const seconds = Math.max(0, Number(durationSeconds || 0));
-  const secondsPerQuestion = totalAnswers > 0 ? seconds / totalAnswers : 0;
+  const secondsPerQuestion = hasAnswerData ? seconds / totalAnswers : 0;
 
   let score = 100;
 
@@ -885,11 +1107,11 @@ export function computeReliabilityScore({
   score -= timingPenalty;
 
   let completionPenalty = 0;
-  if (answeredRatio < 0.6) completionPenalty = 20;
-  else if (answeredRatio < 0.85) completionPenalty = 12;
+  if (hasAnswerData && answeredRatio < 0.6) completionPenalty = 20;
+  else if (hasAnswerData && answeredRatio < 0.85) completionPenalty = 12;
   score -= completionPenalty;
 
-  const repeatedPatternRate = detectRepetitivePatternRate(answers);
+  const repeatedPatternRate = hasAnswerData ? detectRepetitivePatternRate(answers) : 0;
   let repetitivePenalty = 0;
   if (repeatedPatternRate > 0.55) repetitivePenalty = 16;
   else if (repeatedPatternRate > 0.4) repetitivePenalty = 10;
@@ -914,6 +1136,9 @@ export function computeReliabilityScore({
   const level = score >= 80 ? 'alto' : score >= 60 ? 'moderado' : 'baixo';
 
   const notes = [];
+  if (!hasAnswerData) {
+    notes.push('Tempo e padrão de resposta não estavam disponíveis nesta avaliação.');
+  }
   if (timingPenalty > 0) notes.push('Tempo por pergunta abaixo do ideal para leitura reflexiva.');
   if (repetitivePenalty > 0) notes.push('Padrão repetitivo identificado em parte das respostas.');
   if (extremesPenalty > 0) notes.push('Distribuição muito extrema entre fatores comportamentais.');
@@ -921,16 +1146,26 @@ export function computeReliabilityScore({
   if (completionPenalty > 0) notes.push('Quantidade de respostas abaixo do esperado.');
   if (!notes.length) notes.push('Padrão de respostas consistente para leitura comportamental.');
 
+  const insufficientData = !hasAnswerData && !hasQuantitativeScoreData;
+  if (insufficientData) {
+    notes.unshift(
+      'Esta avaliação não preservou respostas nem scores quantitativos suficientes para um cálculo técnico completo de confiabilidade.'
+    );
+  }
+
   return {
-    score,
-    level,
+    score: insufficientData ? null : score,
+    level: insufficientData ? 'indisponivel' : level,
     answeredCount: totalAnswers,
     expectedQuestions: expected,
     answeredRatio: Number(answeredRatio.toFixed(2)),
     secondsPerQuestion: Number(secondsPerQuestion.toFixed(2)),
+    hasAnswerData,
+    hasTimingData: Boolean(hasAnswerData && secondsPerQuestion > 0),
     repeatedPatternRate: Number(repeatedPatternRate.toFixed(2)),
     scoreSpread: Number(scoreSpread.toFixed(2)),
     adaptationDelta: Number(adaptationDelta.toFixed(2)),
+    insufficientData,
     notes,
   };
 }
@@ -1045,6 +1280,7 @@ export async function buildReportModel(input = {}) {
   const participant = resolveParticipant(input, strict);
   const branding = resolveBranding(input, strict);
   const scores = resolveScoreInput(input);
+  const profileHint = resolveProfileHint(input);
 
   const rules = content?.shared?.rules || {
     factorBands: {
@@ -1064,7 +1300,10 @@ export async function buildReportModel(input = {}) {
   };
 
   const ranked = rankFactors(scores.natural);
-  const selectedProfile = selectProfileKey(ranked, rules, scores.natural);
+  const selectedProfile =
+    scores.quantitativeAvailable || !profileHint
+      ? selectProfileKey(ranked, rules, scores.natural)
+      : profileHint;
   const profileContent = resolveProfile(content.profiles, selectedProfile);
 
   const profile = {
@@ -1097,7 +1336,17 @@ export async function buildReportModel(input = {}) {
         : profileContent.title,
   };
 
-  const adaptation = computeAdaptation(scores.natural, scores.adapted, rules.adaptationBand);
+  let adaptation = computeAdaptation(scores.natural, scores.adapted, rules.adaptationBand);
+  if (scores.quantitativeAvailable === false) {
+    adaptation = {
+      ...adaptation,
+      band: 'unknown',
+      label: 'indisponivel',
+      avgAbsDelta: null,
+      interpretation:
+        'A avaliacao nao preservou dados numericos consistentes para comparar perfil natural e adaptado com seguranca.',
+    };
+  }
   const answers = resolveAnswerList(input);
   const expectedQuestions = Math.max(
     answers.length,
@@ -1225,7 +1474,7 @@ export async function buildReportModel(input = {}) {
     },
     plans,
     glossary: {
-      items: safeArray(glossary?.items, [
+      items: normalizeGlossaryItems(glossary?.items, [
         { term: 'Perfil Natural', definition: 'Tendencia espontanea de comportamento.' },
         { term: 'Perfil Adaptado', definition: 'Ajustes ativados pelas demandas do contexto.' },
         { term: 'Benchmark', definition: 'Comparativo do score com faixa de referencia interna.' },

@@ -17,6 +17,8 @@ const ENABLE_DEV_LOGIN_SHORTCUTS =
   import.meta.env.DEV &&
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
 const CAN_USE_DEV_BASE44_FALLBACK = import.meta.env.DEV;
+const SHOULD_SKIP_BASE44_PUBLIC_SETTINGS =
+  CAN_USE_DEV_BASE44_FALLBACK && Boolean(base44?.__isMock);
 
 function buildDevShortcutUser() {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null;
@@ -161,11 +163,21 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      if (SHOULD_SKIP_BASE44_PUBLIC_SETTINGS) {
+        if (import.meta.env.DEV) {
+          console.info('[AuthContext] skipping Base44 public-settings bootstrap for local/mock runtime');
+        }
+        setAppPublicSettings({ id: null, public_settings: {} });
+        await checkUserAuth();
+        setIsLoadingPublicSettings(false);
+        return;
+      }
+
+      const normalizedAppId = String(appParams.appId || '').trim().toLowerCase();
       const hasValidAppId = Boolean(
         typeof appParams.appId === 'string' &&
         appParams.appId.trim() &&
-        appParams.appId !== 'null' &&
-        appParams.appId !== 'undefined'
+        !['null', 'undefined', 'false'].includes(normalizedAppId)
       );
 
       // Local/dev fallback: when app id is missing, skip Base44 public-settings endpoint

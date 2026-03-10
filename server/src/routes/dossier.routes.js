@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requirePremiumFeature, requireRole } from '../middleware/rbac.js';
 import {
+  addAssessmentToDossier,
   addDevelopmentPlan,
   getDossierAnamnesisByAssessment,
   addDossierInsight,
@@ -73,6 +74,11 @@ const dossierAnamnesisSchema = workspaceSchema.extend({
   professionalNotes: z.string().trim().max(8000).optional().or(z.literal('')),
 });
 
+const addAssessmentSchema = workspaceSchema.extend({
+  assessmentId: z.string().trim().min(1),
+  candidateId: z.string().trim().optional(),
+});
+
 const ERROR_STATUS = {
   UNAUTHORIZED: 401,
   CANDIDATE_ID_REQUIRED: 400,
@@ -97,6 +103,7 @@ const ERROR_STATUS = {
   DOSSIER_PRISMA_CLIENT_OUTDATED: 500,
   ASSESSMENT_ID_REQUIRED: 400,
   ASSESSMENT_NOT_FOUND: 404,
+  ASSESSMENT_CANDIDATE_MISMATCH: 409,
 };
 
 function readCandidateId(req) {
@@ -213,6 +220,36 @@ router.post('/anamnesis/save', async (req, res) => {
     });
   } catch (error) {
     return sendDossierError(res, error, 'DOSSIER_ANAMNESIS_SAVE_FAILED');
+  }
+});
+
+router.post('/add', async (req, res) => {
+  try {
+    const input = addAssessmentSchema.parse(req.body || {});
+    const workspaceId = await resolveWorkspaceId({
+      userId: req.auth.userId,
+      requestedWorkspaceId: input.workspaceId || '',
+      authUser: req.user || req.auth || {},
+    });
+
+    const payload = await addAssessmentToDossier({
+      assessmentId: input.assessmentId,
+      candidateId: input.candidateId || '',
+      workspaceId,
+      authorId: req.auth.userId,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      linked: true,
+      alreadyLinked: Boolean(payload?.alreadyLinked),
+      workspaceId: payload.workspaceId,
+      candidate: payload.candidate,
+      assessment: payload.assessment,
+      dossier: payload.dossier,
+    });
+  } catch (error) {
+    return sendDossierError(res, error, 'DOSSIER_ADD_FAILED');
   }
 });
 

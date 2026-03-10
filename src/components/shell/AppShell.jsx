@@ -19,8 +19,8 @@ export default function AppShell({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="hidden md:flex flex-col w-64 h-screen border-r bg-white">
+    <div className="min-h-screen bg-slate-50 md:flex">
+      <aside className="hidden md:flex md:min-h-screen md:w-64 md:shrink-0 md:flex-col md:border-r md:bg-white">
         <div className="flex-1 overflow-y-auto">
           <SidebarNav items={navItems} currentPageName={currentPageName} />
         </div>
@@ -44,9 +44,9 @@ export default function AppShell({
             Sair
           </Button>
         </div>
-      </div>
+      </aside>
 
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
@@ -82,9 +82,9 @@ export default function AppShell({
         ) : null}
       </header>
 
-      <div className="lg:pl-64 pt-16 lg:pt-0 min-h-screen flex flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col pt-16 md:pt-0">
         <Topbar title={title} subtitle={subtitle} actions={actions} />
-        <main className="flex-1">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

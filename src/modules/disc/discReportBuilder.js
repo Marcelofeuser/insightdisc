@@ -2,8 +2,8 @@ import { generateDiscInterpretation, getDiscProfile } from '@/modules/disc/discI
 
 const FACTORS = ['D', 'I', 'S', 'C'];
 const FACTOR_LABEL = {
-  D: 'Dominancia',
-  I: 'Influencia',
+  D: 'Dominância',
+  I: 'Influência',
   S: 'Estabilidade',
   C: 'Conformidade',
 };
@@ -32,6 +32,63 @@ function normalizeScores(scores = {}) {
     S: clamp(scores?.S),
     C: clamp(scores?.C),
   };
+}
+
+function hasFiniteScoreMap(source = {}) {
+  if (!source || typeof source !== 'object') return false;
+  return FACTORS.some((factor) => Number.isFinite(Number(source?.[factor])));
+}
+
+function firstScoreMap(candidates = []) {
+  for (const candidate of candidates) {
+    if (hasFiniteScoreMap(candidate)) {
+      return normalizeScores(candidate);
+    }
+  }
+  return null;
+}
+
+function isUniformScoreMap(source = {}, target = null) {
+  if (!source || typeof source !== 'object') return false;
+  const values = FACTORS.map((factor) => Number(source?.[factor]));
+  if (!values.every(Number.isFinite)) return false;
+  const [firstValue] = values;
+  if (target !== null && firstValue !== target) return false;
+  return values.every((value) => value === firstValue);
+}
+
+function resolveProfileHint(rawProfile = {}) {
+  const rawKey = String(rawProfile?.key || '').trim().toUpperCase();
+  if (!rawKey) return null;
+
+  if (rawKey === 'DISC') {
+    return {
+      key: 'DISC',
+      mode: 'balanced',
+      primary: 'D',
+      secondary: 'I',
+    };
+  }
+
+  if (rawKey.length === 1 && FACTOR_LABEL[rawKey]) {
+    return {
+      key: rawKey,
+      mode: 'pure',
+      primary: rawKey,
+      secondary: String(rawProfile?.secondary || 'I').trim().toUpperCase() || 'I',
+    };
+  }
+
+  if (rawKey.length === 2 && FACTOR_LABEL[rawKey[0]] && FACTOR_LABEL[rawKey[1]]) {
+    return {
+      key: rawKey,
+      mode: 'combo',
+      primary: rawKey[0],
+      secondary: rawKey[1],
+    };
+  }
+
+  return null;
 }
 
 function topTwo(scores) {
@@ -78,23 +135,23 @@ function buildFactorSection(factor, score) {
     label: FACTOR_LABEL[factor],
     score: value,
     band,
-    headline: `Expressao de ${FACTOR_LABEL[factor]} em banda ${band.toUpperCase()}.`,
+    headline: `Expressão de ${FACTOR_LABEL[factor]} em banda ${band.toUpperCase()}.`,
     paragraphs: [
-      `O fator ${FACTOR_LABEL[factor]} influencia sua resposta em situacoes de decisao e relacao com o time.`,
-      'A evolucao desse fator ocorre com pratica deliberada e feedback estruturado em contexto real.',
+      `O fator ${FACTOR_LABEL[factor]} influencia sua resposta em situações de decisão e relação com o time.`,
+      'A evolução desse fator ocorre com prática deliberada e feedback estruturado em contexto real.',
     ],
     actions: [
-      'Definir um comportamento observavel para praticar semanalmente.',
-      'Estabelecer criterio de sucesso antes de conversas importantes.',
-      'Registrar aprendizados apos situacoes de alta pressao.',
-      'Reforcar acordos com prazo e responsavel definido.',
-      'Executar revisao quinzenal de progresso comportamental.',
+      'Definir um comportamento observável para praticar semanalmente.',
+      'Estabelecer critério de sucesso antes de conversas importantes.',
+      'Registrar aprendizados após situações de alta pressão.',
+      'Reforçar acordos com prazo e responsável definido.',
+      'Executar revisão quinzenal de progresso comportamental.',
     ],
     redFlags: [
-      'Queda de clareza quando aumenta a pressao.',
-      'Oscilacao de consistencia em momentos criticos.',
-      'Ruido de comunicacao em alinhamentos importantes.',
-      'Decisoes sem criterio explicito em ambiente urgente.',
+      'Queda de clareza quando aumenta a pressão.',
+      'Oscilação de consistência em momentos críticos.',
+      'Ruído de comunicação em alinhamentos importantes.',
+      'Decisões sem critério explícito em ambiente urgente.',
       'Dificuldade de manter follow-up de acordos.',
     ],
   };
@@ -102,43 +159,76 @@ function buildFactorSection(factor, score) {
 
 export function buildDiscReportModel(assessment = {}) {
   const results = assessment?.results || assessment?.disc_results || {};
+  const reportDisc = assessment?.report?.discProfile || assessment?.disc_profile || {};
 
-  const natural = normalizeScores(
-    results?.natural_profile ||
-      results?.natural ||
-      assessment?.natural_profile ||
-      assessment?.scores ||
-      {}
-  );
-  const adapted = normalizeScores(
-    results?.adapted_profile ||
-      results?.adapted ||
-      assessment?.adapted_profile ||
-      natural
-  );
+  const natural =
+    firstScoreMap([
+      results?.natural_profile,
+      results?.natural,
+      results?.summary_profile,
+      reportDisc?.normalized,
+      reportDisc?.natural,
+      reportDisc?.scores?.natural,
+      reportDisc?.scores,
+      assessment?.natural_profile,
+      assessment?.scores,
+    ]) || normalizeScores({});
+  const adapted =
+    firstScoreMap([
+      results?.adapted_profile,
+      results?.adapted,
+      reportDisc?.adapted,
+      reportDisc?.scores?.adapted,
+      assessment?.adapted_profile,
+      natural,
+    ]) || natural;
 
   const summary = FACTORS.reduce((acc, factor) => {
     acc[factor] = clamp((natural[factor] + adapted[factor]) / 2);
     return acc;
   }, {});
+  const placeholderQuantitativeScores =
+    isUniformScoreMap(natural, 25) &&
+    isUniformScoreMap(adapted, 25) &&
+    isUniformScoreMap(summary, 25);
+  const quantitativeAvailable = !placeholderQuantitativeScores;
+  const availabilityMessage = quantitativeAvailable
+    ? ''
+    : 'Esta avaliacao legada nao preservou scores DISC confiaveis. O preview exibe apenas a interpretacao qualitativa disponivel.';
+  const attachScoreMeta = (map) => ({
+    ...map,
+    quantitativeAvailable,
+    availabilityMessage,
+  });
 
   const profileByScores = topTwo(natural);
   const interpretedProfile = getDiscProfile(natural);
   const interpretation = generateDiscInterpretation(natural) || {};
+  const profileHint = resolveProfileHint(reportDisc?.profile);
 
   const primary =
+    (placeholderQuantitativeScores ? profileHint?.primary : '') ||
     results?.dominant_factor ||
     assessment?.dominant_factor ||
     interpretedProfile?.primary ||
     profileByScores.primary;
   const secondary =
+    (placeholderQuantitativeScores ? profileHint?.secondary : '') ||
     results?.secondary_factor ||
     assessment?.secondary_factor ||
     interpretedProfile?.secondary ||
     profileByScores.secondary;
 
-  const profileMode = profileByScores.diff >= 18 ? 'pure' : 'combo';
-  const profileKey = profileMode === 'pure' ? primary : `${primary}${secondary}`;
+  const profileMode = placeholderQuantitativeScores
+    ? profileHint?.mode || (profileByScores.diff >= 18 ? 'pure' : 'combo')
+    : profileByScores.diff >= 18
+      ? 'pure'
+      : 'combo';
+  const profileKey = placeholderQuantitativeScores
+    ? profileHint?.key || (profileMode === 'pure' ? primary : `${primary}${secondary}`)
+    : profileMode === 'pure'
+      ? primary
+      : `${primary}${secondary}`;
 
   const participantName =
     assessment?.candidateName ||
@@ -206,9 +296,11 @@ export function buildDiscReportModel(assessment = {}) {
         'Organizacao avaliada',
     },
     scores: {
-      natural,
-      adapted,
-      summary,
+      natural: attachScoreMeta(natural),
+      adapted: attachScoreMeta(adapted),
+      summary: attachScoreMeta(summary),
+      quantitativeAvailable,
+      availabilityMessage,
       deltas: FACTORS.reduce((acc, factor) => {
         acc[factor] = clamp(adapted[factor]) - clamp(natural[factor]);
         return acc;
@@ -230,26 +322,38 @@ export function buildDiscReportModel(assessment = {}) {
           : `Combinacao ${profileKey}`,
     },
     adaptation: {
-      band: 'mid',
-      avgAbsDelta: FACTORS.reduce(
-        (sum, factor) => sum + Math.abs(clamp(adapted[factor]) - clamp(natural[factor])),
-        0
-      ) / 4,
-      interpretation:
-        'A adaptacao observada indica ajustes de comportamento ao contexto atual de trabalho.',
+      band: quantitativeAvailable ? 'mid' : 'unknown',
+      avgAbsDelta: quantitativeAvailable
+        ? FACTORS.reduce(
+            (sum, factor) => sum + Math.abs(clamp(adapted[factor]) - clamp(natural[factor])),
+            0
+          ) / 4
+        : null,
+      interpretation: quantitativeAvailable
+        ? 'A adaptacao observada indica ajustes de comportamento ao contexto atual de trabalho.'
+        : 'A avaliacao nao preservou dados numericos suficientes para comparar perfil natural e adaptado com seguranca.',
     },
     benchmark: {
-      note: 'Faixas internas deterministicas para comparacao por combinacao DISC.',
+      note: quantitativeAvailable
+        ? 'Faixas internas deterministicas para comparacao por combinacao DISC.'
+        : 'Esta avaliacao legada nao preservou benchmark numerico confiavel.',
       rows: FACTORS.map((factor) => ({
         factor: `${factor} - ${FACTOR_LABEL[factor]}`,
-        score: natural[factor],
-        typicalRange: factor === primary ? '67-100' : factor === secondary ? '45-85' : '20-65',
-        reading:
-          factor === primary
+        score: quantitativeAvailable ? natural[factor] : null,
+        typicalRange: quantitativeAvailable
+          ? factor === primary
+            ? '67-100'
+            : factor === secondary
+              ? '45-85'
+              : '20-65'
+          : 'n/d',
+        reading: quantitativeAvailable
+          ? factor === primary
             ? 'Fator com alta representatividade no perfil atual.'
             : factor === secondary
               ? 'Fator de apoio com influencia relevante no estilo de atuacao.'
-              : 'Fator complementar para equilibrio de performance.',
+              : 'Fator complementar para equilibrio de performance.'
+          : `Leitura quantitativa indisponivel. O fator ${factor} permanece apenas com interpretacao qualitativa nesta avaliacao.`,
       })),
     },
     combinedProfile: {

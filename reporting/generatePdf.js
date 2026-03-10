@@ -182,6 +182,7 @@ export async function generatePdfFromData(rawData, options = {}) {
     const coverStatus = await page.evaluate(() => {
       const cover = document.querySelector('.cover-content');
       if (!cover) return { found: false };
+      const coverImage = cover.querySelector('.cover-art-image');
       const rect = cover.getBoundingClientRect();
       const computed = window.getComputedStyle(cover);
       const backgroundImage = String(computed.backgroundImage || '');
@@ -190,11 +191,15 @@ export async function generatePdfFromData(rawData, options = {}) {
         width: Number(rect.width || 0),
         height: Number(rect.height || 0),
         hasBackgroundImage: Boolean(backgroundImage && backgroundImage !== 'none'),
+        hasCoverImage:
+          Boolean(coverImage) &&
+          Number(coverImage?.naturalWidth || 0) > 0 &&
+          Number(coverImage?.naturalHeight || 0) > 0,
       };
     });
     if (
       !coverStatus?.found ||
-      !coverStatus?.hasBackgroundImage ||
+      (!coverStatus?.hasBackgroundImage && !coverStatus?.hasCoverImage) ||
       coverStatus.width === 0 ||
       coverStatus.height === 0
     ) {

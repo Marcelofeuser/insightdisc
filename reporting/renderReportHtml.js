@@ -143,7 +143,7 @@ const DEFAULT_BRANDING = Object.freeze({
 });
 
 const COVER_BACKGROUND_BY_TIER = Object.freeze({
-  premium: '/brand/report-cover-premium.jpg',
+  premium: '/report-assets/cover-insightdisc-premium.png',
   standard: '/brand/report-cover-standard.jpg',
 });
 
@@ -301,7 +301,10 @@ function normalizeParticipant(participant = {}, meta = {}) {
 }
 
 function normalizeScores(input = {}) {
-  const normalized = {};
+  const normalized = {
+    quantitativeAvailable: input?.quantitativeAvailable !== false,
+    availabilityMessage: safeText(input?.availabilityMessage, ''),
+  };
   for (const factor of FACTORS) {
     normalized[factor] = clamp(input?.[factor]);
   }
@@ -309,7 +312,30 @@ function normalizeScores(input = {}) {
   const hasAny = FACTORS.some((factor) => normalized[factor] > 0);
   if (hasAny) return normalized;
 
-  return { D: 25, I: 25, S: 25, C: 25 };
+  return {
+    D: 25,
+    I: 25,
+    S: 25,
+    C: 25,
+    quantitativeAvailable: normalized.quantitativeAvailable,
+    availabilityMessage: normalized.availabilityMessage,
+  };
+}
+
+function hasQuantitativeScoreData(scores = {}) {
+  return scores?.quantitativeAvailable !== false;
+}
+
+function quantitativeDataUnavailableHtml(
+  title = 'Medição quantitativa indisponível',
+  message = 'Esta avaliação legada não preservou scores DISC confiáveis. A leitura abaixo mantém apenas a interpretação qualitativa disponível.'
+) {
+  return `
+    <div class="strategic-note">
+      <h4>${esc(title)}</h4>
+      <p>${esc(message)}</p>
+    </div>
+  `;
 }
 
 function listHtml(items, fallback) {
@@ -323,6 +349,34 @@ function paragraphsHtml(items, fallback) {
 }
 
 function scoresTable(scores) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return `
+      <table class="table compact">
+        <thead>
+          <tr>
+            <th>Fator</th>
+            <th>Natural</th>
+            <th>Adaptado</th>
+            <th>Síntese</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${FACTORS.map(
+            (factor) => `
+              <tr>
+                <td>${factor} - ${FACTOR_META[factor].label}</td>
+                <td>n/d</td>
+                <td>n/d</td>
+                <td>n/d</td>
+              </tr>
+            `
+          ).join('')}
+        </tbody>
+      </table>
+      ${quantitativeDataUnavailableHtml('Scores quantitativos indisponíveis', scores?.availabilityMessage)}
+    `;
+  }
+
   return `
     <table class="table compact">
       <thead>
@@ -350,6 +404,15 @@ function scoresTable(scores) {
 }
 
 function barsHtml(scores = {}, title = 'Perfil') {
+  if (!hasQuantitativeScoreData(scores)) {
+    return `
+      <div class="card">
+        <h3>${esc(title)}</h3>
+        ${quantitativeDataUnavailableHtml('Gráfico indisponível', scores?.availabilityMessage)}
+      </div>
+    `;
+  }
+
   return `
     <div class="card">
       <h3>${esc(title)}</h3>
@@ -368,6 +431,10 @@ function barsHtml(scores = {}, title = 'Perfil') {
 }
 
 function radarSvg(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Radar indisponível', scores?.availabilityMessage);
+  }
+
   const width = 420;
   const height = 320;
   const centerX = 160;
@@ -427,7 +494,7 @@ function benchmarkRowsHtml(rows = []) {
   return normalized
     .map((row) => {
       const factor = safeText(row?.factor || row?.label, 'Fator');
-      const score = `${clamp(row?.score)}%`;
+      const score = Number.isFinite(Number(row?.score)) ? `${clamp(row?.score)}%` : 'n/d';
       const range = safeText(row?.typicalRange, '20-70');
       const reading = safeText(row?.reading, 'Leitura comparativa por faixa de referencia.');
       return `<tr><td>${esc(factor)}</td><td>${esc(score)}</td><td>${esc(range)}</td><td>${esc(reading)}</td></tr>`;
@@ -552,6 +619,10 @@ function classifyAdherence(score) {
 }
 
 function adherenceRowsHtml(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return '<tr><td colspan="4">Medição quantitativa indisponível nesta avaliação legada. A aderência contextual deve ser lida apenas de forma qualitativa.</td></tr>';
+  }
+
   const d = clamp(scores?.D);
   const i = clamp(scores?.I);
   const s = clamp(scores?.S);
@@ -594,6 +665,14 @@ function adherenceRowsHtml(scores = {}) {
 }
 
 function scorePillsHtml(scores = {}, profile = {}, adaptation = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml(
+      'Painel quantitativo indisponível',
+      scores?.availabilityMessage ||
+        `Esta avaliação preservou apenas a leitura qualitativa do perfil ${safeText(profile?.key, 'DISC')}.`
+    );
+  }
+
   const pillars = [
     { factor: 'D', label: 'Direção' },
     { factor: 'I', label: 'Influência' },
@@ -623,7 +702,7 @@ function scorePillsHtml(scores = {}, profile = {}, adaptation = {}) {
         <div class="kpi-copy">
           <span>Custo de adaptação</span>
           <strong>${esc(safeText(adaptation?.label, 'MODERADO'))}</strong>
-          <small>Delta médio: ${esc(Number(adaptation?.avgAbsDelta || 0).toFixed(2))}</small>
+          <small>Delta médio: ${esc(adaptation?.avgAbsDelta == null ? 'n/d' : Number(adaptation.avgAbsDelta).toFixed(2))}</small>
         </div>
       </div>
       <div class="kpi-pill kpi-pill-wide">
@@ -658,6 +737,10 @@ function factorAccentBadge(profile = {}, scores = {}, label = 'Fator dominante')
 }
 
 function miniDiscBarsHtml(scores = {}, title = 'Mapa técnico DISC') {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Distribuição quantitativa indisponível', scores?.availabilityMessage);
+  }
+
   return `
     <div class="mini-disc-chart">
       <div class="mini-disc-header">
@@ -684,6 +767,14 @@ function miniDiscBarsHtml(scores = {}, title = 'Mapa técnico DISC') {
 }
 
 function behaviorBalanceMatrixHtml(scores = {}, profile = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml(
+      'Matriz quantitativa indisponível',
+      scores?.availabilityMessage ||
+        `A leitura do eixo dominante permanece qualitativa para o perfil ${safeText(profile?.key, 'DISC')}.`
+    );
+  }
+
   const drive = clamp(50 + (clamp(scores?.D) - clamp(scores?.S)) / 2);
   const relation = clamp(50 + (clamp(scores?.I) - clamp(scores?.C)) / 2);
   const markerX = 8 + relation * 0.84;
@@ -758,6 +849,7 @@ function stressEscalationVisualHtml(profile = {}) {
 
 function factorTechnicalBlockHtml(factor, factors = {}, scores = {}) {
   const meta = FACTOR_META[factor] || FACTOR_META.D;
+  const hasQuantitativeData = hasQuantitativeScoreData(scores);
   const naturalValue = clamp(scores?.natural?.[factor]);
   const adaptedValue = clamp(scores?.adapted?.[factor]);
   const actions = safeArray(factors?.[factor]?.actions, [
@@ -776,18 +868,24 @@ function factorTechnicalBlockHtml(factor, factors = {}, scores = {}) {
         <h3>${factor} • ${esc(meta.label)}</h3>
       </div>
       <p>${esc(safeText(factors?.[factor]?.headline, `Expressão de ${meta.label} no perfil atual.`))}</p>
-      <div class="factor-mini-bars">
-        <div class="factor-mini-row">
-          <span>Natural</span>
-          <div class="factor-mini-track"><div class="factor-mini-fill" style="width:${naturalValue}%"></div></div>
-          <strong>${naturalValue}%</strong>
-        </div>
-        <div class="factor-mini-row">
-          <span>Adaptado</span>
-          <div class="factor-mini-track"><div class="factor-mini-fill factor-mini-fill-soft" style="width:${adaptedValue}%"></div></div>
-          <strong>${adaptedValue}%</strong>
-        </div>
-      </div>
+      ${
+        hasQuantitativeData
+          ? `
+            <div class="factor-mini-bars">
+              <div class="factor-mini-row">
+                <span>Natural</span>
+                <div class="factor-mini-track"><div class="factor-mini-fill" style="width:${naturalValue}%"></div></div>
+                <strong>${naturalValue}%</strong>
+              </div>
+              <div class="factor-mini-row">
+                <span>Adaptado</span>
+                <div class="factor-mini-track"><div class="factor-mini-fill factor-mini-fill-soft" style="width:${adaptedValue}%"></div></div>
+                <strong>${adaptedValue}%</strong>
+              </div>
+            </div>
+          `
+          : quantitativeDataUnavailableHtml('Score numérico indisponível', scores?.availabilityMessage)
+      }
       <div class="grid two factor-mini-grid">
         <div>
           <h4>Forças típicas</h4>
@@ -972,6 +1070,12 @@ function applyGlobalWordingCorrections(html = '') {
 
 function applyUtf8Polish(html = '') {
   const replacements = [
+    [/\bDominancia\b/g, 'Dominância'],
+    [/\bdominancia\b/g, 'dominância'],
+    [/\bInfluencia\b/g, 'Influência'],
+    [/\binfluencia\b/g, 'influência'],
+    [/\bDiagnostico\b/g, 'Diagnóstico'],
+    [/\bdiagnostico\b/g, 'diagnóstico'],
     [/\bRelatorio\b/g, 'Relatório'],
     [/\brelatorio\b/g, 'relatório'],
     [/\bAnalise\b/g, 'Análise'],
@@ -1048,12 +1152,24 @@ function applyUtf8Polish(html = '') {
     [/\borganizacao\b/g, 'organização'],
     [/\bAvaliacao\b/g, 'Avaliação'],
     [/\bavaliacao\b/g, 'avaliação'],
+    [/\bAvaliacoes\b/g, 'Avaliações'],
+    [/\bavaliacoes\b/g, 'avaliações'],
     [/\bConclusao\b/g, 'Conclusão'],
     [/\bconclusao\b/g, 'conclusão'],
+    [/\bPaginas\b/g, 'Páginas'],
+    [/\bpaginas\b/g, 'páginas'],
+    [/\bPagina\b/g, 'Página'],
+    [/\bpagina\b/g, 'página'],
     [/\bCriterio\b/g, 'Critério'],
     [/\bcriterio\b/g, 'critério'],
+    [/\bTecnico\b/g, 'Técnico'],
+    [/\btecnico\b/g, 'técnico'],
+    [/\bTecnica\b/g, 'Técnica'],
+    [/\btecnica\b/g, 'técnica'],
     [/\bCritica\b/g, 'Crítica'],
     [/\bcritica\b/g, 'crítica'],
+    [/\bCriticas\b/g, 'Críticas'],
+    [/\bcriticas\b/g, 'críticas'],
     [/\bRotulo\b/g, 'Rótulo'],
     [/\brotulo\b/g, 'rótulo'],
     [/\bCompreensao\b/g, 'Compreensão'],
@@ -1072,14 +1188,42 @@ function applyUtf8Polish(html = '') {
     [/\bpressao\b/g, 'pressão'],
     [/\bInformacao\b/g, 'Informação'],
     [/\binformacao\b/g, 'informação'],
+    [/\bSituacao\b/g, 'Situação'],
+    [/\bsituacao\b/g, 'situação'],
+    [/\bSituacoes\b/g, 'Situações'],
+    [/\bsituacoes\b/g, 'situações'],
     [/\bNao\b/g, 'Não'],
     [/\bnao\b/g, 'não'],
     [/\bAcao\b/g, 'Ação'],
     [/\bacao\b/g, 'ação'],
     [/\bAcoes\b/g, 'Ações'],
     [/\bacoes\b/g, 'ações'],
+    [/\bContem\b/g, 'Contém'],
+    [/\bcontem\b/g, 'contém'],
     [/\bFuncao\b/g, 'Função'],
     [/\bfuncao\b/g, 'função'],
+    [/\bFuncoes\b/g, 'Funções'],
+    [/\bfuncoes\b/g, 'funções'],
+    [/\bNecessario\b/g, 'Necessário'],
+    [/\bnecessario\b/g, 'necessário'],
+    [/\bNecessarios\b/g, 'Necessários'],
+    [/\bnecessarios\b/g, 'necessários'],
+    [/\bPaciencia\b/g, 'Paciência'],
+    [/\bpaciencia\b/g, 'paciência'],
+    [/\bExplicacoes\b/g, 'Explicações'],
+    [/\bexplicacoes\b/g, 'explicações'],
+    [/\bPresenca\b/g, 'Presença'],
+    [/\bpresenca\b/g, 'presença'],
+    [/\bDiscussoes\b/g, 'Discussões'],
+    [/\bdiscussoes\b/g, 'discussões'],
+    [/\bPriorizacao\b/g, 'Priorização'],
+    [/\bpriorizacao\b/g, 'priorização'],
+    [/\bGovernanca\b/g, 'Governança'],
+    [/\bgovernanca\b/g, 'governança'],
+    [/\bTransicao\b/g, 'Transição'],
+    [/\btransicao\b/g, 'transição'],
+    [/\bInformacao\b/g, 'Informação'],
+    [/\binformacao\b/g, 'informação'],
     [/\bAutonom(a|i)a\b/g, 'Autonomia'],
     [/\bautonom(a|i)a\b/g, 'autonomia'],
   ];
@@ -1175,15 +1319,33 @@ function buildBackCoverPage(branding = {}, options = {}) {
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
+  const normalizedTitle = scope.toLowerCase();
+  let example = `Em um cenário real de ${scope.toLowerCase()}, observe como o comportamento se expressa em reuniões de alinhamento, priorização de tarefas e tomada de decisão sob prazo.`;
+  let managerLens = `Para ${detail.toLowerCase()}, combine metas claras, feedback observável e revisões curtas para transformar insight comportamental em consistência de entrega.`;
+
+  if (/comunic|relacion|equipe/.test(normalizedTitle)) {
+    example = 'Observe como a pessoa ajusta tom, ritmo e profundidade da mensagem quando precisa alinhar expectativa com perfis diferentes.';
+    managerLens = 'Defina combinados de comunicação, checkpoints curtos e exemplos concretos de boa interação para reduzir ruído relacional.';
+  } else if (/decis|autonomia|benchmark/.test(normalizedTitle)) {
+    example = 'Avalie como o perfil reage quando precisa decidir com informação incompleta, pressão de prazo e necessidade de alinhamento com pares.';
+    managerLens = 'Estruture critérios de decisão, limites de autonomia e revisões pós-decisão para reduzir risco sem engessar a execução.';
+  } else if (/estresse|conflit|press/.test(normalizedTitle)) {
+    example = 'Observe quais sinais aparecem primeiro sob pressão: aceleração, retração, rigidez analítica ou excesso de sociabilidade.';
+    managerLens = 'Use rituais curtos de recalibragem, priorização visível e alinhamento de expectativa para preservar consistência em cenários críticos.';
+  } else if (/lideran|desenvolvimento|carreira|ambiente/.test(normalizedTitle)) {
+    example = 'Considere em quais contextos o perfil entrega mais valor: direção clara, espaço para influência, rotina previsível ou profundidade técnica.';
+    managerLens = 'Transforme o insight em plano de desenvolvimento com metas observáveis, evidência prática e revisão em ciclos de 30, 60 e 90 dias.';
+  }
+
   return `
     <div class="grid two compact-enrichment">
       ${enrichmentCard(
         'Exemplo de aplicacao',
-        `Em um cenário real de ${scope.toLowerCase()}, observe como o comportamento se expressa em reuniões de alinhamento, priorização de tarefas e tomada de decisão sob prazo.`
+        example
       )}
       ${enrichmentCard(
         'Leitura do gestor',
-        `Para ${detail.toLowerCase()}, combine metas claras, feedback observável e revisões curtas para transformar insight comportamental em consistência de entrega.`
+        managerLens
       )}
     </div>
     <div class="card compact-density-note">
@@ -1250,9 +1412,14 @@ function quickContextPanelHtml(quickContext = {}) {
 }
 
 function reliabilityPanelHtml(reliability = {}) {
+  const insufficientData = Boolean(reliability?.insufficientData);
   const score = clamp(reliability?.score, 0, 100);
-  const level = safeText(reliability?.level, score >= 80 ? 'alto' : score >= 60 ? 'moderado' : 'baixo');
+  const level = insufficientData
+    ? 'indisponível'
+    : safeText(reliability?.level, score >= 80 ? 'alto' : score >= 60 ? 'moderado' : 'baixo');
   const secondsPerQuestion = Number(reliability?.secondsPerQuestion || 0);
+  const hasAnswerData = Boolean(reliability?.hasAnswerData);
+  const hasTimingData = Boolean(reliability?.hasTimingData);
   const repeatRate = Number(reliability?.repeatedPatternRate || 0);
   const answeredRatio = Number(reliability?.answeredRatio || 0);
   const scoreSpread = Number(reliability?.scoreSpread || 0);
@@ -1266,7 +1433,7 @@ function reliabilityPanelHtml(reliability = {}) {
           <div class="kpi-chip" style="background: color-mix(in srgb, var(--factor-primary), #ffffff 76%);">R</div>
           <div class="kpi-copy">
             <span>Score</span>
-            <strong>${esc(String(score))}/100</strong>
+            <strong>${esc(insufficientData ? 'n/d' : `${String(score)}/100`)}</strong>
             <small>Nível ${esc(level)}</small>
           </div>
         </div>
@@ -1274,28 +1441,35 @@ function reliabilityPanelHtml(reliability = {}) {
           <div class="kpi-chip" style="background: color-mix(in srgb, var(--disc-c), #ffffff 76%);">T</div>
           <div class="kpi-copy">
             <span>Tempo médio</span>
-            <strong>${esc(secondsPerQuestion.toFixed(1))}s</strong>
-            <small>por pergunta</small>
+            <strong>${esc(hasTimingData ? `${secondsPerQuestion.toFixed(1)}s` : 'n/d')}</strong>
+            <small>${esc(hasTimingData ? 'por pergunta' : 'sem histórico de tempo')}</small>
           </div>
         </div>
         <div class="kpi-pill">
           <div class="kpi-chip" style="background: color-mix(in srgb, var(--disc-d), #ffffff 76%);">P</div>
           <div class="kpi-copy">
             <span>Padrão repetitivo</span>
-            <strong>${esc(`${Math.round(repeatRate * 100)}%`)}</strong>
-            <small>repetição máxima</small>
+            <strong>${esc(insufficientData ? 'n/d' : `${Math.round(repeatRate * 100)}%`)}</strong>
+            <small>${esc(insufficientData ? 'sem base técnica suficiente' : 'repetição máxima')}</small>
           </div>
         </div>
       </div>
-      ${miniDiscBarsHtml(
-        {
-          D: score,
-          I: clamp(answeredRatio * 100, 0, 100),
-          S: clamp(100 - repeatRate * 100, 0, 100),
-          C: clamp(100 - scoreSpread, 0, 100),
-        },
-        'Painel técnico de confiabilidade',
-      )}
+      ${
+        insufficientData
+          ? quantitativeDataUnavailableHtml(
+              'Confiabilidade técnica parcial',
+              'Esta avaliação não preservou histórico suficiente para calcular a confiabilidade completa de resposta.'
+            )
+          : miniDiscBarsHtml(
+              {
+                D: score,
+                I: hasAnswerData ? clamp(answeredRatio * 100, 0, 100) : 0,
+                S: clamp(100 - repeatRate * 100, 0, 100),
+                C: clamp(100 - scoreSpread, 0, 100),
+              },
+              'Painel técnico de confiabilidade',
+            )
+      }
       ${listHtml(notes.slice(0, 4))}
     </div>
   `;
@@ -1319,6 +1493,7 @@ function buildPage({
     return `
       <section class="page cover-page">
         <div class="cover-content" style="--cover-bg:url('${esc(coverArtUrl)}');" aria-label="Capa oficial ${esc(coverBrandName)}">
+          <img src="${esc(coverArtUrl)}" alt="Capa ${esc(coverBrandName)}" class="cover-art-image" />
           ${content}
         </div>
       </section>
@@ -1433,6 +1608,8 @@ export function renderReportHtml(input = {}) {
     natural: normalizeScores(report?.scores?.natural),
     adapted: normalizeScores(report?.scores?.adapted || report?.scores?.natural),
     summary: normalizeScores(report?.scores?.summary || report?.scores?.natural),
+    quantitativeAvailable: report?.scores?.quantitativeAvailable !== false,
+    availabilityMessage: safeText(report?.scores?.availabilityMessage, ''),
   };
 
   const profile = {
@@ -1505,19 +1682,26 @@ export function renderReportHtml(input = {}) {
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),
-    avgAbsDelta: Number(report?.adaptation?.avgAbsDelta || 0).toFixed(2),
+    avgAbsDelta:
+      report?.adaptation?.avgAbsDelta == null
+        ? null
+        : Number(report?.adaptation?.avgAbsDelta || 0).toFixed(2),
     interpretation: safeText(
       report?.adaptation?.interpretation,
       'A diferenca entre natural e adaptado indica calibragem comportamental relevante para sustentar performance sem desgaste.'
     ),
   };
   const reliability = {
-    score: clamp(report?.reliability?.score ?? 0, 0, 100),
+    score:
+      report?.reliability?.score == null ? null : clamp(report?.reliability?.score ?? 0, 0, 100),
     level: safeText(report?.reliability?.level, ''),
     secondsPerQuestion: Number(report?.reliability?.secondsPerQuestion || 0),
     repeatedPatternRate: Number(report?.reliability?.repeatedPatternRate || 0),
     answeredRatio: Number(report?.reliability?.answeredRatio || 0),
     scoreSpread: Number(report?.reliability?.scoreSpread || 0),
+    hasAnswerData: Boolean(report?.reliability?.hasAnswerData),
+    hasTimingData: Boolean(report?.reliability?.hasTimingData),
+    insufficientData: Boolean(report?.reliability?.insufficientData),
     notes: safeArray(report?.reliability?.notes, []),
   };
   const quickContext = normalizeQuickContextForDisplay(
@@ -1775,7 +1959,7 @@ export function renderReportHtml(input = {}) {
               <p><strong>Perfil identificado:</strong> ${esc(profile.key)} (${esc(profile.mode)})</p>
               <p><strong>Perfil primário:</strong> ${esc(profilePrimaryLabel)} • <strong>Perfil secundário:</strong> ${esc(profileSecondaryLabel)}</p>
               <p><strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
-              <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
+              <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta ?? 'n/d')} pontos)</p>
               <p>${esc(adaptation.interpretation)}</p>
             </div>
           </div>
@@ -2845,7 +3029,7 @@ export function renderReportHtml(input = {}) {
             <h3>Resumo técnico e confidencialidade</h3>
             <p><strong>Perfil identificado:</strong> ${esc(profile.key)} • <strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
             <p><strong>Fatores de maior expressão:</strong> ${esc(profile.primary)} e ${esc(profile.secondary)}</p>
-            <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta)} pontos)</p>
+            <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta ?? 'n/d')} pontos)</p>
             <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
             <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, 'suporte@insightdisc.app'))}</p>
             <p>Este relatório utiliza o modelo DISC como ferramenta de análise comportamental e não constitui diagnóstico psicológico.</p>
