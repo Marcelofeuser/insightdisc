@@ -5,6 +5,7 @@ import { hashPassword, sha256, signJwt, verifyJwt, verifyPassword } from '../lib
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireRole } from '../middleware/rbac.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
 
 const router = Router();
 
@@ -174,6 +175,13 @@ router.post('/login', async (req, res) => {
     const validPassword = await verifyPassword(input.password, user.passwordHash);
     if (!validPassword) {
       return res.status(401).json({ ok: false, reason: 'INVALID_CREDENTIALS' });
+    }
+
+    try {
+      await markPromoAccountActivated(user.id);
+    } catch (activationError) {
+      // eslint-disable-next-line no-console
+      console.warn('[candidate/login] promo account activation skipped:', activationError?.message || activationError);
     }
 
     const token = signJwt({ sub: user.id, email: user.email, role: user.role });

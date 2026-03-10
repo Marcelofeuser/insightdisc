@@ -22,6 +22,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import CampaignsPanel from '@/components/super-admin/CampaignsPanel';
 import {
   Select,
   SelectContent,
@@ -676,6 +677,8 @@ export default function SuperAdminDashboard() {
             ))}
           </div>
         </section>
+
+        <CampaignsPanel />
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-white">Leads</h2>

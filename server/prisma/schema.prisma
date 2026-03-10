@@ -41,6 +41,26 @@ enum PaymentStatus {
   CANCELED
 }
 
+enum CampaignMode {
+  COUPON
+  PROMO_ACCOUNT
+  BOTH
+}
+
+enum CampaignCouponStatus {
+  AVAILABLE
+  REDEEMED
+  DISABLED
+  EXPIRED
+}
+
+enum PromoAccountStatus {
+  CREATED
+  ACTIVATED
+  EXPORTED
+  DISABLED
+}
+
 model User {
   id           String               @id @default(cuid())
   email        String               @unique
@@ -57,6 +77,14 @@ model User {
   payments           Payment[]
   candidateDossiers  BehavioralDossier[] @relation("BehavioralDossierCandidate")
   createdDossiers    BehavioralDossier[] @relation("BehavioralDossierCreator")
+  campaignsCreated   Campaign[]          @relation("CampaignCreator")
+  couponsRedeemed    CampaignCoupon[]    @relation("CampaignCouponRedeemer")
+  promoAccountProvisions PromoAccountProvision[] @relation("PromoAccountUser")
+  promoAccountBatchesCreated PromoAccountBatch[] @relation("PromoAccountBatchCreator")
+  promoAccountSecretsRevealed PromoAccountDeliverySecret[] @relation("PromoAccountSecretRevealer")
+  campaignAuditLogs CampaignAuditLog[]   @relation("CampaignAuditActor")
+  creditGrantsReceived CreditGrant[]     @relation("CreditGrantRecipient")
+  creditGrantsIssued   CreditGrant[]     @relation("CreditGrantActor")
 
   @@map("users")
 }
@@ -340,4 +368,155 @@ model ReassessmentReminder {
 
   @@index([dossierId, date])
   @@map("reassessment_reminders")
+}
+
+model Campaign {
+  id                              String          @id @default(cuid())
+  name                            String
+  slug                            String?         @unique
+  description                     String?
+  mode                            CampaignMode
+  creditsAmount                   Int             @map("credits_amount")
+  quantityPlanned                 Int?            @map("quantity_planned")
+  quantityGenerated               Int             @default(0) @map("quantity_generated")
+  quantityRedeemed                Int             @default(0) @map("quantity_redeemed")
+  startsAt                        DateTime?       @map("starts_at")
+  expiresAt                       DateTime?       @map("expires_at")
+  isActive                        Boolean         @default(true) @map("is_active")
+  allowMultipleRedemptionsPerUser Boolean         @default(false) @map("allow_multiple_redemptions_per_user")
+  maxRedemptionsPerUser           Int             @default(1) @map("max_redemptions_per_user")
+  createdBy                       String          @map("created_by")
+  createdAt                       DateTime        @default(now()) @map("created_at")
+  updatedAt                       DateTime        @updatedAt @map("updated_at")
+
+  creator          User                    @relation("CampaignCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  coupons          CampaignCoupon[]
+  promoBatches     PromoAccountBatch[]
+  promoAccounts    PromoAccountProvision[]
+  auditLogs        CampaignAuditLog[]
+  creditGrants     CreditGrant[]
+
+  @@index([isActive, startsAt, expiresAt])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model CampaignCoupon {
+  id               String               @id @default(cuid())
+  campaignId       String               @map("campaign_id")
+  code             String               @unique
+  creditsAmount    Int                  @map("credits_amount")
+  status           CampaignCouponStatus @default(AVAILABLE)
+  redeemedByUserId String?              @map("redeemed_by_user_id")
+  redeemedAt       DateTime?            @map("redeemed_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  redeemedBy User?    @relation("CampaignCouponRedeemer", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, status])
+  @@index([redeemedByUserId])
+  @@map("campaign_coupons")
+}
+
+model PromoAccountBatch {
+  id              String   @id @default(cuid())
+  campaignId      String   @map("campaign_id")
+  createdBy       String   @map("created_by")
+  requestedCount  Int      @map("requested_count")
+  generatedCount  Int      @default(0) @map("generated_count")
+  creditsAmount   Int      @map("credits_amount")
+  userRole        UserRole @default(PRO) @map("user_role")
+  emailPrefix     String?  @map("email_prefix")
+  emailDomain     String?  @map("email_domain")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  campaign   Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator    User                   @relation("PromoAccountBatchCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  provisions PromoAccountProvision[]
+
+  @@index([campaignId, createdAt])
+  @@map("promo_account_batches")
+}
+
+model PromoAccountProvision {
+  id             String            @id @default(cuid())
+  campaignId     String            @map("campaign_id")
+  batchId        String            @map("batch_id")
+  email          String            @unique
+  passwordHash   String            @map("password_hash")
+  userId         String            @unique @map("user_id")
+  creditsGranted Int               @map("credits_granted")
+  status         PromoAccountStatus @default(CREATED)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  activatedAt    DateTime?         @map("activated_at")
+  exportedAt     DateTime?         @map("exported_at")
+  disabledAt     DateTime?         @map("disabled_at")
+
+  campaign       Campaign                   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  batch          PromoAccountBatch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  user           User                       @relation("PromoAccountUser", fields: [userId], references: [id], onDelete: Cascade)
+  deliverySecret PromoAccountDeliverySecret?
+
+  @@index([campaignId, status])
+  @@index([batchId, createdAt])
+  @@map("promo_account_provisions")
+}
+
+model PromoAccountDeliverySecret {
+  id               String    @id @default(cuid())
+  provisionId      String    @unique @map("provision_id")
+  cipherText       String    @map("cipher_text")
+  iv               String
+  authTag          String    @map("auth_tag")
+  isRevealed       Boolean   @default(false) @map("is_revealed")
+  revealedAt       DateTime? @map("revealed_at")
+  revealedByUserId String?   @map("revealed_by_user_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  provision   PromoAccountProvision @relation(fields: [provisionId], references: [id], onDelete: Cascade)
+  revealedBy  User?                 @relation("PromoAccountSecretRevealer", fields: [revealedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([revealedByUserId])
+  @@map("promo_account_delivery_secrets")
+}
+
+model CampaignAuditLog {
+  id          String   @id @default(cuid())
+  campaignId  String?  @map("campaign_id")
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  actor    User?     @relation("CampaignAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("campaign_audit_logs")
+}
+
+model CreditGrant {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  campaignId  String?  @map("campaign_id")
+  amount      Int
+  reason      String
+  sourceType  String   @map("source_type")
+  sourceId    String   @map("source_id")
+  actorUserId String?  @map("actor_user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user     User      @relation("CreditGrantRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor    User?     @relation("CreditGrantActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([campaignId, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("credit_grants")
 }

@@ -12,6 +12,7 @@ import { env } from '../config/env.js';
 import { findSeedSuperAdminUser } from '../modules/auth/super-admin-bootstrap.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
+import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
 
 const router = Router();
 
@@ -216,6 +217,13 @@ router.post('/login', async (req, res) => {
     const valid = await verifyPassword(input.password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ ok: false, error: 'Credenciais inválidas.' });
+    }
+
+    try {
+      await markPromoAccountActivated(user.id);
+    } catch (activationError) {
+      // eslint-disable-next-line no-console
+      console.warn('[auth/login] promo account activation skipped:', activationError?.message || activationError);
     }
 
     const token = signJwt({ sub: user.id, email: user.email, role: user.role });

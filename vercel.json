@@ -5,7 +5,7 @@
       "dest": "/api/proxy?path=$1/$2"
     },
     {
-      "src": "/api/(leads|dossier)(?:/(.*))?$",
+      "src": "/api/(leads|dossier|campaigns)(?:/(.*))?$",
       "dest": "/api/proxy?path=api/$1/$2"
     },
     { "handle": "filesystem" },
