@@ -91,9 +91,13 @@ export default function CheckoutSuccess() {
       const resolvePdfFromToken = async (token) => {
         if (!apiBaseUrl || !token) return '';
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
           const response = await fetch(
-            `${apiBaseUrl}/assessment/report-by-token?token=${encodeURIComponent(token)}`
+            `${apiBaseUrl}/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+            { signal: controller.signal }
           );
+          clearTimeout(timeoutId);
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) return '';
           const rawPdfUrl = payload?.report?.pdfUrl || '';
@@ -136,7 +140,7 @@ export default function CheckoutSuccess() {
 
       if (searchParams.get('pdfUrl')) {
         setAvailablePdfUrl(searchParams.get('pdfUrl') || '');
-      } else if (fallbackToken) {
+      } else if (fallbackToken && !isMock) {
         const pdfByToken = await resolvePdfFromToken(fallbackToken);
         if (pdfByToken) setAvailablePdfUrl(pdfByToken);
       }

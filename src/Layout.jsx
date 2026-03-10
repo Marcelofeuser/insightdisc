@@ -55,6 +55,7 @@ const PAGE_TITLES = {
   TeamMapping: { title: 'Mapeamento de Equipes', subtitle: 'Dinâmica e distribuição comportamental' },
   CompareProfiles: { title: 'Comparar Perfis', subtitle: 'Comparação DISC entre avaliações selecionadas' },
   TeamMap: { title: 'Mapa de Equipes', subtitle: 'Distribuição coletiva dos fatores comportamentais' },
+  Checkout: { title: 'Checkout', subtitle: 'Compra de créditos e gerenciamento de pacotes' },
   JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
   SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },
@@ -169,7 +170,9 @@ export default function Layout({ children, currentPageName }) {
       : []),
     ...(canSeeTenantAnalytics
       ? [
-          { icon: Users, label: 'Equipes', page: 'TeamMapping', to: createPageUrl('TeamMapping') },
+          { icon: Users, label: 'Mapa de Equipes', page: 'TeamMap', to: '/team-map' },
+          { icon: Sparkles, label: 'Comparar Perfis', page: 'CompareProfiles', to: '/compare-profiles' },
+          { icon: Users, label: 'Equipes (Legado)', page: 'TeamMapping', to: createPageUrl('TeamMapping') },
           { icon: Briefcase, label: 'Job Matching', page: 'JobMatching', to: createPageUrl('JobMatching') },
           { icon: MessageSquare, label: 'Leads', page: 'LeadsDashboard', to: createPageUrl('LeadsDashboard') },
           ...(canAccessDossier
@@ -178,7 +181,10 @@ export default function Layout({ children, currentPageName }) {
         ]
       : []),
     ...(canViewCredits || canManageCredits
-      ? [{ icon: CreditCard, label: 'Créditos', page: 'Credits', to: createPageUrl('Credits') }]
+      ? [
+          { icon: CreditCard, label: 'Créditos', page: 'Credits', to: createPageUrl('Credits') },
+          { icon: CreditCard, label: 'Comprar Créditos', page: 'Checkout', to: '/checkout' },
+        ]
       : []),
     ...(canManageAssessments
       ? [{ icon: Palette, label: 'Marca', page: 'BrandingSettings', to: '/app/branding' }]

@@ -14,6 +14,7 @@ export const PUBLIC_PAGES = new Set([
   'FreeResults',
   'CandidateOnboarding',
   'CheckoutSuccess',
+  'Checkout',
   'ForgotPassword',
   'Login',
   'Pricing',

@@ -132,9 +132,13 @@ const AuthenticatedApp = () => {
       />
       <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
       <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
+      <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
+      <Route caseSensitive path="/team-mapping" element={<Navigate to="/team-map" replace />} />
+      <Route path="/app/compare-profiles" element={<Navigate to="/compare-profiles" replace />} />
+      <Route path="/app/team-map" element={<Navigate to="/team-map" replace />} />
 
       <Route
-        path="/compare"
+        path="/compare-profiles"
         element={
           <ProtectedRoute pageName="CompareProfiles" policy={getPagePolicy('CompareProfiles')}>
             <LayoutWrapper currentPageName="CompareProfiles">
