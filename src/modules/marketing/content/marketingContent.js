@@ -20,6 +20,7 @@ export const MAIN_LANDING_CONTENT = Object.freeze({
       'InsightDISC conecta avaliacao individual, comparacao de perfis, aderencia candidato x cargo, lideranca e team intelligence em uma unica plataforma premium.',
     primaryCta: { label: 'Fazer minha avaliacao', to: '/avaliacoes' },
     secondaryCta: { label: 'Ver demonstracao', to: '/demo' },
+    compatibilityCta: { label: 'Fazer Teste Grátis', to: '/StartFree' },
     quickActions: [
       { label: 'Conhecer planos', to: '/Pricing' },
       { label: 'Falar com comercial', to: '/empresa' },
