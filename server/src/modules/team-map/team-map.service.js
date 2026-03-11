@@ -6,6 +6,7 @@ import {
   extractDiscScoresFromReport,
   resolveAssessmentParticipantLabel,
   resolveDominantFactor,
+  resolveProfileKey,
 } from '../disc/disc-profile-utils.js';
 
 function createError(code, message) {
@@ -37,17 +38,55 @@ async function resolveAllowedOrganizationIds(userId) {
 }
 
 function mapAssessmentToTeamProfile(assessment = {}) {
-  const disc = extractDiscScoresFromReport(assessment?.report?.discProfile || {});
+  const discProfile = assessment?.report?.discProfile || {};
+  const disc = extractDiscScoresFromReport(discProfile);
   if (!disc) return null;
 
   const dominantFactor = resolveDominantFactor(disc);
+  const ranking = [...DISC_FACTORS]
+    .map((factor) => ({ factor, value: Number(disc?.[factor] || 0) }))
+    .sort((a, b) => b.value - a.value);
+  const secondaryFactor = ranking.find((item) => item.factor !== dominantFactor)?.factor || '';
+
+  const participant = discProfile?.participant || {};
+  const department = String(
+    participant?.department ||
+      participant?.team ||
+      participant?.area ||
+      '',
+  ).trim();
+  const role = String(
+    participant?.role ||
+      participant?.jobTitle ||
+      participant?.position ||
+      '',
+  ).trim();
+  const manager = String(
+    participant?.manager ||
+      participant?.managerName ||
+      participant?.leader ||
+      '',
+  ).trim();
+  const city = String(
+    assessment?.quickContext?.city ||
+      participant?.city ||
+      '',
+  ).trim();
 
   return {
     assessmentId: assessment.id,
+    organizationId: assessment.organizationId,
     candidateName: resolveAssessmentParticipantLabel(assessment),
     candidateEmail: String(assessment?.candidateEmail || '').trim(),
     createdAt: assessment?.completedAt || assessment?.createdAt || null,
+    completedAt: assessment?.completedAt || null,
     dominantFactor,
+    secondaryFactor,
+    profileCode: resolveProfileKey(discProfile, disc),
+    department,
+    role,
+    manager,
+    city,
     disc,
   };
 }
@@ -76,6 +115,11 @@ async function findAccessibleAssessments({ userId, user = {}, assessmentIds = []
         candidateEmail: true,
         createdAt: true,
         completedAt: true,
+        quickContext: {
+          select: {
+            city: true,
+          },
+        },
         report: {
           select: {
             discProfile: true,
@@ -102,6 +146,11 @@ async function findAccessibleAssessments({ userId, user = {}, assessmentIds = []
       candidateEmail: true,
       createdAt: true,
       completedAt: true,
+      quickContext: {
+        select: {
+          city: true,
+        },
+      },
       report: {
         select: {
           discProfile: true,
@@ -121,10 +170,18 @@ export async function listTeamMapAssessments({ userId, user = {} } = {}) {
     .filter(Boolean)
     .map((item) => ({
       assessmentId: item.assessmentId,
+      organizationId: item.organizationId,
       candidateName: item.candidateName,
       candidateEmail: item.candidateEmail,
       createdAt: item.createdAt,
+      completedAt: item.completedAt,
       dominantFactor: item.dominantFactor,
+      secondaryFactor: item.secondaryFactor,
+      profileCode: item.profileCode,
+      department: item.department,
+      role: item.role,
+      manager: item.manager,
+      city: item.city,
       disc: item.disc,
     }));
 }

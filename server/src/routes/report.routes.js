@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { attachUser, canAccessOrganization, requireActiveCustomer } from '../middleware/rbac.js';
 import { requireReportExport } from '../middleware/require-report-export.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
+import { generateAssessmentReportPdf } from '../modules/report-export/generate-assessment-report-pdf.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { renderReportHtml } from '../modules/report/render-report-html.js';
 
@@ -145,6 +146,68 @@ router.post(
       return res.status(status).json({ ok: false, error: error?.message || 'Falha ao gerar relatório.' });
     }
   }
+);
+
+router.get(
+  '/:assessmentId/pdf',
+  requireAuth,
+  attachUser,
+  requireActiveCustomer,
+  requireReportExport,
+  async (req, res) => {
+    try {
+      const assessmentId = String(req.params.assessmentId || '').trim();
+      if (!assessmentId) {
+        return res.status(400).json({
+          ok: false,
+          reason: 'ASSESSMENT_ID_REQUIRED',
+          message: 'assessmentId é obrigatório para exportar o PDF.',
+        });
+      }
+
+      const assessment = await prisma.assessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          report: true,
+          creator: true,
+          organization: { include: { owner: true } },
+          quickContext: true,
+        },
+      });
+
+      if (!assessment) {
+        return res.status(404).json({ ok: false, reason: 'NOT_FOUND', message: 'Assessment não encontrado.' });
+      }
+
+      const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
+      if (!allowed) {
+        return res.status(403).json({ ok: false, reason: 'FORBIDDEN', message: 'Sem permissão para exportar este PDF.' });
+      }
+
+      const generated = await generateAssessmentReportPdf({ assessment });
+      const buffer = generated?.pdfBuffer;
+      if (!buffer || !buffer.length) {
+        return res.status(503).json({
+          ok: false,
+          reason: 'PDF_UNAVAILABLE',
+          message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+        });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${generated.fileName}"`);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).send(buffer);
+    } catch (error) {
+      const status = Number(error?.statusCode) || 500;
+      const reason = String(error?.message || 'REPORT_EXPORT_FAILED').toUpperCase();
+      return res.status(status).json({
+        ok: false,
+        reason,
+        message: 'Não foi possível exportar o PDF do relatório oficial no momento.',
+      });
+    }
+  },
 );
 
 router.get('/:id', requireAuth, attachUser, requireActiveCustomer, async (req, res) => {

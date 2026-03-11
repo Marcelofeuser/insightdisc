@@ -16,6 +16,7 @@ import leadsRoutes from './routes/leads.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
+import teamMapRoutes from './routes/team-map.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ export function createApp() {
   app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
+  app.use('/api/team-map', teamMapRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -67,6 +69,7 @@ export function createApp() {
         candidateReportsLegacy: 'GET /candidate/reports',
         candidateReports: 'GET /candidate/me/reports',
         reportHtml: 'GET /report/:assessmentId/html',
+        reportPdfOfficial: 'GET /report/:assessmentId/pdf',
         generateReport: 'POST /report/generate',
         getBranding: 'GET /branding/:workspaceId',
         saveBranding: 'PUT /branding/:workspaceId',
@@ -79,6 +82,8 @@ export function createApp() {
         createLead: 'POST /api/leads',
         listLeads: 'GET /api/leads',
         exportLeadsCsv: 'GET /api/leads/export/csv',
+        teamMapAssessments: 'GET /api/team-map/assessments',
+        teamMapAnalyze: 'POST /api/team-map/analyze',
         dossierByCandidate: 'GET /api/dossier/:candidateId',
         dossierCreateNote: 'POST /api/dossier/:candidateId/note',
         dossierCreateInsight: 'POST /api/dossier/:candidateId/insight',

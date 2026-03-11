@@ -41,7 +41,7 @@ async function createServerlessChromiumLauncher() {
   };
 }
 
-async function loadServerBrowserLauncher() {
+export async function loadServerBrowserLauncher() {
   const localLauncher = createLocalPuppeteerLauncher();
 
   if (process.env.VERCEL) {
