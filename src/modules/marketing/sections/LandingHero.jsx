@@ -49,6 +49,17 @@ export default function LandingHero({ content }) {
                 {content.secondaryCta.label}
               </Button>
             </Link>
+            {content.compatibilityCta ? (
+              <Link to={content.compatibilityCta.to}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-xl border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {content.compatibilityCta.label}
+                </Button>
+              </Link>
+            ) : null}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -100,4 +111,3 @@ export default function LandingHero({ content }) {
     </section>
   );
 }
-

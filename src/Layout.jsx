@@ -174,7 +174,18 @@ export default function Layout({ children, currentPageName }) {
 
         <main className="pt-20 flex-1">{children}</main>
 
-        <footer className="py-6 text-center space-y-2">
+        <footer className="py-6 text-center space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500">
+            <Link to={createPageUrl('Privacy')} className="hover:text-slate-900 transition-colors">
+              Privacidade
+            </Link>
+            <Link to={createPageUrl('Terms')} className="hover:text-slate-900 transition-colors">
+              Termos de Uso
+            </Link>
+            <Link to={createPageUrl('Lgpd')} className="hover:text-slate-900 transition-colors">
+              LGPD
+            </Link>
+          </div>
           <div className="text-xs text-slate-400">© {new Date().getFullYear()} InsightDISC</div>
         </footer>
       </div>
