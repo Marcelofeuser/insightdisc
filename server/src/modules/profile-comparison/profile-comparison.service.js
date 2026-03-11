@@ -18,8 +18,9 @@ function createError(code, message) {
 function mapAssessmentsById(assessments = []) {
   const map = new Map();
   assessments.forEach((item) => {
-    if (item?.id) {
-      map.set(item.id, item);
+    const key = String(item?.assessmentId || item?.id || '').trim();
+    if (key) {
+      map.set(key, item);
     }
   });
   return map;

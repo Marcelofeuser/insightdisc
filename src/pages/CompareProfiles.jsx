@@ -176,7 +176,11 @@ export default function CompareProfiles() {
         description: 'Os perfis selecionados foram comparados com sucesso.',
       });
     } catch (compareError) {
-      const message = compareError?.message || 'Falha ao comparar perfis.';
+      const code = String(compareError?.message || '').trim().toUpperCase();
+      const message =
+        code === 'ASSESSMENTS_NOT_ACCESSIBLE'
+          ? 'As avaliações selecionadas não estão disponíveis para comparação no seu escopo atual.'
+          : compareError?.message || 'Falha ao comparar perfis.';
       setError(message);
       toast({
         title: 'Erro ao comparar perfis',
