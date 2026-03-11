@@ -1,4 +1,4 @@
-import { DISC_FACTORS, DISC_FACTOR_LABELS, toNumber } from '@/modules/analytics/constants';
+import { DISC_FACTORS, DISC_FACTOR_LABELS, toNumber } from './constants.js';
 
 export function buildBehaviorInsights(distribution = {}, sampleSize = 0) {
   const normalized = DISC_FACTORS.reduce((acc, factor) => {

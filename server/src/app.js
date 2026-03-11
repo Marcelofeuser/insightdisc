@@ -17,6 +17,7 @@ import superAdminRoutes from './routes/super-admin.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
 import teamMapRoutes from './routes/team-map.routes.js';
+import profileComparisonRoutes from './routes/profile-comparison.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,7 @@ export function createApp() {
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
   app.use('/api/team-map', teamMapRoutes);
+  app.use('/api/profile-comparison', profileComparisonRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -84,6 +86,8 @@ export function createApp() {
         exportLeadsCsv: 'GET /api/leads/export/csv',
         teamMapAssessments: 'GET /api/team-map/assessments',
         teamMapAnalyze: 'POST /api/team-map/analyze',
+        profileComparisonAssessments: 'GET /api/profile-comparison/assessments',
+        profileComparisonCompare: 'POST /api/profile-comparison/compare',
         dossierByCandidate: 'GET /api/dossier/:candidateId',
         dossierCreateNote: 'POST /api/dossier/:candidateId/note',
         dossierCreateInsight: 'POST /api/dossier/:candidateId/insight',

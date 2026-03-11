@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 export default function ComparisonHero({
   comparison,
   onSwapProfiles,
+  canSwap = true,
   actions,
 }) {
   const left = comparison?.profileA;
@@ -29,6 +30,9 @@ export default function ComparisonHero({
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">
+              Modo: {comparison?.modeLabel || 'Pessoa x pessoa'}
+            </Badge>
             <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">
               A: {left?.profileCode || 'DISC'} - {left?.styleLabel || 'Perfil A'}
             </Badge>
@@ -37,13 +41,13 @@ export default function ComparisonHero({
             </Badge>
             <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">
               <Gauge className="mr-1 h-3.5 w-3.5" />
-              Compatibilidade: {Number(comparison?.compatibilityScore || 0).toFixed(1)}%
+              Compatibilidade: {Number(comparison?.compatibilityScore || 0).toFixed(1)}% ({comparison?.compatibilityLevel || 'Moderada'})
             </Badge>
           </div>
         </div>
 
         <div className="flex max-w-full flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={onSwapProfiles}>
+          <Button variant="outline" onClick={onSwapProfiles} disabled={!canSwap}>
             <ArrowLeftRight className="mr-2 h-4 w-4" />
             Trocar perfis
           </Button>
@@ -53,4 +57,3 @@ export default function ComparisonHero({
     </PanelShell>
   );
 }
-

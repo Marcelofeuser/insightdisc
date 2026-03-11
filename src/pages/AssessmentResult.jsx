@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, FileText, Radar, Share2 } from 'lucide-react';
+import { ArrowLeft, FileText, Radar, Share2, ShieldCheck } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelShell from '@/components/ui/PanelShell';
@@ -27,7 +27,9 @@ import {
   resolveAssessmentIdentity,
 } from '@/modules/assessmentResult/assessmentResultData';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
+import { buildAssessmentReportPath } from '@/modules/reports/routes';
 import { buildDiscInterpretation } from '@/modules/discEngine';
+import { buildLeadershipInsights } from '@/modules/leadershipInsights';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports';
 
 const RESULT_STATE = Object.freeze({
@@ -206,10 +208,16 @@ export default function AssessmentResult() {
       }),
     [discSnapshot?.summary]
   );
+  const leadershipInsights = useMemo(
+    () =>
+      buildLeadershipInsights(discSnapshot?.summary || {}, {
+        context: 'assessment_result_leadership',
+        detailLevel: 'short',
+      }),
+    [discSnapshot?.summary]
+  );
 
-  const reportHref = identity.id
-    ? `/Report?id=${encodeURIComponent(identity.id)}`
-    : '/MyAssessments';
+  const reportHref = identity.id ? buildAssessmentReportPath(identity.id) : '/MyAssessments';
   const compareHref = identity.id
     ? `/compare-profiles?assessmentId=${encodeURIComponent(identity.id)}`
     : '/compare-profiles';
@@ -361,6 +369,47 @@ export default function AssessmentResult() {
 
       <BehavioralReadingsGrid interpretation={interpretation} />
 
+      <PanelShell>
+        <SectionHeader
+          icon={ShieldCheck}
+          title="Inteligência de liderança"
+          subtitle="Leitura automática do estilo de liderança, decisão e gestão de equipe para aplicação prática."
+        />
+        <p className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm text-indigo-900">
+          {leadershipInsights?.summaryMedium || 'Sem leitura de liderança disponível no momento.'}
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <article className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Riscos de liderança</h3>
+            {(leadershipInsights?.leadershipRisks || []).length ? (
+              <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {leadershipInsights.leadershipRisks.slice(0, 3).map((item) => (
+                  <li key={item} className="rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 py-2">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">Sem riscos críticos de liderança mapeados.</p>
+            )}
+          </article>
+          <article className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="text-sm font-semibold text-slate-900">Como liderar melhor</h3>
+            {(leadershipInsights?.recommendations || []).length ? (
+              <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {leadershipInsights.recommendations.slice(0, 3).map((item) => (
+                  <li key={item} className="rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 py-2">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">Sem recomendações adicionais no momento.</p>
+            )}
+          </article>
+        </div>
+      </PanelShell>
+
       <DevelopmentPanel
         summaryLong={interpretation?.summaryLong}
         learningStyle={interpretation?.learningStyle}
@@ -375,4 +424,3 @@ export default function AssessmentResult() {
     </div>
   );
 }
-

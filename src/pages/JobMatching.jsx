@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
+  ArrowRightLeft,
   Plus, 
   Briefcase, 
   Users, 
@@ -10,7 +11,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Search
+  Search,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,59 +26,68 @@ import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { normalizeDiscScores } from '@/modules/discEngine';
+import { calculateJobFit } from '@/modules/jobFit';
+import { buildLeadershipInsights } from '@/modules/leadershipInsights';
+import {
+  listJobProfiles,
+  normalizeJobIdealProfile,
+  suggestCompatibleJobFunctions,
+} from '@/modules/jobProfiles';
 
 const DISC_COLORS = { D: 'text-red-600', I: 'text-orange-600', S: 'text-green-600', C: 'text-blue-600' };
 const DISC_BG = { D: 'bg-red-50 border-red-200', I: 'bg-orange-50 border-orange-200', S: 'bg-green-50 border-green-200', C: 'bg-blue-50 border-blue-200' };
 
 const FACTOR_NAMES = { D: 'Dominância', I: 'Influência', S: 'Estabilidade', C: 'Conformidade' };
 
-function calculateMatchScore(candidateProfile, idealProfile) {
-  if (!candidateProfile || !idealProfile) return 0;
-  let totalScore = 0;
-  let maxScore = 0;
+const JOB_PROFILE_LIBRARY = listJobProfiles();
 
-  ['D', 'I', 'S', 'C'].forEach(factor => {
-    const ideal = idealProfile[factor];
-    if (!ideal) return;
-    maxScore += 100;
-    const cVal = candidateProfile[factor] || 0;
-    const { min = 0, max = 100, ideal: idealVal = 50 } = ideal;
-
-    if (cVal >= min && cVal <= max) {
-      // Within range: score based on proximity to ideal
-      const distFromIdeal = Math.abs(cVal - idealVal);
-      const rangeHalf = Math.max(1, (max - min) / 2);
-      const score = Math.max(0, 100 - (distFromIdeal / rangeHalf) * 50);
-      totalScore += score;
-    } else {
-      // Outside range: partial credit based on how far
-      const distFromRange = cVal < min ? min - cVal : cVal - max;
-      totalScore += Math.max(0, 50 - distFromRange);
-    }
-  });
-
-  return maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function buildMatchExplanation(candidateProfile, idealProfile, score) {
-  if (!candidateProfile || !idealProfile) return 'Compatibilidade calculada com base nos fatores DISC disponíveis.';
+function resolveCandidateDisplayName(candidate = {}) {
+  const name =
+    candidate?.respondent_name ||
+    candidate?.candidate_name ||
+    candidate?.lead_name ||
+    candidate?.user_id;
+  return String(name || '').trim() || 'Candidato';
+}
 
-  const factorDiffs = ['D', 'I', 'S', 'C'].map((factor) => {
-    const target = Number(idealProfile?.[factor]?.ideal ?? 50);
-    const value = Number(candidateProfile?.[factor] ?? 0);
-    return { factor, gap: Math.abs(target - value), value, target };
-  });
+function resolveCandidateDiscScores(candidate = {}) {
+  const direct =
+    candidate?.results?.natural_profile ||
+    candidate?.results?.summary_profile ||
+    candidate?.disc_results?.summary ||
+    candidate?.disc ||
+    {};
+  return normalizeDiscScores(direct).normalized;
+}
 
-  const bestFit = [...factorDiffs].sort((a, b) => a.gap - b.gap)[0];
-  const biggestGap = [...factorDiffs].sort((a, b) => b.gap - a.gap)[0];
+function resolveCandidateProfileCode(candidate = {}, scores = {}) {
+  const profileCode =
+    candidate?.disc_profile?.profile?.key ||
+    candidate?.disc_profile?.profileKey ||
+    candidate?.results?.disc_profile ||
+    '';
+  if (profileCode) return String(profileCode).toUpperCase();
 
-  if (score >= 75) {
-    return `Compatibilidade ${score}%: forte aderência em ${bestFit.factor} (${FACTOR_NAMES[bestFit.factor]}), alinhando ritmo e demanda principal da vaga.`;
-  }
-  if (score >= 50) {
-    return `Compatibilidade ${score}%: aderência parcial com bom encaixe em ${bestFit.factor}. O maior ajuste necessário está em ${biggestGap.factor}.`;
-  }
-  return `Compatibilidade ${score}%: baixa aderência ao perfil ideal, com distância relevante em ${biggestGap.factor} (${FACTOR_NAMES[biggestGap.factor]}).`;
+  const ranking = ['D', 'I', 'S', 'C'].sort((left, right) => toNumber(scores?.[right]) - toNumber(scores?.[left]));
+  return `${ranking[0] || 'D'}${ranking[1] || 'I'}`;
+}
+
+function buildRangeProfileFromScores(scores = {}) {
+  return ['D', 'I', 'S', 'C'].reduce((acc, factor) => {
+    const ideal = Math.round(toNumber(scores?.[factor]));
+    acc[factor] = {
+      min: Math.max(0, ideal - 15),
+      max: Math.min(100, ideal + 15),
+      ideal,
+    };
+    return acc;
+  }, {});
 }
 
 export default function JobMatching() {
@@ -85,8 +96,10 @@ export default function JobMatching() {
   const hasSuperAdminBypass = isSuperAdminAccess(access);
   const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
   const [selectedPosition, setSelectedPosition] = useState(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [profileTemplateKey, setProfileTemplateKey] = useState(JOB_PROFILE_LIBRARY[0]?.key || '');
   const [newPosition, setNewPosition] = useState({
     title: '', department: '', description: '',
     ideal_profile: {
@@ -175,6 +188,7 @@ export default function JobMatching() {
       await refetchPositions();
       if (createdJob) {
         setSelectedPosition(createdJob);
+        setSelectedCandidateId('');
       }
       return;
     }
@@ -189,6 +203,7 @@ export default function JobMatching() {
     setShowCreateForm(false);
     await refetchPositions();
     setSelectedPosition(created || null);
+    setSelectedCandidateId('');
   };
 
   const updateIdealProfile = (factor, key, value) => {
@@ -201,23 +216,102 @@ export default function JobMatching() {
     }));
   };
 
-  const filteredPositions = positions.filter(p =>
-    p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.department?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getCandidatesWithScores = () => {
-    if (!selectedPosition?.ideal_profile) return [];
-    return assessments
-      .filter(a => a.results?.natural_profile)
-      .map(a => ({
-        ...a,
-        matchScore: calculateMatchScore(a.results.natural_profile, selectedPosition.ideal_profile)
-      }))
-      .sort((a, b) => b.matchScore - a.matchScore);
+  const applyProfileTemplate = (templateKey) => {
+    setProfileTemplateKey(templateKey);
+    const template = JOB_PROFILE_LIBRARY.find((item) => item.key === templateKey);
+    if (!template) return;
+    setNewPosition((previous) => ({
+      ...previous,
+      title: previous.title || template.label,
+      department: previous.department || template.category,
+      description: previous.description || template.description,
+      ideal_profile: buildRangeProfileFromScores(template.scores),
+      key_competencies: previous.key_competencies.length
+        ? previous.key_competencies
+        : ['Comunicação', 'Tomada de decisão', 'Colaboração'],
+    }));
   };
 
-  const candidates = getCandidatesWithScores();
+  const filteredPositions = useMemo(
+    () =>
+      positions.filter(
+        (position) =>
+          position.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          position.department?.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [positions, searchQuery],
+  );
+
+  const selectedJobProfile = useMemo(() => {
+    if (!selectedPosition) return null;
+    const normalizedIdeal = normalizeJobIdealProfile(
+      selectedPosition?.ideal_profile || selectedPosition?.scores || selectedPosition,
+    );
+
+    return {
+      key: selectedPosition?.key || selectedPosition?.id || '',
+      title: selectedPosition?.title || selectedPosition?.label || 'Cargo',
+      label: selectedPosition?.title || selectedPosition?.label || 'Cargo',
+      department: selectedPosition?.department || selectedPosition?.category || '',
+      description: selectedPosition?.description || '',
+      ideal_profile: normalizedIdeal.idealProfile,
+      scores: normalizedIdeal.scores,
+    };
+  }, [selectedPosition]);
+
+  const candidates = useMemo(() => {
+    if (!selectedJobProfile) return [];
+
+    return assessments
+      .map((assessment, index) => {
+        const scores = resolveCandidateDiscScores(assessment);
+        const hasScores = ['D', 'I', 'S', 'C'].some((factor) => toNumber(scores?.[factor]) > 0);
+        if (!hasScores) return null;
+
+        const id = String(assessment?.id || assessment?.assessmentId || `candidate-${index + 1}`);
+        const candidateInput = {
+          id,
+          assessmentId: id,
+          name: resolveCandidateDisplayName(assessment),
+          completedAt: assessment?.completed_at || assessment?.completedAt || assessment?.created_date || '',
+          profileCode: resolveCandidateProfileCode(assessment, scores),
+          scores,
+        };
+        const fit = calculateJobFit(candidateInput, selectedJobProfile, {
+          context: 'job_matching_page',
+        });
+
+        return {
+          id,
+          assessment,
+          candidate: candidateInput,
+          fit,
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => toNumber(right?.fit?.jobFitScore) - toNumber(left?.fit?.jobFitScore));
+  }, [assessments, selectedJobProfile]);
+
+  const selectedCandidate = useMemo(
+    () => candidates.find((item) => item.id === selectedCandidateId) || candidates[0] || null,
+    [candidates, selectedCandidateId],
+  );
+
+  const selectedCandidateLeadership = useMemo(() => {
+    if (!selectedCandidate?.candidate?.scores) return null;
+    return buildLeadershipInsights(selectedCandidate.candidate.scores, {
+      context: 'job_matching_leadership',
+      detailLevel: 'short',
+    });
+  }, [selectedCandidate]);
+
+  const selectedCandidateRoleSuggestions = useMemo(() => {
+    if (!selectedCandidate?.candidate?.scores) return null;
+    return suggestCompatibleJobFunctions(
+      { scores: selectedCandidate.candidate.scores },
+      { limit: 3, jobProfiles: JOB_PROFILE_LIBRARY },
+    );
+  }, [selectedCandidate]);
 
   return (
     <div className="w-full min-w-0 bg-slate-50">
@@ -238,7 +332,10 @@ export default function JobMatching() {
             </div>
           </div>
           <Button
-            onClick={() => setShowCreateForm(true)}
+            onClick={() => {
+              setShowCreateForm(true);
+              applyProfileTemplate(profileTemplateKey);
+            }}
             className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
             data-testid="job-matching-create-vaga"
             disabled={!canUsePremiumActions}
@@ -271,6 +368,37 @@ export default function JobMatching() {
               />
             </div>
 
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Biblioteca de perfis ideais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {JOB_PROFILE_LIBRARY.slice(0, 6).map((template) => (
+                  <button
+                    key={template.key}
+                    type="button"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-indigo-200 hover:bg-indigo-50/40"
+                    onClick={() => {
+                      setSelectedPosition({
+                        id: `template-${template.key}`,
+                        key: template.key,
+                        title: template.label,
+                        department: template.category,
+                        description: template.description,
+                        ideal_profile: buildRangeProfileFromScores(template.scores),
+                        key_competencies: [],
+                        is_active: true,
+                      });
+                      setSelectedCandidateId('');
+                    }}
+                  >
+                    <p className="text-sm font-semibold text-slate-900">{template.label}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{template.description}</p>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+
             {filteredPositions.length === 0 ? (
               <Card className="shadow-sm">
                 <CardContent className="p-8 text-center">
@@ -283,7 +411,10 @@ export default function JobMatching() {
               filteredPositions.map(pos => (
                 <Card
                   key={pos.id}
-                  onClick={() => setSelectedPosition(pos)}
+                  onClick={() => {
+                    setSelectedPosition(pos);
+                    setSelectedCandidateId('');
+                  }}
                   className={`cursor-pointer hover:shadow-md transition-all ${selectedPosition?.id === pos.id ? 'ring-2 ring-indigo-500' : ''}`}
                 >
                   <CardContent className="p-4">
@@ -312,13 +443,13 @@ export default function JobMatching() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="w-5 h-5 text-indigo-600" />
-                      Perfil Ideal — {selectedPosition.title}
+                      Perfil Ideal — {selectedJobProfile?.title || selectedPosition?.title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       {['D', 'I', 'S', 'C'].map(factor => {
-                        const fp = selectedPosition.ideal_profile?.[factor];
+                        const fp = selectedJobProfile?.ideal_profile?.[factor];
                         return (
                           <div key={factor} className={`rounded-xl p-4 border ${DISC_BG[factor]}`}>
                             <div className={`text-2xl font-bold ${DISC_COLORS[factor]}`}>{factor}</div>
@@ -335,6 +466,9 @@ export default function JobMatching() {
                         );
                       })}
                     </div>
+                    {selectedJobProfile?.description ? (
+                      <p className="text-sm text-slate-600">{selectedJobProfile.description}</p>
+                    ) : null}
                     {selectedPosition.key_competencies?.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {selectedPosition.key_competencies.map((c, i) => (
@@ -346,6 +480,90 @@ export default function JobMatching() {
                     )}
                   </CardContent>
                 </Card>
+
+                {selectedCandidate ? (
+                  <Card className="shadow-sm border-indigo-100">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+                        Pessoa x Cargo
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <article className="rounded-xl border border-slate-200 bg-white p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Pessoa</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">{selectedCandidate.candidate.name}</p>
+                          <p className="text-xs text-slate-500">Perfil {selectedCandidate.fit?.candidate?.profileCode || '-'}</p>
+                        </article>
+                        <article className="rounded-xl border border-slate-200 bg-white p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Cargo</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">{selectedCandidate.fit?.jobProfile?.label || '-'}</p>
+                          <p className="text-xs text-slate-500">{selectedCandidate.fit?.jobProfile?.styleLabel || 'Perfil ideal DISC'}</p>
+                        </article>
+                      </div>
+
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4">
+                        <p className="text-sm font-semibold text-indigo-900">
+                          Aderência: {Number(selectedCandidate.fit?.jobFitScore || 0).toFixed(1)}% ({selectedCandidate.fit?.compatibilityLevel || 'Moderada'})
+                        </p>
+                        <p className="mt-1 text-sm text-indigo-900/90">{selectedCandidate.fit?.summaryMedium}</p>
+                        <p className="mt-1 text-xs font-medium text-indigo-800">
+                          Recomendação de contratação: {selectedCandidate.fit?.hiringRecommendationLabel}
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <article className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                          <h4 className="text-sm font-semibold text-emerald-900">Pontos fortes</h4>
+                          <ul className="mt-2 space-y-2 text-sm text-emerald-900">
+                            {(selectedCandidate.fit?.strengths || []).slice(0, 3).map((item) => (
+                              <li key={item} className="rounded-lg border border-emerald-200 bg-white/80 px-2.5 py-2">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </article>
+                        <article className="rounded-xl border border-rose-200 bg-rose-50/70 p-4">
+                          <h4 className="text-sm font-semibold text-rose-900">Pontos de risco</h4>
+                          <ul className="mt-2 space-y-2 text-sm text-rose-900">
+                            {(selectedCandidate.fit?.riskPoints || []).slice(0, 3).map((item) => (
+                              <li key={item} className="rounded-lg border border-rose-200 bg-white/80 px-2.5 py-2">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </article>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <article className="rounded-xl border border-slate-200 bg-white p-4">
+                          <h4 className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
+                            <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                            Inteligência de liderança
+                          </h4>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {selectedCandidateLeadership?.summaryShort || 'Sem leitura de liderança para este perfil.'}
+                          </p>
+                        </article>
+                        <article className="rounded-xl border border-slate-200 bg-white p-4">
+                          <h4 className="text-sm font-semibold text-slate-900">Funções compatíveis sugeridas</h4>
+                          {(selectedCandidateRoleSuggestions?.recommendations || []).length ? (
+                            <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                              {selectedCandidateRoleSuggestions.recommendations.map((item) => (
+                                <li key={item.key} className="rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-2">
+                                  <span className="font-semibold">{item.label}</span> • {item.fitScore.toFixed(1)}%
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-2 text-sm text-slate-500">Sem sugestões adicionais no momento.</p>
+                          )}
+                        </article>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
 
                 {/* Candidates Ranking */}
                 <Card className="shadow-sm">
@@ -362,13 +580,22 @@ export default function JobMatching() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {candidates.map((candidate, idx) => (
+                        {candidates.map((candidateResult, idx) => {
+                          const fitScore = Number(candidateResult?.fit?.jobFitScore || 0);
+                          const dominant = String(candidateResult?.fit?.candidate?.profileCode || '').slice(0, 1) || 'D';
+                          const isSelected = selectedCandidate?.id === candidateResult.id;
+                          return (
                           <motion.div
-                            key={candidate.id}
+                            key={candidateResult.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
-                            className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                            className={`flex cursor-pointer items-center gap-4 rounded-xl p-4 transition-colors ${
+                              isSelected
+                                ? 'border border-indigo-200 bg-indigo-50/60'
+                                : 'bg-slate-50 hover:bg-slate-100'
+                            }`}
+                            onClick={() => setSelectedCandidateId(candidateResult.id)}
                           >
                             {/* Rank */}
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -382,27 +609,25 @@ export default function JobMatching() {
 
                             {/* Profile badge */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${
-                              candidate.results?.dominant_factor === 'D' ? 'bg-red-500' :
-                              candidate.results?.dominant_factor === 'I' ? 'bg-orange-500' :
-                              candidate.results?.dominant_factor === 'S' ? 'bg-green-500' :
+                              dominant === 'D' ? 'bg-red-500' :
+                              dominant === 'I' ? 'bg-orange-500' :
+                              dominant === 'S' ? 'bg-green-500' :
                               'bg-blue-500'
                             }`}>
-                              {candidate.results?.dominant_factor || '?'}
+                              {dominant}
                             </div>
 
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-slate-900 truncate">
-                                {candidate.user_id !== 'anonymous' ? candidate.user_id : 'Candidato anônimo'}
+                                {candidateResult?.candidate?.name || 'Candidato'}
                               </p>
                               <p className="text-xs text-slate-500">
-                                {new Date(candidate.completed_at).toLocaleDateString('pt-BR')}
+                                {candidateResult?.candidate?.completedAt
+                                  ? new Date(candidateResult.candidate.completedAt).toLocaleDateString('pt-BR')
+                                  : 'Sem data'}
                               </p>
                               <p className="text-xs text-slate-600 mt-1 pr-2">
-                                {buildMatchExplanation(
-                                  candidate.results?.natural_profile,
-                                  selectedPosition.ideal_profile,
-                                  candidate.matchScore
-                                )}
+                                {candidateResult?.fit?.summaryShort}
                               </p>
                             </div>
 
@@ -411,32 +636,33 @@ export default function JobMatching() {
                               <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${
-                                    candidate.matchScore >= 75 ? 'bg-green-500' :
-                                    candidate.matchScore >= 50 ? 'bg-amber-500' :
+                                    fitScore >= 75 ? 'bg-green-500' :
+                                    fitScore >= 50 ? 'bg-amber-500' :
                                     'bg-red-400'
                                   }`}
-                                  style={{ width: `${candidate.matchScore}%` }}
+                                  style={{ width: `${fitScore}%` }}
                                 />
                               </div>
                               <span className={`text-sm font-bold w-10 text-right ${
-                                candidate.matchScore >= 75 ? 'text-green-600' :
-                                candidate.matchScore >= 50 ? 'text-amber-600' :
+                                fitScore >= 75 ? 'text-green-600' :
+                                fitScore >= 50 ? 'text-amber-600' :
                                 'text-red-500'
                               }`}>
-                                {candidate.matchScore}%
+                                {fitScore.toFixed(0)}%
                               </span>
                             </div>
 
                             {/* Match icon */}
-                            {candidate.matchScore >= 75 ? (
+                            {fitScore >= 75 ? (
                               <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                            ) : candidate.matchScore >= 50 ? (
+                            ) : fitScore >= 50 ? (
                               <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                             ) : (
                               <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                             )}
                           </motion.div>
-                        ))}
+                        );
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -496,6 +722,24 @@ export default function JobMatching() {
                     className="mt-1 rounded-xl"
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label>Modelo de perfil ideal</Label>
+                <select
+                  value={profileTemplateKey}
+                  onChange={(event) => applyProfileTemplate(event.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-indigo-300 focus:outline-none"
+                >
+                  {JOB_PROFILE_LIBRARY.map((template) => (
+                    <option key={template.key} value={template.key}>
+                      {template.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-500">
+                  Use um modelo da biblioteca para acelerar definição do perfil ideal da vaga.
+                </p>
               </div>
 
               {/* Ideal Profile Sliders */}

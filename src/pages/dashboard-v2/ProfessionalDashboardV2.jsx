@@ -112,6 +112,12 @@ export default function ProfessionalDashboardV2() {
       description: 'Confronte perfis para ganho de precisão analítica.',
     },
     {
+      label: 'Mapa Organizacional',
+      to: '/team-map',
+      icon: Users,
+      description: 'Analise equilíbrio comportamental de equipes e lacunas de composição.',
+    },
+    {
       label: 'Arquétipos',
       to: '/painel/arquetipos',
       icon: Sparkles,

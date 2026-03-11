@@ -43,6 +43,14 @@ test.describe('Novas features - navegação', () => {
     await expect(page).toHaveURL(/\/painel(?:\?|$)/);
   });
 
+  test('alias /organization-map redireciona para /team-map', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/organization-map', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page).toHaveURL(/\/team-map(?:\?|$)/);
+    await expect(page.getByRole('heading', { name: /Mapa de Equipes/i }).first()).toBeVisible();
+  });
+
   test('painel alterna entre modos e atualiza conteúdo principal', async ({ page }) => {
     await loginAsProfessional(page);
     await page.goto('/painel', { waitUntil: 'domcontentloaded' });
@@ -84,5 +92,21 @@ test.describe('Novas features - navegação', () => {
     await expect(page).toHaveURL(/\/compare-profiles(?:\?|$)/);
     await expect(page.getByRole('heading', { name: /Comparar Perfis/i }).first()).toBeVisible();
     await expect(page.getByText(/Comparador de Perfis DISC/i).first()).toBeVisible();
+  });
+
+  test('alias /profile-compatibility redireciona para /compare-profiles', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/profile-compatibility', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page).toHaveURL(/\/compare-profiles(?:\?|$)/);
+    await expect(page.getByRole('heading', { name: /Comparar Perfis/i }).first()).toBeVisible();
+  });
+
+  test('alias /comparison-report redireciona para /compare-profiles', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/comparison-report', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page).toHaveURL(/\/compare-profiles(?:\?|$)/);
+    await expect(page.getByRole('heading', { name: /Comparar Perfis/i }).first()).toBeVisible();
   });
 });

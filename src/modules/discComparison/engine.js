@@ -4,12 +4,41 @@ import {
   FACTOR_LABELS,
   normalizeDiscScores,
 } from '../discEngine/index.js';
+import {
+  getJobProfileByKey,
+  listJobProfiles,
+} from '../jobProfiles/jobProfilesLibrary.js';
+
+export const COMPARISON_MODE = Object.freeze({
+  PERSON_TO_PERSON: 'person_to_person',
+  LEADER_TO_MEMBER: 'leader_to_member',
+  CANDIDATE_TO_ROLE: 'candidate_to_role',
+  MEMBER_TO_TEAM: 'member_to_team',
+});
+
+export const COMPARISON_MODE_META = Object.freeze({
+  [COMPARISON_MODE.PERSON_TO_PERSON]: {
+    label: 'Pessoa x pessoa',
+    description: 'Comparacao direta entre dois perfis para colaboracao profissional.',
+  },
+  [COMPARISON_MODE.LEADER_TO_MEMBER]: {
+    label: 'Lider x liderado',
+    description: 'Leitura de alinhamento entre direcao, autonomia e acompanhamento.',
+  },
+  [COMPARISON_MODE.CANDIDATE_TO_ROLE]: {
+    label: 'Candidato x cargo ideal',
+    description: 'Comparacao entre perfil do candidato e referencia comportamental da funcao.',
+  },
+  [COMPARISON_MODE.MEMBER_TO_TEAM]: {
+    label: 'Membro x equipe',
+    description: 'Comparacao entre uma pessoa e o baseline comportamental medio da equipe.',
+  },
+});
 
 const COMPATIBILITY_LEVEL = Object.freeze({
-  VERY_HIGH: 'Muito alta',
   HIGH: 'Alta',
   MODERATE: 'Moderada',
-  ATTENTION: 'Atencao',
+  LOW: 'Baixa',
 });
 
 function toNumber(value, fallback = 0) {
@@ -30,11 +59,59 @@ function safeText(value, fallback = '') {
   return text || fallback;
 }
 
+function resolveMode(rawMode = '') {
+  const mode = safeText(rawMode, COMPARISON_MODE.PERSON_TO_PERSON);
+  if (Object.values(COMPARISON_MODE).includes(mode)) {
+    return mode;
+  }
+  return COMPARISON_MODE.PERSON_TO_PERSON;
+}
+
+export function getComparisonModeMeta(rawMode = '') {
+  const mode = resolveMode(rawMode);
+  return {
+    mode,
+    ...(COMPARISON_MODE_META[mode] || COMPARISON_MODE_META[COMPARISON_MODE.PERSON_TO_PERSON]),
+  };
+}
+
+export function listIdealRoleProfiles() {
+  return listJobProfiles().map((item) => ({
+    key: item.key,
+    label: item.label,
+    context: item.description,
+    scores: { ...item.scores },
+  }));
+}
+
+export function buildIdealRoleProfile(rawTemplateKey = '') {
+  const templates = listJobProfiles();
+  const templateKey = safeText(rawTemplateKey, templates[0]?.key);
+  const template = getJobProfileByKey(templateKey) || templates[0];
+
+  if (!template) return null;
+
+  return normalizeComparableProfile(
+    {
+      id: `ideal-role-${template.key}`,
+      assessmentId: `ideal-role-${template.key}`,
+      name: `Cargo ideal: ${template.label}`,
+      email: '',
+      createdAt: '',
+      scores: template.scores,
+    },
+    {
+      context: 'comparison_role_ideal',
+      detailLevel: 'short',
+      fallbackId: `ideal-role-${template.key}`,
+    },
+  );
+}
+
 function resolveLevel(score = 0) {
-  if (score >= 82) return COMPATIBILITY_LEVEL.VERY_HIGH;
-  if (score >= 68) return COMPATIBILITY_LEVEL.HIGH;
-  if (score >= 52) return COMPATIBILITY_LEVEL.MODERATE;
-  return COMPATIBILITY_LEVEL.ATTENTION;
+  if (score >= 70) return COMPATIBILITY_LEVEL.HIGH;
+  if (score >= 40) return COMPATIBILITY_LEVEL.MODERATE;
+  return COMPATIBILITY_LEVEL.LOW;
 }
 
 export function normalizeComparableProfile(input = {}, options = {}) {
@@ -60,6 +137,57 @@ export function normalizeComparableProfile(input = {}, options = {}) {
     profileCode: interpretation?.profileCode || 'DISC',
     styleLabel: interpretation?.styleLabel || 'Perfil DISC em consolidacao',
     summaryShort: interpretation?.summaryShort || 'Leitura comportamental em consolidacao.',
+  };
+}
+
+export function buildTeamBenchmarkProfile(profiles = [], options = {}) {
+  const excludedId = safeText(options?.excludedId || options?.excludeAssessmentId);
+  const normalizedProfiles = (Array.isArray(profiles) ? profiles : [])
+    .map((profile, index) =>
+      normalizeComparableProfile(profile, {
+        context: 'comparison_team_member',
+        detailLevel: 'short',
+        fallbackId: `team-member-${index + 1}`,
+      }),
+    )
+    .filter((profile) => {
+      if (!profile?.hasValidScores) return false;
+      if (!excludedId) return true;
+      const keys = [profile?.assessmentId, profile?.id]
+        .map((item) => safeText(item))
+        .filter(Boolean);
+      return !keys.includes(excludedId);
+    });
+
+  if (!normalizedProfiles.length) {
+    return null;
+  }
+
+  const averageScores = DISC_FACTORS.reduce((accumulator, factor) => {
+    const sum = normalizedProfiles.reduce((running, profile) => running + toNumber(profile?.scores?.[factor]), 0);
+    accumulator[factor] = round1(sum / normalizedProfiles.length);
+    return accumulator;
+  }, {});
+
+  const benchmark = normalizeComparableProfile(
+    {
+      id: safeText(options?.benchmarkId, 'team-benchmark'),
+      assessmentId: safeText(options?.benchmarkId, 'team-benchmark'),
+      name: safeText(options?.benchmarkName, 'Equipe de referencia'),
+      email: '',
+      createdAt: '',
+      scores: averageScores,
+    },
+    {
+      context: 'comparison_team_baseline',
+      detailLevel: 'short',
+      fallbackId: safeText(options?.benchmarkId, 'team-benchmark'),
+    },
+  );
+
+  return {
+    profile: benchmark,
+    memberCount: normalizedProfiles.length,
   };
 }
 
@@ -123,21 +251,46 @@ export function buildScoreDifferences(profileA = {}, profileB = {}) {
   };
 }
 
-function calculateCompatibilityScore(profileA = {}, profileB = {}, scoreDifferences = {}) {
+function calculateCompatibilityScore(profileA = {}, profileB = {}, scoreDifferences = {}, options = {}) {
   const primaryMatch = profileA?.primaryFactor && profileA?.primaryFactor === profileB?.primaryFactor;
   const secondaryMatch = profileA?.secondaryFactor && profileA?.secondaryFactor === profileB?.secondaryFactor;
   const strongGap = toNumber(scoreDifferences?.strongestGapValue);
   const meanGap = toNumber(scoreDifferences?.meanAbsDelta);
+  const mode = resolveMode(options?.mode);
 
-  let score = 100 - meanGap;
+  let score = 100 - meanGap * 1.45;
 
-  if (primaryMatch) score += 6;
-  if (secondaryMatch) score += 3;
-  if (strongGap <= 12) score += 5;
-  if (strongGap >= 30) score -= 5;
-  if (meanGap >= 24) score -= 6;
+  if (primaryMatch) score += 9;
+  if (secondaryMatch) score += 4;
+  if (strongGap <= 10) score += 7;
+  if (strongGap >= 35) score -= 12;
+  if (meanGap >= 28) score -= 10;
 
-  return clamp(round1(score), 28, 97);
+  const complementarityBonus =
+    ((hasHigh(profileA?.scores, 'D') && hasHigh(profileB?.scores, 'C')) ||
+      (hasHigh(profileB?.scores, 'D') && hasHigh(profileA?.scores, 'C'))
+      ? 4
+      : 0) +
+    ((hasHigh(profileA?.scores, 'I') && hasHigh(profileB?.scores, 'S')) ||
+      (hasHigh(profileB?.scores, 'I') && hasHigh(profileA?.scores, 'S'))
+      ? 3
+      : 0);
+  score += complementarityBonus;
+
+  if (hasHigh(profileA?.scores, 'D') && hasHigh(profileB?.scores, 'D')) {
+    score -= 5;
+  }
+
+  if (mode === COMPARISON_MODE.CANDIDATE_TO_ROLE) {
+    if (meanGap <= 14) score += 5;
+    if (meanGap >= 24) score -= 4;
+  }
+
+  if (mode === COMPARISON_MODE.MEMBER_TO_TEAM) {
+    if (toNumber(scoreDifferences?.closestGapValue) <= 8) score += 3;
+  }
+
+  return clamp(round1(score), 0, 100);
 }
 
 function hasHigh(scores = {}, factor = '', threshold = 35) {
@@ -304,6 +457,26 @@ export function getCollaborationDynamics(profileA = {}, profileB = {}, scoreDiff
   return 'Colaboracao com bom potencial de complementaridade quando papeis e entregas sao bem distribuidos.';
 }
 
+function getWorkStyleDynamics(profileA = {}, profileB = {}, scoreDifferences = {}) {
+  const sGap = toNumber(scoreDifferences?.S?.absDelta);
+  const cGap = toNumber(scoreDifferences?.C?.absDelta);
+  const dGap = toNumber(scoreDifferences?.D?.absDelta);
+
+  if (sGap <= 12 && cGap <= 12) {
+    return 'Estilo de trabalho com boa convergencia de processo, previsibilidade e padrao de acompanhamento.';
+  }
+
+  if (dGap >= 24 && sGap >= 24) {
+    return 'Um perfil tende a operar por impulso de entrega e o outro por estabilizacao de processo. Vale distribuir blocos de execucao por perfil.';
+  }
+
+  if (cGap >= 24) {
+    return 'Existe diferenca de organizacao e detalhamento tecnico. Use criterios de aceite claros para manter consistencia.';
+  }
+
+  return 'Estilo de trabalho complementar quando a governanca de tarefas e checkpoints estiver explicita.';
+}
+
 function getLeadershipDynamics(profileA = {}, profileB = {}, scoreDifferences = {}) {
   const dGap = toNumber(scoreDifferences?.D?.absDelta);
   const iGap = toNumber(scoreDifferences?.I?.absDelta);
@@ -347,6 +520,27 @@ function getQualityDynamics(profileA = {}, profileB = {}, scoreDifferences = {})
   }
 
   return 'Nivel de qualidade pode ser equilibrado com checklists curtos e criterios de aceite claros.';
+}
+
+function getRiskToleranceDynamics(profileA = {}, profileB = {}, scoreDifferences = {}) {
+  const dGap = toNumber(scoreDifferences?.D?.absDelta);
+  const cGap = toNumber(scoreDifferences?.C?.absDelta);
+  const dAverage = round1((toNumber(profileA?.scores?.D) + toNumber(profileB?.scores?.D)) / 2);
+  const cAverage = round1((toNumber(profileA?.scores?.C) + toNumber(profileB?.scores?.C)) / 2);
+
+  if (dGap >= 24 || cGap >= 24) {
+    return 'Tolerancia a risco em polos diferentes: uma parte tende a acelerar experimentacao e a outra a elevar controle e mitigacao.';
+  }
+
+  if (dAverage >= 35 && cAverage <= 18) {
+    return 'Tolerancia a risco mais alta no par, com impulso para testar rapido e ajustar ao longo do caminho.';
+  }
+
+  if (cAverage >= 34 && dAverage <= 20) {
+    return 'Tolerancia a risco mais conservadora, com preferencia por validacao previa antes de movimentos criticos.';
+  }
+
+  return 'Tolerancia a risco moderada: o par tende a decidir melhor quando combina experimentacao controlada com criterio claro.';
 }
 
 function getPressureDynamics(profileA = {}, profileB = {}, scoreDifferences = {}) {
@@ -445,28 +639,81 @@ function getFactorHighlights(profileA = {}, profileB = {}, scoreDifferences = {}
   return highlights;
 }
 
-function getTechnicalNotes(profileA = {}, profileB = {}, scoreDifferences = {}, compatibilityScore = 0) {
+function buildModeSummaryAppendix(mode = COMPARISON_MODE.PERSON_TO_PERSON) {
+  if (mode === COMPARISON_MODE.LEADER_TO_MEMBER) {
+    return 'No contexto lider-liderado, acordos de autonomia, follow-up e feedback tendem a definir o sucesso da parceria.';
+  }
+  if (mode === COMPARISON_MODE.CANDIDATE_TO_ROLE) {
+    return 'No contexto candidato-cargo, a leitura indica aderencia comportamental atual e pontos para onboarding direcionado.';
+  }
+  if (mode === COMPARISON_MODE.MEMBER_TO_TEAM) {
+    return 'No contexto membro-equipe, a leitura mostra nivel de sintonia com o baseline coletivo e pontos de integracao.';
+  }
+  return 'No contexto pessoa-pessoa, a prioridade e transformar diferencas em acordos operacionais claros.';
+}
+
+function buildModeRecommendations(mode = COMPARISON_MODE.PERSON_TO_PERSON) {
+  if (mode === COMPARISON_MODE.LEADER_TO_MEMBER) {
+    return [
+      'Formalize acordos de delegacao: decisao, autonomia e criterio de escalonamento.',
+      'Estabeleca um ritual de 1:1 com foco em comportamento observavel e ajuste de rota curto.',
+    ];
+  }
+  if (mode === COMPARISON_MODE.CANDIDATE_TO_ROLE) {
+    return [
+      'Defina um plano de onboarding com foco nos fatores mais distantes do perfil ideal da funcao.',
+      'Acompanhe os primeiros 60 dias com metas comportamentais e checkpoints de adaptacao.',
+    ];
+  }
+  if (mode === COMPARISON_MODE.MEMBER_TO_TEAM) {
+    return [
+      'Ajuste a distribuicao de responsabilidades para aproveitar o fator forte do membro em lacunas da equipe.',
+      'Defina um padrinho interno para acelerar adaptacao ao ritmo e aos combinados do time.',
+    ];
+  }
+  return [
+    'Transforme os achados em dois combinados praticos de colaboracao com revisao em 30 dias.',
+  ];
+}
+
+function getTechnicalNotes(
+  profileA = {},
+  profileB = {},
+  scoreDifferences = {},
+  compatibilityScore = 0,
+  options = {},
+) {
+  const modeMeta = getComparisonModeMeta(options?.mode);
   return [
     `Indice de compatibilidade comparativa: ${round1(compatibilityScore).toFixed(1)}%.`,
+    `Faixa de compatibilidade: ${resolveLevel(compatibilityScore)} (0-40 baixa, 40-70 moderada, 70-100 alta).`,
     `Distancia media entre fatores: ${round1(scoreDifferences?.meanAbsDelta).toFixed(1)} pontos.`,
     `Soma das diferencas absolutas D/I/S/C: ${round1(scoreDifferences?.totalAbsDelta).toFixed(1)}.`,
+    `Contexto de comparacao: ${modeMeta.label}.`,
     `Perfil A: ${profileA.profileCode} (${profileA.styleLabel}).`,
     `Perfil B: ${profileB.profileCode} (${profileB.styleLabel}).`,
   ];
 }
 
-export function getCompatibilitySummary(profileA = {}, profileB = {}, scoreDifferences = {}, compatibilityScore = 0) {
+export function getCompatibilitySummary(
+  profileA = {},
+  profileB = {},
+  scoreDifferences = {},
+  compatibilityScore = 0,
+  options = {},
+) {
   const level = resolveLevel(compatibilityScore);
+  const modeMeta = getComparisonModeMeta(options?.mode);
   const strongestGapFactor = safeText(scoreDifferences?.strongestGapFactor, '');
   const strongestGapLabel = FACTOR_LABELS[strongestGapFactor] || strongestGapFactor;
   const profileALabel = safeText(profileA?.styleLabel, 'Perfil A');
   const profileBLabel = safeText(profileB?.styleLabel, 'Perfil B');
 
-  const summaryShort = `Comparacao entre ${profileALabel} e ${profileBLabel} com compatibilidade ${round1(compatibilityScore).toFixed(1)}% (${level}).`;
+  const summaryShort = `${modeMeta.label}: comparacao entre ${profileALabel} e ${profileBLabel} com compatibilidade ${round1(compatibilityScore).toFixed(1)}% (${level}).`;
 
   const summaryMedium = strongestGapFactor
-    ? `${summaryShort} O principal ponto de calibragem esta em ${strongestGapLabel}, onde a diferenca de intensidade pode alterar comunicacao, ritmo e decisao.`
-    : `${summaryShort} A leitura comparativa indica necessidade de acordos praticos de comunicacao e execucao para potencializar sinergia.`;
+    ? `${summaryShort} O principal ponto de calibragem esta em ${strongestGapLabel}, onde a diferenca de intensidade pode alterar comunicacao, ritmo e decisao. ${buildModeSummaryAppendix(modeMeta.mode)}`
+    : `${summaryShort} A leitura comparativa indica necessidade de acordos praticos de comunicacao e execucao para potencializar sinergia. ${buildModeSummaryAppendix(modeMeta.mode)}`;
 
   return {
     summaryShort,
@@ -475,7 +722,75 @@ export function getCompatibilitySummary(profileA = {}, profileB = {}, scoreDiffe
   };
 }
 
+function buildVisualizationModel(profileA = {}, profileB = {}, scoreDifferences = {}) {
+  const radar = DISC_FACTORS.map((factor) => ({
+    factor,
+    label: FACTOR_LABELS[factor] || factor,
+    left: round1(profileA?.scores?.[factor]),
+    right: round1(profileB?.scores?.[factor]),
+  }));
+
+  const factorDifferences = DISC_FACTORS.map((factor) => {
+    const item = scoreDifferences?.[factor] || {};
+    const delta = round1(item?.delta);
+    return {
+      factor,
+      label: FACTOR_LABELS[factor] || factor,
+      delta,
+      absDelta: round1(item?.absDelta),
+      dominantSide: delta >= 0 ? 'A' : 'B',
+      left: round1(item?.left),
+      right: round1(item?.right),
+    };
+  });
+
+  return {
+    radar,
+    factorDifferences,
+  };
+}
+
+function buildComparativeReport({
+  modeMeta,
+  compatibilityScore,
+  compatibilityLevel,
+  summary,
+  synergyPoints = [],
+  tensionPoints = [],
+  communicationDynamics = '',
+  decisionDynamics = '',
+  workRhythmDynamics = '',
+  pressureDynamics = '',
+  practicalRecommendations = [],
+  conflictRisks = [],
+  factorHighlights = [],
+} = {}) {
+  return {
+    title: 'Relatorio comparativo DISC',
+    mode: modeMeta?.mode || COMPARISON_MODE.PERSON_TO_PERSON,
+    modeLabel: modeMeta?.label || COMPARISON_MODE_META[COMPARISON_MODE.PERSON_TO_PERSON].label,
+    executiveSummary: summary?.summaryMedium || '',
+    compatibility: {
+      score: round1(compatibilityScore),
+      level: compatibilityLevel || resolveLevel(compatibilityScore),
+    },
+    sections: {
+      synergy: synergyPoints,
+      tension: tensionPoints,
+      communication: communicationDynamics,
+      decisionMaking: decisionDynamics,
+      executionRhythm: workRhythmDynamics,
+      pressureAndConflict: pressureDynamics,
+      practicalRecommendations,
+      conflictRisks,
+      factorHighlights,
+    },
+  };
+}
+
 export function compareDiscProfiles(rawProfileA = {}, rawProfileB = {}, options = {}) {
+  const mode = resolveMode(options?.mode);
+  const modeMeta = getComparisonModeMeta(mode);
   const profileA = normalizeComparableProfile(rawProfileA, {
     fallbackId: options?.fallbackLeftId || 'profile-a',
     context: 'comparison_left',
@@ -488,24 +803,50 @@ export function compareDiscProfiles(rawProfileA = {}, rawProfileB = {}, options 
   });
 
   const scoreDifferences = buildScoreDifferences(profileA, profileB);
-  const compatibilityScore = calculateCompatibilityScore(profileA, profileB, scoreDifferences);
-  const summary = getCompatibilitySummary(profileA, profileB, scoreDifferences, compatibilityScore);
+  const compatibilityScore = calculateCompatibilityScore(profileA, profileB, scoreDifferences, { mode });
+  const summary = getCompatibilitySummary(profileA, profileB, scoreDifferences, compatibilityScore, { mode });
 
   const synergyPoints = getSynergyPoints(profileA, profileB, scoreDifferences);
   const tensionPoints = getTensionPoints(profileA, profileB, scoreDifferences);
   const communicationDynamics = getCommunicationDynamics(profileA, profileB, scoreDifferences);
   const decisionDynamics = getDecisionDynamics(profileA, profileB, scoreDifferences);
   const collaborationDynamics = getCollaborationDynamics(profileA, profileB, scoreDifferences);
+  const workStyleDynamics = getWorkStyleDynamics(profileA, profileB, scoreDifferences);
   const leadershipDynamics = getLeadershipDynamics(profileA, profileB, scoreDifferences);
   const workRhythmDynamics = getWorkRhythmDynamics(profileA, profileB, scoreDifferences);
   const qualityDynamics = getQualityDynamics(profileA, profileB, scoreDifferences);
+  const riskToleranceDynamics = getRiskToleranceDynamics(profileA, profileB, scoreDifferences);
   const pressureDynamics = getPressureDynamics(profileA, profileB, scoreDifferences);
   const conflictRisks = getConflictRisks(profileA, profileB, scoreDifferences);
-  const practicalRecommendations = getCollaborationRecommendations(profileA, profileB, scoreDifferences);
+  const practicalRecommendations = [
+    ...getCollaborationRecommendations(profileA, profileB, scoreDifferences),
+    ...buildModeRecommendations(mode),
+  ];
   const factorHighlights = getFactorHighlights(profileA, profileB, scoreDifferences);
-  const technicalNotes = getTechnicalNotes(profileA, profileB, scoreDifferences, compatibilityScore);
+  const technicalNotes = getTechnicalNotes(profileA, profileB, scoreDifferences, compatibilityScore, {
+    mode,
+  });
+  const visualization = buildVisualizationModel(profileA, profileB, scoreDifferences);
+  const comparativeReport = buildComparativeReport({
+    modeMeta,
+    compatibilityScore,
+    compatibilityLevel: summary.compatibilityLevel,
+    summary,
+    synergyPoints,
+    tensionPoints,
+    communicationDynamics,
+    decisionDynamics,
+    workRhythmDynamics,
+    pressureDynamics,
+    practicalRecommendations,
+    conflictRisks,
+    factorHighlights,
+  });
 
   return {
+    mode,
+    modeLabel: modeMeta.label,
+    modeDescription: modeMeta.description,
     profileA,
     profileB,
     summaryShort: summary.summaryShort,
@@ -517,16 +858,44 @@ export function compareDiscProfiles(rawProfileA = {}, rawProfileB = {}, options 
     communicationDynamics,
     decisionDynamics,
     collaborationDynamics,
+    workStyleDynamics,
     leadershipDynamics,
     workRhythmDynamics,
     qualityDynamics,
+    riskToleranceDynamics,
     pressureDynamics,
     conflictRisks,
-    practicalRecommendations,
+    practicalRecommendations: Array.from(new Set(practicalRecommendations)).slice(0, 10),
     scoreDifferences,
     factorHighlights,
     technicalNotes,
+    visualization,
+    comparativeReport,
     generatedAt: new Date().toISOString(),
   };
 }
 
+export function compareMemberToTeam(memberProfile = {}, teamProfiles = [], options = {}) {
+  const member = normalizeComparableProfile(memberProfile, {
+    context: 'comparison_member_to_team_member',
+    detailLevel: options?.detailLevel || 'long',
+    fallbackId: options?.fallbackLeftId || 'member-profile',
+  });
+
+  const benchmark = buildTeamBenchmarkProfile(teamProfiles, {
+    excludedId: member?.assessmentId || member?.id,
+    benchmarkId: options?.benchmarkId || 'team-baseline',
+    benchmarkName: options?.benchmarkName || 'Equipe de referencia',
+  });
+
+  if (!benchmark?.profile) {
+    return null;
+  }
+
+  return compareDiscProfiles(member, benchmark.profile, {
+    ...options,
+    mode: COMPARISON_MODE.MEMBER_TO_TEAM,
+    fallbackLeftId: member?.assessmentId || member?.id || 'member-profile',
+    fallbackRightId: benchmark.profile?.assessmentId || benchmark.profile?.id || 'team-baseline',
+  });
+}

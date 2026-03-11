@@ -28,7 +28,9 @@ import TeamMap from '@/pages/TeamMap';
 import RoleDashboardHome from '@/pages/RoleDashboardHome';
 import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
 import AssessmentResult from '@/pages/AssessmentResult';
+import AssessmentReport from '@/pages/AssessmentReport';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
+import { buildAssessmentReportPath } from '@/modules/reports/routes';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -68,6 +70,11 @@ const DashboardHomeRouteElement = (
 function AssessmentResultAliasRedirect() {
   const { id } = useParams();
   return <Navigate to={buildAssessmentResultPath(id)} replace />;
+}
+
+function AssessmentReportAliasRedirect() {
+  const { id } = useParams();
+  return <Navigate to={buildAssessmentReportPath(id)} replace />;
 }
 
 function renderProtectedPage(path, pageName, PageComponent) {
@@ -153,8 +160,15 @@ const AuthenticatedApp = () => {
       <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
       <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
       <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
+      <Route caseSensitive path="/comparison-report" element={<Navigate to="/compare-profiles" replace />} />
+      <Route caseSensitive path="/profile-compatibility" element={<Navigate to="/compare-profiles" replace />} />
       <Route caseSensitive path="/team-mapping" element={<Navigate to="/team-map" replace />} />
+      <Route caseSensitive path="/organization-map" element={<Navigate to="/team-map" replace />} />
+      <Route caseSensitive path="/organizational-map" element={<Navigate to="/team-map" replace />} />
       <Route path="/assessment/:id/result" element={<AssessmentResultAliasRedirect />} />
+      <Route path="/assessment/:id/report" element={<AssessmentReportAliasRedirect />} />
+      <Route path="/report/:id" element={<AssessmentReportAliasRedirect />} />
+      <Route path="/reports/:id" element={<AssessmentReportAliasRedirect />} />
       <Route path="/app/compare-profiles" element={<Navigate to="/compare-profiles" replace />} />
       <Route path="/app/team-map" element={<Navigate to="/team-map" replace />} />
 
@@ -186,6 +200,17 @@ const AuthenticatedApp = () => {
           <ProtectedRoute pageName="AssessmentResult" policy={getPagePolicy('AssessmentResult')}>
             <LayoutWrapper currentPageName="AssessmentResult">
               <AssessmentResult />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/assessments/:id/report"
+        element={
+          <ProtectedRoute pageName="Report" policy={getPagePolicy('Report')}>
+            <LayoutWrapper currentPageName="Report">
+              <AssessmentReport />
             </LayoutWrapper>
           </ProtectedRoute>
         }
