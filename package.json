@@ -14,6 +14,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:unit:disc-engine": "node --test tests/unit/disc-engine.test.js",
     "test:smoke": "playwright test tests/e2e/smoke.spec.js",
     "test:public-report": "playwright test tests/e2e/public-report.spec.js",
     "test:portal-claim": "playwright test tests/e2e/portal-claim.spec.js",

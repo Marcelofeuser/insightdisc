@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Loader2, PieChart as PieIcon, Radar as RadarIcon, RefreshCcw, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, Loader2, PieChart as PieIcon, Radar as RadarIcon, RefreshCcw, Search, TrendingUp, Users } from 'lucide-react';
 import {
   ArcElement,
   BarElement,
@@ -21,6 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { apiRequest } from '@/lib/apiClient';
+import EmptyState from '@/components/ui/EmptyState';
+import PanelState from '@/components/ui/PanelState';
 
 ChartJS.register(
   CategoryScale,
@@ -236,13 +238,13 @@ export default function TeamMap() {
   );
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-4 sm:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        <Card className="border-slate-200">
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle className="flex items-center gap-2 text-2xl text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-2xl tracking-tight text-slate-900">
                   <Users className="h-6 w-6 text-indigo-600" />
                   Mapa Comportamental de Equipes
                 </CardTitle>
@@ -251,29 +253,36 @@ export default function TeamMap() {
                 </p>
               </div>
 
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-xs text-slate-600">
+                Selecione pelo menos 1 avaliação
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+              <div className="relative min-w-[220px] flex-1 sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar por nome, e-mail ou fator dominante"
+                  className="h-10 border-slate-200 pl-9 sm:w-80"
+                />
+              </div>
+
+              <Badge variant="outline">Selecionados: {selectedIds.length}</Badge>
+
               <Button
                 type="button"
                 variant="outline"
-                className="gap-2"
+                className="h-10 gap-2"
                 onClick={fetchAssessments}
                 disabled={isLoading || isAnalyzing}
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                Atualizar lista
+                Atualizar
               </Button>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por nome, e-mail ou fator dominante"
-                className="max-w-md"
-              />
-
-              <Badge variant="outline">Selecionados: {selectedIds.length}</Badge>
-
-              <Button onClick={handleAnalyze} disabled={isAnalyzing || !selectedIds.length}>
+              <Button className="h-10 bg-indigo-600 hover:bg-indigo-700" onClick={handleAnalyze} disabled={isAnalyzing || !selectedIds.length}>
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -287,16 +296,26 @@ export default function TeamMap() {
           </CardHeader>
 
           <CardContent>
-            {isLoading ? <div className="text-sm text-slate-500">Carregando avaliações...</div> : null}
+            {isLoading ? (
+              <PanelState
+                type="loading"
+                title="Carregando avaliações da equipe"
+                description="Estamos preparando a lista para montagem do mapa coletivo."
+              />
+            ) : null}
 
             {!isLoading && error ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
+              <PanelState type="error" title="Erro ao carregar mapa de equipe" description={error} />
             ) : null}
 
             {!isLoading && !error && !filteredAssessments.length ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
-                Nenhuma avaliação com perfil DISC disponível para montar o mapa.
-              </div>
+              <EmptyState
+                icon={Users}
+                title="Nenhuma avaliação disponível"
+                description="Ainda não há avaliações com perfil DISC acessíveis para montar o mapa da equipe."
+                size="compact"
+                tone="soft"
+              />
             ) : null}
 
             {!isLoading && filteredAssessments.length ? (
@@ -309,8 +328,8 @@ export default function TeamMap() {
                     <label
                       key={assessmentId}
                       htmlFor={`team-map-${assessmentId}`}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
-                        checked ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-200 bg-white'
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                        checked ? 'border-indigo-300 bg-indigo-50/70 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
                       <Checkbox

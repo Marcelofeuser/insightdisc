@@ -12,7 +12,10 @@ import { renderReportHtml } from '../modules/report/render-report-html.js';
 const router = Router();
 
 function normalizeReportType(value) {
-  return String(value || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
+  const normalized = String(value || '').toLowerCase().trim();
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'premium') return 'premium';
+  return 'standard';
 }
 
 router.get(
@@ -73,7 +76,7 @@ router.post(
       const assetBaseUrl = getRequestBaseUrl(req);
       const schema = z.object({
         assessmentId: z.string().min(1),
-        reportType: z.enum(['standard', 'premium']).optional(),
+        reportType: z.enum(['standard', 'premium', 'professional']).optional(),
       });
       const input = schema.parse(req.body || {});
       const reportType = normalizeReportType(input.reportType);

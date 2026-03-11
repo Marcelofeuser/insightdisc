@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Loader2, Radar as RadarIcon, RefreshCcw, Users } from 'lucide-react';
+import { BarChart3, Loader2, Radar as RadarIcon, RefreshCcw, Search, Users } from 'lucide-react';
 import {
   Chart as ChartJS,
   Filler,
@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { apiRequest } from '@/lib/apiClient';
+import EmptyState from '@/components/ui/EmptyState';
+import PanelState from '@/components/ui/PanelState';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -197,13 +199,13 @@ export default function CompareProfiles() {
   const overall = comparison?.overallCompatibility || null;
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto p-4 sm:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        <Card className="border-slate-200">
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
           <CardHeader className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle className="flex items-center gap-2 text-2xl text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-2xl tracking-tight text-slate-900">
                   <BarChart3 className="h-6 w-6 text-indigo-600" />
                   Comparador de Perfis DISC
                 </CardTitle>
@@ -212,27 +214,36 @@ export default function CompareProfiles() {
                 </p>
               </div>
 
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-xs text-slate-600">
+                Selecione pelo menos 2 avaliações
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+              <div className="relative min-w-[220px] flex-1 sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar por nome, e-mail ou perfil"
+                  className="h-10 border-slate-200 pl-9 sm:w-80"
+                />
+              </div>
+
+              <Badge variant="outline">Selecionados: {selectedCount}</Badge>
+
               <Button
                 type="button"
                 variant="outline"
-                className="gap-2"
+                className="h-10 gap-2"
                 onClick={fetchAssessments}
                 disabled={isLoading || isComparing}
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                Atualizar lista
+                Atualizar
               </Button>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por nome, e-mail ou perfil"
-                className="max-w-md"
-              />
-              <Badge variant="outline">Selecionados: {selectedCount}</Badge>
-              <Button onClick={handleCompare} disabled={isComparing || selectedCount < 2}>
+              <Button className="h-10 bg-indigo-600 hover:bg-indigo-700" onClick={handleCompare} disabled={isComparing || selectedCount < 2}>
                 {isComparing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -247,17 +258,25 @@ export default function CompareProfiles() {
 
           <CardContent>
             {isLoading ? (
-              <div className="space-y-2 py-4 text-sm text-slate-500">Carregando avaliações...</div>
+              <PanelState
+                type="loading"
+                title="Carregando avaliações para comparação"
+                description="Estamos preparando os perfis disponíveis para seleção."
+              />
             ) : null}
 
             {!isLoading && error ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
+              <PanelState type="error" title="Erro ao carregar comparações" description={error} />
             ) : null}
 
             {!isLoading && !error && !filteredAssessments.length ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
-                Nenhuma avaliação com perfil DISC disponível para comparação.
-              </div>
+              <EmptyState
+                icon={BarChart3}
+                title="Nenhuma avaliação disponível"
+                description="Ainda não há avaliações com perfil DISC acessíveis para comparação."
+                tone="soft"
+                size="compact"
+              />
             ) : null}
 
             {!isLoading && filteredAssessments.length ? (
@@ -270,8 +289,8 @@ export default function CompareProfiles() {
                     <label
                       key={assessmentId}
                       htmlFor={`compare-${assessmentId}`}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
-                        checked ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-200 bg-white'
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                        checked ? 'border-indigo-300 bg-indigo-50/70 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
                       <Checkbox
@@ -336,21 +355,21 @@ export default function CompareProfiles() {
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-slate-500">
-                    <th className="px-2 py-2 font-medium">Participante</th>
-                    <th className="px-2 py-2 font-medium">Perfil</th>
-                    <th className="px-2 py-2 font-medium">D</th>
-                    <th className="px-2 py-2 font-medium">I</th>
-                    <th className="px-2 py-2 font-medium">S</th>
-                    <th className="px-2 py-2 font-medium">C</th>
+                    <th className="px-3 py-2 font-medium">Participante</th>
+                    <th className="px-3 py-2 font-medium">Perfil</th>
+                    <th className="px-3 py-2 font-medium">D</th>
+                    <th className="px-3 py-2 font-medium">I</th>
+                    <th className="px-3 py-2 font-medium">S</th>
+                    <th className="px-3 py-2 font-medium">C</th>
                   </tr>
                 </thead>
                 <tbody>
                   {profiles.map((profile) => (
-                    <tr key={profile?.assessmentId} className="border-b border-slate-100">
-                      <td className="px-2 py-2 font-medium text-slate-900">{profile?.candidateName || 'Participante'}</td>
-                      <td className="px-2 py-2 text-slate-600">{profile?.profileKey || '-'}</td>
+                    <tr key={profile?.assessmentId} className="border-b border-slate-100 hover:bg-slate-50/70">
+                      <td className="px-3 py-2 font-medium text-slate-900">{profile?.candidateName || 'Participante'}</td>
+                      <td className="px-3 py-2 text-slate-600">{profile?.profileKey || '-'}</td>
                       {DISC_LABELS.map((factor) => (
-                        <td key={`${profile?.assessmentId}-${factor}`} className="px-2 py-2 text-slate-700">
+                        <td key={`${profile?.assessmentId}-${factor}`} className="px-3 py-2 text-slate-700">
                           {Number(profile?.disc?.[factor] || 0).toFixed(2)}
                         </td>
                       ))}

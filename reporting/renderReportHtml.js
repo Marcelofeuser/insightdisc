@@ -1,53 +1,57 @@
 const FACTORS = ['D', 'I', 'S', 'C'];
 const FACTOR_META = {
-  D: { label: 'Dominância', color: '#e74c3c' },
-  I: { label: 'Influência', color: '#f1c40f' },
-  S: { label: 'Estabilidade', color: '#2ecc71' },
-  C: { label: 'Conformidade', color: '#3498db' },
+  D: { label: 'Dominância', color: '#E53935' },
+  I: { label: 'Influência', color: '#FBC02D' },
+  S: { label: 'Estabilidade', color: '#43A047' },
+  C: { label: 'Conformidade', color: '#1E88E5' },
 };
-
-const SUMMARY_ITEMS = [
-  'Apresentação Executiva',
-  'O que é DISC',
-  'Visão Geral dos 4 Fatores',
-  'Síntese Executiva do Perfil',
-  'Gráficos DISC',
-  'Radar Comportamental',
-  'Insights Comportamentais Estratégicos',
-  'Benchmark do Perfil',
-  'Dinâmica Geral do Perfil',
-  'Processo de Decisão',
-  'Motivadores',
-  'Drenadores de Energia',
-  'Comportamento no Ambiente de Trabalho',
-  'Comunicação',
-  'Estilo de Liderança',
-  'Tomada de Decisão e Autonomia',
-  'Resposta ao Estresse',
-  'Conflitos',
-  'Relacionamento com Equipe',
-  'Sinergia com Outros Perfis',
-  'Plano de Desenvolvimento Comportamental',
-  'Conclusão do Perfil Comportamental',
-];
 
 const STANDARD_SUMMARY_ITEMS = Object.freeze([
   'Apresentação Executiva',
   'O que é DISC',
-  'Visão Geral dos 4 Fatores',
+  'Perfil Comportamental',
   'Síntese Executiva',
   'Gráficos DISC',
   'Radar Comportamental',
   'Benchmark do Perfil',
-  'Processo de Decisão',
   'Comunicação',
+  'Liderança',
   'Ambiente Ideal',
   'Forças Naturais',
   'Pontos de Desenvolvimento',
-  'Recomendações Práticas',
   'Plano de Desenvolvimento',
   'Conclusão',
 ]);
+
+const PREMIUM_SUMMARY_ITEMS = Object.freeze([
+  ...STANDARD_SUMMARY_ITEMS,
+  'Natural vs Adaptado',
+  'Mudança Comportamental',
+  'Índice de Adaptação',
+  'Índice de Estresse',
+  'Zona de Conforto vs Esforço',
+  'Mapa de Comunicação',
+  'Mapa de Competências',
+  'Heatmap de Compatibilidade',
+]);
+
+const PROFESSIONAL_SUMMARY_ITEMS = Object.freeze([
+  ...PREMIUM_SUMMARY_ITEMS,
+  'Arquétipo DISC Profissional',
+  'Análise Estratégica do Perfil',
+  'Tomada de Decisão Avançada',
+  'Liderança Avançada',
+  'Influência em Equipes',
+  'Recomendações Estratégicas',
+]);
+
+const SUMMARY_ITEMS = PROFESSIONAL_SUMMARY_ITEMS;
+
+const REPORT_TIER = Object.freeze({
+  STANDARD: 'standard',
+  PREMIUM: 'premium',
+  PROFESSIONAL: 'professional',
+});
 
 const STANDARD_PAGE_SEQUENCE = Object.freeze([
   1,  // Capa
@@ -68,6 +72,39 @@ const STANDARD_PAGE_SEQUENCE = Object.freeze([
   25, // Recomendações
   28, // Plano 30/60/90
   30, // Conclusão
+]);
+
+const PREMIUM_PAGE_SEQUENCE = Object.freeze([
+  1,  // Capa
+  2,  // Sumário
+  3,  // O que é DISC
+  4,  // Visão geral dos fatores
+  5,  // Síntese executiva
+  6,  // Gráficos DISC
+  7,  // Radar
+  8,  // Benchmark
+  9,  // Dinâmica geral
+  10, // Processo de decisão
+  13, // Comportamento no trabalho
+  14, // Comunicação
+  15, // Liderança
+  17, // Estresse
+  19, // Relacionamento em equipe
+  20, // Sinergia com perfis
+  21, // Ambiente ideal
+  23, // Forças
+  24, // Pontos de desenvolvimento
+  25, // Recomendações
+  28, // Plano de desenvolvimento
+  30, // Roda DISC
+  31, // Índice de adaptação
+  32, // Índice de estresse
+  33, // Zona de conforto vs esforço
+  34, // Mapa de comunicação
+  35, // Mapa de competências
+  36, // Heatmap
+  37, // Painel executivo de forças e riscos
+  38, // Conclusão
 ]);
 
 const SECTION_ICON_SVGS = Object.freeze({
@@ -143,12 +180,12 @@ const DEFAULT_BRANDING = Object.freeze({
 });
 
 const COVER_BACKGROUND_BY_TIER = Object.freeze({
-  premium: '/report-assets/cover-insightdisc-premium.png',
-  standard: '/brand/report-cover-standard.jpg',
+  premium: '',
+  standard: '',
 });
 
 function resolveCoverBackgroundByTier(reportType = 'standard') {
-  return reportType === 'premium'
+  return reportType !== REPORT_TIER.STANDARD
     ? COVER_BACKGROUND_BY_TIER.premium
     : COVER_BACKGROUND_BY_TIER.standard;
 }
@@ -211,6 +248,13 @@ function clamp(value, min = 0, max = 100) {
 function safeText(value, fallback = '') {
   const text = String(value || '').trim();
   return text || fallback;
+}
+
+function normalizeReportType(value) {
+  const normalized = safeText(value, REPORT_TIER.STANDARD).toLowerCase();
+  if (normalized === REPORT_TIER.PROFESSIONAL) return REPORT_TIER.PROFESSIONAL;
+  if (normalized === REPORT_TIER.PREMIUM) return REPORT_TIER.PREMIUM;
+  return REPORT_TIER.STANDARD;
 }
 
 function firstNonEmptyText(...values) {
@@ -486,6 +530,328 @@ function radarSvg(scores = {}) {
       <circle cx="${centerX}" cy="${centerY}" r="3" fill="#0f172a" />
       ${labels}
     </svg>
+  `;
+}
+
+function polarToCartesian(cx, cy, radius, angleDeg) {
+  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
+}
+
+function describeArcPath(cx, cy, radius, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+}
+
+function discWheelSvg(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Roda DISC indisponível', scores?.availabilityMessage);
+  }
+
+  const width = 420;
+  const height = 320;
+  const cx = 160;
+  const cy = 160;
+  const outerRadius = 106;
+  const innerRadius = 56;
+  const factors = ['D', 'I', 'S', 'C'];
+  const angles = {
+    D: { start: -90, end: 0 },
+    I: { start: 0, end: 90 },
+    S: { start: 90, end: 180 },
+    C: { start: 180, end: 270 },
+  };
+
+  const segments = factors
+    .map((factor) => {
+      const info = angles[factor];
+      const startOuter = polarToCartesian(cx, cy, outerRadius, info.start);
+      const endOuter = polarToCartesian(cx, cy, outerRadius, info.end);
+      const startInner = polarToCartesian(cx, cy, innerRadius, info.start);
+      const endInner = polarToCartesian(cx, cy, innerRadius, info.end);
+      return `
+        <path
+          d="M ${startOuter.x} ${startOuter.y}
+             A ${outerRadius} ${outerRadius} 0 0 1 ${endOuter.x} ${endOuter.y}
+             L ${endInner.x} ${endInner.y}
+             A ${innerRadius} ${innerRadius} 0 0 0 ${startInner.x} ${startInner.y}
+             Z"
+          fill="${FACTOR_META[factor].color}"
+          fill-opacity="0.88"
+          stroke="#ffffff"
+          stroke-width="2"
+        />
+      `;
+    })
+    .join('');
+
+  const labels = factors
+    .map((factor) => {
+      const angle = (angles[factor].start + angles[factor].end) / 2;
+      const point = polarToCartesian(cx, cy, outerRadius + 18, angle);
+      const score = clamp(scores?.[factor]);
+      return `
+        <text x="${point.x}" y="${point.y}" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">
+          ${factor} ${score}%
+        </text>
+      `;
+    })
+    .join('');
+
+  const dominant = FACTORS.reduce(
+    (acc, factor) =>
+      clamp(scores?.[factor]) > clamp(scores?.[acc]) ? factor : acc,
+    'D'
+  );
+  const dominantAngle = (angles[dominant].start + angles[dominant].end) / 2;
+  const markerOuter = polarToCartesian(cx, cy, outerRadius + 2, dominantAngle);
+  const markerLabel = polarToCartesian(cx, cy, outerRadius + 34, dominantAngle);
+
+  return `
+    <svg class="radar wheel-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Roda comportamental DISC">
+      <circle cx="${cx}" cy="${cy}" r="${outerRadius + 8}" fill="none" stroke="#d9e2ef" stroke-width="1.5" />
+      ${segments}
+      <circle cx="${cx}" cy="${cy}" r="${innerRadius - 4}" fill="#ffffff" stroke="#d9e2ef" stroke-width="1.5" />
+      <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="12" font-weight="800" fill="#0f172a">DISC</text>
+      <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="10.5" fill="#64748b">Roda comportamental</text>
+      <line x1="${cx}" y1="${cy}" x2="${markerOuter.x}" y2="${markerOuter.y}" stroke="${FACTOR_META[dominant].color}" stroke-width="2.4" />
+      <circle cx="${markerOuter.x}" cy="${markerOuter.y}" r="4.5" fill="${FACTOR_META[dominant].color}" />
+      <text x="${markerLabel.x}" y="${markerLabel.y}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0f172a">
+        Dominante: ${dominant}
+      </text>
+      ${labels}
+    </svg>
+  `;
+}
+
+function gaugeSvg(value = 0, options = {}) {
+  const safeValue = clamp(value, 0, 100);
+  const color = safeText(options?.color, '#1E88E5');
+  const label = safeText(options?.label, 'Índice');
+  const subtitle = safeText(options?.subtitle, '');
+  const width = 320;
+  const height = 210;
+  const cx = 160;
+  const cy = 158;
+  const radius = 92;
+  const startAngle = -210;
+  const endAngle = 30;
+  const currentAngle = startAngle + (safeValue / 100) * (endAngle - startAngle);
+  const baseArc = describeArcPath(cx, cy, radius, startAngle, endAngle);
+  const valueArc = describeArcPath(cx, cy, radius, startAngle, currentAngle);
+  const marker = polarToCartesian(cx, cy, radius, currentAngle);
+
+  return `
+    <svg class="gauge-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}">
+      <path d="${baseArc}" stroke="#dce5f1" stroke-width="14" fill="none" stroke-linecap="round" />
+      <path d="${valueArc}" stroke="${esc(color)}" stroke-width="14" fill="none" stroke-linecap="round" />
+      <circle cx="${marker.x}" cy="${marker.y}" r="5.5" fill="${esc(color)}" />
+      <text x="${cx}" y="${cy - 18}" text-anchor="middle" font-size="13" font-weight="800" fill="#0f172a">${esc(label)}</text>
+      <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="31" font-weight="800" fill="#0f172a">${safeValue}</text>
+      <text x="${cx}" y="${cy + 30}" text-anchor="middle" font-size="10.8" fill="#64748b">de 100</text>
+      ${subtitle ? `<text x="${cx}" y="${cy + 48}" text-anchor="middle" font-size="10.3" fill="#475569">${esc(subtitle)}</text>` : ''}
+    </svg>
+  `;
+}
+
+function naturalVsAdaptedTableHtml(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Comparativo indisponível', scores?.availabilityMessage);
+  }
+
+  return `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fator</th>
+          <th>Natural</th>
+          <th>Adaptado</th>
+          <th>Diferença</th>
+          <th>Leitura</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${FACTORS.map((factor) => {
+          const natural = clamp(scores?.natural?.[factor]);
+          const adapted = clamp(scores?.adapted?.[factor]);
+          const delta = adapted - natural;
+          const absDelta = Math.abs(delta);
+          const intensity =
+            absDelta >= 25
+              ? 'Ajuste alto'
+              : absDelta >= 12
+                ? 'Ajuste moderado'
+                : 'Ajuste leve';
+          return `
+            <tr>
+              <td><span class="disc-chip disc-chip-${factor.toLowerCase()}">${factor}</span>${esc(FACTOR_META[factor].label)}</td>
+              <td>${natural}%</td>
+              <td>${adapted}%</td>
+              <td>${delta >= 0 ? '+' : ''}${delta}%</td>
+              <td>${esc(intensity)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function effortBarRowsHtml(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Mapa de esforço indisponível', scores?.availabilityMessage);
+  }
+
+  return FACTORS.map((factor) => {
+    const natural = clamp(scores?.natural?.[factor]);
+    const adapted = clamp(scores?.adapted?.[factor]);
+    const delta = Math.abs(adapted - natural);
+    return `
+      <div class="bar-row">
+        <div class="bar-label">
+          <span class="dot" style="background:${FACTOR_META[factor].color}"></span>
+          ${factor} - ${FACTOR_META[factor].label}
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${delta}%;background:${FACTOR_META[factor].color}"></div>
+        </div>
+        <div class="bar-value">${delta}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function compatibilityHeatmapHtml(profile = {}, scores = {}) {
+  const primary = resolvePrimaryFactor(profile, scores?.summary || scores);
+  const factors = ['D', 'I', 'S', 'C'];
+  const matrix = {
+    D: { D: 58, I: 72, S: 48, C: 67 },
+    I: { D: 72, I: 64, S: 74, C: 56 },
+    S: { D: 48, I: 74, S: 69, C: 78 },
+    C: { D: 67, I: 56, S: 78, C: 73 },
+  };
+
+  const toneByScore = (value) => {
+    if (value >= 75) return 'rgba(67,160,71,0.30)';
+    if (value >= 63) return 'rgba(30,136,229,0.22)';
+    if (value >= 52) return 'rgba(251,192,45,0.24)';
+    return 'rgba(229,57,53,0.20)';
+  };
+
+  return `
+    <div class="heatmap-wrap">
+      <table class="table compact heatmap-table">
+        <thead>
+          <tr>
+            <th>Perfil base</th>
+            ${factors.map((factor) => `<th>${factor}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${factors.map((row) => `
+            <tr>
+              <td>${row}</td>
+              ${factors.map((col) => {
+                const score = matrix[row][col];
+                const cellClass = row === primary ? 'heatmap-primary-row' : '';
+                return `<td class="${cellClass}" style="background:${toneByScore(score)}">${score}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <p class="heatmap-caption">Matriz referencial para sinergia relacional entre estilos DISC em contextos de colaboração.</p>
+    </div>
+  `;
+}
+
+function communicationMapHtml(profileContent = {}) {
+  const doList = safeArray(
+    profileContent?.communicationDo || profileContent?.communicationPreferred,
+    [
+      'Seja direto e objetivo no ponto principal.',
+      'Apresente contexto e impacto antes de detalhar.',
+      'Confirme entendimento e próximos passos.',
+      'Adapte o ritmo da conversa ao interlocutor.',
+    ]
+  );
+  const avoidList = safeArray(
+    profileContent?.communicationAvoid || profileContent?.communicationPitfalls,
+    [
+      'Rodeios excessivos sem foco prático.',
+      'Mensagens ambíguas sem critério de decisão.',
+      'Interrupções constantes em debates críticos.',
+      'Feedback sem exemplo concreto de comportamento.',
+    ]
+  );
+
+  return `
+    <div class="grid two stack-on-print">
+      <div class="card">
+        <h3>Fazer</h3>
+        ${listHtml(doList.slice(0, 6))}
+      </div>
+      <div class="card">
+        <h3>Evitar</h3>
+        ${listHtml(avoidList.slice(0, 6))}
+      </div>
+    </div>
+  `;
+}
+
+function competencyLevelLabel(score) {
+  if (score >= 80) return 'Muito alto';
+  if (score >= 65) return 'Alto';
+  if (score >= 50) return 'Moderado';
+  if (score >= 35) return 'Em desenvolvimento';
+  return 'Baixo';
+}
+
+function competencyStars(score) {
+  const stars = Math.max(1, Math.min(5, Math.round(score / 20)));
+  return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+}
+
+function competencyMapTableHtml(scores = {}) {
+  if (!hasQuantitativeScoreData(scores)) {
+    return quantitativeDataUnavailableHtml('Mapa de competências indisponível', scores?.availabilityMessage);
+  }
+
+  const s = scores?.summary || {};
+  const metrics = [
+    { name: 'Liderança', score: Math.round(clamp(s.D) * 0.42 + clamp(s.I) * 0.32 + clamp(s.C) * 0.26) },
+    { name: 'Organização', score: Math.round(clamp(s.C) * 0.5 + clamp(s.S) * 0.35 + clamp(s.D) * 0.15) },
+    { name: 'Persuasão', score: Math.round(clamp(s.I) * 0.62 + clamp(s.D) * 0.28 + clamp(s.S) * 0.1) },
+    { name: 'Trabalho em equipe', score: Math.round(clamp(s.S) * 0.44 + clamp(s.I) * 0.32 + clamp(s.C) * 0.24) },
+    { name: 'Decisão sob pressão', score: Math.round(clamp(s.D) * 0.48 + clamp(s.C) * 0.27 + clamp(s.I) * 0.25) },
+  ];
+
+  return `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Competência</th>
+          <th>Índice</th>
+          <th>Nível</th>
+          <th>Leitura</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${metrics.map((metric) => `
+          <tr>
+            <td>${esc(metric.name)}</td>
+            <td>${metric.score}%</td>
+            <td>${esc(competencyLevelLabel(metric.score))}</td>
+            <td>${esc(competencyStars(metric.score))}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
   `;
 }
 
@@ -1271,10 +1637,16 @@ function buildBackCoverPage(branding = {}, options = {}) {
   const supportEmail = safeText(branding?.support_email, 'contato@insightdisc.app');
   const website = safeText(branding?.website, 'www.insightdisc.app');
   const logoSrc = safeText(options?.logoSrc);
+  const reportType = normalizeReportType(options?.reportType);
   const variant = safeText(options?.variant, options?.isPremiumTier ? 'premium-opening' : 'standard-closing');
   const isPremiumOpening = variant === 'premium-opening';
   const isStandardClosing = variant === 'standard-closing';
-  const tierLabel = options?.isPremiumTier ? 'Relatório DISC Premium' : 'Relatório DISC Completo';
+  const tierLabel =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'Relatório DISC Professional'
+      : options?.isPremiumTier
+        ? 'Relatório DISC Premium'
+        : 'Relatório DISC Completo';
   const reportDateLabel = safeText(options?.generatedAt, formatDate(Date.now()));
   const confidenceNote = isPremiumOpening
     ? 'Documento institucional para apoio executivo em decisões de pessoas, comunicação e desenvolvimento.'
@@ -1492,8 +1864,8 @@ function buildPage({
     const coverArtUrl = safeText(coverBackgroundUrl, COVER_BACKGROUND_BY_TIER.standard);
     return `
       <section class="page cover-page">
-        <div class="cover-content" style="--cover-bg:url('${esc(coverArtUrl)}');" aria-label="Capa oficial ${esc(coverBrandName)}">
-          <img src="${esc(coverArtUrl)}" alt="Capa ${esc(coverBrandName)}" class="cover-art-image" />
+        <div class="cover-content" aria-label="Capa oficial ${esc(coverBrandName)}">
+          ${coverArtUrl ? `<img src="${esc(coverArtUrl)}" alt="Capa ${esc(coverBrandName)}" class="cover-art-image" />` : ''}
           ${content}
         </div>
       </section>
@@ -1564,12 +1936,17 @@ export function renderReportHtml(input = {}) {
   };
 
   ensureCriticalData(report);
-  const reportType =
-    safeText(report?.meta?.reportType, safeText(report?.reportType, 'standard')).toLowerCase() === 'premium'
-      ? 'premium'
-      : 'standard';
-  const isPremiumTier = reportType === 'premium';
-  const logicalPageTarget = isPremiumTier ? 30 : Math.max(15, STANDARD_PAGE_SEQUENCE.length);
+  const reportType = normalizeReportType(
+    safeText(report?.meta?.reportType, safeText(report?.reportType, REPORT_TIER.STANDARD))
+  );
+  const isProfessionalTier = reportType === REPORT_TIER.PROFESSIONAL;
+  const isPremiumTier = reportType !== REPORT_TIER.STANDARD;
+  const logicalPageTarget =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 42
+      : reportType === REPORT_TIER.PREMIUM
+        ? 30
+        : 18;
 
   const meta = {
     reportTitle: safeText(report?.meta?.reportTitle, 'Relatório de Análise Comportamental DISC'),
@@ -1657,27 +2034,44 @@ export function renderReportHtml(input = {}) {
     participant?.assessmentId,
     '-'
   );
-  const coverTierLabel = isPremiumTier ? 'Relatório DISC Premium' : 'Relatório DISC Completo';
-  const coverTierDescriptor = isPremiumTier
-    ? 'Edição executiva com profundidade estratégica e leitura avançada.'
-    : 'Edição completa com leitura prática para aplicação profissional.';
-  const coverReportTitle = isPremiumTier
-    ? 'RELATÓRIO DISC PREMIUM'
-    : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
-  const coverReportSubtitle = isPremiumTier
-    ? 'Análise comportamental avançada para decisão, liderança e evolução de performance'
-    : safeText(
-        meta.reportSubtitle,
-        'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
-      );
+  const coverTierLabel =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'Relatório DISC Professional'
+      : isPremiumTier
+        ? 'Relatório DISC Premium'
+        : 'Relatório DISC Completo';
+  const coverTierDescriptor =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'Edição de consultoria com análise estratégica avançada.'
+      : isPremiumTier
+        ? 'Edição executiva com profundidade estratégica e leitura avançada.'
+        : 'Edição completa com leitura prática para aplicação profissional.';
+  const coverReportTitle =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'RELATÓRIO DISC PROFESSIONAL'
+      : isPremiumTier
+        ? 'RELATÓRIO DISC PREMIUM'
+        : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
+  const coverReportSubtitle =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'Assessment comportamental profissional para decisão, liderança e desenvolvimento avançado'
+      : isPremiumTier
+        ? 'Análise comportamental avançada para decisão, liderança e evolução de performance'
+        : safeText(
+            meta.reportSubtitle,
+            'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
+          );
   const coverTierBadge = `
     <div class="cover-tier-badge ${isPremiumTier ? 'cover-tier-premium' : 'cover-tier-standard'}">
       ${esc(coverTierLabel)}
     </div>
   `;
-  const coverPremiumNote = isPremiumTier
-    ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
-    : '';
+  const coverPremiumNote =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? '<div class="cover-report-premium-note">Edição professional com interpretação de consultoria, matriz estratégica e plano executivo de desenvolvimento comportamental.</div>'
+      : isPremiumTier
+        ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
+        : '';
   const coverBackgroundUrl = resolveCoverBackgroundByTier(reportType);
 
   const adaptation = {
@@ -1744,7 +2138,12 @@ export function renderReportHtml(input = {}) {
     'Use o relatorio para desenvolvimento continuo.',
   ]);
 
-  const summaryItemsForTier = isPremiumTier ? SUMMARY_ITEMS : STANDARD_SUMMARY_ITEMS;
+  const summaryItemsForTier =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? PROFESSIONAL_SUMMARY_ITEMS
+      : reportType === REPORT_TIER.PREMIUM
+        ? PREMIUM_SUMMARY_ITEMS
+        : STANDARD_SUMMARY_ITEMS;
 
   const isBalancedProfile = profile.mode === 'balanced' || profile.key === 'DISC';
   const profilePrimaryLabel = safeText(profile?.displayPrimary, profile.primary);
@@ -1849,37 +2248,15 @@ export function renderReportHtml(input = {}) {
     buildPage({
       number: 2,
       totalPages: meta.totalPages,
-      title: 'Sumário',
-      subtitle: 'Estrutura executiva do relatório e trilha de leitura recomendada',
+      title: 'SUMÁRIO',
+      subtitle: '',
       branding,
       enforceDensity: false,
+      hideInternalBranding: true,
       content: `
-        ${executiveDivider('Como navegar por este relatório', 'Use o sumário como mapa editorial para leitura por prioridade de negócio')}
-        <div class="card summary-intro">
-          <p>Este relatório foi estruturado para apoiar decisões de liderança, comunicação, carreira e desenvolvimento comportamental com base em evidências observáveis.</p>
-          <p>Você pode ler em sequência completa ou priorizar as seções de acordo com seu contexto atual de atuação.</p>
-          ${factorAccentBadge(profile, scores.summary, 'Assinatura predominante')}
+        <div class="summary-clean">
+          ${summaryRowsHtml(summaryItemsForTier, { singleColumn: false })}
         </div>
-        <div class="grid two summary-layout-grid ${isPremiumTier ? '' : 'summary-layout-grid-standard'}">
-          ${summaryRowsHtml(summaryItemsForTier, { singleColumn: !isPremiumTier })}
-          <div class="card">
-            <h3>${isPremiumTier ? 'Mapa técnico rápido' : 'Leitura rápida do perfil'}</h3>
-            ${miniDiscBarsHtml(scores.summary, isPremiumTier ? 'Distribuição sintética dos fatores' : 'Distribuição principal DISC')}
-            ${listHtml([
-              'Comece pelas seções de maior impacto no seu contexto atual.',
-              'Converta cada insight em ação observável com prazo definido.',
-              isPremiumTier
-                ? 'Revisite o relatório em ciclos curtos para calibrar evolução.'
-                : 'Use este relatório como guia prático para os próximos 30 dias.',
-            ])}
-          </div>
-        </div>
-        ${
-          isPremiumTier
-            ? '<div class="card"><h3>Leitura recomendada para liderança</h3><p>Na versão premium, priorize Síntese Executiva, Dinâmica Geral, Estresse e Plano 90 dias para decisões de gestão com menor risco comportamental.</p></div>'
-            : ''
-        }
-        <div class="summary-confidential-line">${esc(safeText(report?.lgpd?.notice, 'Documento confidencial para uso profissional. Compartilhamento externo somente com autorização do titular e responsável pelo processo.'))}</div>
       `,
     })
   );
@@ -2035,18 +2412,24 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Perfil natural, adaptado e leitura comparativa',
       branding,
       content: `
-        <div class="grid two">
-          ${barsHtml(scores.natural, 'Perfil Natural')}
-          ${barsHtml(scores.adapted, 'Perfil Adaptado')}
-        </div>
-        <div class="card">
-          <h3>Leitura executiva dos índices</h3>
-          ${scoresTable(scores)}
-          <p>Este gráfico demonstra a intensidade relativa dos quatro fatores comportamentais. A predominância de <strong>${esc(profile.primary)}</strong> com apoio de <strong>${esc(profile.secondary)}</strong> indica o eixo central de resposta no contexto profissional.</p>
-          <p>${esc(safeText(insights?.practicalByPage?.dynamics, 'Compare natural e adaptado para entender onde há maior esforço de ajuste comportamental.'))}</p>
-          <div class="grid two">
-            ${strategicNote('Implicação no ambiente de trabalho', `Quando ${profile.primary} e ${profile.secondary} aparecem acima dos demais fatores, a pessoa tende a influenciar o ritmo da equipe por esse estilo dominante.`)}
-            ${strategicNote('Leitura do gestor', 'Observe onde o perfil está operando mais distante do natural; esses pontos costumam concentrar desgaste e ruído de comunicação.')}
+        <div class="split-half-layout">
+          <div class="split-half-visual">
+            <div class="grid two split-half-bars">
+              ${barsHtml(scores.natural, 'Perfil Natural')}
+              ${barsHtml(scores.adapted, 'Perfil Adaptado')}
+            </div>
+          </div>
+          <div class="split-half-insight">
+            <div class="card">
+              <h3>Leitura executiva dos índices</h3>
+              ${scoresTable(scores)}
+              <p>Este gráfico demonstra a intensidade relativa dos quatro fatores comportamentais. A predominância de <strong>${esc(profile.primary)}</strong> com apoio de <strong>${esc(profile.secondary)}</strong> indica o eixo central de resposta no contexto profissional.</p>
+              <p>${esc(safeText(insights?.practicalByPage?.dynamics, 'Compare natural e adaptado para entender onde há maior esforço de ajuste comportamental.'))}</p>
+              <div class="grid two">
+                ${strategicNote('Implicação no ambiente de trabalho', `Quando ${profile.primary} e ${profile.secondary} aparecem acima dos demais fatores, a pessoa tende a influenciar o ritmo da equipe por esse estilo dominante.`)}
+                ${strategicNote('Leitura do gestor', 'Observe onde o perfil está operando mais distante do natural; esses pontos costumam concentrar desgaste e ruído de comunicação.')}
+              </div>
+            </div>
           </div>
         </div>
       `,
@@ -2061,19 +2444,23 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Equilíbrio dos eixos D, I, S, C',
       branding,
       content: `
-        <div class="grid two">
-          <div class="card radar-card">${radarSvg(scores.natural)}</div>
-          <div class="card">
-            <h3>Interpretação dos eixos</h3>
-            <p>O radar traduz a distribuição relativa dos fatores em uma visão única. Áreas mais extensas indicam maior ativação no perfil natural.</p>
-            ${listHtml([
-              `Eixo D-I: combina decisão e influência para gerar tração no contexto atual.`,
-              `Eixo S-C: regula consistência, previsibilidade e qualidade operacional.`,
-              `Fator primário (${profile.primary}) orienta a resposta inicial em situações críticas.`,
-              `Fator secundário (${profile.secondary}) ajusta o estilo para colaboração e entrega.`
-            ])}
-            ${enrichmentCard('Leitura executiva', safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Use o radar para alinhar distribuição de responsabilidade e estilo de liderança no time.')))}
-            ${enrichmentCard('Cenário profissional ilustrativo', `Em projetos com alta pressão, o eixo ${profile.primary}-${profile.secondary} tende a definir como a pessoa negocia prioridade, comunica urgência e fecha compromissos.`)}
+        <div class="split-half-layout">
+          <div class="split-half-visual">
+            <div class="card radar-card">${radarSvg(scores.natural)}</div>
+          </div>
+          <div class="split-half-insight">
+            <div class="card">
+              <h3>Interpretação dos eixos</h3>
+              <p>O radar traduz a distribuição relativa dos fatores em uma visão única. Áreas mais extensas indicam maior ativação no perfil natural.</p>
+              ${listHtml([
+                `Eixo D-I: combina decisão e influência para gerar tração no contexto atual.`,
+                `Eixo S-C: regula consistência, previsibilidade e qualidade operacional.`,
+                `Fator primário (${profile.primary}) orienta a resposta inicial em situações críticas.`,
+                `Fator secundário (${profile.secondary}) ajusta o estilo para colaboração e entrega.`
+              ])}
+              ${enrichmentCard('Leitura executiva', safeText(insights?.executiveByPage?.dynamics, safeText(insights?.executive, 'Use o radar para alinhar distribuição de responsabilidade e estilo de liderança no time.')))}
+              ${enrichmentCard('Cenário profissional ilustrativo', `Em projetos com alta pressão, o eixo ${profile.primary}-${profile.secondary} tende a definir como a pessoa negocia prioridade, comunica urgência e fecha compromissos.`)}
+            </div>
           </div>
         </div>
       `,
@@ -3006,6 +3393,438 @@ export function renderReportHtml(input = {}) {
     })
   );
 
+  if (isPremiumTier) {
+    const adaptationDelta = Number.isFinite(Number(adaptation?.avgAbsDelta))
+      ? Number(adaptation.avgAbsDelta)
+      : null;
+    const adaptationIndex =
+      adaptationDelta == null ? 72 : clamp(Math.round(100 - adaptationDelta * 2.6), 0, 100);
+    const reliabilityIndex = reliability?.score == null ? 68 : clamp(reliability.score, 0, 100);
+    const stressIndex = clamp(
+      100 -
+        Math.round(
+          reliabilityIndex * 0.55 +
+            clamp((1 - Number(reliability?.answeredRatio || 0)) * 100, 0, 100) * 0.2 +
+            clamp(Number(reliability?.repeatedPatternRate || 0) * 100, 0, 100) * 0.25
+        ),
+      0,
+      100
+    );
+
+    pages.push(
+      buildPage({
+        number: 30,
+        totalPages: meta.totalPages,
+        title: 'Roda Comportamental DISC',
+        subtitle: 'Visualização vetorial da composição e fator dominante',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card radar-card">${discWheelSvg(scores.summary)}</div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Leitura da roda comportamental</h3>
+                <p>A roda posiciona os quatro fatores em um único mapa de leitura. O fator dominante aparece em maior evidência visual e orienta a resposta inicial em contextos de pressão.</p>
+                ${listHtml([
+                  `Predominância atual: ${profile.primary} com apoio de ${profile.secondary}.`,
+                  'Use a combinação dominante para definir estilo de decisão, comunicação e priorização.',
+                  'Observe o equilíbrio entre eixos opostos para reduzir exageros comportamentais.',
+                  'A roda não rotula; ela orienta aplicação prática em contexto profissional.'
+                ])}
+                ${enrichmentCard('Diretriz executiva', 'Em decisões críticas, combine o fator dominante com um contrapeso consciente para preservar qualidade relacional e consistência técnica.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 31,
+        totalPages: meta.totalPages,
+        title: 'Índice de Adaptação Global',
+        subtitle: 'Natural vs Adaptado, esforço comportamental e calibragem de contexto',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card radar-card">
+                ${gaugeSvg(adaptationIndex, {
+                  label: 'Adaptação global',
+                  subtitle: adaptationDelta == null ? 'sem base completa' : `${adaptationDelta.toFixed(2)} pontos médios de ajuste`,
+                  color: '#1E88E5',
+                })}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Leitura do esforço de adaptação</h3>
+                <p>O índice representa quanto do estilo natural está sendo ajustado para atender o contexto atual de atuação. Ajustes moderados são esperados; ajustes altos contínuos elevam custo emocional.</p>
+                ${naturalVsAdaptedTableHtml(scores)}
+                ${enrichmentCard('Aplicação prática', 'Quando o ajuste for alto por vários ciclos, revise escopo, ritmo de cobrança e forma de comunicação para reduzir desgaste sem perder entrega.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 32,
+        totalPages: meta.totalPages,
+        title: 'Índice de Estresse Comportamental',
+        subtitle: 'Sinais de desgaste, confiabilidade de resposta e risco de sobrecarga',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card radar-card">
+                ${gaugeSvg(stressIndex, {
+                  label: 'Estresse comportamental',
+                  subtitle: stressIndex >= 70 ? 'nível crítico' : stressIndex >= 45 ? 'atenção moderada' : 'faixa controlada',
+                  color: '#E53935',
+                })}
+              </div>
+              <div class="card radar-card">
+                ${gaugeSvg(reliabilityIndex, {
+                  label: 'Confiabilidade da leitura',
+                  subtitle: reliability?.score == null ? 'estimado por consistência geral' : 'baseado no padrão de respostas',
+                  color: '#43A047',
+                })}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Painel de risco e estabilidade</h3>
+                ${reliabilityPanelHtml(reliability)}
+                ${listHtml([
+                  'Acompanhe sinais precoces de irritabilidade, perda de foco e queda de consistência.',
+                  'Reduza decisões críticas em janelas de alto desgaste sem revisão de contexto.',
+                  'Institua pausas de recuperação e rotinas de alinhamento em ciclos curtos.',
+                  'Use feedback observável para recalibrar comportamento antes de escalada de conflito.'
+                ])}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 33,
+        totalPages: meta.totalPages,
+        title: 'Zona de Conforto vs Zona de Esforço',
+        subtitle: 'Onde o perfil opera com fluidez e onde demanda energia extra',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card">
+                <h3>Mapa de esforço por fator</h3>
+                ${effortBarRowsHtml(scores)}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Leitura por zona</h3>
+                ${naturalVsAdaptedTableHtml(scores)}
+                ${enrichmentCard('Decisão operacional', 'Concentre tarefas de alta criticidade em zonas de maior fluidez e distribua esforço em blocos com checkpoints claros.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 34,
+        totalPages: meta.totalPages,
+        title: 'Mapa de Comunicação',
+        subtitle: 'Diretrizes práticas para conversas de alta qualidade',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card">
+                <h3>Direcionadores de comunicação</h3>
+                ${communicationMapHtml(profileContent)}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Aplicação em liderança e colaboração</h3>
+                ${listHtml([
+                  'Adapte o nível de detalhe ao interlocutor e ao risco da decisão.',
+                  'Use síntese no início da conversa e aprofunde apenas quando necessário.',
+                  'Evite suposições implícitas; valide entendimento com próximos passos claros.',
+                  'Combine objetividade com escuta ativa para preservar adesão e confiança.'
+                ])}
+                ${strategicNote('Protocolo recomendado', 'Para temas sensíveis, use sequência: contexto, fato observável, impacto, decisão esperada e revisão com prazo.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 35,
+        totalPages: meta.totalPages,
+        title: 'Mapa de Competências',
+        subtitle: 'Leitura de potencial comportamental para contexto profissional',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card">
+                <h3>Painel técnico de competências</h3>
+                ${competencyMapTableHtml(scores)}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Leitura executiva de competências</h3>
+                ${listHtml([
+                  'Competências com índice alto indicam vantagem competitiva comportamental.',
+                  'Competências moderadas evoluem com método, feedback e prática deliberada.',
+                  'Índices baixos não são limitação fixa: sinalizam prioridade de desenvolvimento.',
+                  'Aderência à função aumenta quando competência comportamental e demanda do cargo convergem.'
+                ])}
+                ${enrichmentCard('Prioridade prática', 'Conecte duas competências-chave aos objetivos do trimestre e monitore evolução por evidências observáveis.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 36,
+        totalPages: meta.totalPages,
+        title: 'Heatmap de Compatibilidade',
+        subtitle: 'Sinergia relacional entre fatores e riscos de atrito',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card">
+                <h3>Matriz de compatibilidade comportamental</h3>
+                ${compatibilityHeatmapHtml(profile, scores)}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Como usar o heatmap</h3>
+                ${listHtml([
+                  'Use a matriz para definir pares críticos em projetos de alta dependência.',
+                  'Antecipe atritos de ritmo e critério antes de escalar conflito.',
+                  'Transforme complementaridade em estratégia de distribuição de responsabilidades.',
+                  'Reforce acordos de comunicação quando a combinação for naturalmente tensa.'
+                ])}
+                ${strategicNote('Leitura de equipe', 'Compatibilidade é potencial. Resultado depende de acordos claros de decisão, autonomia e rotina de alinhamento.')}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    pages.push(
+      buildPage({
+        number: 37,
+        totalPages: meta.totalPages,
+        title: 'Painel Executivo de Forças e Riscos',
+        subtitle: 'Síntese visual de alavancas e pontos de atenção',
+        branding,
+        content: `
+          <div class="split-half-layout">
+            <div class="split-half-visual">
+              <div class="card">
+                <h3>Forças de maior impacto</h3>
+                ${listHtml(premiumTopStrengths.slice(0, 8), ['Força comportamental de alto impacto no contexto atual.'])}
+              </div>
+              <div class="card">
+                <h3>Riscos prioritários</h3>
+                ${listHtml(premiumTopRisks.slice(0, 8), ['Risco comportamental prioritário para monitoramento.'])}
+              </div>
+            </div>
+            <div class="split-half-insight">
+              <div class="card">
+                <h3>Diretrizes de aplicação</h3>
+                ${listHtml([
+                  'Use as forças para acelerar entregas em contextos de alta responsabilidade.',
+                  'Trate riscos como alertas operacionais, não como rótulos de personalidade.',
+                  'Transforme cada risco em ajuste de rotina com prazo e evidência.',
+                  'Revise quinzenalmente progresso comportamental com líder e pares.'
+                ])}
+                ${enrichmentCard('Síntese executiva', safeText(insights?.executive, 'O diferencial está em aplicar forças com disciplina e reduzir riscos antes de comprometer qualidade de decisão e relacionamento.'))}
+              </div>
+            </div>
+          </div>
+        `,
+      })
+    );
+
+    if (isProfessionalTier) {
+      pages.push(
+        buildPage({
+          number: 38,
+          totalPages: meta.totalPages,
+          title: 'Arquétipo DISC Profissional',
+          subtitle: 'Identidade comportamental, forças estruturais e riscos críticos',
+          branding,
+          content: `
+            <div class="split-half-layout">
+              <div class="split-half-visual">
+                <div class="card">
+                  <h3>Arquétipo identificado: ${esc(profile.key)} — ${esc(profile.archetype)}</h3>
+                  ${naturalVsAdaptedTableHtml(scores)}
+                </div>
+              </div>
+              <div class="split-half-insight">
+                <div class="card">
+                  <h3>Leitura profissional do arquétipo</h3>
+                  <p>${esc(safeText(profile?.label, 'Perfil com combinação dominante de decisão, influência e calibragem relacional conforme contexto.'))}</p>
+                  ${listHtml([
+                    ...premiumTopStrengths.slice(0, 4),
+                    ...premiumTopRisks.slice(0, 3),
+                  ])}
+                  ${enrichmentCard('Aplicação consultiva', 'Use o arquétipo como mapa de comportamento observável para calibrar papéis, rituais e decisões de gestão de pessoas.')}
+                </div>
+              </div>
+            </div>
+          `,
+        })
+      );
+
+      pages.push(
+        buildPage({
+          number: 39,
+          totalPages: meta.totalPages,
+          title: 'Análise Estratégica do Perfil',
+          subtitle: 'Leitura aprofundada de decisão, influência e execução sob pressão',
+          branding,
+          content: `
+            <div class="split-half-layout">
+              <div class="split-half-visual">
+                <div class="card">
+                  <h3>Tomada de decisão estratégica</h3>
+                  ${decisionPathVisualHtml(profile)}
+                </div>
+                <div class="card">
+                  <h3>Risco de escalada sob pressão</h3>
+                  ${stressEscalationVisualHtml(profile)}
+                </div>
+              </div>
+              <div class="split-half-insight">
+                <div class="card">
+                  <h3>Interpretação de consultoria</h3>
+                  ${listHtml([
+                    'A consistência de decisão depende da qualidade do critério explícito adotado pelo perfil.',
+                    'Sob pressão, o estilo dominante tende a intensificar força e risco simultaneamente.',
+                    'A liderança deve equilibrar velocidade de ação com mecanismo de validação técnica.',
+                    'Ciclos curtos de revisão reduzem retrabalho e aumentam previsibilidade de entrega.',
+                  ])}
+                  ${enrichmentCard('Diretriz estratégica', safeText(insights?.executiveByPage?.decision, 'Defina critérios de decisão por nível de risco para preservar qualidade em cenários de alta exigência.'))}
+                </div>
+              </div>
+            </div>
+          `,
+        })
+      );
+
+      pages.push(
+        buildPage({
+          number: 40,
+          totalPages: meta.totalPages,
+          title: 'Influência em Equipes',
+          subtitle: 'Impacto em colaboração, conflitos e governança relacional',
+          branding,
+          content: `
+            <div class="split-half-layout">
+              <div class="split-half-visual">
+                <div class="card">
+                  <h3>Matriz de influência relacional</h3>
+                  ${compatibilityHeatmapHtml(profile, scores)}
+                </div>
+                <div class="card">
+                  <h3>Mapa de comunicação aplicado</h3>
+                  ${communicationMapHtml(profileContent)}
+                </div>
+              </div>
+              <div class="split-half-insight">
+                <div class="card">
+                  <h3>Recomendações para times</h3>
+                  ${listHtml([
+                    'Forme pares de alta dependência com base em complementaridade comportamental.',
+                    'Adote rituais de alinhamento para mitigar atrito entre ritmos e critérios distintos.',
+                    'Padronize linguagem de priorização para reduzir ruído de comunicação.',
+                    'Use mediação estruturada em conflitos recorrentes com foco em comportamento observável.',
+                  ])}
+                  ${strategicNote('Governança de equipe', 'A influência positiva do perfil aumenta quando há clareza de papéis, fronteira de decisão e revisão de acordos relacionais.')}
+                </div>
+              </div>
+            </div>
+          `,
+        })
+      );
+
+      pages.push(
+        buildPage({
+          number: 41,
+          totalPages: meta.totalPages,
+          title: 'Recomendações Estratégicas de Desenvolvimento',
+          subtitle: 'Prioridades executivas para evolução comportamental sustentada',
+          branding,
+          content: `
+            <div class="split-half-layout">
+              <div class="split-half-visual">
+                <div class="card">
+                  <h3>Plano executivo 90 dias</h3>
+                  <table class="table compact">
+                    <thead>
+                      <tr>
+                        <th>Meta</th>
+                        <th>Ação estratégica</th>
+                        <th>Prazo</th>
+                        <th>Evidência</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Decisão</td><td>Definir matriz de critério por risco</td><td>30 dias</td><td>redução de retrabalho crítico</td></tr>
+                      <tr><td>Comunicação</td><td>Aplicar protocolo em reuniões-chave</td><td>60 dias</td><td>maior clareza de alinhamento</td></tr>
+                      <tr><td>Liderança</td><td>Delegar com checkpoints objetivos</td><td>90 dias</td><td>ganho de autonomia com qualidade</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="split-half-insight">
+                <div class="card">
+                  <h3>Orientações de consultoria</h3>
+                  ${listHtml([
+                    'Concentre energia em dois ajustes críticos por ciclo para garantir aderência.',
+                    'Monitore progresso com indicadores observáveis e revisão quinzenal.',
+                    'Combine autopercepção com feedback externo para reduzir pontos cegos.',
+                    'Atualize o plano conforme mudança de contexto e exigência do papel.',
+                  ])}
+                  ${enrichmentCard('Síntese final de desenvolvimento', 'Evolução comportamental sustentável exige método, contexto e disciplina de acompanhamento contínuo.')}
+                </div>
+              </div>
+            </div>
+          `,
+        })
+      );
+    }
+  }
+
   pages.push(
     buildPage({
       number: 30,
@@ -3067,14 +3886,20 @@ export function renderReportHtml(input = {}) {
 
   const institutionalOpeningPage = buildBackCoverPage(branding, {
     isPremiumTier,
+    reportType,
     generatedAt: coverGeneratedDate,
     variant: isPremiumTier ? 'premium-opening' : 'standard-closing',
     logoSrc: institutionalLogoSrc,
   });
 
-  let selectedPagesRaw = isPremiumTier
-    ? pages
-    : STANDARD_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  let selectedPagesRaw;
+  if (reportType === REPORT_TIER.STANDARD) {
+    selectedPagesRaw = STANDARD_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  } else if (reportType === REPORT_TIER.PREMIUM) {
+    selectedPagesRaw = PREMIUM_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  } else {
+    selectedPagesRaw = pages;
+  }
 
   if (selectedPagesRaw.length > 1) {
     selectedPagesRaw = [selectedPagesRaw[0], institutionalOpeningPage, ...selectedPagesRaw.slice(1)];
@@ -3083,7 +3908,12 @@ export function renderReportHtml(input = {}) {
   }
 
   const visibleTotalPages = selectedPagesRaw.length || meta.totalPages;
-  const premiumFooterLabel = isPremiumTier ? 'Relatório Premium InsightDISC' : '';
+  const premiumFooterLabel =
+    reportType === REPORT_TIER.PROFESSIONAL
+      ? 'Relatório Professional InsightDISC'
+      : reportType === REPORT_TIER.PREMIUM
+        ? 'Relatório Premium InsightDISC'
+        : '';
   const selectedPages = selectedPagesRaw.map((pageHtml, index) =>
     remapPageForTier(pageHtml, index + 1, visibleTotalPages, premiumFooterLabel),
   );
@@ -3125,7 +3955,7 @@ export function renderReportHtml(input = {}) {
       margin: 0;
       padding: 0;
       background: #edf1f6;
-      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+      font-family: Inter, "Plus Jakarta Sans", "Segoe UI", Arial, Helvetica, sans-serif;
       color: var(--ink);
       line-height: 1.5;
     }
@@ -3143,9 +3973,9 @@ export function renderReportHtml(input = {}) {
       .page {
         margin: 0 !important;
         width: 210mm !important;
-        height: 296mm !important;
+        height: auto !important;
         min-height: 296mm !important;
-        max-height: 296mm !important;
+        max-height: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
         border: none !important;
@@ -3157,7 +3987,8 @@ export function renderReportHtml(input = {}) {
       }
 
       .content {
-        height: 100% !important;
+        height: auto !important;
+        min-height: 250mm !important;
         overflow: visible !important;
         padding-bottom: 22mm !important;
       }
@@ -3176,17 +4007,17 @@ export function renderReportHtml(input = {}) {
         break-after: avoid-page !important;
       }
 
-      .grid.two,
-      .grid.three,
-      .grid-two,
       .summary-grid,
       .summary-layout-grid,
       .summary-balance-grid,
       .grid.two.stack-on-print,
       .visual-panel-notes,
-      .cover-info-grid,
       .back-cover-columns {
         grid-template-columns: 1fr !important;
+      }
+
+      .split-half-layout {
+        grid-template-columns: 1fr 1fr !important;
       }
 
       .kpi-grid {
@@ -3212,22 +4043,21 @@ export function renderReportHtml(input = {}) {
       .behavior-matrix,
       .decision-path,
       .stress-escalation,
-      .table,
       .bullet-list {
-        page-break-inside: auto !important;
-        break-inside: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
 
     .page {
       width: 210mm;
-      height: 296mm;
+      height: auto;
       min-height: 296mm;
-      max-height: 296mm;
+      max-height: none;
       margin: 8mm auto;
       background: var(--paper);
       border-radius: 10px;
-      overflow: hidden;
+      overflow: visible;
       position: relative;
       box-shadow: var(--shadow);
       break-after: page;
@@ -3236,6 +4066,8 @@ export function renderReportHtml(input = {}) {
       border: 1px solid #e7ebf1;
       font-size: 11pt;
       line-height: 1.45;
+      display: flex;
+      flex-direction: column;
     }
 
     .page-backdrop {
@@ -3264,8 +4096,9 @@ export function renderReportHtml(input = {}) {
       position: relative;
       z-index: 1;
       padding: 8.5mm 16mm 20mm;
-      height: 100%;
-      overflow: hidden;
+      min-height: 250mm;
+      overflow: visible;
+      flex: 1 1 auto;
     }
 
     .page-brand-strip {
@@ -3373,10 +4206,8 @@ export function renderReportHtml(input = {}) {
     }
 
     .footer {
-      position: absolute;
-      bottom: 5.5mm;
-      left: 11mm;
-      right: 11mm;
+      position: relative;
+      margin: 0 11mm 5.5mm;
       border-top: 1px solid var(--line);
       padding-top: 2.2mm;
       display: flex;
@@ -3436,8 +4267,8 @@ export function renderReportHtml(input = {}) {
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 94% 7%, rgba(15, 23, 42, 0.06), transparent 36%),
-        radial-gradient(circle at 8% 92%, rgba(216, 164, 68, 0.13), transparent 35%);
+        radial-gradient(circle at 94% 7%, rgba(15, 23, 42, 0.035), transparent 36%),
+        radial-gradient(circle at 8% 92%, rgba(216, 164, 68, 0.08), transparent 35%);
       z-index: 1;
       pointer-events: none;
     }
@@ -3447,7 +4278,9 @@ export function renderReportHtml(input = {}) {
       inset: 0;
       width: 100%;
       height: 100%;
-      display: none;
+      display: block;
+      object-fit: cover;
+      opacity: 0.06;
     }
 
     .cover-shell {
@@ -3915,6 +4748,16 @@ export function renderReportHtml(input = {}) {
       gap: 8px;
     }
 
+    .summary-clean {
+      margin-top: 2mm;
+    }
+
+    .summary-clean .summary-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+
     .summary-balance-grid {
       grid-template-columns: 1.1fr 0.9fr;
       align-items: start;
@@ -3931,6 +4774,28 @@ export function renderReportHtml(input = {}) {
       grid-template-columns: 1fr 1fr;
       align-items: start;
       gap: 10px;
+    }
+
+    .split-half-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .split-half-visual,
+    .split-half-insight {
+      min-width: 0;
+    }
+
+    .split-half-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .split-half-bars {
+      margin: 0;
     }
 
     .summary-col {
@@ -4689,6 +5554,45 @@ export function renderReportHtml(input = {}) {
       width: 100%;
       max-width: 420px;
       height: auto;
+    }
+
+    .wheel-chart {
+      max-width: 440px;
+    }
+
+    .gauge-chart {
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+    }
+
+    .heatmap-wrap {
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .heatmap-table td,
+    .heatmap-table th {
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .heatmap-table td:first-child,
+    .heatmap-table th:first-child {
+      text-align: left;
+      font-weight: 800;
+    }
+
+    .heatmap-primary-row {
+      outline: 1px solid color-mix(in srgb, var(--factor-primary), #ffffff 52%);
+      outline-offset: -1px;
+    }
+
+    .heatmap-caption {
+      margin: 6px 0 0;
+      font-size: 10.8px;
+      color: #5f708a;
+      line-height: 1.38;
     }
 
     .final-lockup {

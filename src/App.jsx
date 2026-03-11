@@ -26,15 +26,21 @@ import Checkout from '@/pages/Checkout';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 import CompareProfiles from '@/pages/CompareProfiles';
 import TeamMap from '@/pages/TeamMap';
+import RoleDashboardHome from '@/pages/RoleDashboardHome';
+import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const PublicReportPage = Pages.PublicReport;
-const EXCLUDED_AUTO_ROUTES = new Set(['SuperAdmin', 'SuperAdminLogin', 'SuperAdminDashboard']);
+const EXCLUDED_AUTO_ROUTES = new Set([
+  'SuperAdmin',
+  'SuperAdminLogin',
+  'SuperAdminDashboard',
+  'Dashboard',
+]);
 
 const APP_ALIAS_ROUTES = [
-  { path: '/app/dashboard', pageName: 'Dashboard' },
   { path: '/app/dossier', pageName: 'Dossier' },
   { path: '/app/my-assessments', pageName: 'MyAssessments' },
   { path: '/app/send-assessment', pageName: 'SendAssessment' },
@@ -49,6 +55,14 @@ const APP_ALIAS_ROUTES = [
 
 const LayoutWrapper = ({ children, currentPageName }) =>
   Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>;
+
+const DashboardHomeRouteElement = (
+  <ProtectedRoute pageName="Dashboard" policy={getPagePolicy('Dashboard')}>
+    <LayoutWrapper currentPageName="Dashboard">
+      <RoleDashboardHome />
+    </LayoutWrapper>
+  </ProtectedRoute>
+);
 
 function renderProtectedPage(path, pageName, PageComponent) {
   if (!PageComponent) return null;
@@ -160,6 +174,31 @@ const AuthenticatedApp = () => {
       />
 
       <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="/app/dashboard" element={<Navigate to="/painel" replace />} />
+      <Route path="/panel" element={<Navigate to="/painel" replace />} />
+      <Route path="/painel" element={DashboardHomeRouteElement} />
+      <Route path="/Dashboard" element={DashboardHomeRouteElement} />
+      <Route
+        path="/painel/:featureSlug"
+        element={
+          <ProtectedRoute pageName="Dashboard" policy={getPagePolicy('Dashboard')}>
+            <LayoutWrapper currentPageName="Dashboard">
+              <PanelFeaturePlaceholder />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/DashboardLegacy"
+        element={
+          <ProtectedRoute pageName="Dashboard" policy={getPagePolicy('Dashboard')}>
+            <LayoutWrapper currentPageName="Dashboard">
+              <Pages.Dashboard />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/dashboard-legacy" element={<Navigate to="/DashboardLegacy" replace />} />
       {APP_ALIAS_ROUTES.map(({ path, pageName }) =>
         renderProtectedPage(path, pageName, Pages[pageName])
       )}

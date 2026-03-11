@@ -16,28 +16,19 @@ import leadsRoutes from './routes/leads.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
 import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
-import anamnesisRoutes from './routes/anamnesis.routes.js';
-import campaignsRoutes from './routes/campaigns.routes.js';
-import profileComparisonRoutes from './routes/profile-comparison.routes.js';
-import teamMapRoutes from './routes/team-map.routes.js';
-import checkoutRoutes from './routes/checkout.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const REPORTS_DIR = process.env.VERCEL
-  ? '/tmp/insightdisc-reports'
-  : path.resolve(__dirname, '../generated/reports');
 
 export function createApp() {
   const app = express();
 
-  app.set('trust proxy', true);
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '2mb' }));
 
   app.use('/brand', express.static(path.resolve(__dirname, '../../public/brand')));
   app.use('/report-assets', express.static(path.resolve(__dirname, '../../public/report-assets')));
-  app.use('/reports', express.static(REPORTS_DIR));
+  app.use('/reports', express.static(path.resolve(__dirname, '../generated/reports')));
   app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
   app.use('/health', healthRoutes);
@@ -52,11 +43,6 @@ export function createApp() {
   app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
-  app.use('/api/anamnesis', anamnesisRoutes);
-  app.use('/api/campaigns', campaignsRoutes);
-  app.use('/api/profile-comparison', profileComparisonRoutes);
-  app.use('/api/team-map', teamMapRoutes);
-  app.use('/api/checkout', checkoutRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -70,15 +56,10 @@ export function createApp() {
         createAssessment: 'POST /assessments/create',
         generateLink: 'POST /assessments/generate-link',
         validateToken: 'GET /assessment/validate-token?token=...',
-        assessmentCredits: 'GET /assessment/credits',
         reportPdfByToken: 'GET /assessment/report-pdf-by-token?token=...',
         consumeInvite: 'POST /assessment/consume',
         submitAssessment: 'POST /assessment/submit',
         reportByToken: 'GET /assessment/report-by-token?token=...',
-        reportData: 'GET /assessment/report-data?id=...',
-        assessmentHistory: 'GET /assessment/history',
-        generateAssessmentReport: 'POST /assessment/generate-report',
-        reportPdf: 'GET /assessment/report-pdf?assessmentId=...&type=standard|premium',
         candidateRegister: 'POST /candidate/register',
         candidateLogin: 'POST /candidate/login',
         claimCandidate: 'POST /candidate/claim',
@@ -104,19 +85,6 @@ export function createApp() {
         dossierCreatePlan: 'POST /api/dossier/:candidateId/plan',
         dossierCreateReminder: 'POST /api/dossier/:candidateId/reminder',
         dossierRemindersSummary: 'GET /api/dossier/reminders/summary',
-        quickContextSave: 'POST /api/anamnesis/quick',
-        quickContextFetch: 'GET /api/anamnesis/quick/:assessmentId',
-        dossierAnamnesisSave: 'POST /api/dossier/anamnesis/save',
-        dossierAnamnesisFetch: 'GET /api/dossier/anamnesis/:assessmentId',
-        campaignRedeem: 'POST /api/campaigns/redeem',
-        campaignOverview: 'GET /api/campaigns/overview',
-        campaignCreate: 'POST /api/campaigns',
-        profileComparisonAssessments: 'GET /api/profile-comparison/assessments',
-        profileComparisonCompare: 'POST /api/profile-comparison/compare',
-        teamMapAssessments: 'GET /api/team-map/assessments',
-        teamMapAnalyze: 'POST /api/team-map/analyze',
-        checkoutProducts: 'GET /api/checkout/products',
-        checkoutCreate: 'POST /api/checkout/create',
         superAdminLogin: 'POST /auth/super-admin-login',
         superAdminSession: 'GET /auth/super-admin/me',
         superAdminOverview: 'GET /super-admin/overview',
@@ -130,7 +98,3 @@ export function createApp() {
 
   return app;
 }
-
-const app = createApp();
-
-export default app;

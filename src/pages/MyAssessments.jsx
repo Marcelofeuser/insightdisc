@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import EmptyState from '@/components/ui/EmptyState';
+import PanelState from '@/components/ui/PanelState';
 import TableShell from '@/components/ui/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/components/ui/use-toast';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
@@ -37,8 +39,30 @@ function getRespondent(assessment) {
   );
 }
 
+const STATUS_LABELS = {
+  pending: 'Pendente',
+  in_progress: 'Em andamento',
+  completed: 'Concluída',
+};
+
+const TYPE_LABELS = {
+  free: 'Free',
+  premium: 'Premium',
+};
+
+function formatStatus(value) {
+  const key = String(value || '').toLowerCase();
+  return STATUS_LABELS[key] || value || '-';
+}
+
+function formatType(value) {
+  const key = String(value || '').toLowerCase();
+  return TYPE_LABELS[key] || value || '-';
+}
+
 export default function MyAssessments() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { access: authAccess } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
   const [user, setUser] = useState(null);
@@ -46,6 +70,7 @@ export default function MyAssessments() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [isStartingSelfAssessment, setIsStartingSelfAssessment] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -171,57 +196,68 @@ export default function MyAssessments() {
     });
   }, [assessments, search, statusFilter, typeFilter]);
 
+  const handleStartSelfAssessment = async (source) => {
+    if (isStartingSelfAssessment) return;
+    setIsStartingSelfAssessment(true);
+    setActionError('');
+    try {
+      await startSelfAssessment({
+        apiBaseUrl,
+        navigate,
+        access: authAccess,
+        source,
+      });
+    } catch (error) {
+      const message = error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.';
+      setActionError(message);
+      toast({
+        title: 'Falha ao iniciar avaliação',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsStartingSelfAssessment(false);
+    }
+  };
+
+  const completedCount = filteredAssessments.filter((item) => item?.status === 'completed').length;
+  const inProgressCount = filteredAssessments.filter((item) => item?.status === 'in_progress').length;
+
   const controls = (
     <>
       <Button
         type="button"
-        onClick={async () => {
-          if (isStartingSelfAssessment) return;
-          setIsStartingSelfAssessment(true);
-          try {
-            await startSelfAssessment({
-              apiBaseUrl,
-              navigate,
-              access: authAccess,
-              source: 'my-assessments',
-            });
-          } catch (error) {
-            // eslint-disable-next-line no-alert
-            alert(error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.');
-          } finally {
-            setIsStartingSelfAssessment(false);
-          }
-        }}
-        className="bg-slate-900 hover:bg-slate-800"
+        onClick={() => handleStartSelfAssessment('my-assessments')}
+        className="h-10 bg-indigo-600 hover:bg-indigo-700"
         data-testid="my-assessments-new-assessment-btn"
         disabled={isStartingSelfAssessment}
       >
         {isStartingSelfAssessment ? 'Iniciando...' : 'Nova Avaliação'}
       </Button>
 
-      <div className="relative">
+      <div className="relative min-w-[240px] flex-1 sm:flex-none">
         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome, e-mail ou ID"
-          className="pl-9 w-64"
+          className="h-10 w-full border-slate-200 pl-9 sm:w-72"
         />
       </div>
       <select
         value={statusFilter}
         onChange={(e) => setStatusFilter(e.target.value)}
-        className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 transition hover:border-slate-300"
       >
         <option value="all">Todos status</option>
-        <option value="pending">Pending</option>
-        <option value="in_progress">In progress</option>
-        <option value="completed">Completed</option>
+        <option value="pending">Pendente</option>
+        <option value="in_progress">Em andamento</option>
+        <option value="completed">Concluída</option>
       </select>
       <select
         value={typeFilter}
         onChange={(e) => setTypeFilter(e.target.value)}
-        className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 transition hover:border-slate-300"
       >
         <option value="all">Todos tipos</option>
         <option value="free">Free</option>
@@ -231,42 +267,43 @@ export default function MyAssessments() {
   );
 
   return (
-    <div className="w-full min-w-0 max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <TableShell title="Minhas Avaliações" controls={controls}>
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, idx) => (
-              <div key={idx} className="h-12 rounded-lg bg-slate-100 animate-pulse" />
-            ))}
+    <div className="w-full min-w-0 max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
+      <TableShell
+        title="Minhas Avaliações"
+        description="Acompanhe histórico, status e relatórios em um único fluxo."
+        controls={controls}
+      >
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Badge variant="outline">Total: {filteredAssessments.length}</Badge>
+          <Badge variant="outline">Concluídas: {completedCount}</Badge>
+          <Badge variant="outline">Em andamento: {inProgressCount}</Badge>
+        </div>
+
+        {actionError ? (
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            {actionError}
           </div>
+        ) : null}
+
+        {isLoading ? (
+          <PanelState
+            type="loading"
+            title="Carregando avaliações"
+            description="Estamos trazendo seu histórico e status mais recentes."
+          />
         ) : filteredAssessments.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="Nenhuma avaliação encontrada"
             description="Ajuste os filtros ou inicie uma nova avaliação."
             ctaLabel="Nova Avaliação"
-            onCtaClick={async () => {
-              if (isStartingSelfAssessment) return;
-              setIsStartingSelfAssessment(true);
-              try {
-                await startSelfAssessment({
-                  apiBaseUrl,
-                  navigate,
-                  access: authAccess,
-                  source: 'my-assessments-empty',
-                });
-              } catch (error) {
-                // eslint-disable-next-line no-alert
-                alert(error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.');
-              } finally {
-                setIsStartingSelfAssessment(false);
-              }
-            }}
+            onCtaClick={() => handleStartSelfAssessment('my-assessments-empty')}
+            tone="soft"
           />
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-slate-200">
                 <TableHead>Data</TableHead>
                 <TableHead>Respondente</TableHead>
                 <TableHead>Tipo</TableHead>
@@ -280,13 +317,15 @@ export default function MyAssessments() {
                 const encodedAssessmentId = encodeURIComponent(targetAssessmentId);
 
                 return (
-                  <TableRow key={assessment.id}>
-                    <TableCell>{formatDate(assessment?.completed_at || assessment?.created_date)}</TableCell>
+                  <TableRow key={assessment.id} className="border-slate-100 hover:bg-slate-50/70">
+                    <TableCell className="text-slate-700">
+                      {formatDate(assessment?.completed_at || assessment?.created_date)}
+                    </TableCell>
                     <TableCell className="max-w-xs truncate">{getRespondent(assessment)}</TableCell>
-                    <TableCell className="capitalize">{assessment?.type || '-'}</TableCell>
+                    <TableCell className="capitalize">{formatType(assessment?.type)}</TableCell>
                     <TableCell>
                       <Badge variant={assessment?.status === 'completed' ? 'default' : 'secondary'}>
-                        {assessment?.status || '-'}
+                        {formatStatus(assessment?.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>

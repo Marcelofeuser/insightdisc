@@ -38,7 +38,10 @@ function statusCodeByReason(reason) {
 }
 
 function normalizeReportType(value) {
-  return String(value || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
+  const normalized = String(value || '').toLowerCase().trim();
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'premium') return 'premium';
+  return 'standard';
 }
 
 function resolveAssessmentProfile(report = {}) {
@@ -733,8 +736,8 @@ router.post(
     try {
       const schema = z.object({
         assessmentId: z.string().min(1),
-        type: z.enum(['standard', 'premium']).optional(),
-        reportType: z.enum(['standard', 'premium']).optional(),
+        type: z.enum(['standard', 'premium', 'professional']).optional(),
+        reportType: z.enum(['standard', 'premium', 'professional']).optional(),
       });
       const input = schema.parse(req.body || {});
       const reportType = normalizeReportType(input.type || input.reportType);

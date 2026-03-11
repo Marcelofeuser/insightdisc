@@ -26,14 +26,48 @@ test.describe('Novas features - navegação', () => {
     await expect(page.getByRole('heading', { name: /Checkout simples de créditos/i })).toBeVisible();
   });
 
+  test('rota /painel abre landing V2 com modos de experiência', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/painel', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page.getByRole('heading', { name: /Escolha a experiência do seu painel/i })).toBeVisible();
+    await expect(page.getByText(/Business Mode/i).first()).toBeVisible();
+    await expect(page.getByText(/Professional Mode/i).first()).toBeVisible();
+    await expect(page.getByText(/Personal Mode/i).first()).toBeVisible();
+  });
+
+  test('alias /panel redireciona para /painel', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page).toHaveURL(/\/painel(?:\?|$)/);
+  });
+
+  test('painel alterna entre modos e atualiza conteúdo principal', async ({ page }) => {
+    await loginAsProfessional(page);
+    await page.goto('/painel', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+
+    await expect(page.getByRole('heading', { name: /Produtividade analítica para especialistas DISC/i })).toBeVisible();
+
+    const modeSelect = page.getByLabel(/Selecionar modo do painel/i);
+    await modeSelect.selectOption('business');
+    await expect(page.getByRole('heading', { name: /Gestão organizacional com inteligência comportamental/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Organização/i }).first()).toBeVisible();
+
+    await modeSelect.selectOption('personal');
+    await expect(page.getByRole('heading', { name: /Autoconhecimento com clareza e próximos passos/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Meu Desenvolvimento/i }).first()).toBeVisible();
+  });
+
   test('menu autenticado exibe atalhos das novas features', async ({ page }) => {
     await loginAsProfessional(page);
     await page.goto('/Dashboard', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
 
-    await expect(page.getByRole('link', { name: /Mapa de Equipes/i }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /Comparar Perfis/i }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /Comprar Créditos/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Comparador/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Arquétipos/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Biblioteca DISC/i }).first()).toBeVisible();
   });
 
   test('rota legado /TeamMapping permanece funcional', async ({ page }) => {

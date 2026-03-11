@@ -18,21 +18,19 @@ export default function StatsCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all",
+        "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md",
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="text-3xl font-bold text-slate-900">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-slate-400">{subtitle}</p>
-          )}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-1.5">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">{title}</p>
+          <p className="truncate text-3xl font-bold tracking-tight text-slate-900">{value}</p>
+          {subtitle && <p className="line-clamp-2 text-xs text-slate-500">{subtitle}</p>}
         </div>
         {Icon && (
           <div className={cn(
-            "p-3 rounded-xl bg-slate-100",
+            "rounded-xl bg-slate-100 p-3 shadow-sm",
             iconClassName
           )}>
             <Icon className="w-6 h-6 text-slate-600" />
@@ -42,7 +40,7 @@ export default function StatsCard({
       
       {trend && (
         <div className={cn(
-          "flex items-center gap-1 mt-4 text-sm font-medium",
+          "mt-4 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold",
           trend === 'up' ? 'text-green-600' : 'text-red-600'
         )}>
           {trend === 'up' ? (

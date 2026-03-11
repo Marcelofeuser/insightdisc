@@ -1,29 +1,24 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Briefcase,
-  CreditCard,
-  LayoutDashboard,
-  MessageSquare,
-  NotebookPen,
-  Palette,
-  Send,
-  Settings,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import AppShell from '@/components/shell/AppShell';
 import MainNavigation from '@/components/layout/MainNavigation';
+import PanelModeSwitcher from '@/components/layout/PanelModeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
 import {
   canAccessPremiumSaas,
-  GLOBAL_ROLES,
   PERMISSIONS,
-  hasAnyGlobalRole,
   hasPermission,
 } from '@/modules/auth/access-control';
+import { buildRoleNavigation, getDashboardHeaderByRole } from '@/modules/navigation/roleNavigationConfig';
+import {
+  PANEL_MODE_META,
+  persistPanelMode,
+  resolvePanelMode,
+} from '@/modules/navigation/panelMode';
+import { buildPanelModeContext, PanelModeProvider } from '@/modules/navigation/panelModeContext';
 
 const PUBLIC_PAGES = [
   'Home',
@@ -66,6 +61,13 @@ export default function Layout({ children, currentPageName }) {
   const { user, isAuthenticated, access, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const panelModeStorageScope = useMemo(
+    () => (user?.id ? `user:${user.id}` : 'anonymous'),
+    [user?.id]
+  );
+  const [panelMode, setPanelMode] = useState(() =>
+    resolvePanelMode(access, { scopeKey: panelModeStorageScope })
+  );
 
   const goHomeHash = (hash) => {
     const homeUrl = createPageUrl('Home');
@@ -85,6 +87,29 @@ export default function Layout({ children, currentPageName }) {
   const handleLogout = () => {
     logout(true);
   };
+
+  const handlePanelModeChange = useCallback(
+    (nextMode) => {
+      const nextResolved = resolvePanelMode(access, {
+        preferredMode: nextMode,
+        scopeKey: panelModeStorageScope,
+      });
+      setPanelMode(nextResolved);
+      persistPanelMode(nextResolved, panelModeStorageScope);
+    },
+    [access, panelModeStorageScope]
+  );
+
+  useEffect(() => {
+    const nextResolved = resolvePanelMode(access, {
+      preferredMode: panelMode,
+      scopeKey: panelModeStorageScope,
+    });
+    if (panelMode !== nextResolved) {
+      setPanelMode(nextResolved);
+    }
+    persistPanelMode(nextResolved, panelModeStorageScope);
+  }, [access, panelMode, panelModeStorageScope]);
 
   const tokenInQuery = new URLSearchParams(location.search).get('token');
   const isTokenPublicFlow =
@@ -145,78 +170,54 @@ export default function Layout({ children, currentPageName }) {
   const canAccessPremium = canAccessPremiumSaas(access);
   const canManageAssessments =
     canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
-  const canViewAssessments =
-    canAccessPremium &&
-    (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT) ||
-      hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF));
-  const canSeeTenantAnalytics =
-    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
-  const canAccessDossier =
-    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
-  const canViewCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_VIEW);
-  const canManageCredits = canAccessPremium && hasPermission(access, PERMISSIONS.CREDIT_MANAGE);
-  const canAccessPlatformAdmin = hasAnyGlobalRole(access, [
-    GLOBAL_ROLES.SUPER_ADMIN,
-    GLOBAL_ROLES.PLATFORM_ADMIN,
-  ]);
+  const navItems = buildRoleNavigation(access, { panelMode });
 
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', page: 'Dashboard', to: createPageUrl('Dashboard') },
-    ...(canViewAssessments
-      ? [{ icon: Users, label: 'Minhas Avaliações', page: 'MyAssessments', to: createPageUrl('MyAssessments') }]
-      : []),
-    ...(canManageAssessments
-      ? [{ icon: Send, label: 'Enviar Avaliação', page: 'SendAssessment', to: createPageUrl('SendAssessment') }]
-      : []),
-    ...(canSeeTenantAnalytics
-      ? [
-          { icon: Users, label: 'Mapa de Equipes', page: 'TeamMap', to: '/team-map' },
-          { icon: Sparkles, label: 'Comparar Perfis', page: 'CompareProfiles', to: '/compare-profiles' },
-          { icon: Users, label: 'Equipes (Legado)', page: 'TeamMapping', to: createPageUrl('TeamMapping') },
-          { icon: Briefcase, label: 'Job Matching', page: 'JobMatching', to: createPageUrl('JobMatching') },
-          { icon: MessageSquare, label: 'Leads', page: 'LeadsDashboard', to: createPageUrl('LeadsDashboard') },
-          ...(canAccessDossier
-            ? [{ icon: NotebookPen, label: 'Dossiê', page: 'Dossier', to: createPageUrl('Dossier') }]
-            : []),
-        ]
-      : []),
-    ...(canViewCredits || canManageCredits
-      ? [
-          { icon: CreditCard, label: 'Créditos', page: 'Credits', to: createPageUrl('Credits') },
-          { icon: CreditCard, label: 'Comprar Créditos', page: 'Checkout', to: '/checkout' },
-        ]
-      : []),
-    ...(canManageAssessments
-      ? [{ icon: Palette, label: 'Marca', page: 'BrandingSettings', to: '/app/branding' }]
-      : []),
-    ...(canAccessPlatformAdmin
-      ? [{ icon: Settings, label: 'Admin', page: 'AdminDashboard', to: createPageUrl('AdminDashboard') }]
-      : []),
-  ];
+  const dashboardTitle = getDashboardHeaderByRole(access, { panelMode });
+  const pageTitle =
+    currentPageName === 'Dashboard'
+      ? dashboardTitle
+      : PAGE_TITLES[currentPageName] || {
+          title: currentPageName,
+          subtitle: 'Gestão da plataforma DISC',
+        };
 
-  const pageTitle = PAGE_TITLES[currentPageName] || {
-    title: currentPageName,
-    subtitle: 'Gestão da plataforma DISC',
-  };
-
-  const topbarActions =
+  const primaryAction =
     currentPageName === 'Dashboard' && canManageAssessments ? (
       <Link to={createPageUrl('SendAssessment')}>
         <Button className="bg-indigo-600 hover:bg-indigo-700">Enviar avaliação</Button>
       </Link>
     ) : null;
 
+  const panelModeSwitcher =
+    isAuthenticated && !PUBLIC_PAGES.includes(currentPageName) ? (
+      <PanelModeSwitcher value={panelMode} onChange={handlePanelModeChange} />
+    ) : null;
+
+  const topbarActions =
+    panelModeSwitcher || primaryAction ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {panelModeSwitcher}
+        {primaryAction}
+      </div>
+    ) : null;
+
+  const panelModeContextValue = buildPanelModeContext(access, panelMode, handlePanelModeChange);
+
   return (
-    <AppShell
-      currentPageName={currentPageName}
-      navItems={navItems}
-      user={user}
-      onLogout={handleLogout}
-      title={pageTitle.title}
-      subtitle={pageTitle.subtitle}
-      actions={topbarActions}
-    >
-      {children}
-    </AppShell>
+    <PanelModeProvider value={panelModeContextValue}>
+      <AppShell
+        currentPageName={currentPageName}
+        currentPath={location.pathname}
+        navItems={navItems}
+        user={user}
+        onLogout={handleLogout}
+        title={pageTitle.title}
+        subtitle={pageTitle.subtitle}
+        actions={topbarActions}
+        modeLabel={PANEL_MODE_META[panelMode]?.label}
+      >
+        {children}
+      </AppShell>
+    </PanelModeProvider>
   );
 }

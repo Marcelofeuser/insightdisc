@@ -138,18 +138,28 @@ export async function buildPremiumReportModel({
   reportType = 'standard',
 }) {
   const branding = resolveBranding(assessment, assetBaseUrl);
-  const normalizedReportType = String(reportType || '').toLowerCase() === 'premium' ? 'premium' : 'standard';
+  const normalizedTypeRaw = String(reportType || '').toLowerCase().trim();
+  const normalizedReportType =
+    normalizedTypeRaw === 'professional'
+      ? 'professional'
+      : normalizedTypeRaw === 'premium'
+        ? 'premium'
+        : 'standard';
 
   const meta = {
     brand: branding.company_name,
     reportTitle:
-      normalizedReportType === 'premium'
-        ? 'RELATÓRIO DISC PREMIUM'
-        : 'Relatorio de Analise Comportamental DISC',
+      normalizedReportType === 'professional'
+        ? 'RELATÓRIO DISC PROFESSIONAL'
+        : normalizedReportType === 'premium'
+          ? 'RELATÓRIO DISC PREMIUM'
+          : 'Relatorio de Analise Comportamental DISC',
     reportSubtitle:
-      normalizedReportType === 'premium'
-        ? 'Analise comportamental avancada'
-        : 'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento',
+      normalizedReportType === 'professional'
+        ? 'Analise comportamental de consultoria com profundidade estrategica'
+        : normalizedReportType === 'premium'
+          ? 'Analise comportamental avancada'
+          : 'Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento',
     generatedAt: new Date().toISOString(),
     reportId: assessment?.id || 'sem-id',
     version: '4.0',

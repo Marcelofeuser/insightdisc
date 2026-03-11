@@ -3,7 +3,7 @@ import StatsCard from '@/components/ui/StatsCard';
 
 export default function StatsGrid({ items = [] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
       {items.map((item) => (
         <StatsCard
           key={item.title}

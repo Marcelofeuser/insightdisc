@@ -1267,9 +1267,30 @@ function resolveStandardPagesStructure() {
   ];
 }
 
+function resolveProfessionalPagesStructure(sharedPages = {}) {
+  const premium = resolvePagesStructure(sharedPages);
+  return [
+    ...premium,
+    'Roda comportamental DISC',
+    'Índice de adaptação global',
+    'Índice de estresse comportamental',
+    'Zona de conforto vs esforço',
+    'Mapa de comunicação',
+    'Mapa de competências',
+    'Heatmap de compatibilidade',
+    'Painel executivo de forças e riscos',
+    'Arquétipo DISC profissional',
+    'Análise estratégica do perfil',
+    'Influência em equipes',
+    'Recomendações estratégicas',
+  ];
+}
+
 function resolveReportType(input = {}) {
   const value = safeText(input?.reportType, safeText(input?.meta?.reportType, 'standard')).toLowerCase();
-  return value === 'premium' ? 'premium' : 'standard';
+  if (value === 'professional') return 'professional';
+  if (value === 'premium') return 'premium';
+  return 'standard';
 }
 
 export async function buildReportModel(input = {}) {
@@ -1386,11 +1407,13 @@ export async function buildReportModel(input = {}) {
 
   const pagesMeta = content?.shared?.pages || {};
   const pageTitles =
-    reportType === 'premium'
-      ? resolvePagesStructure(pagesMeta)
-      : resolveStandardPagesStructure();
+    reportType === 'professional'
+      ? resolveProfessionalPagesStructure(pagesMeta)
+      : reportType === 'premium'
+        ? resolvePagesStructure(pagesMeta)
+        : resolveStandardPagesStructure();
   const enrichmentBlocks = pagesMeta?.enrichmentBlocks || {};
-  const totalPages = reportType === 'premium' ? 30 : 15;
+  const totalPages = reportType === 'professional' ? 42 : reportType === 'premium' ? 30 : 18;
 
   return {
     meta: {

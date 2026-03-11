@@ -139,10 +139,17 @@ async function loadBrowserLauncher() {
 }
 
 export async function generatePdfFromData(rawData, options = {}) {
+  const normalizedTypeRaw = String(
+    options?.reportType || rawData?.reportType || rawData?.meta?.reportType || 'standard'
+  )
+    .toLowerCase()
+    .trim();
   const normalizedType =
-    String(options?.reportType || rawData?.reportType || rawData?.meta?.reportType || 'standard').toLowerCase() === 'premium'
-      ? 'premium'
-      : 'standard';
+    normalizedTypeRaw === 'professional'
+      ? 'professional'
+      : normalizedTypeRaw === 'premium'
+        ? 'premium'
+        : 'standard';
   const input = {
     ...(rawData || {}),
     reportType: normalizedType,
@@ -183,27 +190,37 @@ export async function generatePdfFromData(rawData, options = {}) {
       const cover = document.querySelector('.cover-content');
       if (!cover) return { found: false };
       const coverImage = cover.querySelector('.cover-art-image');
+      const coverTitle = cover.querySelector('.cover-report-kicker');
       const rect = cover.getBoundingClientRect();
       const computed = window.getComputedStyle(cover);
       const backgroundImage = String(computed.backgroundImage || '');
+      const textContent = String(cover.textContent || '').trim();
       return {
         found: true,
         width: Number(rect.width || 0),
-        height: Number(rect.height || 0),
+        height: Number(rect.height || cover.offsetHeight || cover.scrollHeight || 0),
         hasBackgroundImage: Boolean(backgroundImage && backgroundImage !== 'none'),
         hasCoverImage:
           Boolean(coverImage) &&
           Number(coverImage?.naturalWidth || 0) > 0 &&
           Number(coverImage?.naturalHeight || 0) > 0,
+        hasCoverTitle: Boolean(coverTitle && String(coverTitle.textContent || '').trim()),
+        hasContentText: textContent.length > 20,
       };
     });
     if (
       !coverStatus?.found ||
-      (!coverStatus?.hasBackgroundImage && !coverStatus?.hasCoverImage) ||
       coverStatus.width === 0 ||
-      coverStatus.height === 0
+      coverStatus.height === 0 ||
+      (!coverStatus?.hasCoverImage &&
+        !coverStatus?.hasBackgroundImage &&
+        !coverStatus?.hasCoverTitle &&
+        !coverStatus?.hasContentText)
     ) {
-      throw new Error('Falha ao carregar a capa oficial do relatório no HTML antes de gerar PDF.');
+      const statusPayload = JSON.stringify(coverStatus || {});
+      throw new Error(
+        `Falha ao carregar a capa oficial do relatório no HTML antes de gerar PDF. coverStatus=${statusPayload}`
+      );
     }
     if (typeof page.emulateMediaType === 'function') {
       await page.emulateMediaType('print');
