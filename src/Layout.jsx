@@ -34,6 +34,8 @@ const PUBLIC_PAGES = [
   'GiftLanding',
   'Signup',
   'StartFree',
+  'Demo',
+  'SalesLanding',
   'DossieComportamentalLanding',
   'SuperAdminLogin',
   'Privacy',
@@ -50,6 +52,18 @@ const PAGE_TITLES = {
   TeamMapping: { title: 'Mapeamento de Equipes', subtitle: 'Dinâmica e distribuição comportamental' },
   CompareProfiles: { title: 'Comparar Perfis', subtitle: 'Comparação DISC entre avaliações selecionadas' },
   TeamMap: { title: 'Mapa de Equipes', subtitle: 'Distribuição coletiva dos fatores comportamentais' },
+  OrganizationalReport: {
+    title: 'Relatório Organizacional',
+    subtitle: 'Leitura executiva de cultura comportamental, benchmark e recomendações estratégicas',
+  },
+  Coach: {
+    title: 'Coach Comportamental',
+    subtitle: 'Perguntas práticas e recomendações baseadas no DISC Engine',
+  },
+  Demo: {
+    title: 'Modo Demo',
+    subtitle: 'Explore a plataforma com dados de demonstração sem cadastro',
+  },
   Checkout: { title: 'Checkout', subtitle: 'Compra de créditos e gerenciamento de pacotes' },
   JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },

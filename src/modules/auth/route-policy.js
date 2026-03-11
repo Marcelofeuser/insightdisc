@@ -20,6 +20,8 @@ export const PUBLIC_PAGES = new Set([
   'Pricing',
   'PublicReport',
   'GiftLanding',
+  'Demo',
+  'SalesLanding',
   'Signup',
   'StartFree',
   'SuperAdminLogin',
@@ -120,6 +122,13 @@ const PAGE_POLICIES = Object.freeze({
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
   },
   TeamMap: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  OrganizationalReport: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],

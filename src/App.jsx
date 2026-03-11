@@ -29,6 +29,16 @@ import RoleDashboardHome from '@/pages/RoleDashboardHome';
 import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
 import AssessmentResult from '@/pages/AssessmentResult';
 import AssessmentReport from '@/pages/AssessmentReport';
+import DemoMode from '@/pages/DemoMode';
+import Coach from '@/pages/Coach';
+import OrganizationalReport from '@/pages/OrganizationalReport';
+import SalesPersonaLanding from '@/pages/SalesPersonaLanding';
+import MarketingUseCaseLanding from '@/pages/MarketingUseCaseLanding';
+import AdminDashboardV3 from '@/pages/admin/AdminDashboard';
+import AdminUsers from '@/pages/admin/AdminUsers';
+import AdminCompanies from '@/pages/admin/AdminCompanies';
+import AdminAssessments from '@/pages/admin/AdminAssessments';
+import AdminBilling from '@/pages/admin/AdminBilling';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports/routes';
 
@@ -55,6 +65,16 @@ const APP_ALIAS_ROUTES = [
   { path: '/app/admin', pageName: 'AdminDashboard' },
   { path: '/app/analytics', pageName: 'AnalyticsDashboard' },
 ];
+
+const MARKETING_USE_CASE_ROUTES = Object.freeze([
+  '/disc-para-empresas',
+  '/analise-disc-para-rh',
+  '/teste-disc-com-relatorio',
+  '/comparacao-de-perfis-disc',
+  '/mapa-comportamental-de-equipe',
+  '/analise-comportamental-para-lideres',
+  '/disc-para-recrutamento',
+]);
 
 const LayoutWrapper = ({ children, currentPageName }) =>
   Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>;
@@ -148,6 +168,14 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route
+        path="/demo"
+        element={
+          <LayoutWrapper currentPageName="Demo">
+            <DemoMode />
+          </LayoutWrapper>
+        }
+      />
 
       <Route
         path="/checkout"
@@ -157,6 +185,73 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route
+        path="/empresa"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/rh"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/lideres"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/vendas"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/consultores"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/autoconhecimento"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/recrutamento"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      {MARKETING_USE_CASE_ROUTES.map((path) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <LayoutWrapper currentPageName="SalesLanding">
+              <MarketingUseCaseLanding />
+            </LayoutWrapper>
+          }
+        />
+      ))}
       <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
       <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
       <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
@@ -189,6 +284,26 @@ const AuthenticatedApp = () => {
           <ProtectedRoute pageName="TeamMap" policy={getPagePolicy('TeamMap')}>
             <LayoutWrapper currentPageName="TeamMap">
               <TeamMap />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/organization-report"
+        element={
+          <ProtectedRoute pageName="OrganizationalReport" policy={getPagePolicy('OrganizationalReport')}>
+            <LayoutWrapper currentPageName="OrganizationalReport">
+              <OrganizationalReport />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coach"
+        element={
+          <ProtectedRoute pageName="Coach" policy={getPagePolicy('Coach')}>
+            <LayoutWrapper currentPageName="Coach">
+              <Coach />
             </LayoutWrapper>
           </ProtectedRoute>
         }
@@ -262,6 +377,56 @@ const AuthenticatedApp = () => {
         element={
           <SuperAdminRoute>
             <SuperAdminDashboard />
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <SuperAdminRoute>
+            <LayoutWrapper currentPageName="AdminDashboard">
+              <AdminDashboardV3 />
+            </LayoutWrapper>
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <SuperAdminRoute>
+            <LayoutWrapper currentPageName="AdminDashboard">
+              <AdminUsers />
+            </LayoutWrapper>
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/admin/companies"
+        element={
+          <SuperAdminRoute>
+            <LayoutWrapper currentPageName="AdminDashboard">
+              <AdminCompanies />
+            </LayoutWrapper>
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/admin/assessments"
+        element={
+          <SuperAdminRoute>
+            <LayoutWrapper currentPageName="AdminDashboard">
+              <AdminAssessments />
+            </LayoutWrapper>
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/admin/billing"
+        element={
+          <SuperAdminRoute>
+            <LayoutWrapper currentPageName="AdminDashboard">
+              <AdminBilling />
+            </LayoutWrapper>
           </SuperAdminRoute>
         }
       />

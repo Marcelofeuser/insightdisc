@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelState from '@/components/ui/PanelState';
 import { useToast } from '@/components/ui/use-toast';
+import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
 import {
   BehaviorInsightsPanel,
   DiscDistributionChart,
@@ -29,6 +30,12 @@ import {
   buildTeamFilterOptions,
   buildTeamIntelligence,
 } from '@/modules/teamIntelligence/engine';
+import {
+  BehaviorAnalyticsExecutivePanel,
+  BenchmarkPanel,
+  BehaviorHistoryPanel,
+  buildBehaviorAnalytics,
+} from '@/modules/behaviorAnalytics';
 
 function normalizeFallbackAssessment(item = {}) {
   const summary = item?.results?.summary_profile || item?.disc_results?.summary || item?.summary || {};
@@ -67,6 +74,8 @@ function formatDate(value) {
 
 export default function TeamMap() {
   const { toast } = useToast();
+  const { checkFeature, featureKeys } = useFeatureAccess();
+  const teamMapAccess = checkFeature(featureKeys.TEAM_MAP);
   const [assessments, setAssessments] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [teamMap, setTeamMap] = useState(null);
@@ -234,12 +243,40 @@ export default function TeamMap() {
     () => (teamMap ? buildTeamIntelligence(teamMap) : null),
     [teamMap],
   );
+  const behaviorAnalytics = useMemo(() => {
+    if (!intelligence) return null;
+    const history = (intelligence.members || []).map((member) => ({
+      id: member.assessmentId,
+      date: member.createdAt,
+      profileCode: member.profileCode,
+      scores: member.scores,
+    }));
+    return buildBehaviorAnalytics({
+      members: intelligence.members || [],
+      history,
+    });
+  }, [intelligence]);
 
   const selectedIdsSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   const selectedCountVisible = filteredAssessments.filter((item) =>
     selectedIdsSet.has(String(item?.assessmentId || '')),
   ).length;
+
+  if (!teamMapAccess.allowed) {
+    return (
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        <div className="mx-auto max-w-4xl space-y-6">
+          <UpgradePrompt
+            title="Mapa comportamental organizacional bloqueado"
+            description="A visao executiva de equipe, gaps e dimensoes organizacionais esta disponivel no plano Business."
+            requiredPlanLabel="Business"
+            ctaLabel="Fazer upgrade"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-auto p-4 sm:p-6">
@@ -416,6 +453,16 @@ export default function TeamMap() {
             <TeamDimensionsPanel dimensions={intelligence.dimensions} />
 
             <TeamAutoCompositionPanel analysis={intelligence.balanceIntelligence} />
+
+            {behaviorAnalytics ? (
+              <>
+                <BehaviorAnalyticsExecutivePanel analytics={behaviorAnalytics} />
+                <section className="grid gap-4 xl:grid-cols-2">
+                  <BenchmarkPanel benchmarkComparison={behaviorAnalytics.benchmarkComparison} />
+                  <BehaviorHistoryPanel evolution={behaviorAnalytics.evolution} />
+                </section>
+              </>
+            ) : null}
           </>
         ) : (
           <PanelState

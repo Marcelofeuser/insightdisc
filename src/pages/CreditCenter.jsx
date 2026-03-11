@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import EmptyState from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/use-toast';
 import TableShell from '@/components/ui/TableShell';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
+import { downgradePlan, openBillingPortal, upgradePlan } from '@/modules/billing';
 
 function formatDate(value) {
   if (!value) return '-';
@@ -22,7 +24,9 @@ function formatDate(value) {
 
 export default function CreditCenter() {
   const { access: authAccess } = useAuth();
+  const { toast } = useToast();
   const [user, setUser] = useState(null);
+  const [isManagingPlan, setIsManagingPlan] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +75,68 @@ export default function CreditCenter() {
     enabled: Boolean(access?.tenantId),
   });
 
+  const handleOpenPortal = async () => {
+    setIsManagingPlan(true);
+    try {
+      const response = await openBillingPortal();
+      if (response?.url) {
+        window.location.href = response.url;
+        return;
+      }
+      throw new Error('BILLING_PORTAL_URL_MISSING');
+    } catch (error) {
+      toast({
+        title: 'Falha ao abrir portal',
+        description: error?.message || 'Não foi possível abrir o portal de assinatura.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsManagingPlan(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    setIsManagingPlan(true);
+    try {
+      const response = await upgradePlan('business');
+      if (response?.url) {
+        window.location.href = response.url;
+        return;
+      }
+      toast({
+        title: 'Upgrade solicitado',
+        description: response?.message || 'Solicitação registrada com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Falha no upgrade',
+        description: error?.message || 'Não foi possível processar upgrade.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsManagingPlan(false);
+    }
+  };
+
+  const handleDowngrade = async () => {
+    setIsManagingPlan(true);
+    try {
+      const response = await downgradePlan('personal');
+      toast({
+        title: 'Downgrade solicitado',
+        description: response?.message || 'Solicitação registrada com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Falha no downgrade',
+        description: error?.message || 'Não foi possível processar downgrade.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsManagingPlan(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <Card className="rounded-2xl shadow-sm border-slate-200">
@@ -83,12 +149,23 @@ export default function CreditCenter() {
             <p className="text-4xl font-bold text-slate-900">{Number(workspace?.credits_balance ?? 0) || 0}</p>
           </div>
           {canManageCredits ? (
-            <Link to={createPageUrl('Pricing')}>
-              <Button className="bg-indigo-600 hover:bg-indigo-700">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Comprar créditos
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to={createPageUrl('Pricing')}>
+                <Button className="bg-indigo-600 hover:bg-indigo-700">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Comprar créditos
+                </Button>
+              </Link>
+              <Button variant="outline" onClick={() => void handleOpenPortal()} disabled={isManagingPlan}>
+                Portal de assinatura
               </Button>
-            </Link>
+              <Button variant="outline" onClick={() => void handleUpgrade()} disabled={isManagingPlan}>
+                Upgrade
+              </Button>
+              <Button variant="ghost" onClick={() => void handleDowngrade()} disabled={isManagingPlan}>
+                Downgrade
+              </Button>
+            </div>
           ) : null}
         </CardContent>
       </Card>

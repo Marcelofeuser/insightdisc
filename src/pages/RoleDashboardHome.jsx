@@ -9,6 +9,7 @@ import {
   normalizePanelMode,
 } from '@/modules/navigation/panelMode';
 import { usePanelMode } from '@/modules/navigation/panelModeContext';
+import { OnboardingTour } from '@/modules/onboarding';
 
 function ModeCard({ mode, activeMode, onSelect }) {
   const isActive = activeMode === mode;
@@ -77,6 +78,10 @@ export default function RoleDashboardHome() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="w-full min-w-0 max-w-7xl mx-auto px-4 sm:px-6">
+        <OnboardingTour />
       </section>
 
       {renderDashboardByMode(activeMode)}

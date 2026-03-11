@@ -14,6 +14,7 @@ import {
   createAccessContext,
 } from '@/modules/auth/access-control';
 import { DiscRadarChart } from '@/modules/analytics/components';
+import { recordBehaviorHistoryEntry } from '@/modules/behaviorAnalytics';
 import {
   BehavioralReadingsGrid,
   DevelopmentPanel,
@@ -29,6 +30,7 @@ import {
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports/routes';
 import { buildDiscInterpretation } from '@/modules/discEngine';
+import { buildDevelopmentPlan3090, DevelopmentPlanPanel } from '@/modules/developmentPlan';
 import { buildLeadershipInsights } from '@/modules/leadershipInsights';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports';
 
@@ -216,6 +218,31 @@ export default function AssessmentResult() {
       }),
     [discSnapshot?.summary]
   );
+  const developmentPlan = useMemo(
+    () => buildDevelopmentPlan3090(interpretation, discSnapshot?.summary || {}),
+    [discSnapshot?.summary, interpretation],
+  );
+
+  useEffect(() => {
+    if (loadState.status !== RESULT_STATE.READY) return;
+    if (!identity?.id || !discSnapshot?.hasValidScores) return;
+    const scope = authAccess?.userId || authAccess?.email || 'global';
+    recordBehaviorHistoryEntry(scope, {
+      id: identity.id,
+      date: identity.completedAt || new Date().toISOString(),
+      profileCode: interpretation?.profileCode,
+      scores: discSnapshot.summary || {},
+    });
+  }, [
+    authAccess?.email,
+    authAccess?.userId,
+    discSnapshot?.hasValidScores,
+    discSnapshot?.summary,
+    identity?.completedAt,
+    identity?.id,
+    interpretation?.profileCode,
+    loadState.status,
+  ]);
 
   const reportHref = identity.id ? buildAssessmentReportPath(identity.id) : '/MyAssessments';
   const compareHref = identity.id
@@ -416,6 +443,8 @@ export default function AssessmentResult() {
         developmentRecommendations={interpretation?.developmentRecommendations || []}
         adaptationNotes={interpretation?.adaptationNotes || []}
       />
+
+      <DevelopmentPlanPanel plan={developmentPlan} />
 
       <TechnicalProfilePanel
         interpretation={interpretation}

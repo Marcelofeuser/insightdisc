@@ -26,6 +26,7 @@ import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
 import { normalizeDiscScores } from '@/modules/discEngine';
 import { calculateJobFit } from '@/modules/jobFit';
 import { buildLeadershipInsights } from '@/modules/leadershipInsights';
@@ -92,6 +93,8 @@ function buildRangeProfileFromScores(scores = {}) {
 
 export default function JobMatching() {
   const { access, user: authUser } = useAuth();
+  const { checkFeature, featureKeys } = useFeatureAccess();
+  const jobMatchingAccess = checkFeature(featureKeys.JOB_MATCHING);
   const apiBaseUrl = getApiBaseUrl();
   const hasSuperAdminBypass = isSuperAdminAccess(access);
   const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
@@ -312,6 +315,21 @@ export default function JobMatching() {
       { limit: 3, jobProfiles: JOB_PROFILE_LIBRARY },
     );
   }, [selectedCandidate]);
+
+  if (!jobMatchingAccess.allowed) {
+    return (
+      <div className="w-full min-w-0 bg-slate-50 px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-4xl space-y-6">
+          <UpgradePrompt
+            title="Pessoa × Cargo disponível em plano superior"
+            description="A análise de aderência comportamental entre candidato e cargo ideal está liberada a partir do plano Professional."
+            requiredPlanLabel="Professional"
+            ctaLabel="Ativar recurso"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-w-0 bg-slate-50">

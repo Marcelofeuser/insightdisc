@@ -1,10 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { loginAsProfessional } from './helpers/auth';
+import { loginAsProfessional, loginAsSuperAdmin } from './helpers/auth';
 import { waitForApp } from './helpers/waitForApp';
 
 test.describe('Novas features - navegação', () => {
-  test('rota /team-map abre para usuário autenticado elegível', async ({ page }) => {
+  test('rota /team-map exibe upgrade para plano Professional', async ({ page }) => {
     await loginAsProfessional(page);
+    await page.goto('/team-map', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page.getByText(/Mapa comportamental organizacional bloqueado/i)).toBeVisible();
+    await expect(page.getByText(/Plano recomendado: Business/i)).toBeVisible();
+  });
+
+  test('rota /team-map abre para super admin com acesso total', async ({ page }) => {
+    await loginAsSuperAdmin(page);
     await page.goto('/team-map', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await expect(page.getByRole('heading', { name: /Mapa de Equipes/i }).first()).toBeVisible();
@@ -48,7 +56,7 @@ test.describe('Novas features - navegação', () => {
     await page.goto('/organization-map', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await expect(page).toHaveURL(/\/team-map(?:\?|$)/);
-    await expect(page.getByRole('heading', { name: /Mapa de Equipes/i }).first()).toBeVisible();
+    await expect(page.getByText(/Mapa comportamental organizacional bloqueado/i)).toBeVisible();
   });
 
   test('painel alterna entre modos e atualiza conteúdo principal', async ({ page }) => {

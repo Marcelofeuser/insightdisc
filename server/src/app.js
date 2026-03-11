@@ -18,6 +18,7 @@ import jobsRoutes from './routes/jobs.routes.js';
 import dossierRoutes from './routes/dossier.routes.js';
 import teamMapRoutes from './routes/team-map.routes.js';
 import profileComparisonRoutes from './routes/profile-comparison.routes.js';
+import billingRoutes from './routes/billing.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +48,7 @@ export function createApp() {
   app.use('/api/dossier', dossierRoutes);
   app.use('/api/team-map', teamMapRoutes);
   app.use('/api/profile-comparison', profileComparisonRoutes);
+  app.use('/billing', billingRoutes);
   app.use('/super-admin', superAdminRoutes);
 
   app.get('/', (_req, res) => {
@@ -81,6 +83,9 @@ export function createApp() {
         getReport: 'GET /report/:id',
         createCheckout: 'POST /payments/create-checkout',
         confirmCheckout: 'POST /payments/confirm',
+        billingPlans: 'GET /billing/plans',
+        billingPortal: 'POST /billing/portal',
+        billingChangePlan: 'POST /billing/change-plan',
         createLead: 'POST /api/leads',
         listLeads: 'GET /api/leads',
         exportLeadsCsv: 'GET /api/leads/export/csv',

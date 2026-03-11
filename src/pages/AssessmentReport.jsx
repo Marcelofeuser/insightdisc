@@ -7,11 +7,15 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { getApiBaseUrl } from '@/lib/apiClient';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
+import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
+import { buildDevelopmentPlan3090, DevelopmentPlanPanel } from '@/modules/developmentPlan';
 import { downloadPdfBlob, exportAssessmentReportPdf } from '@/modules/reportExport';
 import {
   buildAssessmentReportViewModel,
   loadAssessmentReportData,
+  ReportValueLadderCard,
   REPORT_LOAD_STATE,
+  resolveReportTierByPlan,
 } from '@/modules/reports';
 import {
   BehavioralReadingsSection,
@@ -43,6 +47,7 @@ export default function AssessmentReport() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { access: authAccess } = useAuth();
+  const { checkFeature, featureKeys, plan } = useFeatureAccess();
   const apiBaseUrl = getApiBaseUrl();
   const [loadState, setLoadState] = useState({
     status: REPORT_LOAD_STATE.LOADING,
@@ -83,14 +88,26 @@ export default function AssessmentReport() {
     () => buildAssessmentReportViewModel(loadState.assessment || {}, { assessmentId: id }),
     [id, loadState.assessment]
   );
+  const developmentPlan = useMemo(
+    () => buildDevelopmentPlan3090(viewModel?.interpretation || {}, viewModel?.discSnapshot?.summary || {}),
+    [viewModel?.discSnapshot?.summary, viewModel?.interpretation],
+  );
 
   const reportIdentity = viewModel?.identity || { id: '' };
+  const reportPdfAccess = checkFeature(featureKeys.REPORT_PDF);
+  const premiumReportAccess = checkFeature(featureKeys.PREMIUM_REPORTS);
+  const currentReportTier = resolveReportTierByPlan(plan);
   const resultHref = buildAssessmentResultPath(reportIdentity.id || id);
   const compareHref = reportIdentity.id
     ? `/compare-profiles?assessmentId=${encodeURIComponent(reportIdentity.id)}`
     : '/compare-profiles';
 
   const handleExportPdf = async () => {
+    if (!reportPdfAccess.allowed) {
+      setExportError('Seu plano atual não inclui exportação PDF.');
+      return;
+    }
+
     const assessmentId = String(reportIdentity.id || id || '').trim();
     if (!assessmentId) {
       setExportError('Não foi possível exportar: ID da avaliação indisponível.');
@@ -203,7 +220,7 @@ export default function AssessmentReport() {
         onBack={() => navigate('/painel')}
         onExportPdf={() => void handleExportPdf()}
         isExportingPdf={isExportingPdf}
-        exportDisabled={!apiBaseUrl}
+        exportDisabled={!apiBaseUrl || !reportPdfAccess.allowed}
         sectionLinks={SECTION_LINKS}
       />
 
@@ -212,6 +229,13 @@ export default function AssessmentReport() {
           {exportError}
         </p>
       ) : null}
+
+      <ReportValueLadderCard
+        currentTier={currentReportTier}
+        title="Escada de valor dos relatorios"
+        description="Seu plano atual define o nivel de profundidade e aplicacao disponivel no relatorio DISC."
+        compact
+      />
 
       {!viewModel.discSnapshot?.hasValidScores ? (
         <PanelState
@@ -227,31 +251,44 @@ export default function AssessmentReport() {
 
       <ExecutiveSummarySection executiveSummary={viewModel.executiveSummary} />
 
-      <StrengthsAttentionSection
-        strengths={viewModel.strengths}
-        attentionPoints={viewModel.attentionPoints}
-        potentialChallenges={viewModel.potentialChallenges}
-      />
+      {premiumReportAccess.allowed ? (
+        <>
+          <StrengthsAttentionSection
+            strengths={viewModel.strengths}
+            attentionPoints={viewModel.attentionPoints}
+            potentialChallenges={viewModel.potentialChallenges}
+          />
 
-      <BehavioralReadingsSection interpretation={viewModel.interpretation} />
+          <BehavioralReadingsSection interpretation={viewModel.interpretation} />
 
-      <LeadershipInsightsSection leadershipInsights={viewModel.leadershipInsights} />
+          <LeadershipInsightsSection leadershipInsights={viewModel.leadershipInsights} />
 
-      <FactorAnalysisSection factorAnalysis={viewModel.factorAnalysis} />
+          <FactorAnalysisSection factorAnalysis={viewModel.factorAnalysis} />
 
-      <CombinationAnalysisSection
-        interpretation={viewModel.interpretation}
-        archetype={viewModel.archetype}
-        strengths={viewModel.strengths}
-        attentionPoints={viewModel.attentionPoints}
-        potentialChallenges={viewModel.potentialChallenges}
-      />
+          <CombinationAnalysisSection
+            interpretation={viewModel.interpretation}
+            archetype={viewModel.archetype}
+            strengths={viewModel.strengths}
+            attentionPoints={viewModel.attentionPoints}
+            potentialChallenges={viewModel.potentialChallenges}
+          />
 
-      <DevelopmentSection
-        developmentRecommendations={viewModel.developmentRecommendations}
-        attentionPoints={viewModel.attentionPoints}
-        nextSteps={viewModel.nextSteps}
-      />
+          <DevelopmentSection
+            developmentRecommendations={viewModel.developmentRecommendations}
+            attentionPoints={viewModel.attentionPoints}
+            nextSteps={viewModel.nextSteps}
+          />
+
+          <DevelopmentPlanPanel plan={developmentPlan} />
+        </>
+      ) : (
+        <UpgradePrompt
+          title="Seções premium do relatório bloqueadas"
+          description="Faça upgrade para liberar leituras comportamentais completas, recomendações avançadas e plano de desenvolvimento detalhado."
+          requiredPlanLabel="Professional"
+          ctaLabel="Ativar relatório premium"
+        />
+      )}
 
       <TechnicalSummarySection
         technical={viewModel.technical}
@@ -265,6 +302,16 @@ export default function AssessmentReport() {
             Configure a API para habilitar a geração profissional de PDF via backend.
           </p>
         </div>
+      ) : null}
+
+      {apiBaseUrl && !reportPdfAccess.allowed ? (
+        <UpgradePrompt
+          compact
+          title="Exportação PDF disponível em plano superior"
+          description="Faça upgrade para desbloquear download do relatório oficial em PDF."
+          requiredPlanLabel="Professional"
+          ctaLabel="Desbloquear PDF"
+        />
       ) : null}
 
       <div className="flex justify-end">

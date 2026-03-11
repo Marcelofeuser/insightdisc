@@ -21,9 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { generateInviteToken, hashInviteToken } from '@/modules/invites/invite-token';
+import { inviteMember } from '@/modules/invites';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
-import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
+import { getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
@@ -112,89 +112,39 @@ export default function SendAssessment() {
       const newLinks = [];
 
       for (const email of validEmails) {
-        if (apiBaseUrl) {
-          if (!organizationId) {
-            throw new Error('Workspace não identificado para criar convites.');
-          }
-
-          const created = await apiRequest('/assessments/create', {
-            method: 'POST',
-            requireAuth: true,
-            body: {
-              organizationId,
-              candidateEmail: email,
-            },
-          });
-
-          const assessmentId = created?.assessment?.id;
-          if (!assessmentId) throw new Error('Falha ao criar assessment para convite.');
-
-          const generated = await apiRequest('/assessments/generate-link', {
-            method: 'POST',
-            requireAuth: true,
-            body: { assessmentId },
-          });
-
-          const token = String(generated?.token || '').trim();
-          if (!token) throw new Error('Token de convite não retornado pelo backend.');
-
-          const assessmentUrl = `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`;
-          newLinks.push({
-            token,
-            url: assessmentUrl,
-            created_at: new Date().toISOString(),
-          });
-          continue;
-        }
-
-        const user = await base44.auth.me();
-        const token = generateInviteToken();
-        const tokenHash = await hashInviteToken(token);
-        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-
-        const created = await base44.entities.Assessment.create({
-          user_id: email,
-          type: 'premium',
-          status: 'pending',
-          professional_id: user.id,
-          workspace_id: workspace?.id,
-          access_token: token,
-          access_token_hash: tokenHash,
-          invite_status: 'active',
-          invite_expires_at: expiresAt,
+        const createdInvite = await inviteMember(email, {
+          organizationId,
+          baseUrl,
+          expiresInDays: 7,
         });
 
-        if (!created?.id) {
-          throw new Error('Falha ao criar assessment para convite');
-        }
-        console.log('[SendAssessment] invite created', { assessmentId: created.id, email, expiresAt });
-
-        const assessmentUrl = `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`;
         newLinks.push({
-          token,
-          url: assessmentUrl,
+          token: createdInvite.token,
+          url: createdInvite.inviteUrl,
           created_at: new Date().toISOString(),
         });
 
-        await base44.integrations.Core.SendEmail({
-          to: email,
-          subject: 'Você foi convidado para uma Avaliação DISC',
-          body: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #4f46e5;">Avaliação Comportamental DISC</h2>
-              <p>Olá,</p>
-              <p>Você foi convidado(a) para realizar uma avaliação comportamental DISC.</p>
-              ${customMessage ? `<p><em>"${customMessage}"</em></p>` : ''}
-              <p>Clique no botão abaixo para iniciar:</p>
-              <a href="${assessmentUrl}" style="display: inline-block; background: linear-gradient(to right, #4f46e5, #7c3aed); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                Iniciar Avaliação
-              </a>
-              <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
-                O teste leva aproximadamente 15 minutos para ser concluído.
-              </p>
-            </div>
-          `
-        });
+        if (!apiBaseUrl) {
+          await base44.integrations.Core.SendEmail({
+            to: email,
+            subject: 'Você foi convidado para uma Avaliação DISC',
+            body: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4f46e5;">Avaliação Comportamental DISC</h2>
+                <p>Olá,</p>
+                <p>Você foi convidado(a) para realizar uma avaliação comportamental DISC.</p>
+                ${customMessage ? `<p><em>"${customMessage}"</em></p>` : ''}
+                <p>Clique no botão abaixo para iniciar:</p>
+                <a href="${createdInvite.inviteUrl}" style="display: inline-block; background: linear-gradient(to right, #4f46e5, #7c3aed); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                  Iniciar Avaliação
+                </a>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
+                  O teste leva aproximadamente 15 minutos para ser concluído.
+                </p>
+              </div>
+            `
+          });
+        }
       }
 
       if (workspace && !apiBaseUrl && !hasSuperAdminBypass) {
@@ -240,64 +190,15 @@ export default function SendAssessment() {
       const newLinks = [];
 
       for (let i = 0; i < linkCount; i++) {
-        if (apiBaseUrl) {
-          if (!organizationId) {
-            throw new Error('Workspace não identificado para criar links.');
-          }
-
-          const created = await apiRequest('/assessments/create', {
-            method: 'POST',
-            requireAuth: true,
-            body: {
-              organizationId,
-            },
-          });
-
-          const assessmentId = created?.assessment?.id;
-          if (!assessmentId) throw new Error('Falha ao criar assessment para link.');
-
-          const generated = await apiRequest('/assessments/generate-link', {
-            method: 'POST',
-            requireAuth: true,
-            body: { assessmentId },
-          });
-
-          const token = String(generated?.token || '').trim();
-          if (!token) throw new Error('Token de convite não retornado pelo backend.');
-
-          newLinks.push({
-            token,
-            url: `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`,
-            created_at: new Date().toISOString(),
-          });
-          continue;
-        }
-
-        const user = await base44.auth.me();
-        const token = generateInviteToken();
-        const tokenHash = await hashInviteToken(token);
-        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-
-        const created = await base44.entities.Assessment.create({
-          user_id: 'pending',
-          type: 'premium',
-          status: 'pending',
-          professional_id: user.id,
-          workspace_id: workspace?.id,
-          access_token: token,
-          access_token_hash: tokenHash,
-          invite_status: 'active',
-          invite_expires_at: expiresAt,
+        const createdInvite = await inviteMember('', {
+          organizationId,
+          baseUrl,
+          allowAnonymous: true,
+          fallbackEmail: `invite-${Date.now()}-${i + 1}@insightdisc.app`,
         });
-
-        if (!created?.id) {
-          throw new Error('Falha ao criar assessment para link');
-        }
-        console.log('[SendAssessment] link created', { assessmentId: created.id, expiresAt });
-
         newLinks.push({
-          token,
-          url: `${baseUrl}/c/invite?token=${encodeURIComponent(token)}`,
+          token: createdInvite.token,
+          url: createdInvite.inviteUrl,
           created_at: new Date().toISOString()
         });
       }

@@ -1,5 +1,6 @@
 import { apiRequest, getApiToken } from '@/lib/apiClient';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { consumeAssessmentCredit, getCreditsStatus } from '@/modules/credits';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 
@@ -12,35 +13,6 @@ function devLog(message, payload = null) {
   }
   // eslint-disable-next-line no-console
   console.info(`[assessmentFlow] ${message}`);
-}
-
-function safeNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function resolveCredits(payload = {}) {
-  const candidates = [
-    payload?.credits,
-    payload?.balance,
-    payload?.summary?.credits,
-    payload?.summary?.balance,
-    payload?.data?.credits,
-    payload?.data?.balance,
-    payload?.user?.credits,
-    payload?.user?.creditBalance,
-    payload?.user?.creditsBalance,
-    payload?.user?.credits_balance,
-    payload?.availableCredits,
-    payload?.remainingCredits,
-  ];
-
-  for (const candidate of candidates) {
-    const parsed = safeNumber(candidate);
-    if (parsed !== null) return parsed;
-  }
-
-  return 0;
 }
 
 function navigateTo(navigate, target, options = undefined) {
@@ -75,37 +47,6 @@ function isInsufficientCreditsError(error) {
   return status === 402 || code.includes('INSUFFICIENT_CREDITS');
 }
 
-async function loadCreditsStatus({ isSuperAdmin = false } = {}) {
-  if (isSuperAdmin) {
-    return { credits: Number.POSITIVE_INFINITY, source: 'super-admin-bypass' };
-  }
-
-  try {
-    const creditsPayload = await apiRequest('/assessment/credits', {
-      method: 'GET',
-      requireAuth: true,
-    });
-    return {
-      credits: resolveCredits(creditsPayload),
-      source: '/assessment/credits',
-    };
-  } catch (error) {
-    if (![404, 405].includes(Number(error?.status || 0))) {
-      throw error;
-    }
-  }
-
-  const mePayload = await apiRequest('/auth/me', {
-    method: 'GET',
-    requireAuth: true,
-  });
-
-  return {
-    credits: resolveCredits(mePayload),
-    source: '/auth/me',
-  };
-}
-
 export async function startSelfAssessment({
   apiBaseUrl = '',
   navigate,
@@ -132,7 +73,7 @@ export async function startSelfAssessment({
   const isSuperAdmin = isSuperAdminAccess(access);
 
   try {
-    const creditsStatus = await loadCreditsStatus({ isSuperAdmin });
+    const creditsStatus = await getCreditsStatus({ access });
     const credits = Number(creditsStatus?.credits || 0);
 
     devLog('credits resolved', {
@@ -141,7 +82,13 @@ export async function startSelfAssessment({
       isSuperAdmin,
     });
 
-    if (!isSuperAdmin && credits < 1) {
+    const consumeResult = await consumeAssessmentCredit(access?.userId || access?.email || '', {
+      access,
+      amount: 1,
+      dryRun: true,
+    });
+
+    if (!consumeResult.ok) {
       navigateTo(navigate, '/checkout');
       return { ok: false, reason: 'INSUFFICIENT_CREDITS' };
     }

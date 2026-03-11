@@ -20,6 +20,7 @@ import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
+import { ReportValueLadderCard } from '@/modules/reports';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -205,6 +206,7 @@ export default function FreeResults() {
   const dominantInfo = FACTOR_INFO[dominant] || FACTOR_INFO.D;
   const profile = results.natural_profile || {};
   const isUnlocked = Boolean(assessment?.report_unlocked) || hasSuperAdminBypass;
+  const currentReportTier = hasSuperAdminBypass ? 'professional' : isUnlocked ? 'premium' : 'standard';
   const assessmentToken = assessment?.access_token || '';
   const resolvedAssessmentId = String(assessment?.assessmentId || assessment?.id || '').trim();
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(resolvedAssessmentId)}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
@@ -406,6 +408,19 @@ export default function FreeResults() {
             {comparisonError}
           </div>
         ) : null}
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.59 }}
+          className="mb-10"
+        >
+          <ReportValueLadderCard
+            currentTier={currentReportTier}
+            title="Escada de valor dos relatorios"
+            description="Comece no Standard Report, avance para o Premium Report e evolua para o Professional Report conforme o contexto de uso."
+          />
+        </motion.div>
 
         {/* Premium CTA */}
         <motion.div

@@ -9,6 +9,7 @@ import SectionHeader from '@/components/ui/SectionHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
 import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import {
@@ -169,6 +170,8 @@ export default function CompareProfiles() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { access } = useAuth();
+  const { checkFeature, featureKeys } = useFeatureAccess();
+  const comparisonAccess = checkFeature(featureKeys.ADVANCED_COMPARISON);
   const apiBaseUrl = getApiBaseUrl();
 
   const [profiles, setProfiles] = useState([]);
@@ -464,6 +467,19 @@ export default function CompareProfiles() {
   const selectedCount = requiresManualProfileB
     ? [selectedProfileAId, selectedProfileBId].filter(Boolean).length
     : [selectedProfileAId].filter(Boolean).length;
+
+  if (!comparisonAccess.allowed) {
+    return (
+      <div className="w-full min-w-0 max-w-4xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
+        <UpgradePrompt
+          title="Comparador avançado bloqueado no plano atual"
+          description="A comparação comportamental completa (sinergias, tensões, dinâmica de decisão e recomendações práticas) está disponível a partir do plano Professional."
+          requiredPlanLabel="Professional"
+          ctaLabel="Desbloquear comparador"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8" data-testid="compare-profiles-page">

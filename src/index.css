@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -84,5 +86,17 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .marketing-surface {
+    font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  }
+
+  .marketing-surface h1,
+  .marketing-surface h2,
+  .marketing-surface h3 {
+    font-family: 'Plus Jakarta Sans', 'Manrope', sans-serif;
   }
 }

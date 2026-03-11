@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Brain,
   Briefcase,
   Building2,
   LayoutDashboard,
@@ -14,6 +15,8 @@ import {
   hasAnyGlobalRole,
   hasPermission,
 } from '@/modules/auth/access-control';
+import { FEATURE_KEYS, hasFeatureAccess } from '@/modules/billing/planGuard';
+import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
 
 function makeItem(icon, label, page, to, section = 'Principal') {
@@ -22,6 +25,7 @@ function makeItem(icon, label, page, to, section = 'Principal') {
 
 function resolveCapabilities(access) {
   const canAccessPremium = canAccessPremiumSaas(access);
+  const plan = resolvePlanFromAccess(access);
   const canManageAssessments =
     canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
   const canViewAssessments =
@@ -42,8 +46,17 @@ function resolveCapabilities(access) {
     GLOBAL_ROLES.SUPER_ADMIN,
     GLOBAL_ROLES.PLATFORM_ADMIN,
   ]);
+  const canUseAdvancedComparison =
+    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ADVANCED_COMPARISON, { plan });
+  const canUseJobMatching =
+    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.JOB_MATCHING, { plan });
+  const canUseTeamMap =
+    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.TEAM_MAP, { plan });
+  const canUseOrganizationalReport =
+    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ORGANIZATIONAL_REPORT, { plan });
 
   return {
+    plan,
     canAccessPremium,
     canManageAssessments,
     canViewAssessments,
@@ -51,6 +64,10 @@ function resolveCapabilities(access) {
     canViewOwnData,
     canManageOrganization,
     canAccessPlatformAdmin,
+    canUseAdvancedComparison,
+    canUseJobMatching,
+    canUseTeamMap,
+    canUseOrganizationalReport,
   };
 }
 
@@ -60,17 +77,20 @@ function buildBusinessNavigation(capabilities) {
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação')
       : null,
-    capabilities.canViewTenantData
+    capabilities.canViewTenantData && capabilities.canUseTeamMap
       ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
       : null,
-    capabilities.canViewTenantData
+    capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canViewTenantData
+    capabilities.canViewTenantData && capabilities.canUseJobMatching
       ? makeItem(Sparkles, 'Insights', 'JobMatching', '/JobMatching', 'Análises')
       : null,
     capabilities.canViewAssessments
       ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments', 'Análises')
+      : null,
+    capabilities.canViewTenantData && capabilities.canUseOrganizationalReport
+      ? makeItem(Brain, 'Relatório Org', 'OrganizationalReport', '/organization-report', 'Análises')
       : null,
     capabilities.canManageOrganization
       ? makeItem(Building2, 'Organização', 'BrandingSettings', '/app/branding', 'Configurações')
@@ -96,8 +116,11 @@ function buildProfessionalNavigation(capabilities) {
     capabilities.canViewAssessments
       ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments', 'Operação')
       : null,
-    capabilities.canViewTenantData
+    capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(Brain, 'Coach DISC', 'Coach', '/coach', 'Análises')
       : null,
     makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises'),
     makeItem(BookOpen, 'Biblioteca DISC', 'PanelBibliotecaDisc', '/painel/biblioteca-disc', 'Conhecimento'),
@@ -117,6 +140,7 @@ function buildPersonalNavigation(capabilities) {
       '/painel/meu-desenvolvimento',
       'Minha Jornada',
     ),
+    makeItem(Brain, 'Coach DISC', 'Coach', '/coach', 'Minha Jornada'),
     makeItem(Users, 'Histórico', 'PanelHistorico', '/painel/historico', 'Minha Jornada'),
   ].filter(Boolean);
 }
