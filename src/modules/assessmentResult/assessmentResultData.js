@@ -1,4 +1,4 @@
-import { DISC_FACTORS } from '@/modules/discEngine';
+import { DISC_FACTORS } from '../discEngine/constants.js';
 
 function toNumber(value) {
   const parsed = Number(value);
@@ -209,4 +209,3 @@ export function buildScoreBalanceNote(scoreSummary = {}) {
 
   return 'Perfil com combinação intermediária entre fator primário e secundário.';
 }
-

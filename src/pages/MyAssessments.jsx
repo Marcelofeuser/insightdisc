@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
+import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 function formatDate(value) {
@@ -315,6 +316,7 @@ export default function MyAssessments() {
               {filteredAssessments.map((assessment) => {
                 const targetAssessmentId = assessment?.assessmentId || assessment?.id || '';
                 const encodedAssessmentId = encodeURIComponent(targetAssessmentId);
+                const resultHref = buildAssessmentResultPath(targetAssessmentId);
 
                 return (
                   <TableRow key={assessment.id} className="border-slate-100 hover:bg-slate-50/70">
@@ -332,7 +334,7 @@ export default function MyAssessments() {
                       <div className="flex items-center justify-end gap-2">
                         {targetAssessmentId ? (
                           <>
-                            <Link to={`${createPageUrl('FreeResults')}?id=${encodedAssessmentId}`}>
+                            <Link to={resultHref}>
                               <Button variant="outline" size="sm">Ver resultado</Button>
                             </Link>
                             <Link to={`${createPageUrl('Report')}?id=${encodedAssessmentId}`}>

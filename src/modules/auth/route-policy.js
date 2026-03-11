@@ -93,6 +93,11 @@ const PAGE_POLICIES = Object.freeze({
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',
   },
+  AssessmentResult: {
+    requiresAuth: true,
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+  },
   SendAssessment: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',

@@ -55,6 +55,10 @@ const PAGE_TITLES = {
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
   SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },
   Dossier: { title: 'Dossiê Comportamental', subtitle: 'Histórico comportamental completo dos avaliados' },
+  AssessmentResult: {
+    title: 'Resultado da Avaliação DISC',
+    subtitle: 'Leitura oficial do perfil comportamental com interpretação estruturada',
+  },
 };
 
 export default function Layout({ children, currentPageName }) {

@@ -2,8 +2,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
 import { pagesConfig } from './pages.config';
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import PaletteTest from './pages/PaletteTest';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -28,6 +27,8 @@ import CompareProfiles from '@/pages/CompareProfiles';
 import TeamMap from '@/pages/TeamMap';
 import RoleDashboardHome from '@/pages/RoleDashboardHome';
 import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
+import AssessmentResult from '@/pages/AssessmentResult';
+import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -63,6 +64,11 @@ const DashboardHomeRouteElement = (
     </LayoutWrapper>
   </ProtectedRoute>
 );
+
+function AssessmentResultAliasRedirect() {
+  const { id } = useParams();
+  return <Navigate to={buildAssessmentResultPath(id)} replace />;
+}
 
 function renderProtectedPage(path, pageName, PageComponent) {
   if (!PageComponent) return null;
@@ -148,6 +154,7 @@ const AuthenticatedApp = () => {
       <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
       <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
       <Route caseSensitive path="/team-mapping" element={<Navigate to="/team-map" replace />} />
+      <Route path="/assessment/:id/result" element={<AssessmentResultAliasRedirect />} />
       <Route path="/app/compare-profiles" element={<Navigate to="/compare-profiles" replace />} />
       <Route path="/app/team-map" element={<Navigate to="/team-map" replace />} />
 
@@ -168,6 +175,17 @@ const AuthenticatedApp = () => {
           <ProtectedRoute pageName="TeamMap" policy={getPagePolicy('TeamMap')}>
             <LayoutWrapper currentPageName="TeamMap">
               <TeamMap />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/assessments/:id/result"
+        element={
+          <ProtectedRoute pageName="AssessmentResult" policy={getPagePolicy('AssessmentResult')}>
+            <LayoutWrapper currentPageName="AssessmentResult">
+              <AssessmentResult />
             </LayoutWrapper>
           </ProtectedRoute>
         }
