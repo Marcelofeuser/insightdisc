@@ -3150,9 +3150,72 @@ export function renderReportHtml(input = {}) {
         border-radius: 0 !important;
         border: none !important;
         break-after: page !important;
+        page-break-after: always !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        overflow: visible !important;
+      }
+
+      .content {
+        height: 100% !important;
+        overflow: visible !important;
+        padding-bottom: 22mm !important;
+      }
+
+      .section-head {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        overflow: hidden !important;
+        page-break-after: avoid !important;
+        break-after: avoid-page !important;
+      }
+
+      .section-head h2,
+      h3,
+      h4 {
+        page-break-after: avoid !important;
+        break-after: avoid-page !important;
+      }
+
+      .grid.two,
+      .grid.three,
+      .grid-two,
+      .summary-grid,
+      .summary-layout-grid,
+      .summary-balance-grid,
+      .grid.two.stack-on-print,
+      .visual-panel-notes,
+      .cover-info-grid,
+      .back-cover-columns {
+        grid-template-columns: 1fr !important;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .kpi-pill-wide {
+        grid-column: 1 / -1 !important;
+      }
+
+      .decision-path-row {
+        grid-template-columns: 1fr !important;
+      }
+
+      .decision-arrow {
+        display: none !important;
+      }
+
+      .card,
+      .factor-card,
+      .factor-tech-card,
+      .visual-panel,
+      .behavior-matrix,
+      .decision-path,
+      .stress-escalation,
+      .table,
+      .bullet-list {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
       }
     }
 
@@ -3249,6 +3312,8 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 3.6mm;
       border-bottom: 1px solid var(--line);
       padding-bottom: 2.2mm;
+      page-break-after: avoid;
+      break-after: avoid-page;
     }
 
     .section-head-title {
@@ -3341,8 +3406,8 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-page {
-      background: #020916;
-      border: none;
+      background: #ffffff;
+      border: 1px solid #e7ebf1;
     }
 
     .cover-page::before {
@@ -3359,7 +3424,8 @@ export function renderReportHtml(input = {}) {
       align-items: stretch;
       justify-content: stretch;
       overflow: hidden;
-      background-image: var(--cover-bg);
+      background-color: #ffffff;
+      background-image: linear-gradient(180deg, #ffffff, #ffffff);
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
@@ -3369,10 +3435,9 @@ export function renderReportHtml(input = {}) {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        rgba(0, 0, 0, 0.25),
-        rgba(0, 0, 0, 0.45)
-      );
+      background:
+        radial-gradient(circle at 94% 7%, rgba(15, 23, 42, 0.06), transparent 36%),
+        radial-gradient(circle at 8% 92%, rgba(216, 164, 68, 0.13), transparent 35%);
       z-index: 1;
       pointer-events: none;
     }
@@ -3382,10 +3447,7 @@ export function renderReportHtml(input = {}) {
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
-      object-position: center center;
-      display: block;
-      background: #020916;
+      display: none;
     }
 
     .cover-shell {
@@ -3405,10 +3467,9 @@ export function renderReportHtml(input = {}) {
       align-self: flex-start;
       padding: 3.2mm 4.2mm;
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      background: rgba(8, 20, 43, 0.38);
-      backdrop-filter: blur(4px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+      border: 1px solid #d7e1ef;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
     }
 
     .cover-brand-title {
@@ -3416,7 +3477,7 @@ export function renderReportHtml(input = {}) {
       font-weight: 800;
       line-height: 1.1;
       letter-spacing: 0.3px;
-      color: #f5f8ff;
+      color: #0b1f3b;
     }
 
     .cover-brand-logo {
@@ -3436,9 +3497,9 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 2.6mm;
       padding: 2.2mm 4mm;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      background: rgba(11, 31, 59, 0.35);
-      color: #f8fbff;
+      border: 1px solid #d9e3f0;
+      background: linear-gradient(180deg, #f8fbff, #ffffff);
+      color: #0b1f3b;
       font-size: 18px;
       font-weight: 800;
       letter-spacing: 0.3px;
@@ -3446,7 +3507,7 @@ export function renderReportHtml(input = {}) {
 
     .cover-brand-subtitle {
       font-size: 10.6px;
-      color: rgba(233, 239, 250, 0.86);
+      color: #4b5f7e;
       line-height: 1.35;
       margin-top: 1.2mm;
     }
@@ -3454,20 +3515,19 @@ export function renderReportHtml(input = {}) {
     .cover-info-card {
       padding: 8.5mm 9mm 8mm;
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(6px);
-      color: #ffffff;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+      border: 1px solid #d6e1ef;
+      color: #0f172a;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
     }
 
     .cover-info-card-premium {
-      background: linear-gradient(180deg, rgba(7, 20, 45, 0.62), rgba(7, 20, 45, 0.42));
-      border-color: rgba(216, 164, 68, 0.35);
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border-top: 4px solid rgba(216, 164, 68, 0.76);
     }
 
     .cover-info-card-standard {
-      background: linear-gradient(180deg, rgba(8, 20, 43, 0.57), rgba(8, 20, 43, 0.38));
-      border-color: rgba(191, 209, 232, 0.35);
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border-top: 4px solid rgba(11, 31, 59, 0.35);
     }
 
     .cover-info-header {
@@ -3491,21 +3551,21 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-tier-premium {
-      border: 1px solid rgba(216, 164, 68, 0.78);
-      background: linear-gradient(180deg, rgba(216, 164, 68, 0.28), rgba(216, 164, 68, 0.08));
-      color: #ffe7b3;
+      border: 1px solid rgba(216, 164, 68, 0.65);
+      background: linear-gradient(180deg, rgba(216, 164, 68, 0.2), rgba(216, 164, 68, 0.05));
+      color: #7a5715;
     }
 
     .cover-tier-standard {
-      border: 1px solid rgba(148, 163, 184, 0.72);
-      background: linear-gradient(180deg, rgba(148, 163, 184, 0.26), rgba(148, 163, 184, 0.08));
-      color: #e8edf7;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: linear-gradient(180deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
+      color: #24344f;
     }
 
     .cover-tier-caption {
       font-size: 10px;
       line-height: 1.35;
-      color: rgba(232, 239, 250, 0.86);
+      color: #51637f;
       text-align: right;
       max-width: 56%;
     }
@@ -3517,12 +3577,13 @@ export function renderReportHtml(input = {}) {
       letter-spacing: 1.1px;
       text-transform: uppercase;
       margin-bottom: 3.4mm;
+      color: #0b1f3b;
     }
 
     .cover-report-subtitle {
       font-size: 12.4px;
       line-height: 1.4;
-      opacity: 0.92;
+      color: #384c67;
       margin-bottom: 5.2mm;
       max-width: 96%;
     }
@@ -3534,13 +3595,14 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 4.6mm;
       padding: 1.9mm 4.2mm;
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      border: 1px solid #d7e3f1;
       font-size: 19px;
       font-weight: 800;
       line-height: 1.1;
       overflow-wrap: anywhere;
       letter-spacing: 0.2px;
+      color: #0f172a;
     }
 
     .cover-report-premium-note {
@@ -3548,8 +3610,8 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 4.8mm;
       font-size: 10.7px;
       line-height: 1.42;
-      color: #f8e6bc;
-      border-left: 2px solid rgba(216, 164, 68, 0.85);
+      color: #6f5318;
+      border-left: 2px solid rgba(216, 164, 68, 0.7);
       padding-left: 3mm;
       max-width: 92%;
     }
@@ -3569,7 +3631,7 @@ export function renderReportHtml(input = {}) {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.9px;
-      opacity: 0.78;
+      color: #5a6e8c;
       margin-bottom: 1.4mm;
     }
 
@@ -3579,6 +3641,7 @@ export function renderReportHtml(input = {}) {
       font-weight: 700;
       line-height: 1.25;
       overflow-wrap: anywhere;
+      color: #0f172a;
     }
 
     .executive-hero {
@@ -3607,8 +3670,8 @@ export function renderReportHtml(input = {}) {
 
     .cover-footer {
       background: transparent;
-      color: rgba(255, 255, 255, 0.84);
-      border-top: 1px solid rgba(255, 255, 255, 0.24);
+      color: #51637f;
+      border-top: 1px solid #dce4ef;
     }
 
     p {
@@ -4507,8 +4570,9 @@ export function renderReportHtml(input = {}) {
       width: 100%;
       border-collapse: collapse;
       font-size: 12px;
-      page-break-inside: avoid;
-      break-inside: avoid;
+      table-layout: fixed;
+      page-break-inside: auto;
+      break-inside: auto;
     }
 
     .table th,
@@ -4517,8 +4581,8 @@ export function renderReportHtml(input = {}) {
       padding: 7px 8px;
       text-align: left;
       vertical-align: top;
-      page-break-inside: avoid;
-      break-inside: avoid;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .table th {
@@ -4535,27 +4599,16 @@ export function renderReportHtml(input = {}) {
       font-size: 11.6px;
     }
 
-    .card,
-    .table,
-    .section,
-    .grid,
-    .grid-two,
-    .summary-grid,
-    .factor-card,
-    .factor-tech-card,
-    .kpi-grid,
-    .visual-panel,
-    .bullet-list,
-    .mini-disc-chart,
-    .behavior-matrix,
-    .decision-path,
-    .stress-escalation {
+    .summary-item,
+    .summary-col,
+    .executive-hero,
+    .cover-info-card,
+    .final-lockup {
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
     .table tr,
-    .table tbody,
     .table thead {
       page-break-inside: avoid;
       break-inside: avoid;
@@ -4563,19 +4616,17 @@ export function renderReportHtml(input = {}) {
       break-after: avoid;
     }
 
+    .table thead {
+      display: table-header-group;
+    }
+
+    .table tfoot {
+      display: table-footer-group;
+    }
+
     img {
       max-width: 100%;
       height: auto;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    .summary-item,
-    .summary-col,
-    .executive-hero,
-    .cover-info-card,
-    .cover-info-grid,
-    .final-lockup {
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -4708,15 +4759,12 @@ export function renderReportHtml(input = {}) {
 
     .premium-opening-page {
       background:
-        radial-gradient(circle at 10% 10%, rgba(216, 164, 68, 0.16), transparent 33%),
-        radial-gradient(circle at 90% 90%, rgba(11, 31, 59, 0.12), transparent 38%),
-        #ffffff;
+        linear-gradient(180deg, #ffffff, #fbfdff);
     }
 
     .standard-closing-page {
       background:
-        radial-gradient(circle at 92% 8%, rgba(11, 31, 59, 0.08), transparent 34%),
-        #ffffff;
+        linear-gradient(180deg, #ffffff, #fbfdff);
     }
 
     .back-cover {
