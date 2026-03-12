@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ArrowRight, CheckCircle2, Radar, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import DISCRadarChart from '@/components/disc/DISCRadarChart';
+import '../../../styles/landingDark.css';
 
 const SAMPLE_PROFILE = Object.freeze({ D: 68, I: 44, S: 36, C: 62 });
 
@@ -14,8 +15,16 @@ const QUICK_PREVIEWS = Object.freeze([
 ]);
 
 export default function LandingHero({ content }) {
+  useEffect(() => {
+    document.body.classList.add('landing-dark');
+
+    return () => {
+      document.body.classList.remove('landing-dark');
+    };
+  }, []);
+
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_68%)] pb-20 pt-28 sm:pt-32">
+    <section className="relative overflow-hidden pb-20 pt-28 sm:pt-32">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 left-1/2 h-72 w-[60rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.16)_0%,rgba(37,99,235,0)_72%)]" />
         <div className="absolute right-0 top-16 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.12)_0%,rgba(14,165,233,0)_72%)]" />
@@ -27,14 +36,14 @@ export default function LandingHero({ content }) {
             <Sparkles className="h-3.5 w-3.5" />
             {content.badge}
           </span>
-          <h1 className="mt-6 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          <h1 className="hero-title mt-6 max-w-3xl text-5xl font-bold leading-tight tracking-tight">
             {content.title}
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-600">{content.subtitle}</p>
+          <p className="hero-subtitle mt-4 max-w-2xl text-lg leading-relaxed">{content.subtitle}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to={content.primaryCta.to}>
-              <Button size="lg" className="h-12 rounded-xl bg-indigo-600 px-6 font-semibold hover:bg-indigo-700">
+              <Button size="lg" className="cta-primary h-12 rounded-xl px-6 font-semibold">
                 {content.primaryCta.label}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -43,7 +52,7 @@ export default function LandingHero({ content }) {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-12 rounded-xl border-indigo-200 bg-white px-6 font-semibold text-indigo-700 hover:bg-indigo-50"
+                className="cta-secondary h-12 rounded-xl px-6 font-semibold"
                 data-testid="home-cta-secondary"
               >
                 {content.secondaryCta.label}
@@ -84,7 +93,7 @@ export default function LandingHero({ content }) {
           </ul>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.09)] sm:p-7">
+        <div className="hero hero-surface rounded-2xl p-10">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Visao da plataforma</p>
