@@ -4,6 +4,17 @@
   min-height:100vh;
 }
 
+.landing-dark .marketing-surface{
+  background: radial-gradient(circle at 18% 12%, rgba(91,124,255,.18) 0%, rgba(11,15,26,0) 35%),
+    radial-gradient(circle at 86% 22%, rgba(124,92,255,.14) 0%, rgba(11,15,26,0) 36%),
+    linear-gradient(135deg, #0f172a 0%, #111827 45%, #0b1220 100%);
+  color:#e7ecff;
+}
+
+.landing-dark .marketing-surface section{
+  background: transparent;
+}
+
 .landing-dark .hero-surface{
   background:rgba(15,20,40,.65);
   backdrop-filter:blur(18px);
@@ -19,13 +30,181 @@
   color:#a8b2ff;
 }
 
+.landing-dark .hero-badge{
+  border-color:rgba(120,140,255,.28);
+  background:rgba(73,96,202,.18);
+  color:#b8c6ff;
+}
+
+.landing-dark .hero-pill{
+  background:rgba(255,255,255,.05);
+  border-color:rgba(255,255,255,.14);
+  color:#d6def8;
+}
+
+.landing-dark .hero-pill:hover{
+  border-color:rgba(120,140,255,.32);
+  color:#f1f4ff;
+}
+
+.landing-dark .hero-trust-point{
+  color:#c0cae7;
+}
+
 .landing-dark .cta-primary{
   background:linear-gradient(135deg,#5b7cff,#7a5cff);
   color:white;
+  position:relative;
+  overflow:hidden;
+  transition:all .3s ease;
+}
+
+.landing-dark .cta-primary::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background:rgba(255,255,255,.12);
+  transition:left .4s ease;
+}
+
+.landing-dark .cta-primary:hover::before{
+  left:100%;
+}
+
+.landing-dark .cta-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 18px 40px rgba(37,99,235,.35),0 0 30px rgba(37,99,235,.18);
 }
 
 .landing-dark .cta-secondary{
   background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.12);
   color:#e7ecff;
+  transition:all .3s ease;
+}
+
+.landing-dark .cta-secondary:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.22);
+}
+
+.landing-dark .landing-section-eyebrow{
+  color:#8ea1ff;
+}
+
+.landing-dark .landing-section-title{
+  color:#ffffff;
+}
+
+.landing-dark .landing-section-description{
+  color:#a8b2d1;
+}
+
+.landing-dark .landing-card{
+  background:rgba(255,255,255,.035);
+  border-color:rgba(255,255,255,.10);
+  backdrop-filter:blur(18px);
+  box-shadow:0 18px 40px rgba(0,0,0,.3);
+  transition:transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+
+.landing-dark .landing-card:hover{
+  transform:translateY(-8px);
+  border-color:rgba(59,130,246,.36);
+  box-shadow:0 0 20px rgba(59,130,246,.15), inset 0 0 20px rgba(59,130,246,.05);
+}
+
+.landing-dark .landing-card-title{
+  color:#f7f9ff;
+}
+
+.landing-dark .landing-card-text{
+  color:#c0cae8;
+}
+
+.landing-dark .landing-link{
+  color:#9cb3ff;
+}
+
+.landing-dark .landing-link:hover{
+  color:#bed0ff;
+}
+
+.landing-dark .hero-surface .text-slate-900,
+.landing-dark .hero-surface .text-slate-700{
+  color:#f3f6ff !important;
+}
+
+.landing-dark .hero-surface .text-slate-500,
+.landing-dark .hero-surface .text-slate-400{
+  color:#b7c3e7 !important;
+}
+
+.landing-dark .cta-final-surface{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(20px);
+}
+
+.landing-dark .cta-final-bg{
+  opacity:.36;
+}
+
+.landing-dark .cta-final-glow{
+  opacity:.52;
+}
+
+.landing-dark .cta-final-description{
+  color:#bdd0ff;
+}
+
+.landing-dark .cta-pulse{
+  animation:ctaPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes ctaPulse{
+  0%,100%{ box-shadow:0 0 0 0 rgba(37,99,235,.65); }
+  50%{ box-shadow:0 0 0 10px rgba(37,99,235,0); }
+}
+
+.landing-dark header.fixed{
+  backdrop-filter:blur(18px) !important;
+  background:rgba(15,23,42,.82) !important;
+  border-bottom:1px solid rgba(255,255,255,.08) !important;
+}
+
+.landing-dark header.fixed .text-slate-900{
+  color:#ffffff !important;
+}
+
+.landing-dark header.fixed .text-slate-500,
+.landing-dark header.fixed .text-slate-600{
+  color:#b9c5e5 !important;
+}
+
+.landing-dark header.fixed .bg-indigo-600{
+  background:linear-gradient(135deg,#2563eb 0%,#3b82f6 100%) !important;
+}
+
+.landing-dark footer{
+  border-color:rgba(255,255,255,.12) !important;
+}
+
+.landing-dark footer .text-slate-500{
+  color:#b1bddc !important;
+}
+
+.landing-dark footer .text-slate-400{
+  color:#93a1c8 !important;
+}
+
+.landing-dark footer a{
+  color:#d2dcfa;
+}
+
+.landing-dark footer a:hover{
+  color:#ffffff !important;
 }

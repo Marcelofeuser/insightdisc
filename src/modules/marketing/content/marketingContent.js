@@ -14,10 +14,10 @@ export const MAIN_LANDING_CONTENT = Object.freeze({
       'Muito alem de um teste DISC: resultado individual, relatorio premium, comparacao de perfis, aderencia candidato x cargo e inteligencia de equipes.',
   },
   hero: {
-    badge: 'Plataforma de inteligencia comportamental DISC',
-    title: 'Transforme perfil comportamental em decisao pratica',
+    badge: 'Muito além de um teste DISC',
+    title: 'Plataforma de inteligência comportamental para pessoas, líderes e empresas',
     subtitle:
-      'InsightDISC conecta avaliacao individual, comparacao de perfis, aderencia candidato x cargo, lideranca e team intelligence em uma unica plataforma premium.',
+      'Avaliação individual, relatório premium, comparação de perfis, aderência candidato x cargo e mapa comportamental de equipes em uma única plataforma.',
     primaryCta: { label: 'Fazer minha avaliacao', to: '/avaliacoes' },
     secondaryCta: { label: 'Ver demonstracao', to: '/demo' },
     compatibilityCta: { label: 'Fazer Teste Grátis', to: '/StartFree' },
@@ -26,9 +26,9 @@ export const MAIN_LANDING_CONTENT = Object.freeze({
       { label: 'Falar com comercial', to: '/empresa' },
     ],
     trustPoints: [
-      'Leitura individual, comparativa e organizacional',
-      'Relatorio HTML premium e exportacao PDF',
-      'Aplicacao real para RH, lideranca e consultoria',
+      'Perfil: leitura individual detalhada',
+      'Comparação: pessoa x pessoa e pessoa x cargo',
+      'Team Map e relatório premium exportável',
     ],
   },
   productShowcase: [
@@ -102,157 +102,191 @@ export const MAIN_LANDING_CONTENT = Object.freeze({
   ],
   valuePillars: [
     {
-      title: 'Avaliacao individual',
-      description: 'Entenda estilo predominante, combinacao DISC e direcionadores de performance pessoal.',
+      title: 'Perfil individual',
+      description: 'Entenda forças, pontos de atenção, estilo de comunicação, ambiente ideal e desenvolvimento pessoal.',
     },
     {
       title: 'Relatorio premium',
-      description: 'Consolide leitura comportamental com profundidade profissional e clareza de acao.',
+      description: 'Gere dossiês comportamentais completos em HTML e PDF, com leitura técnica, executiva e prática.',
     },
     {
       title: 'Comparacao de perfis',
-      description: 'Analise convergencias e tensoes para melhorar comunicacao e colaboracao.',
+      description: 'Compare pessoas, líderes e liderados, candidato x cargo ideal e membro x equipe com leitura estratégica.',
+    },
+    {
+      title: 'Recrutamento inteligente',
+      description: 'Analise aderência comportamental à vaga, reduza decisões subjetivas e aumente segurança na contratação.',
     },
     {
       title: 'Mapa de equipe',
-      description: 'Visualize equilibrio comportamental do time para alocacao, lideranca e cultura.',
-    },
-    {
-      title: 'Recrutamento orientado por fit',
-      description: 'Compare candidato e vaga ideal com criterio semantico e score de aderencia.',
+      description: 'Visualize distribuição DISC, lacunas, riscos de composição, perfis predominantes e equilíbrio organizacional.',
     },
     {
       title: 'Lideranca e desenvolvimento',
-      description: 'Receba recomendacoes acionaveis para decisao, conflito, pressao e evolucao do time.',
+      description: 'Obtenha leituras automáticas de liderança, pressão, decisão, comunicação e gestão de conflitos.',
     },
   ],
   audiences: [
     {
       title: 'Empresas e RH',
-      description: 'Estruture decisoes de recrutamento, composicao de equipe e desenvolvimento de liderancas.',
-      ctaLabel: 'Ver solucao para RH',
+      description: 'Use DISC para recrutamento, formação de equipes, liderança, cultura e desenvolvimento interno.',
+      ctaLabel: 'Conhecer',
       to: '/rh',
     },
     {
       title: 'Consultores e analistas',
-      description: 'Entregue diagnosticos premium, comparacoes e relatorios com nivel profissional.',
-      ctaLabel: 'Ver solucao para consultores',
+      description: 'Atenda clientes com relatórios premium, comparações e leitura profissional de perfis.',
+      ctaLabel: 'Conhecer',
       to: '/consultores',
     },
     {
       title: 'Lideres e gestores',
-      description: 'Aprimore comunicacao, alinhamento e decisao com leitura comportamental aplicada.',
-      ctaLabel: 'Ver solucao para lideres',
+      description: 'Entenda como liderar melhor cada perfil e melhore a dinâmica do time com dados comportamentais.',
+      ctaLabel: 'Conhecer',
       to: '/lideres',
     },
     {
       title: 'Autoconhecimento',
-      description: 'Compreenda seu estilo DISC, fortalezas e alavancas de desenvolvimento pessoal.',
-      ctaLabel: 'Ver jornada pessoal',
+      description: 'Descubra seu estilo, aprimore sua comunicação e crie um plano de desenvolvimento mais preciso.',
+      ctaLabel: 'Conhecer',
       to: '/autoconhecimento',
     },
   ],
   differentials: [
     {
-      title: 'Muito alem do teste DISC',
-      description:
-        'A plataforma nao para no resultado inicial: conecta interpretacao, comparacao, relatorio e aplicacao estrategica.',
+      title: 'Leitura aplicada',
+      description: 'Não entregamos apenas pontuações. Entregamos contexto, interpretação e recomendação prática.',
     },
     {
-      title: 'Semantica estruturada',
-      description:
-        'DiscEngine centraliza interpretacao comportamental com consistencia para dashboards, resultados e relatorios.',
+      title: 'Comparação estratégica',
+      description: 'Pessoa x pessoa, líder x liderado, candidato x vaga, membro x equipe.',
     },
     {
-      title: 'Aplicacao organizacional real',
-      description:
-        'Use DISC para lideranca, equipe, recrutamento, fit de cargo e desenvolvimento continuo.',
+      title: 'Inteligência de equipe',
+      description: 'Veja lacunas, excessos de perfil, riscos de composição e oportunidades de equilíbrio.',
     },
     {
-      title: 'Pronto para decisao',
-      description:
-        'Relatorios claros, visuais premium e leitura orientada para acao em contexto profissional.',
+      title: 'Recrutamento com aderência',
+      description: 'Apoie decisões de contratação com base em fit comportamental para a função.',
+    },
+    {
+      title: 'Relatório premium',
+      description: 'Relatórios completos em tela e PDF para uso individual, corporativo e consultivo.',
+    },
+    {
+      title: 'Plataforma SaaS',
+      description: 'Painel por persona, créditos, planos, controle de uso e estrutura pronta para escalar.',
     },
   ],
   useCases: [
     {
-      title: 'Contratacao com mais criterio',
-      description: 'Compare candidato x cargo ideal e reduza risco de mismatch comportamental.',
+      title: 'Contratação',
+      description: 'Compare candidatos com o perfil ideal da vaga e aumente a consistência da escolha.',
       to: '/disc-para-recrutamento',
     },
     {
-      title: 'Composicao de equipes',
-      description: 'Identifique lacunas de perfil e oportunidades de complementaridade no time.',
-      to: '/mapa-comportamental-de-equipe',
-    },
-    {
-      title: 'Desenvolvimento de lideranca',
-      description: 'Aplique leitura DISC para melhorar decisao, comunicacao e gestao sob pressao.',
+      title: 'Desenvolvimento de líderes',
+      description: 'Entenda como cada líder decide, reage à pressão e se comunica com diferentes perfis.',
       to: '/analise-comportamental-para-lideres',
     },
     {
+      title: 'Composição de equipes',
+      description: 'Veja o equilíbrio comportamental do time e identifique onde faltam repertórios.',
+      to: '/mapa-comportamental-de-equipe',
+    },
+    {
       title: 'Consultoria comportamental',
-      description: 'Entregue analise premium para clientes com comparacao, relatorio e plano de evolucao.',
+      description: 'Atenda clientes com uma entrega muito mais robusta do que um laudo DISC básico.',
       to: '/consultores',
     },
+    {
+      title: 'Autoconhecimento',
+      description: 'Entenda seu estilo predominante e crie um plano claro de desenvolvimento.',
+      to: '/autoconhecimento',
+    },
+    {
+      title: 'Cultura e performance',
+      description: 'Use dados comportamentais para apoiar comunicação, engajamento e decisão organizacional.',
+      to: '/empresa',
+    },
   ],
+  comparison: {
+    title: 'Comparativo de Relatórios',
+    rows: [
+      { metric: 'Avaliação individual', personal: '✓', professional: '✓', business: '✓' },
+      { metric: 'Resultado completo', personal: '✓', professional: '✓', business: '✓' },
+      { metric: 'Relatório básico', personal: '✓', professional: '✓', business: '✓' },
+      { metric: 'Relatório premium', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Exportação PDF', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Comparação de perfis', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Pessoa x pessoa', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Candidato x cargo', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Team map', personal: '−', professional: '−', business: '✓' },
+      { metric: 'Inteligência de equipe', personal: '−', professional: '−', business: '✓' },
+      { metric: 'Uso consultivo/clientes', personal: '−', professional: '✓', business: '✓' },
+      { metric: 'Múltiplos usuários', personal: '−', professional: '−', business: '✓' },
+    ],
+  },
   plans: [
     {
       name: 'Personal',
-      subtitle: 'Autoconhecimento e desenvolvimento individual',
-      highlights: ['Avaliacao individual', 'Resultado oficial', 'Leitura de desenvolvimento'],
-      ctaLabel: 'Comecar no Personal',
+      subtitle: 'Ideal para quem está começando com leitura individual.',
+      pricing: { monthly: 'R$97', annual: 'R$78' },
+      highlights: ['Avaliação individual', 'Resultado completo', 'Relatório básico', 'Histórico pessoal'],
+      ctaLabel: 'Começar',
       to: '/StartFree',
     },
     {
       name: 'Professional',
-      subtitle: 'Consultores, analistas e operacao tecnica DISC',
-      highlights: ['Relatorios premium', 'Comparacao avancada', 'Exportacao PDF'],
-      ctaLabel: 'Conhecer Professional',
+      subtitle: 'Para uso profissional com análise avançada e entregáveis premium.',
+      pricing: { monthly: 'R$297', annual: 'R$237' },
+      highlights: ['Relatório premium', 'Exportação PDF', 'Comparação de perfis', 'Uso consultivo / clientes', 'Mais créditos e recursos'],
+      ctaLabel: 'Assinar agora',
       to: '/Pricing',
       featured: true,
     },
     {
       name: 'Business',
-      subtitle: 'Escala empresarial com inteligencia organizacional',
-      highlights: ['Team map', 'Job matching', 'Camada executiva de analise'],
-      ctaLabel: 'Conhecer Business',
+      subtitle: 'Escala corporativa com inteligência organizacional e visão de equipe.',
+      customLabel: 'Custom',
+      highlights: ['Team map', 'Inteligência de equipe', 'Candidato x cargo', 'Múltiplos usuários', 'Recursos corporativos'],
+      ctaLabel: 'Falar com comercial',
       to: '/empresa',
     },
   ],
   faq: [
     {
-      question: 'O que e o DISC na plataforma InsightDISC?',
+      question: 'A InsightDISC é só um teste DISC?',
       answer:
-        'E uma base de analise comportamental usada para entender como pessoas tendem a agir, se comunicar e decidir em diferentes contextos.',
+        'Não. Ela é uma plataforma de inteligência comportamental que usa DISC para gerar leitura individual, comparação, recrutamento, liderança e análise de equipes.',
     },
     {
-      question: 'A plataforma serve apenas para uso individual?',
+      question: 'Posso usar com equipes?',
       answer:
-        'Nao. Alem da leitura individual, a plataforma inclui comparacao de perfis, aderencia candidato x cargo e inteligencia de equipe.',
+        'Sim. A plataforma possui mapa comportamental organizacional, distribuição DISC, leitura de riscos de composição e inteligência de equilíbrio de time.',
     },
     {
-      question: 'Existe relatorio em PDF?',
+      question: 'Existe relatório em PDF?',
       answer:
-        'Sim. O relatorio premium possui exportacao PDF com estrutura profissional para uso comercial, consultivo e organizacional.',
+        'Sim. Os relatórios podem ser visualizados na plataforma e exportados em PDF profissional.',
     },
     {
-      question: 'Posso comparar perfis DISC?',
+      question: 'Posso comparar candidatos com vagas?',
       answer:
-        'Sim. O comparador avancado mostra sinergias, tensoes e recomendacoes praticas para colaboracao e decisao.',
+        'Sim. O módulo de aderência candidato x cargo permite analisar fit comportamental para recrutamento e alocação.',
     },
     {
-      question: 'Posso usar em recrutamento?',
+      question: 'Qual é o tempo médio de avaliação?',
       answer:
-        'Sim. O modulo candidato x cargo calcula aderencia comportamental e apoia a leitura de fit para contratacao.',
+        'A avaliação leva aproximadamente 15 minutos. Você recebe o resultado instantaneamente após concluir o teste.',
     },
   ],
   finalCta: {
-    title: 'Leve inteligencia comportamental para decisoes que importam',
+    title: 'Transforme perfil em decisão prática',
     description:
-      'Da avaliacao individual ao mapa organizacional, use o InsightDISC para transformar perfil em acao.',
-    primary: { label: 'Fazer minha avaliacao', to: '/avaliacoes' },
-    secondary: { label: 'Solicitar apresentacao', to: '/empresa' },
+      'Use a InsightDISC para desenvolver pessoas, apoiar líderes, contratar melhor e formar equipes mais inteligentes.',
+    primary: { label: 'Criar conta grátis', to: '/StartFree' },
+    secondary: { label: 'Agendar demonstração', to: '/empresa' },
   },
 });
 
