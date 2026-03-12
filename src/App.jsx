@@ -34,6 +34,7 @@ import Coach from '@/pages/Coach';
 import OrganizationalReport from '@/pages/OrganizationalReport';
 import SalesPersonaLanding from '@/pages/SalesPersonaLanding';
 import MarketingUseCaseLanding from '@/pages/MarketingUseCaseLanding';
+import Home from '@/pages/Home';
 import AdminDashboardV3 from '@/pages/admin/AdminDashboard';
 import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminCompanies from '@/pages/admin/AdminCompanies';
@@ -42,9 +43,7 @@ import AdminBilling from '@/pages/admin/AdminBilling';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports/routes';
 
-const { Pages, Layout, mainPage } = pagesConfig;
-const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+const { Pages, Layout } = pagesConfig;
 const PublicReportPage = Pages.PublicReport;
 const EXCLUDED_AUTO_ROUTES = new Set([
   'SuperAdmin',
@@ -433,13 +432,7 @@ const AuthenticatedApp = () => {
 
       <Route
         path="/"
-        element={
-          <ProtectedRoute pageName={mainPageKey} policy={getPagePolicy(mainPageKey)}>
-            <LayoutWrapper currentPageName={mainPageKey}>
-              <MainPage />
-            </LayoutWrapper>
-          </ProtectedRoute>
-        }
+        element={<Home />}
       />
 
       {Object.entries(Pages)
@@ -477,6 +470,14 @@ const AuthenticatedApp = () => {
   );
 };
 
+function RouteAwareChatWidget() {
+  const location = useLocation();
+  if (location.pathname === '/') {
+    return null;
+  }
+  return <InsightChatWidget />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -484,7 +485,7 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ScrollToTopOnRouteChange />
           <AuthenticatedApp />
-          <InsightChatWidget />
+          <RouteAwareChatWidget />
         </Router>
         <Toaster />
       </QueryClientProvider>
