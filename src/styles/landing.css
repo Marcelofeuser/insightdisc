@@ -36,6 +36,37 @@ body.landing-body {
   animation: gradientShift 8s ease infinite;
 }
 
+.landing-page .hero-gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.landing-page .hero-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .landing-page .hero-highlight-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.landing-page .hero-highlight-card {
+  min-width: 0;
+}
+
+.landing-page .hero-highlight-title,
+.landing-page .hero-highlight-copy {
+  white-space: normal;
+}
+
+.landing-page .hero-highlight-copy {
+  overflow-wrap: anywhere;
+}
+
 @keyframes gradientShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

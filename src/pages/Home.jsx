@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import '../styles/landing.css';
 
 const LANDING_TITLE = 'InsightDISC - Plataforma de Inteligência Comportamental';
@@ -279,7 +280,7 @@ export default function Home() {
        <a href="#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</a> <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a> <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a> <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a> <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a>
       </div>
       <div className="flex items-center gap-3">
-       <button className="text-slate-300 hover:text-white transition-colors font-medium">Entrar</button> <button className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</button>
+       <Link to="/Login" className="text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link> <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
       </div><button id="menu-toggle" className="md:hidden text-slate-300 hover:text-white">
        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -302,41 +303,41 @@ export default function Home() {
        <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-8">
         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> <span className="text-sm text-slate-300">Muito além de um teste DISC</span>
        </div>
-       <h1 className="fade-up text-5xl md:text-6xl xl:text-7xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>Plataforma de <span className="block disc-gradient bg-clip-text text-transparent"> inteligência comportamental </span> para pessoas, líderes e empresas</h1>
+       <h1 className="fade-up text-5xl md:text-6xl xl:text-7xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>Plataforma de <span className="block disc-gradient bg-clip-text text-transparent hero-gradient-text"> inteligência comportamental </span> para pessoas, líderes e empresas</h1>
        <p className="fade-up text-xl md:text-2xl text-slate-400 leading-relaxed max-w-2xl mb-8" style={{ animationDelay: '.2s' }}>Avaliação individual, relatório premium, comparação de perfis, aderência candidato x cargo e mapa comportamental de equipes em uma única plataforma.</p>
        <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s' }}>
-        <button className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Fazer minha avaliação </button> <button className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10"> Ver demonstração </button>
+        <Link to="/avaliacoes" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Fazer minha avaliação </Link> <a href="#plataforma" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10"> Ver demonstração </a>
        </div>
-       <div className="fade-up grid grid-cols-2 md:grid-cols-4 gap-4" style={{ animationDelay: '.4s' }}>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all">
-         <div className="text-2xl font-extrabold">
+       <div className="fade-up grid grid-cols-2 md:grid-cols-4 gap-4 hero-highlight-grid" style={{ animationDelay: '.4s' }}>
+        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
+         <div className="text-2xl font-extrabold hero-highlight-title">
           Perfil
          </div>
-         <div className="text-sm text-slate-400 mt-1">
+         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
           Leitura individual detalhada
          </div>
         </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all">
-         <div className="text-2xl font-extrabold">
+        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
+         <div className="text-2xl font-extrabold hero-highlight-title">
           Comparação
          </div>
-         <div className="text-sm text-slate-400 mt-1">
+         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
           Pessoa x pessoa e pessoa x cargo
          </div>
         </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all">
-         <div className="text-2xl font-extrabold">
+        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
+         <div className="text-2xl font-extrabold hero-highlight-title">
           Team Map
          </div>
-         <div className="text-sm text-slate-400 mt-1">
+         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
           Distribuição e inteligência de equipe
          </div>
         </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all">
-         <div className="text-2xl font-extrabold">
+        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
+         <div className="text-2xl font-extrabold hero-highlight-title">
           PDF
          </div>
-         <div className="text-sm text-slate-400 mt-1">
+         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
           Relatório premium exportável
          </div>
         </div>
@@ -659,7 +660,7 @@ export default function Home() {
      </div>
     </div>
    </section>
-   <div className="max-w-6xl mx-auto">
+   <div id="planos" className="max-w-6xl mx-auto">
     <div className="text-center mb-14">
      <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Planos para cada estágio da operação</h2>
      <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10">Comece com o essencial e evolua para comparação, relatórios premium e inteligência organizacional.</p>
@@ -680,7 +681,7 @@ export default function Home() {
        <li>• Resultado completo</li>
        <li>• Relatório básico</li>
        <li>• Histórico pessoal</li>
-      </ul><button className="w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors"> Começar </button>
+      </ul><Link to="/StartFree" className="block w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors text-center"> Começar </Link>
      </div>
      <div className="glass-card rounded-3xl p-8 feature-card border border-blue-500/40 relative scroll-reveal">
       <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold animate-pulse">
@@ -696,7 +697,7 @@ export default function Home() {
        <li>• Comparação de perfis</li>
        <li>• Uso consultivo / clientes</li>
        <li>• Mais créditos e recursos</li>
-      </ul><button className="btn-primary w-full py-4 rounded-2xl font-semibold hover:shadow-lg transition-all"> Assinar agora </button>
+      </ul><Link to="/Pricing" className="btn-primary block w-full py-4 rounded-2xl font-semibold hover:shadow-lg transition-all text-center"> Assinar agora </Link>
      </div>
      <div className="glass-card rounded-3xl p-8 feature-card scroll-reveal">
       <h3 className="text-lg font-semibold text-slate-400 mb-2">Business</h3>
@@ -709,7 +710,7 @@ export default function Home() {
        <li>• Candidato x cargo</li>
        <li>• Múltiplos usuários</li>
        <li>• Recursos corporativos</li>
-      </ul><button className="w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors"> Falar com comercial </button>
+      </ul><Link to="/empresa" className="block w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors text-center"> Falar com comercial </Link>
      </div>
     </div>
    </div>
@@ -761,7 +762,7 @@ export default function Home() {
        <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Transforme perfil em decisão prática</h2>
        <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10">Use a InsightDISC para desenvolver pessoas, apoiar líderes, contratar melhor e formar equipes mais inteligentes.</p>
        <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <button className="btn-primary cta-pulse px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Criar conta grátis </button> <button className="glass-card px-10 py-5 rounded-2xl font-bold text-lg text-slate-200 border border-white/10 hover:border-white/20 transition-all"> Agendar demonstração </button>
+        <Link to="/StartFree" className="btn-primary cta-pulse px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Criar conta grátis </Link> <Link to="/empresa" className="glass-card px-10 py-5 rounded-2xl font-bold text-lg text-slate-200 border border-white/10 hover:border-white/20 transition-all"> Agendar demonstração </Link>
        </div>
        <p className="mt-8 text-sm text-slate-500">Sem cartão de crédito • Teste inicial • Evolua conforme o uso</p>
       </div>
