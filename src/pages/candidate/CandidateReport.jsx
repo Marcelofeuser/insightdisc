@@ -6,7 +6,7 @@ import { Download } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
 import { base44 } from '@/api/base44Client';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
@@ -139,7 +139,7 @@ export default function CandidateReport() {
   const resolvePdfUrl = (rawPdfUrl) => {
     const raw = String(rawPdfUrl || '').trim();
     if (!raw) return '';
-    return /^https?:\/\//i.test(raw) ? raw : apiBaseUrl ? `${apiBaseUrl}${raw}` : raw;
+    return resolveApiRequestUrl(raw, { baseUrl: apiBaseUrl }) || raw;
   };
 
   const resolveSavePortalErrorMessage = (error) => {

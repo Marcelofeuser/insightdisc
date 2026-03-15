@@ -1,6 +1,4 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
+import './load-env.js';
 
 const vitePort = Number(process.env.VITE_PORT || 5173);
 const defaultAppUrl = `http://localhost:${vitePort}`;

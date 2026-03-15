@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Menu, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import AppShell from '@/components/shell/AppShell';
-import MainNavigation from '@/components/layout/MainNavigation';
+import MainNavigation, { HOME_HASH_ITEMS } from '@/components/layout/MainNavigation';
 import PanelModeSwitcher from '@/components/layout/PanelModeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
 import {
@@ -86,16 +86,30 @@ export default function Layout({ children, currentPageName }) {
   const [panelMode, setPanelMode] = useState(() =>
     resolvePanelMode(access, { scopeKey: panelModeStorageScope })
   );
+  const [homeMenuOpen, setHomeMenuOpen] = useState(false);
+  const [homeScrolled, setHomeScrolled] = useState(false);
+  const isHomePage = currentPageName === 'Home';
+
+  const scrollToHashTarget = useCallback((hash) => {
+    const id = hash.replace('#', '');
+    const target = document.getElementById(id);
+    if (!target) return;
+    const offsetTop = target.getBoundingClientRect().top + window.scrollY - 80;
+    window.scrollTo({
+      top: offsetTop,
+      behavior: 'smooth',
+    });
+  }, []);
 
   const goHomeHash = (hash) => {
     const homeUrl = createPageUrl('Home');
 
     if (location.pathname === homeUrl) {
       window.location.hash = hash;
-      const id = hash.replace('#', '');
       setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        scrollToHashTarget(hash);
       }, 0);
+      setHomeMenuOpen(false);
       return;
     }
 
@@ -134,19 +148,47 @@ export default function Layout({ children, currentPageName }) {
     Boolean(tokenInQuery) &&
     ['CandidateOnboarding', 'PremiumAssessment', 'Report', 'CandidateUpgrade', 'CandidateReport'].includes(currentPageName);
 
+  useEffect(() => {
+    if (!isHomePage) return undefined;
+
+    const handleScroll = () => {
+      setHomeScrolled(window.scrollY > 50);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isHomePage]);
+
+  useEffect(() => {
+    if (!isHomePage || !location.hash) return;
+    const timeout = window.setTimeout(() => scrollToHashTarget(location.hash), 40);
+    return () => window.clearTimeout(timeout);
+  }, [isHomePage, location.hash, scrollToHashTarget]);
+
   if (PUBLIC_PAGES.includes(currentPageName)) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <header
+          id={isHomePage ? 'navbar' : undefined}
+          className={
+            isHomePage
+              ? `fixed left-0 right-0 top-0 z-50 glass-card transition-all duration-300 ${homeScrolled ? 'nav-sticky' : ''}`
+              : 'fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100'
+          }
+        >
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link to={createPageUrl('Home')} className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className={isHomePage ? 'disc-gradient w-10 h-10 rounded-xl flex items-center justify-center' : 'w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center'}>
+                  {isHomePage ? <span className="text-lg font-extrabold text-white">ID</span> : <Sparkles className="w-5 h-5 text-white" />}
                 </div>
                 <div className="leading-tight">
-                  <div className="text-xl font-bold text-slate-900">InsightDISC</div>
-                  <div className="text-xs text-slate-500">Plataforma de Análise Comportamental</div>
+                  <div className={isHomePage ? 'text-xl font-bold text-white' : 'text-xl font-bold text-slate-900'}>InsightDISC</div>
+                  {isHomePage ? null : <div className="text-xs text-slate-500">Plataforma de Análise Comportamental</div>}
                 </div>
               </Link>
 
@@ -160,34 +202,94 @@ export default function Layout({ children, currentPageName }) {
                 ) : (
                   <>
                     <Link to={createPageUrl('Login')} className="hidden md:inline-flex">
-                      <Button variant="ghost">Entrar</Button>
+                      <Button variant="ghost" className={isHomePage ? 'text-slate-300 hover:text-white' : ''}>Entrar</Button>
                     </Link>
                     <Link to={createPageUrl('StartFree')}>
-                      <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">Teste Grátis</Button>
+                      <Button className={isHomePage ? 'btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold' : 'bg-indigo-600 hover:bg-indigo-700 rounded-xl'}>
+                        {isHomePage ? 'Começar Gratuitamente' : 'Teste Grátis'}
+                      </Button>
                     </Link>
                   </>
                 )}
+
+                {isHomePage ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="md:hidden text-slate-300 hover:text-white"
+                    onClick={() => setHomeMenuOpen((prev) => !prev)}
+                    aria-label="Alternar menu"
+                  >
+                    {homeMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                  </Button>
+                ) : null}
               </div>
             </div>
+
+            {isHomePage ? (
+              <div className={`${homeMenuOpen ? 'block' : 'hidden'} md:hidden mt-4 space-y-2 border-t border-slate-700 pt-4`}>
+                {HOME_HASH_ITEMS.map((item) => (
+                  <Button
+                    key={item.hash}
+                    type="button"
+                    variant="ghost"
+                    className="w-full justify-start text-slate-300 hover:text-white"
+                    onClick={() => {
+                      goHomeHash(item.hash);
+                      setHomeMenuOpen(false);
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </header>
 
         <main className="pt-20 flex-1">{children}</main>
 
-        <footer className="py-6 text-center space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500">
-            <Link to={createPageUrl('Privacy')} className="hover:text-slate-900 transition-colors">
-              Privacidade
-            </Link>
-            <Link to={createPageUrl('Terms')} className="hover:text-slate-900 transition-colors">
-              Termos de Uso
-            </Link>
-            <Link to={createPageUrl('Lgpd')} className="hover:text-slate-900 transition-colors">
-              LGPD
-            </Link>
-          </div>
-          <div className="text-xs text-slate-400">© {new Date().getFullYear()} InsightDISC</div>
-        </footer>
+        {isHomePage ? (
+          <footer className="py-14 px-6 border-t border-slate-800">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="disc-gradient w-10 h-10 rounded-xl flex items-center justify-center">
+                  <span className="text-lg font-extrabold text-white">ID</span>
+                </div>
+                <span className="text-xl font-bold text-white">InsightDISC</span>
+              </div>
+              <p className="text-sm text-slate-500 text-center md:text-right">
+                © {new Date().getFullYear()} InsightDISC. Plataforma de inteligência comportamental.
+              </p>
+            </div>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500">
+              <Link to={createPageUrl('Privacy')} className="hover:text-white transition-colors">
+                Privacidade
+              </Link>
+              <Link to={createPageUrl('Terms')} className="hover:text-white transition-colors">
+                Termos de Uso
+              </Link>
+              <Link to={createPageUrl('Lgpd')} className="hover:text-white transition-colors">
+                LGPD
+              </Link>
+            </div>
+          </footer>
+        ) : (
+          <footer className="py-6 text-center space-y-3">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500">
+              <Link to={createPageUrl('Privacy')} className="hover:text-slate-900 transition-colors">
+                Privacidade
+              </Link>
+              <Link to={createPageUrl('Terms')} className="hover:text-slate-900 transition-colors">
+                Termos de Uso
+              </Link>
+              <Link to={createPageUrl('Lgpd')} className="hover:text-slate-900 transition-colors">
+                LGPD
+              </Link>
+            </div>
+            <div className="text-xs text-slate-400">© {new Date().getFullYear()} InsightDISC</div>
+          </footer>
+        )}
       </div>
     );
   }

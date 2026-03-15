@@ -22,6 +22,9 @@ const DEFAULT_BRANDING = Object.freeze({
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
+  website: 'www.insightdisc.app',
+  support_email: 'contato@insightdisc.app',
+  instagram: '@insightdisc',
 });
 
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
@@ -538,6 +541,9 @@ function resolveBranding(input = {}, strict = false) {
       brandingInput?.report_footer_text,
       DEFAULT_BRANDING.report_footer_text
     ),
+    website: safeText(brandingInput?.website, DEFAULT_BRANDING.website),
+    support_email: safeText(brandingInput?.support_email || brandingInput?.contact_email, DEFAULT_BRANDING.support_email),
+    instagram: safeText(brandingInput?.instagram, DEFAULT_BRANDING.instagram),
     logo_contains_tagline: Boolean(brandingInput?.logo_contains_tagline),
   };
 }
@@ -813,7 +819,41 @@ function resolveResponsible(input = {}, participant = {}) {
       input?.currentUser?.role,
       'Especialista em Analise Comportamental',
     ]),
+    email: firstNonEmpty([
+      meta?.responsibleEmail,
+      input?.currentUser?.email,
+      assessment?.creator?.email,
+      assessment?.organization?.owner?.email,
+    ]),
   };
+}
+
+function resolveIssuerOrganization(input = {}, participant = {}, branding = {}) {
+  const meta = input?.meta || {};
+  const assessment = input?.assessment || {};
+
+  return firstNonEmpty([
+    meta?.issuerOrganization,
+    assessment?.organization?.companyName,
+    assessment?.organization?.name,
+    participant?.company,
+    branding?.company_name,
+    DEFAULT_BRANDING.company_name,
+  ]);
+}
+
+function resolveIssuerContact(input = {}, branding = {}, responsible = {}) {
+  const meta = input?.meta || {};
+  const assessment = input?.assessment || {};
+
+  return firstNonEmpty([
+    meta?.issuerContact,
+    responsible?.email,
+    assessment?.creator?.email,
+    assessment?.organization?.owner?.email,
+    branding?.support_email,
+    DEFAULT_BRANDING.support_email,
+  ]);
 }
 
 function resolveGeneratedAt(input = {}) {
@@ -1384,6 +1424,8 @@ export async function buildReportModel(input = {}) {
   const factorAnalysis = buildFactorAnalysis(scores, content?.shared?.factors || {}, rules);
   const benchmarkRows = buildBenchmarkRows(scores, profile);
   const responsible = resolveResponsible(input, participant);
+  const issuerOrganization = resolveIssuerOrganization(input, participant, branding);
+  const issuerContact = resolveIssuerContact(input, branding, responsible);
   const generatedAt = toIsoDateString(resolveGeneratedAt(input));
 
   const narratives = composeNarratives({
@@ -1436,6 +1478,9 @@ export async function buildReportModel(input = {}) {
       ),
       responsibleName: responsible.name,
       responsibleRole: responsible.role,
+      responsibleEmail: safeText(responsible.email, ''),
+      issuerOrganization: safeText(issuerOrganization, branding.company_name),
+      issuerContact: safeText(issuerContact, branding.support_email),
       pageTitles,
       brand: branding.company_name,
     },

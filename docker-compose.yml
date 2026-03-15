@@ -6,7 +6,7 @@ services:
     container_name: insightdisc_postgres
     restart: always
     ports:
-      - "${INSIGHTDISC_POSTGRES_PORT:-5432}:5432"
+      - "${INSIGHTDISC_POSTGRES_PORT:-5433}:5432"
     environment:
       POSTGRES_USER: insightdisc
       POSTGRES_PASSWORD: insightdisc

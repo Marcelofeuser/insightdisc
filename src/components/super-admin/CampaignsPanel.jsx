@@ -11,7 +11,7 @@ import {
   Ticket,
   UserRoundPlus,
 } from 'lucide-react';
-import { apiRequest, getApiAuthHeaders, getApiBaseUrl } from '@/lib/apiClient';
+import { apiRequest, getApiAuthHeaders, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -149,19 +149,10 @@ function FiltersBar({ children }) {
   return <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">{children}</div>;
 }
 
-function resolveAbsoluteApiUrl(apiBaseUrl, path) {
-  const normalized = String(path || '').trim();
-  if (!normalized) return '';
-  if (/^https?:\/\//i.test(normalized)) return normalized;
-  return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
-}
-
 export default function CampaignsPanel() {
   const { toast } = useToast();
   const apiBaseUrl = getApiBaseUrl();
-  const requestBaseUrl =
-    apiBaseUrl ||
-    (import.meta.env.PROD && typeof window !== 'undefined' ? window.location.origin : '');
+  const requestBaseUrl = apiBaseUrl;
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [campaigns, setCampaigns] = useState([]);
   const [coupons, setCoupons] = useState([]);
@@ -445,7 +436,7 @@ export default function CampaignsPanel() {
   };
 
   const downloadCsv = useCallback(async (path, fallbackName) => {
-    const endpoint = resolveAbsoluteApiUrl(requestBaseUrl, path);
+    const endpoint = resolveApiRequestUrl(path, { baseUrl: requestBaseUrl });
     if (!endpoint) {
       throw new Error('CSV_ENDPOINT_MISSING');
     }

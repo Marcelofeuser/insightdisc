@@ -4,8 +4,8 @@ const API_BASE_URL = process.env.LIVE_API_BASE_URL || 'http://localhost:4000';
 
 const SUPER_ADMIN = {
   email: process.env.SUPER_ADMIN_EMAIL || 'admin@insightdisc.app',
-  password: process.env.SUPER_ADMIN_PASSWORD || 'Trocar123!',
-  masterKey: process.env.SUPER_ADMIN_MASTER_KEY || 'InsightDiscMaster2026!',
+  password: process.env.SUPER_ADMIN_PASSWORD || 'change_me_in_tests',
+  masterKey: process.env.SUPER_ADMIN_MASTER_KEY || 'example_master_key',
 };
 
 function uniqueEmail(prefix = 'audit-api') {

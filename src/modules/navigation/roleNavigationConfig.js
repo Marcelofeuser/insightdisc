@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   LayoutDashboard,
+  Megaphone,
   Radar,
   Sparkles,
   Users,
@@ -46,6 +47,7 @@ function resolveCapabilities(access) {
     GLOBAL_ROLES.SUPER_ADMIN,
     GLOBAL_ROLES.PLATFORM_ADMIN,
   ]);
+  const canAccessSuperAdminConsole = hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]);
   const canUseAdvancedComparison =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ADVANCED_COMPARISON, { plan });
   const canUseJobMatching =
@@ -64,6 +66,7 @@ function resolveCapabilities(access) {
     canViewOwnData,
     canManageOrganization,
     canAccessPlatformAdmin,
+    canAccessSuperAdminConsole,
     canUseAdvancedComparison,
     canUseJobMatching,
     canUseTeamMap,
@@ -97,7 +100,10 @@ function buildBusinessNavigation(capabilities) {
       : null,
   ].filter(Boolean);
 
-  if (capabilities.canAccessPlatformAdmin) {
+  if (capabilities.canAccessSuperAdminConsole) {
+    items.push(
+      makeItem(Megaphone, 'Campanhas', 'SuperAdminDashboard', '/super-admin#campaigns', 'Plataforma')
+    );
     items.push(makeItem(Building2, 'Super Admin', 'SuperAdminDashboard', '/super-admin', 'Plataforma'));
   }
 
@@ -105,7 +111,7 @@ function buildBusinessNavigation(capabilities) {
 }
 
 function buildProfessionalNavigation(capabilities) {
-  return [
+  const items = [
     makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação')
@@ -125,6 +131,15 @@ function buildProfessionalNavigation(capabilities) {
     makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises'),
     makeItem(BookOpen, 'Biblioteca DISC', 'PanelBibliotecaDisc', '/painel/biblioteca-disc', 'Conhecimento'),
   ].filter(Boolean);
+
+  if (capabilities.canAccessSuperAdminConsole) {
+    items.push(
+      makeItem(Megaphone, 'Campanhas', 'SuperAdminDashboard', '/super-admin#campaigns', 'Plataforma')
+    );
+    items.push(makeItem(Building2, 'Super Admin', 'SuperAdminDashboard', '/super-admin', 'Plataforma'));
+  }
+
+  return items;
 }
 
 function buildPersonalNavigation(capabilities) {

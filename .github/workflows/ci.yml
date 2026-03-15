@@ -24,11 +24,11 @@ jobs:
       VITE_API_URL: http://127.0.0.1:4000
       E2E_API_URL: http://127.0.0.1:4000
       VITE_ENABLE_DEV_LOGIN_SHORTCUTS: "true"
-      SUPER_ADMIN_MASTER_KEY: InsightDiscMaster2026!
+      SUPER_ADMIN_MASTER_KEY: example_master_key
       SUPER_ADMIN_EMAIL: admin@insightdisc.app
-      SUPER_ADMIN_PASSWORD: Trocar123!
+      SUPER_ADMIN_PASSWORD: example_password
       SUPER_ADMIN_SEED_EMAIL: admin@insightdisc.app
-      SUPER_ADMIN_SEED_PASSWORD: Trocar123!
+      SUPER_ADMIN_SEED_PASSWORD: example_password
     services:
       postgres:
         image: postgres:16-alpine

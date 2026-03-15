@@ -1,7 +1,31 @@
 const API_TOKEN_KEYS = ['insightdisc_token', 'insightdisc_api_token', 'insight_api_token', 'server_api_token'];
+const CANONICAL_PRODUCTION_API_URL = 'https://api.insightdisc.com';
+const FRONTEND_PROXY_PATH = '/api/proxy';
+const BACKEND_ROUTE_PREFIXES = Object.freeze([
+  '/auth',
+  '/super-admin',
+  '/payments',
+  '/assessment',
+  '/assessments',
+  '/report',
+  '/candidate',
+  '/branding',
+  '/jobs',
+  '/admin',
+  '/health',
+  '/billing',
+  '/api/leads',
+  '/api/dossier',
+  '/api/campaigns',
+  '/api/anamnesis',
+  '/api/profile-comparison',
+  '/api/team-map',
+  '/api/checkout',
+]);
+const metaEnv = (typeof import.meta !== 'undefined' && import.meta?.env) ? import.meta.env : {};
 const ENABLE_DEV_LOGIN_SHORTCUTS =
-  import.meta.env.DEV &&
-  String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
+  metaEnv.DEV &&
+  String(metaEnv.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
 const API_EMAIL_KEYS = ENABLE_DEV_LOGIN_SHORTCUTS
   ? ['insightdisc_api_email', 'disc_mock_user_email']
   : ['insightdisc_api_email'];
@@ -14,6 +38,17 @@ function normalizeBaseUrl(value) {
   return trimmed.replace(/\/$/, '');
 }
 
+function getHostname(value = '') {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized || normalized.startsWith('/')) return '';
+
+  try {
+    return new URL(normalized).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 function isLoopbackHost(hostname = '') {
   const normalized = String(hostname || '').toLowerCase();
   return (
@@ -23,11 +58,163 @@ function isLoopbackHost(hostname = '') {
   );
 }
 
-export function getApiBaseUrl() {
-  const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
-  const devShortcutsEnabled =
-    import.meta.env.DEV &&
-    String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
+function isInsightDiscFrontendHost(hostname = '') {
+  const normalized = String(hostname || '').toLowerCase();
+  if (!normalized || normalized === 'api.insightdisc.com') return false;
+  return normalized === 'app.insightdisc.com' || normalized === 'insightdisc.com' || normalized.endsWith('.insightdisc.com');
+}
+
+function isKnownInsightDiscBackendHost(hostname = '') {
+  const normalized = String(hostname || '').toLowerCase();
+  return normalized === 'api.insightdisc.com' || normalized === 'insightdisc-api.vercel.app';
+}
+
+function shouldUseFrontendApiProxy({ runtimeOrigin = '', prod = false } = {}) {
+  if (!prod) return false;
+
+  const runtimeHost = getHostname(runtimeOrigin);
+  if (!runtimeHost || isLoopbackHost(runtimeHost)) return false;
+
+  return isInsightDiscFrontendHost(runtimeHost);
+}
+
+function normalizeRelativePath(value = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function parseRelativeUrl(value = '', runtimeOrigin = '') {
+  const normalized = normalizeRelativePath(value);
+  if (!normalized) return null;
+
+  const fallbackOrigin = normalizeBaseUrl(runtimeOrigin) || 'https://app.insightdisc.com';
+  try {
+    return new URL(normalized, fallbackOrigin);
+  } catch {
+    return null;
+  }
+}
+
+function isBackendRequestPathname(pathname = '') {
+  const normalized = normalizeRelativePath(pathname).split('?')[0].split('#')[0];
+  if (!normalized) return false;
+
+  return BACKEND_ROUTE_PREFIXES.some((prefix) => (
+    normalized === prefix || normalized.startsWith(`${prefix}/`)
+  ));
+}
+
+function isFrontendServerlessPath(pathname = '') {
+  const normalized = normalizeRelativePath(pathname).split('?')[0].split('#')[0];
+  return normalized.startsWith('/api/') && !isBackendRequestPathname(normalized);
+}
+
+function buildFrontendProxyUrl(rawPath = '', runtimeOrigin = '') {
+  const parsed = parseRelativeUrl(rawPath, runtimeOrigin);
+  const normalizedRuntimeOrigin = normalizeBaseUrl(runtimeOrigin);
+  if (!parsed || !normalizedRuntimeOrigin) return '';
+
+  const forwardPath = parsed.pathname.replace(/^\/+/, '');
+  return `${normalizedRuntimeOrigin}${FRONTEND_PROXY_PATH}/${forwardPath}${parsed.search}`;
+}
+
+export function resolveApiRequestUrl(
+  path,
+  {
+    baseUrl = '',
+    runtimeOrigin = typeof window !== 'undefined' ? window.location.origin : '',
+    prod = Boolean(metaEnv.PROD),
+  } = {},
+) {
+  const raw = String(path || '').trim();
+  if (!raw) return '';
+
+  const normalizedRuntimeOrigin = normalizeBaseUrl(runtimeOrigin);
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const proxyEnabled = shouldUseFrontendApiProxy({
+    runtimeOrigin: normalizedRuntimeOrigin,
+    prod,
+  });
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      const parsedPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      const parsedHost = String(parsed.hostname || '').toLowerCase();
+      const baseHost = getHostname(normalizedBaseUrl);
+
+      if (
+        proxyEnabled &&
+        isBackendRequestPathname(parsed.pathname) &&
+        (
+          isKnownInsightDiscBackendHost(parsedHost) ||
+          (baseHost && parsedHost === baseHost)
+        )
+      ) {
+        return buildFrontendProxyUrl(parsedPath, normalizedRuntimeOrigin);
+      }
+    } catch {
+      return raw;
+    }
+
+    return raw;
+  }
+
+  const parsed = parseRelativeUrl(raw, normalizedRuntimeOrigin);
+  const relativePath = parsed
+    ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+    : normalizeRelativePath(raw);
+  const pathname = parsed?.pathname || normalizeRelativePath(raw);
+
+  if (proxyEnabled && isBackendRequestPathname(pathname)) {
+    return buildFrontendProxyUrl(relativePath, normalizedRuntimeOrigin);
+  }
+
+  if (isFrontendServerlessPath(pathname)) {
+    return normalizedRuntimeOrigin ? `${normalizedRuntimeOrigin}${relativePath}` : relativePath;
+  }
+
+  if (normalizedBaseUrl) {
+    return `${normalizedBaseUrl}${relativePath.startsWith('/') ? '' : '/'}${relativePath}`;
+  }
+
+  return '';
+}
+
+function shouldUseCanonicalProductionApiUrl({ configured = '', runtimeOrigin = '', prod = false } = {}) {
+  if (!prod) return false;
+
+  const runtimeHost = getHostname(runtimeOrigin);
+  if (!runtimeHost || isLoopbackHost(runtimeHost) || !isInsightDiscFrontendHost(runtimeHost)) {
+    return false;
+  }
+
+  if (!configured) return true;
+  if (configured.startsWith('/')) return true;
+
+  const configuredHost = getHostname(configured);
+  if (!configuredHost) return true;
+  if (configuredHost === runtimeHost) return true;
+  if (isLoopbackHost(configuredHost)) return true;
+  if (configuredHost === 'insightdisc-api.vercel.app') return true;
+  if (configuredHost.endsWith('.vercel.app')) return true;
+
+  return false;
+}
+
+export function resolveApiBaseUrl({
+  mode = '',
+  dev = false,
+  prod = false,
+  enableDevLoginShortcuts = false,
+  configuredApiUrl = '',
+  configuredApiBaseUrl = '',
+  runtimeOrigin = '',
+} = {}) {
+  const runtimeMode = String(mode || '').trim().toLowerCase();
+  const devShortcutsEnabled = Boolean(dev && enableDevLoginShortcuts);
 
   if (runtimeMode === 'e2e-core') {
     return '';
@@ -39,26 +226,35 @@ export function getApiBaseUrl() {
   }
 
   const configured = normalizeBaseUrl(
-    import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || ''
+    configuredApiUrl || configuredApiBaseUrl || ''
   );
-  const runtimeOrigin =
-    typeof window !== 'undefined' ? normalizeBaseUrl(window.location.origin) : '';
+  const normalizedRuntimeOrigin = normalizeBaseUrl(runtimeOrigin);
+
+  if (
+    shouldUseCanonicalProductionApiUrl({
+      configured,
+      runtimeOrigin: normalizedRuntimeOrigin,
+      prod,
+    })
+  ) {
+    return CANONICAL_PRODUCTION_API_URL;
+  }
 
   if (configured) {
-    if (configured.startsWith('/') && runtimeOrigin) {
-      return normalizeBaseUrl(`${runtimeOrigin}${configured}`);
+    if (configured.startsWith('/') && normalizedRuntimeOrigin) {
+      return normalizeBaseUrl(`${normalizedRuntimeOrigin}${configured}`);
     }
 
     if (
-      import.meta.env.PROD &&
-      runtimeOrigin &&
+      prod &&
+      normalizedRuntimeOrigin &&
       /^https?:\/\//i.test(configured)
     ) {
       try {
         const configuredUrl = new URL(configured);
-        const runtimeUrl = new URL(runtimeOrigin);
+        const runtimeUrl = new URL(normalizedRuntimeOrigin);
         if (isLoopbackHost(configuredUrl.hostname) && !isLoopbackHost(runtimeUrl.hostname)) {
-          return runtimeOrigin;
+          return normalizedRuntimeOrigin;
         }
       } catch {
         // Ignore URL parsing issues and return configured value below.
@@ -68,11 +264,25 @@ export function getApiBaseUrl() {
     return configured;
   }
 
-  if (import.meta.env.PROD && runtimeOrigin) {
-    return runtimeOrigin;
+  if (prod && normalizedRuntimeOrigin) {
+    return normalizedRuntimeOrigin;
   }
 
   return '';
+}
+
+export function getApiBaseUrl() {
+  return resolveApiBaseUrl({
+    mode: metaEnv.MODE,
+    dev: metaEnv.DEV,
+    prod: metaEnv.PROD,
+    enableDevLoginShortcuts:
+      String(metaEnv.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true',
+    configuredApiUrl: metaEnv.VITE_API_URL,
+    configuredApiBaseUrl: metaEnv.VITE_API_BASE_URL,
+    runtimeOrigin:
+      typeof window !== 'undefined' ? window.location.origin : '',
+  });
 }
 
 function getFromStorage(keys = []) {
@@ -136,13 +346,11 @@ export function getApiAuthHeaders({
 
 export async function apiRequest(path, options = {}) {
   const baseUrl = options.baseUrl || getApiBaseUrl();
-  if (!baseUrl && !String(path || '').startsWith('http')) {
+  const url = resolveApiRequestUrl(path, { baseUrl });
+
+  if (!url) {
     throw new Error('API_BASE_URL_NOT_CONFIGURED');
   }
-
-  const url = String(path || '').startsWith('http')
-    ? String(path)
-    : `${baseUrl}${String(path || '').startsWith('/') ? '' : '/'}${String(path || '')}`;
 
   const token = options.token || getApiToken();
   const userEmail = options.userEmail || getApiUserEmail();

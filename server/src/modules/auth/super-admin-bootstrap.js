@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { env } from '../../config/env.js';
 
 const DEFAULT_SUPER_ADMIN_EMAIL = 'admin@insightdisc.app';
-const DEFAULT_SUPER_ADMIN_PASSWORD = 'Trocar123!';
+const DEFAULT_SUPER_ADMIN_PASSWORD = 'change_me_in_production';
 const DEFAULT_SUPER_ADMIN_NAME = 'Super Admin InsightDISC';
 
 function normalizeEmail(value, fallback = DEFAULT_SUPER_ADMIN_EMAIL) {

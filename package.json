@@ -1,5 +1,5 @@
 {
-  "name": "base44-app",
+  "name": "insightdisc",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -20,6 +20,7 @@
     "test:portal-claim": "playwright test tests/e2e/portal-claim.spec.js",
     "test:job-matching": "playwright test tests/e2e/job-matching.spec.js",
     "test:super-admin": "playwright test tests/e2e/super-admin.spec.js",
+    "test:report:local": "node scripts/test-report-generate.mjs",
     "test:leads": "playwright test tests/e2e/leads-dashboard.spec.js",
     "test:auth-live": "playwright test tests/e2e/auth-access-live.spec.js --config=playwright.live.config.js",
     "preview": "vite preview",
@@ -30,6 +31,7 @@
     "seed:super-admin": "node server/scripts/seed-super-admin.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@base44/sdk": "^0.8.18",
     "@base44/vite-plugin": "^0.2.27",
     "@hello-pangea/dnd": "^17.0.0",

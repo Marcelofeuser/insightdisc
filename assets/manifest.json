@@ -1,0 +1,152 @@
+{
+  "pdf_source": "/Users/marcelofeuser/Downloads/apresentacao (4).pdf",
+  "pages": 25,
+  "assets": {
+    "full_pages": [
+      "page-01-full.png",
+      "page-02-full.png",
+      "page-03-full.png",
+      "page-04-full.png",
+      "page-05-full.png",
+      "page-06-full.png",
+      "page-07-full.png",
+      "page-08-full.png",
+      "page-09-full.png",
+      "page-10-full.png",
+      "page-11-full.png",
+      "page-12-full.png",
+      "page-13-full.png",
+      "page-14-full.png",
+      "page-15-full.png",
+      "page-16-full.png",
+      "page-17-full.png",
+      "page-18-full.png",
+      "page-19-full.png",
+      "page-20-full.png",
+      "page-21-full.png",
+      "page-22-full.png",
+      "page-23-full.png",
+      "page-24-full.png",
+      "page-25-full.png"
+    ],
+    "image_crops": {
+      "page-01": [],
+      "page-02": [
+        "page-02-image-01.png",
+        "page-02-image-02.png",
+        "page-02-image-03.png",
+        "page-02-image-04.png"
+      ],
+      "page-03": [
+        "page-03-image-01.png",
+        "page-03-image-02.png",
+        "page-03-image-03.png",
+        "page-03-image-04.png"
+      ],
+      "page-04": [],
+      "page-05": [
+        "page-05-image-01.png",
+        "page-05-image-02.png",
+        "page-05-image-03.png",
+        "page-05-image-04.png",
+        "page-05-image-05.png"
+      ],
+      "page-06": [
+        "page-06-image-01.png"
+      ],
+      "page-07": [
+        "page-07-image-01.png",
+        "page-07-image-02.png",
+        "page-07-image-03.png",
+        "page-07-image-04.png"
+      ],
+      "page-08": [
+        "page-08-image-01.png",
+        "page-08-image-02.png",
+        "page-08-image-03.png"
+      ],
+      "page-09": [
+        "page-09-image-01.png",
+        "page-09-image-02.png",
+        "page-09-image-03.png"
+      ],
+      "page-10": [],
+      "page-11": [
+        "page-11-image-01.png",
+        "page-11-image-02.png",
+        "page-11-image-03.png",
+        "page-11-image-04.png"
+      ],
+      "page-12": [],
+      "page-13": [
+        "page-13-image-01.png",
+        "page-13-image-02.png",
+        "page-13-image-03.png"
+      ],
+      "page-14": [
+        "page-14-image-01.png",
+        "page-14-image-02.png",
+        "page-14-image-03.png",
+        "page-14-image-04.png",
+        "page-14-image-05.png",
+        "page-14-image-06.png",
+        "page-14-image-07.png",
+        "page-14-image-08.png"
+      ],
+      "page-15": [
+        "page-15-image-01.png",
+        "page-15-image-02.png",
+        "page-15-image-03.png"
+      ],
+      "page-16": [
+        "page-16-image-01.png",
+        "page-16-image-02.png",
+        "page-16-image-03.png",
+        "page-16-image-04.png",
+        "page-16-image-05.png",
+        "page-16-image-06.png"
+      ],
+      "page-17": [
+        "page-17-image-01.png"
+      ],
+      "page-18": [],
+      "page-19": [
+        "page-19-image-01.png",
+        "page-19-image-02.png",
+        "page-19-image-03.png",
+        "page-19-image-04.png"
+      ],
+      "page-20": [
+        "page-20-image-01.png",
+        "page-20-image-02.png",
+        "page-20-image-03.png",
+        "page-20-image-04.png"
+      ],
+      "page-21": [
+        "page-21-image-01.png",
+        "page-21-image-02.png",
+        "page-21-image-03.png",
+        "page-21-image-04.png"
+      ],
+      "page-22": [],
+      "page-23": [
+        "page-23-image-01.png"
+      ],
+      "page-24": [
+        "page-24-image-01.png",
+        "page-24-image-02.png",
+        "page-24-image-03.png",
+        "page-24-image-04.png",
+        "page-24-image-05.png",
+        "page-24-image-06.png",
+        "page-24-image-07.png",
+        "page-24-image-08.png",
+        "page-24-image-09.png",
+        "page-24-image-10.png",
+        "page-24-image-11.png",
+        "page-24-image-12.png"
+      ],
+      "page-25": []
+    }
+  }
+}

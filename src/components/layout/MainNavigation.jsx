@@ -9,6 +9,8 @@ const HOME_HASH_ITEMS = Object.freeze([
   { label: 'Planos', hash: '#planos' },
 ]);
 
+export { HOME_HASH_ITEMS };
+
 export default function MainNavigation({ goHomeHash }) {
   return (
     <nav className="hidden items-center gap-1 md:flex">

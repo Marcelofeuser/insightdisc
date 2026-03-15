@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import SectionShell from './SectionShell';
 
 export default function FAQSection({ faq }) {
@@ -8,27 +7,26 @@ export default function FAQSection({ faq }) {
   return (
     <SectionShell
       id="faq"
-      eyebrow="FAQ"
       title="Perguntas frequentes"
       description="As dúvidas mais comuns antes de começar."
-      className="bg-white"
+      centered
     >
-      <div className="mx-auto max-w-3xl space-y-3">
+      <div className="mx-auto grid max-w-5xl gap-4">
         {faq.map((item, index) => {
           const isOpen = open === index;
           return (
-            <article key={item.question} className="landing-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <article key={item.question} className="faq-container glass-card scroll-reveal overflow-hidden rounded-2xl">
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+                className="faq-toggle flex w-full items-center justify-between p-6 text-left transition-all hover:bg-white/5"
                 onClick={() => setOpen(isOpen ? -1 : index)}
               >
-                <span className="landing-card-title text-sm font-semibold text-slate-900 sm:text-base">{item.question}</span>
-                <ChevronDown
-                  className={`landing-card-text h-4 w-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
+                <h3 className="text-lg font-bold">{item.question}</h3>
+                <span className="faq-icon text-2xl">{isOpen ? '−' : '+'}</span>
               </button>
-              {isOpen ? <p className="landing-card-text px-5 pb-5 text-sm leading-relaxed text-slate-600">{item.answer}</p> : null}
+              <div className={`faq-item ${isOpen ? 'active' : ''}`}>
+                <p className="px-6 pb-6 text-slate-400">{item.answer}</p>
+              </div>
             </article>
           );
         })}

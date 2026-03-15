@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import LandingHero from '@/modules/marketing/sections/LandingHero';
 import FeatureGridSection from '@/modules/marketing/sections/FeatureGridSection';
 import AudienceCardsSection from '@/modules/marketing/sections/AudienceCardsSection';
@@ -16,12 +16,34 @@ export default function MainLandingPage() {
     description: MAIN_LANDING_CONTENT.meta.description,
   });
 
+  useEffect(() => {
+    const revealTargets = document.querySelectorAll('.scroll-reveal');
+    if (!revealTargets.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px',
+      }
+    );
+
+    revealTargets.forEach((target) => observer.observe(target));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="marketing-surface min-h-screen">
       <LandingHero content={MAIN_LANDING_CONTENT.hero} />
       <FeatureGridSection
         id="plataforma"
-        eyebrow="Plataforma"
         title="Tudo o que você precisa para aplicar DISC na prática"
         description="Da leitura individual ao recrutamento, da liderança à composição de equipes."
         items={MAIN_LANDING_CONTENT.valuePillars}
@@ -29,7 +51,6 @@ export default function MainLandingPage() {
       <AudienceCardsSection items={MAIN_LANDING_CONTENT.audiences} />
       <FeatureGridSection
         id="recursos"
-        eyebrow="Diferenciais"
         title="Por que a InsightDISC não é só mais um teste DISC"
         description="Porque ela transforma perfil em decisão prática."
         items={MAIN_LANDING_CONTENT.differentials}

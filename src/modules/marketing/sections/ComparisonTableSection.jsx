@@ -3,45 +3,41 @@ import SectionShell from './SectionShell';
 
 export default function ComparisonTableSection({ title, rows }) {
   const isPlanComparison = Array.isArray(rows) && rows.length > 0 && Object.prototype.hasOwnProperty.call(rows[0], 'personal');
-  const resolveCellTone = (value, highlighted = false) => {
-    if (value === '✓') {
-      return highlighted ? 'text-emerald-300 font-bold' : 'text-emerald-400 font-bold';
-    }
-    return highlighted ? 'text-slate-400' : 'text-slate-500';
-  };
+  const resolveCellTone = (value) => (value === '✓' ? 'text-green-400 font-bold' : 'text-slate-500');
 
   return (
     <SectionShell
       id="comparativo"
-      eyebrow="Comparativo"
       title={title}
       description={
         isPlanComparison
           ? 'Veja exatamente o que você ganha em cada plano.'
           : 'Entenda de forma objetiva como a plataforma amplia o valor do DISC em relacao a uma leitura simples.'
       }
+      centered
+      className={isPlanComparison ? 'bg-gradient-to-b from-slate-900/50 to-transparent' : undefined}
     >
       {isPlanComparison ? (
-        <div className="landing-card overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="scroll-reveal overflow-x-auto">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="px-5 py-4 text-sm font-bold uppercase tracking-[0.08em] text-slate-300">Recurso</th>
-                  <th className="px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.08em] text-slate-300">Personal</th>
-                  <th className="bg-blue-500/10 px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.08em] text-blue-300">Professional</th>
-                  <th className="px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.08em] text-slate-300">Business</th>
+            <table className="comparison-table w-full min-w-[980px] text-left">
+              <thead className="border-b border-white/10">
+                <tr>
+                  <th className="p-5 font-semibold text-slate-300">Recurso</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">Personal</th>
+                  <th className="featured-col p-5 text-center font-semibold text-blue-300">Professional</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">Business</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-sm md:text-base">
                 {rows.map((row) => (
-                  <tr key={row.metric} className="border-t border-slate-200/60 transition-colors hover:bg-white/5">
-                    <td className="landing-card-title px-5 py-4 text-sm font-semibold">{row.metric}</td>
-                    <td className={`landing-card-text px-5 py-4 text-center text-sm ${resolveCellTone(row.personal)}`}>{row.personal}</td>
-                    <td className={`landing-card-text bg-blue-500/5 px-5 py-4 text-center text-sm ${resolveCellTone(row.professional, true)}`}>
+                  <tr key={row.metric} className="transition-colors hover:bg-white/5">
+                    <td className="p-5 text-slate-300">{row.metric}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.personal)}`}>{row.personal}</td>
+                    <td className={`featured-col p-5 text-center ${resolveCellTone(row.professional)}`}>
                       {row.professional}
                     </td>
-                    <td className={`landing-card-text px-5 py-4 text-center text-sm ${resolveCellTone(row.business)}`}>{row.business}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.business)}`}>{row.business}</td>
                   </tr>
                 ))}
               </tbody>

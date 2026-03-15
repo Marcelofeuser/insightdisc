@@ -85,25 +85,25 @@ const PREMIUM_PAGE_SEQUENCE = Object.freeze([
   8,  // Benchmark
   9,  // Dinâmica geral
   10, // Processo de decisão
+  11, // Motivadores
+  12, // Drenadores de energia
   13, // Comportamento no trabalho
   14, // Comunicação
   15, // Liderança
+  16, // Tomada de decisão e autonomia
   17, // Estresse
+  18, // Conflitos
   19, // Relacionamento em equipe
   20, // Sinergia com perfis
   21, // Ambiente ideal
+  22, // Carreira
   23, // Forças
   24, // Pontos de desenvolvimento
   25, // Recomendações
+  26, // Como liderar este perfil
+  27, // Como este perfil deve liderar
   28, // Plano de desenvolvimento
-  30, // Roda DISC
-  31, // Índice de adaptação
-  32, // Índice de estresse
-  33, // Zona de conforto vs esforço
-  34, // Mapa de comunicação
-  35, // Mapa de competências
-  36, // Heatmap
-  37, // Painel executivo de forças e riscos
+  29, // Glossário
   38, // Conclusão
 ]);
 
@@ -176,8 +176,13 @@ const DEFAULT_BRANDING = Object.freeze({
   brand_primary_color: '#0b1f3b',
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
+  website: 'www.insightdisc.app',
+  support_email: 'contato@insightdisc.app',
+  instagram: '@insightdisc',
   logo_contains_tagline: false,
 });
+
+const PLATFORM_BRAND_LINE = 'InsightDISC – Plataforma de Análise Comportamental';
 
 const COVER_BACKGROUND_BY_TIER = Object.freeze({
   premium: '',
@@ -330,6 +335,9 @@ function normalizeBranding(branding = {}, meta = {}) {
       branding?.report_footer_text,
       DEFAULT_BRANDING.report_footer_text
     ),
+    website: safeText(branding?.website, DEFAULT_BRANDING.website),
+    support_email: safeText(branding?.support_email || branding?.contact_email, DEFAULT_BRANDING.support_email),
+    instagram: safeText(branding?.instagram, DEFAULT_BRANDING.instagram),
     logo_contains_tagline: Boolean(branding?.logo_contains_tagline),
   };
 }
@@ -388,7 +396,7 @@ function listHtml(items, fallback) {
 }
 
 function paragraphsHtml(items, fallback) {
-  const paragraphs = ensureUniqueItems(safeArray(items, fallback)).slice(0, 6);
+  const paragraphs = ensureUniqueItems(safeArray(items, fallback)).slice(0, 4);
   return paragraphs.map((item) => `<p>${esc(item)}</p>`).join('');
 }
 
@@ -1393,13 +1401,7 @@ function strategicInsightsSection(isBalancedProfile) {
           ])}
         </div>
       </div>
-      <h4>Alavancas de desenvolvimento</h4>
-      ${listHtml([
-        'Definição clara de prioridades.',
-        'Estruturação de critérios de decisão.',
-        'Uso de feedback estruturado.',
-        'Definição de indicadores claros de resultado.',
-      ])}
+      <p>Use o benchmark como referência de calibragem de contexto, papel e rotina de desenvolvimento, não como rótulo fixo de potencial.</p>
     </div>
   `;
 }
@@ -1632,62 +1634,6 @@ function finalConclusionBlocks({ participant, profile, isPremiumTier = false }) 
   return base;
 }
 
-function buildBackCoverPage(branding = {}, options = {}) {
-  const companyName = safeText(branding?.company_name, DEFAULT_BRANDING.company_name);
-  const supportEmail = safeText(branding?.support_email, 'contato@insightdisc.app');
-  const website = safeText(branding?.website, 'www.insightdisc.app');
-  const logoSrc = safeText(options?.logoSrc);
-  const reportType = normalizeReportType(options?.reportType);
-  const variant = safeText(options?.variant, options?.isPremiumTier ? 'premium-opening' : 'standard-closing');
-  const isPremiumOpening = variant === 'premium-opening';
-  const isStandardClosing = variant === 'standard-closing';
-  const tierLabel =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 'Relatório DISC Professional'
-      : options?.isPremiumTier
-        ? 'Relatório DISC Premium'
-        : 'Relatório DISC Completo';
-  const reportDateLabel = safeText(options?.generatedAt, formatDate(Date.now()));
-  const confidenceNote = isPremiumOpening
-    ? 'Documento institucional para apoio executivo em decisões de pessoas, comunicação e desenvolvimento.'
-    : 'Relatório emitido para desenvolvimento comportamental e uso profissional responsável.';
-
-  return `
-    <section class="back-cover-page ${isPremiumOpening ? 'premium-opening-page' : ''} ${isStandardClosing ? 'standard-closing-page' : ''}" aria-label="Página institucional do relatório">
-      <div class="back-cover">
-        ${isPremiumOpening ? '<div class="back-cover-ribbon">Abertura institucional</div>' : ''}
-        <div class="back-cover-tier">${esc(tierLabel)}</div>
-        ${
-          logoSrc
-            ? `<img src="${esc(logoSrc)}" alt="${esc(companyName)}" class="back-cover-logo" />`
-            : `<div class="back-cover-logo-fallback">${esc(companyName)}</div>`
-        }
-        <div class="back-cover-title">${esc(companyName)}</div>
-        <div class="back-cover-subtitle">Plataforma de Análise Comportamental</div>
-        <div class="back-cover-divider"></div>
-        <p class="back-cover-confidence">${esc(confidenceNote)}</p>
-        <div class="back-cover-columns">
-          <div class="back-cover-card">
-            <h4>Contato InsightDISC</h4>
-            <p>${esc(website)}</p>
-            <p>${esc(supportEmail)}</p>
-            <p>Data de geração: ${esc(reportDateLabel)}</p>
-          </div>
-          <div class="back-cover-card">
-            <h4>Disclaimer DISC</h4>
-            <p>Este relatório utiliza o modelo DISC para leitura comportamental aplicada ao contexto profissional.</p>
-            <p>Não constitui diagnóstico psicológico, clínico ou psiquiátrico.</p>
-          </div>
-        </div>
-        <div class="back-cover-bottom">
-          <p>© ${new Date().getFullYear()} ${esc(companyName)}. Todos os direitos reservados.</p>
-          <p>Uso permitido apenas para desenvolvimento profissional e decisões de gestão de pessoas com consentimento adequado.</p>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
@@ -1832,17 +1778,12 @@ function reliabilityPanelHtml(reliability = {}) {
               'Confiabilidade técnica parcial',
               'Esta avaliação não preservou histórico suficiente para calcular a confiabilidade completa de resposta.'
             )
-          : miniDiscBarsHtml(
-              {
-                D: score,
-                I: hasAnswerData ? clamp(answeredRatio * 100, 0, 100) : 0,
-                S: clamp(100 - repeatRate * 100, 0, 100),
-                C: clamp(100 - scoreSpread, 0, 100),
-              },
-              'Painel técnico de confiabilidade',
-            )
+          : `
+              <p>Leitura técnica: maior confiabilidade aparece quando a consistência de resposta, o ritmo médio e a dispersão entre fatores permanecem em faixa estável.</p>
+              <p>Use este índice apenas como apoio para interpretação, combinado ao contexto da avaliação e à coerência global do perfil observado.</p>
+            `
       }
-      ${listHtml(notes.slice(0, 4))}
+      ${listHtml(notes.slice(0, 3))}
     </div>
   `;
 }
@@ -1888,10 +1829,7 @@ function buildPage({
             ? ''
             : `
               <div class="page-brand-strip">
-                <div class="report-header-text">
-                  <div class="report-header-brand">InsightDISC</div>
-                  <div class="report-header-subtitle">Plataforma de Análise Comportamental</div>
-                </div>
+                <div class="report-header-line">${esc(PLATFORM_BRAND_LINE)}</div>
               </div>
             `
         }
@@ -1905,7 +1843,7 @@ function buildPage({
         ${contentWithDensity}
       </main>
       <footer class="footer">
-        <span>${esc(branding.report_footer_text)}</span>
+        <span>${esc(PLATFORM_BRAND_LINE)}</span>
         <span>Página ${number} de ${totalPages}</span>
       </footer>
     </section>
@@ -1968,18 +1906,23 @@ export function renderReportHtml(input = {}) {
   );
   const branding = normalizeBranding(report?.branding || {}, report?.meta || {});
   const participant = normalizeParticipant(report?.participant || {}, report?.meta || {});
-  const coverLogoSrc = resolvePdfImageSrc(branding.logo_url, {
-    fallbackSrc: DEFAULT_BRANDING.logo_url,
-    assetBaseUrl,
-  });
-  const institutionalLogoSrc = resolvePdfImageSrc(branding.logo_url, {
-    fallbackSrc: DEFAULT_BRANDING.logo_url,
-    assetBaseUrl,
-  });
   const finalLockupLogoSrc = resolvePdfImageSrc(DEFAULT_BRANDING.logo_url, {
     fallbackSrc: branding.logo_url,
     assetBaseUrl,
   });
+  const shouldRenderFinalLockupLogo = /^(data:image\/|https?:\/\/|file:\/\/)/i.test(finalLockupLogoSrc);
+  const platformWebsite = safeText(branding?.website, DEFAULT_BRANDING.website);
+  const platformEmail = safeText(branding?.support_email, safeText(report?.lgpd?.contact, DEFAULT_BRANDING.support_email));
+  const platformInstagram = safeText(branding?.instagram, DEFAULT_BRANDING.instagram);
+  const issuerResponsibleName = safeText(meta.responsibleName, 'Especialista InsightDISC');
+  const issuerResponsibleRole = safeText(meta.responsibleRole, 'Especialista em Análise Comportamental');
+  const issuerResponsibleContact = firstNonEmptyText(
+    report?.meta?.responsibleEmail,
+    report?.meta?.issuerContact,
+    assessment?.creator?.email,
+    assessment?.organization?.owner?.email,
+    platformEmail,
+  );
 
   const scores = {
     natural: normalizeScores(report?.scores?.natural),
@@ -2015,6 +1958,13 @@ export function renderReportHtml(input = {}) {
     participant?.email,
     '-'
   );
+  const coverParticipantRole = firstNonEmptyText(
+    assessment?.candidateRole,
+    assessment?.candidateJobTitle,
+    report?.participant?.role,
+    participant?.role,
+    '-'
+  );
   const coverCompanyName = firstNonEmptyText(
     assessment?.organization?.companyName,
     assessment?.organization?.name,
@@ -2022,56 +1972,44 @@ export function renderReportHtml(input = {}) {
     participant?.company,
     'InsightDISC'
   );
-  const coverGeneratedDate = formatDate(report?.meta?.generatedAt || Date.now());
-  const coverProfileKey = safeText(report?.profile?.key, safeText(report?.profileKey, 'DISC'));
-  const coverArchetype = safeText(
-    report?.profile?.archetype,
-    safeText(report?.profileContent?.archetype, 'Estrategista Adaptativo')
-  );
   const coverAssessmentId = firstNonEmptyText(
     assessment?.id,
     report?.participant?.assessmentId,
     participant?.assessmentId,
     '-'
   );
-  const coverTierLabel =
+  const coverAssessmentDate = formatDate(
+    assessment?.completedAt
+      || assessment?.createdAt
+      || report?.participant?.completedAt
+      || report?.participant?.createdAt
+      || report?.meta?.generatedAt
+      || Date.now()
+  );
+  const coverIssuedDate = formatDate(report?.meta?.generatedAt || Date.now());
+  const coverReportCode = safeText(meta.reportId, coverAssessmentId);
+  const coverIssuerOrganization = firstNonEmptyText(
+    report?.meta?.issuerOrganization,
+    assessment?.organization?.companyName,
+    assessment?.organization?.name,
+    branding.company_name,
+    coverCompanyName,
+    'InsightDISC'
+  );
+  const coverModeLabel =
     reportType === REPORT_TIER.PROFESSIONAL
-      ? 'Relatório DISC Professional'
-      : isPremiumTier
-        ? 'Relatório DISC Premium'
-        : 'Relatório DISC Completo';
-  const coverTierDescriptor =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 'Edição de consultoria com análise estratégica avançada.'
-      : isPremiumTier
-        ? 'Edição executiva com profundidade estratégica e leitura avançada.'
-        : 'Edição completa com leitura prática para aplicação profissional.';
-  const coverReportTitle =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 'RELATÓRIO DISC PROFESSIONAL'
-      : isPremiumTier
-        ? 'RELATÓRIO DISC PREMIUM'
-        : safeText(meta.reportTitle, 'Relatório de Análise Comportamental DISC');
-  const coverReportSubtitle =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 'Assessment comportamental profissional para decisão, liderança e desenvolvimento avançado'
-      : isPremiumTier
-        ? 'Análise comportamental avançada para decisão, liderança e evolução de performance'
-        : safeText(
-            meta.reportSubtitle,
-            'Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento'
-          );
-  const coverTierBadge = `
-    <div class="cover-tier-badge ${isPremiumTier ? 'cover-tier-premium' : 'cover-tier-standard'}">
-      ${esc(coverTierLabel)}
-    </div>
-  `;
-  const coverPremiumNote =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? '<div class="cover-report-premium-note">Edição professional com interpretação de consultoria, matriz estratégica e plano executivo de desenvolvimento comportamental.</div>'
-      : isPremiumTier
-        ? '<div class="cover-report-premium-note">Edição avançada com matriz estratégica de compatibilidade, riscos comportamentais e plano de desenvolvimento 90 dias.</div>'
-        : '';
+      ? 'Business'
+      : reportType === REPORT_TIER.PREMIUM
+        ? 'Professional'
+        : 'Personal';
+  const coverInstitutionTitle = PLATFORM_BRAND_LINE;
+  const coverInstitutionUrl = platformWebsite;
+  const coverInstitutionEmail = platformEmail;
+  const coverSupportTitle = 'Supervisão e respaldo técnico-profissional';
+  const coverSupportName = 'Verônica Feuser';
+  const coverSupportRole = 'Psicanalista';
+  const coverFooterNote =
+    'Este relatório foi desenvolvido para apoio à análise comportamental, autoconhecimento, desenvolvimento pessoal e profissional, comunicação, liderança e tomada de decisão. Este material não substitui avaliação clínica, psicológica ou psiquiátrica.';
   const coverBackgroundUrl = resolveCoverBackgroundByTier(reportType);
 
   const adaptation = {
@@ -2193,52 +2131,95 @@ export function renderReportHtml(input = {}) {
       coverBackgroundUrl,
       branding,
       content: `
-        <div class="cover-shell ${isPremiumTier ? 'cover-shell-premium' : 'cover-shell-standard'}">
-          <div class="cover-identity-block">
-            ${
-              coverLogoSrc
-                ? `<img src="${esc(coverLogoSrc)}" alt="Logo ${esc(branding.company_name)}" class="cover-brand-logo" />`
-                : `<div class="cover-brand-logo-fallback">${esc(branding.company_name)}</div>`
-            }
-            <div class="cover-brand-title">InsightDISC</div>
-            <div class="cover-brand-subtitle">Plataforma de Análise Comportamental</div>
+        <div class="cover-shell">
+          <div class="cover-top-band">
+            <div class="cover-top-brand">InsightDISC</div>
+            <div class="cover-top-subtitle">Plataforma de Análise Comportamental</div>
           </div>
-          <div class="cover-info-card ${isPremiumTier ? 'cover-info-card-premium' : 'cover-info-card-standard'}">
-            <div class="cover-info-header">
-              ${coverTierBadge}
-              <div class="cover-tier-caption">${esc(coverTierDescriptor)}</div>
-            </div>
-            <div class="cover-report-kicker">${esc(coverReportTitle)}</div>
-            <div class="cover-report-subtitle">${esc(coverReportSubtitle)}</div>
-            <div class="cover-name-highlight">${esc(coverParticipantName)}</div>
-            ${coverPremiumNote}
-            <div class="cover-info-grid">
-              <div class="cover-info-item">
-                <span>Perfil predominante</span>
-                <strong>${esc(coverProfileKey)}</strong>
-              </div>
-              <div class="cover-info-item">
-                <span>Arquétipo</span>
-                <strong>${esc(coverArchetype)}</strong>
-              </div>
-              <div class="cover-info-item">
-                <span>Empresa</span>
-                <strong>${esc(coverCompanyName)}</strong>
-              </div>
-              <div class="cover-info-item">
-                <span>Data de geração</span>
-                <strong>${esc(coverGeneratedDate)}</strong>
-              </div>
-              <div class="cover-info-item">
-                <span>E-mail</span>
-                <strong>${esc(coverParticipantEmail)}</strong>
-              </div>
-              <div class="cover-info-item">
-                <span>ID da avaliação</span>
-                <strong>${esc(coverAssessmentId)}</strong>
+          <div class="cover-body">
+            <div class="cover-central-block">
+              <div class="cover-report-kicker">Relatório de Análise Comportamental DISC</div>
+              <div class="cover-mode-line">Modo: ${esc(coverModeLabel)}</div>
+              <div class="cover-name-highlight">${esc(coverParticipantName)}</div>
+              <div class="cover-meta-pair">
+                <div class="cover-meta-column">
+                  <span>Empresa</span>
+                  <strong>${esc(coverCompanyName)}</strong>
+                </div>
+                <div class="cover-meta-column">
+                  <span>Cargo</span>
+                  <strong>${esc(coverParticipantRole)}</strong>
+                </div>
               </div>
             </div>
+
+            <div class="cover-identity-card">
+              <div class="cover-card-heading">Identificação do relatório</div>
+              <div class="cover-id-grid">
+                <div class="cover-id-item">
+                  <span>Nome do avaliado</span>
+                  <strong>${esc(coverParticipantName)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>E-mail</span>
+                  <strong>${esc(coverParticipantEmail)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Empresa</span>
+                  <strong>${esc(coverCompanyName)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Cargo</span>
+                  <strong>${esc(coverParticipantRole)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Data da avaliação</span>
+                  <strong>${esc(coverAssessmentDate)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Data de emissão</span>
+                  <strong>${esc(coverIssuedDate)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Código do relatório</span>
+                  <strong>${esc(coverReportCode)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Responsável pela aplicação</span>
+                  <strong>${esc(issuerResponsibleName)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Organização emissora</span>
+                  <strong>${esc(coverIssuerOrganization)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Contato da emissão</span>
+                  <strong>${esc(issuerResponsibleContact)}</strong>
+                </div>
+                <div class="cover-id-item">
+                  <span>Modo</span>
+                  <strong>${esc(coverModeLabel)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="cover-support-grid">
+              <div class="cover-support-card">
+                <div class="cover-card-heading">Bloco institucional</div>
+                <div class="cover-institution-title">${esc(coverInstitutionTitle)}</div>
+                <div class="cover-institution-url">${esc(coverInstitutionUrl)}</div>
+                <div class="cover-institution-contact">${esc(coverInstitutionEmail)}</div>
+              </div>
+              <div class="cover-support-card cover-support-card-technical">
+                <div class="cover-card-heading">Respaldo profissional</div>
+                <div class="cover-support-title">${esc(coverSupportTitle)}</div>
+                <div class="cover-support-name">${esc(coverSupportName)}</div>
+                <div class="cover-support-role">${esc(coverSupportRole)}</div>
+              </div>
+            </div>
           </div>
+
+          <div class="cover-footer-note">${esc(coverFooterNote)}</div>
         </div>
       `,
     })
@@ -2319,71 +2300,45 @@ export function renderReportHtml(input = {}) {
         ${executiveDivider('Panorama executivo do comportamento', 'Visão de liderança para tomada de decisão, comunicação e desenvolvimento')}
         <div class="grid two stack-on-print">
           ${reliabilityPanelHtml(reliability)}
-          ${
-            quickContext.hasData
-              ? quickContextPanelHtml(quickContext)
-              : strategicNote(
-                  'Contexto atual do participante',
-                  'A anamnese curta é opcional. Não há dados contextuais adicionais para esta avaliação.',
-                  'Quando disponível, o contexto ajuda profissionais a interpretar o comportamento com maior precisão situacional.',
-                )
-          }
-        </div>
-        <div class="grid two summary-balance-grid ${isPremiumTier ? '' : 'summary-balance-grid-standard'}">
-          <div>
-            ${scorePillsHtml(scores, profile, adaptation)}
-            <div class="card executive-hero">
-              <p><strong>Perfil identificado:</strong> ${esc(profile.key)} (${esc(profile.mode)})</p>
-              <p><strong>Perfil primário:</strong> ${esc(profilePrimaryLabel)} • <strong>Perfil secundário:</strong> ${esc(profileSecondaryLabel)}</p>
-              <p><strong>Arquétipo:</strong> ${esc(profile.archetype)}</p>
-              <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta ?? 'n/d')} pontos)</p>
-              <p>${esc(adaptation.interpretation)}</p>
-            </div>
+          <div class="card executive-hero">
+            <h3>Snapshot executivo</h3>
+            ${factorAccentBadge(profile, scores.summary, 'Fator de maior intensidade')}
+            ${listHtml([
+              `Perfil identificado: ${profile.key} (${profile.mode}) com predominância de ${profilePrimaryLabel}.`,
+              `Fator de apoio: ${profileSecondaryLabel}, regulando comunicação, colaboração e tomada de decisão.`,
+              `Arquétipo central: ${safeText(profile.archetype, 'Estrategista Adaptativo')}.`,
+              `Custo de adaptação ${safeText(adaptation.label, 'indisponível')}${adaptation.avgAbsDelta == null ? '' : ` (${Number(adaptation.avgAbsDelta).toFixed(2)} pontos)`}.`,
+            ])}
+            <p>${esc(adaptation.interpretation)}</p>
+            ${
+              quickContext.hasData
+                ? '<p>Há dados contextuais complementares de anamnese curta associados a esta avaliação para leitura situacional do comportamento.</p>'
+                : ''
+            }
           </div>
-          ${
-            isPremiumTier
-              ? `
-                <div class="card">
-                  <h3>Leitura técnica do eixo dominante</h3>
-                  ${factorAccentBadge(profile, scores.summary, 'Fator de maior intensidade')}
-                  ${miniDiscBarsHtml(scores.natural, 'Intensidade natural por fator')}
-                </div>
-              `
-              : `
-                <div class="card">
-                  <h3>Assinatura comportamental</h3>
-                  <p>Este perfil tende a responder primeiro por <strong>${esc(profilePrimaryLabel)}</strong> e calibrar decisões com <strong>${esc(profileSecondaryLabel)}</strong>.</p>
-                  ${factorAccentBadge(profile, scores.summary, 'Eixo dominante')}
-                </div>
-              `
-          }
         </div>
         ${
           isBalancedProfile
             ? `
-              <div class="card">
-                <h3>SÍNTESE EXECUTIVA DO PERFIL</h3>
-                <p>O perfil apresentado indica uma distribuição comportamental equilibrada entre os fatores do modelo DISC.</p>
-                <div class="grid two stack-on-print">
-                  <div>
-                    <h4>Potenciais observáveis</h4>
-                    ${listHtml([
-                      'boa capacidade de adaptação',
-                      'leitura contextual do ambiente',
-                      'flexibilidade comportamental',
-                      'facilidade em atuar em diferentes tipos de equipe',
-                    ])}
-                  </div>
-                  <div>
-                    <h4>Pontos de atenção</h4>
-                    ${listHtml([
-                      'demora maior na tomada de decisão',
-                      'tendência a buscar validação externa',
-                      'dificuldade em priorizar quando múltiplos caminhos são possíveis',
-                    ])}
-                  </div>
+              <div class="grid two stack-on-print">
+                <div class="card">
+                  <h3>Síntese executiva do perfil</h3>
+                  <p>O perfil apresentado indica uma distribuição comportamental equilibrada entre os fatores do modelo DISC.</p>
+                  ${listHtml([
+                    'Boa capacidade de adaptação a cenários e interlocutores distintos.',
+                    'Leitura contextual do ambiente antes de reagir.',
+                    'Flexibilidade comportamental em diferentes ritmos de equipe.',
+                  ])}
                 </div>
-                <p>O desenvolvimento desse perfil passa principalmente pelo fortalecimento de critérios de decisão, clareza de prioridades e estruturação de processos de análise.</p>
+                <div class="card">
+                  <h3>Pontos de atenção</h3>
+                  ${listHtml([
+                    'Demora maior na tomada de decisão quando existem caminhos equivalentes.',
+                    'Tendência a buscar validação externa antes de concluir posições difíceis.',
+                    'Necessidade de critérios claros para priorizar sob pressão.',
+                  ])}
+                  <p>O desenvolvimento desse perfil passa pelo fortalecimento de critérios de decisão, clareza de prioridades e estruturação de processos de análise.</p>
+                </div>
               </div>
             `
             : `
@@ -2395,7 +2350,7 @@ export function renderReportHtml(input = {}) {
                 <div class="card">
                   <h3>Leitura geral</h3>
                   ${paragraphsHtml((narratives?.summaryParagraphs || []).slice(0, 2), [safeText(insights?.executive, 'Perfil com potencial de impacto quando combina forças naturais com rotina de calibragem.')])}
-                  ${strategicNote('Recomendação executiva', 'Priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais.', 'Esse ajuste aumenta percepção de senioridade, previsibilidade de entrega e influência no time.')}
+                  <p>Recomendação executiva: priorize frentes em que o perfil gere valor imediato e acompanhe riscos de exagero com rituais quinzenais de alinhamento.</p>
                 </div>
               </div>
             `
@@ -2475,7 +2430,6 @@ export function renderReportHtml(input = {}) {
       subtitle: 'Comparação do participante com faixa típica',
       branding,
       content: `
-        ${strategicInsightsSection(isBalancedProfile)}
         ${executiveDivider('Leitura comparativa de aderência', 'Análise de posição relativa por fator e por contexto de negócio')}
         <div class="card">
           <table class="table">
@@ -2492,22 +2446,6 @@ export function renderReportHtml(input = {}) {
             </tbody>
           </table>
         </div>
-        <div class="card">
-          <h3>Aderencia por contexto profissional</h3>
-          <table class="table compact">
-            <thead>
-              <tr>
-                <th>Contexto</th>
-                <th>Indice</th>
-                <th>Leitura</th>
-                <th>Interpretacao</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${adherenceRowsHtml(scores.natural)}
-            </tbody>
-          </table>
-        </div>
         <div class="grid two stack-on-print">
           <div class="card">
             <h3>Legenda de benchmark</h3>
@@ -2515,11 +2453,13 @@ export function renderReportHtml(input = {}) {
             ${listHtml(benchmark?.interpretation, ['Acima da faixa: intensidade alta do fator.', 'Dentro da faixa: alinhamento esperado.', 'Abaixo da faixa: requer compensacao contextual.'])}
           </div>
           <div class="card">
-            <h3>Painel comparativo técnico</h3>
-            ${miniDiscBarsHtml(scores.summary, 'Leitura comparativa por fator')}
-            <p>${esc(safeText(insights?.practicalByPage?.decision, 'Use benchmark para calibrar plano de desenvolvimento sem rotular de forma fixa.'))}</p>
+            <h3>Leitura aplicada</h3>
+            ${listHtml([
+              'Considere benchmark como referência para ajustar papel, expectativa e rotina de feedback.',
+              'Diferenças relevantes entre score e faixa típica indicam pontos de atenção para coaching e calibragem de contexto.',
+              safeText(insights?.practicalByPage?.decision, 'Use benchmark para orientar desenvolvimento sem transformar o perfil em rótulo fixo.'),
+            ])}
             ${enrichmentCard('Risco de exagero', safeText(insights?.behavioralRisk, 'Excesso de um único fator pode elevar risco relacional e reduzir sustentabilidade de resultado.'))}
-            ${strategicNote('Leitura organizacional', 'A diferença entre faixa típica e score atual deve orientar coaching, não julgamento estático do potencial profissional.')}
           </div>
         </div>
       `,
@@ -2541,7 +2481,6 @@ export function renderReportHtml(input = {}) {
                 <h3>ARQUÉTIPO COMPORTAMENTAL</h3>
                 <p>A combinação predominante dos fatores DISC revela um padrão de atuação recorrente em contextos de pressão, colaboração e tomada de decisão.</p>
                 <p><strong>Arquétipo identificado:</strong> ${esc(safeText(profile.archetype, 'Estrategista Adaptativo'))}</p>
-                <p>Este arquétipo tende a operar com leitura situacional elevada, alternando entre firmeza de direção e calibragem relacional conforme o risco do cenário.</p>
                 ${factorAccentBadge(profile, scores.summary, 'Eixo técnico predominante')}
               </div>
             `
@@ -2554,7 +2493,7 @@ export function renderReportHtml(input = {}) {
           <div class="card">
             <h3>Dinâmica narrativa do perfil</h3>
             ${paragraphsHtml(
-              (profileContent?.identityDynamics || narratives?.identityDynamics || []).slice(0, 3),
+              (profileContent?.identityDynamics || narratives?.identityDynamics || []).slice(0, 2),
               ['Dinamica de atuacao com foco em resultado, contexto e colaboracao.']
             )}
             ${miniDiscBarsHtml(scores.natural, 'Assinatura comportamental natural')}
@@ -2570,19 +2509,6 @@ export function renderReportHtml(input = {}) {
             ${listHtml((profileContent?.workRisks || []).slice(0, 4), ['Risco operacional relevante para monitorar em ciclos curtos.'])}
           </div>
         </div>
-        ${
-          isPremiumTier
-            ? `
-              <div class="card">
-                <h3>Leitura relacional do arquétipo</h3>
-                <div class="grid two stack-on-print">
-                  <div>${listHtml((narratives?.communicationStyle || []).slice(0, 2), ['Comunicação orientada ao contexto e ao impacto da mensagem.'])}</div>
-                  <div>${listHtml((narratives?.communicationNeeds || []).slice(0, 2), ['Contexto claro, prioridade definida e próximo passo explícito.'])}</div>
-                </div>
-              </div>
-            `
-            : ''
-        }
         <div class="card">
           ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.dynamics, 'Conecte a dinamica do perfil aos rituais da equipe para elevar previsibilidade de entrega.'))}
           ${
@@ -2761,31 +2687,21 @@ export function renderReportHtml(input = {}) {
         <div class="grid two">
           <div class="card">
             <h3>Estilo de comunicação</h3>
-            ${listHtml(narratives?.communicationStyle, ['Comunicação com foco em clareza, ritmo e objetivo de negócio.'])}
+            ${listHtml((narratives?.communicationStyle || []).slice(0, 3), ['Comunicação com foco em clareza, ritmo e objetivo de negócio.'])}
           </div>
           <div class="card">
             <h3>Necessidades de comunicação</h3>
-            ${listHtml(narratives?.communicationNeeds, ['Definição explícita de prioridade, dono e próximo passo.'])}
+            ${listHtml((narratives?.communicationNeeds || []).slice(0, 3), ['Definição explícita de prioridade, dono e próximo passo.'])}
           </div>
         </div>
         <div class="grid two">
           <div class="card">
             <h3>Boas práticas</h3>
-            ${listHtml(profileContent?.communicationDo, ['Comunicar objetivo, impacto e próximo passo com clareza.'])}
+            ${listHtml((profileContent?.communicationDo || []).slice(0, 4), ['Comunicar objetivo, impacto e próximo passo com clareza.'])}
           </div>
           <div class="card">
             <h3>Evitar</h3>
-            ${listHtml(profileContent?.communicationDont, ['Evitar ambiguidade, promessas sem alinhamento e fechamento incompleto.'])}
-          </div>
-        </div>
-        <div class="grid two">
-          <div class="card">
-            <h3>Princípios de comunicação</h3>
-            ${listHtml(narratives?.communicationPrinciples, ['Ajustar profundidade por público e risco de decisão.'])}
-          </div>
-          <div class="card">
-            <h3>Como abordar este perfil</h3>
-            ${listHtml(narratives?.communicationManagerNotes, ['Dar feedback observável e fechar com compromisso de ação.'])}
+            ${listHtml((profileContent?.communicationDont || []).slice(0, 4), ['Evitar ambiguidade, promessas sem alinhamento e fechamento incompleto.'])}
           </div>
         </div>
         ${enrichmentCard(enrichment.insight, safeText(insights?.executiveByPage?.communication, 'Comunicar com método aumenta velocidade de resposta e qualidade da colaboração.'))}
@@ -2883,7 +2799,6 @@ export function renderReportHtml(input = {}) {
                   'Prazos comprimidos com prioridades conflitantes e ausência de critério explícito de decisão.',
                   'Conflitos recorrentes sem fechamento de acordo e sem dono responsável por destravar o impasse.',
                   'Mudanças inesperadas com baixa previsibilidade operacional e comunicação incompleta de impacto.',
-                  'Ambiguidade em decisões de alto risco, especialmente quando não há fronteira clara de autonomia.',
                 ])}
               </div>
             `
@@ -2900,19 +2815,10 @@ export function renderReportHtml(input = {}) {
           <div class="card">
             <h3>Sinais de alerta universais</h3>
             ${listHtml(
-              [...safeArray(narratives?.stressSignals, []), ...safeArray(narratives?.stressSignalsShared, [])].slice(0, 4),
+              [...safeArray(narratives?.stressSignals, []), ...safeArray(narratives?.stressSignalsShared, [])].slice(0, 3),
               ['Reatividade, queda de clareza e oscilação de consistência.']
             )}
           </div>
-        </div>
-        <div class="card">
-          <h3>Reflexos no ambiente profissional</h3>
-          ${listHtml([
-            `Sob pressão, o fator ${profile.primary} tende a aumentar a intensidade de resposta.`,
-            'A percepção de perda de controle pode gerar comunicação mais curta e defensiva.',
-            'Pode ocorrer queda de escuta em reuniões críticas e retrabalho por desalinhamento.',
-            'Conflitos latentes tendem a escalar quando não há checkpoint de prioridade.'
-          ])}
         </div>
         <div class="card">
           <h3>Como recuperar equilíbrio</h3>
@@ -3013,7 +2919,6 @@ export function renderReportHtml(input = {}) {
                     <tr><td><span class="disc-chip disc-chip-c">C</span> Perfil C</td><td>Média</td><td>Aumenta precisão analítica e gestão de risco, exigindo alinhamento explícito sobre ritmo e profundidade técnica.</td></tr>
                   </tbody>
                 </table>
-                <p>Leitura executiva: compatibilidade não depende apenas de “fit” natural. Ela cresce quando o sistema de trabalho define critérios de decisão, rituais de alinhamento e regras de convivência entre perfis.</p>
               </div>
             `
             : ''
@@ -3021,12 +2926,12 @@ export function renderReportHtml(input = {}) {
         <div class="grid two">
           <div class="card">
             <h3>Perfis complementares</h3>
-            ${listHtml(profileContent?.bestMatches, ['Perfil complementar para equilibrar decisão e relacionamento.'])}
+            ${listHtml((profileContent?.bestMatches || []).slice(0, 3), ['Perfil complementar para equilibrar decisão e relacionamento.'])}
             <p>Perfis complementares ampliam resultado quando há acordo claro de papéis e critério de colaboração.</p>
           </div>
           <div class="card">
             <h3>Perfis com atrito potencial</h3>
-            ${listHtml(profileContent?.frictionMatches, ['Atrito tende a surgir quando ritmo e critério divergem sem alinhamento.'])}
+            ${listHtml((profileContent?.frictionMatches || []).slice(0, 3), ['Atrito tende a surgir quando ritmo e critério divergem sem alinhamento.'])}
             <p>Conflitos diminuem com contratos de convívio, objetivo comum e rituais curtos de alinhamento.</p>
           </div>
         </div>
@@ -3036,11 +2941,9 @@ export function renderReportHtml(input = {}) {
             'Combinações com alta complementaridade funcionam melhor quando a fronteira de decisão é explícita.',
             'Perfis de atrito não devem ser evitados, e sim calibrados por contrato de comunicação.',
             'Equipes maduras usam diversidade comportamental para ampliar velocidade e qualidade simultaneamente.',
-            'Gestores eficazes ajustam rituais conforme combinação de perfis predominantes.',
           ])}
         </div>
         ${enrichmentCard(enrichment.application, 'Diferença de perfil não é problema; problema é falta de combinados claros sobre decisão, prazo e qualidade.')}
-        ${enrichmentCard(enrichment.managerLens, safeText(insights?.managerLens, 'Leitura do gestor para compor equipes complementares com acordos claros de colaboração.'))}
       `,
     })
   );
@@ -3085,8 +2988,7 @@ export function renderReportHtml(input = {}) {
               <div class="card">
                 <h3>ORIENTAÇÃO PROFISSIONAL</h3>
                 <p>Este perfil tende a performar acima da média em ambientes com objetivo estratégico claro, fronteiras de autonomia bem definidas e critérios transparentes de qualidade e decisão.</p>
-                <p>O valor profissional aumenta quando a pessoa atua em papéis que combinam exigência técnica, previsibilidade de execução e espaço para influência contextual sobre decisões relevantes.</p>
-                <p>Em termos de posicionamento de carreira, o diferencial está menos no cargo em si e mais no nível de aderência entre estilo comportamental, arquitetura de gestão e tipo de desafio predominante.</p>
+                <p>O valor profissional aumenta quando a pessoa atua em papéis aderentes ao próprio estilo natural e ao tipo de desafio predominante.</p>
               </div>
             `
             : ''
@@ -3094,26 +2996,16 @@ export function renderReportHtml(input = {}) {
         <div class="grid two">
           <div class="card">
             <h3>Funções recomendadas</h3>
-            ${listHtml(profileContent?.recommendedRoles, ['Função com aderência comportamental alta ao perfil identificado.'])}
+            ${listHtml((profileContent?.recommendedRoles || []).slice(0, 5), ['Função com aderência comportamental alta ao perfil identificado.'])}
           </div>
           <div class="card">
             <h3>Funções de menor aderência</h3>
-            ${listHtml(profileContent?.lowFitRoles, ['Função que pode gerar desgaste sem ajuste de contexto e suporte.'])}
+            ${listHtml((profileContent?.lowFitRoles || []).slice(0, 3), ['Função que pode gerar desgaste sem ajuste de contexto e suporte.'])}
           </div>
         </div>
         <div class="card">
           <h3>Framework de crescimento</h3>
-          ${listHtml(narratives?.careerFramework, ['Evolução de carreira combina contexto adequado e desenvolvimento intencional.'])}
-          <table class="table compact">
-            <thead>
-              <tr><th>Eixo</th><th>Leitura</th><th>Prioridade</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Potencial técnico</td><td>Compatível com padrões de qualidade e consistência esperados.</td><td>Média</td></tr>
-              <tr><td>Potencial relacional</td><td>Depende da calibragem entre comunicação, influência e escuta ativa.</td><td>Alta</td></tr>
-              <tr><td>Potencial de liderança</td><td>Escala quando há clareza de contexto e rotina de feedback observável.</td><td>Alta</td></tr>
-            </tbody>
-          </table>
+          ${listHtml((narratives?.careerFramework || []).slice(0, 4), ['Evolução de carreira combina contexto adequado e desenvolvimento intencional.'])}
           ${enrichmentCard(enrichment.application, safeText(insights?.practicalByPage?.career, 'Aderência de carreira melhora quando força natural e exigência da função estão em equilíbrio.'))}
           ${enrichmentCard('Observação de carreira', safeText(insights?.careerCallout, 'Aderência de carreira melhora quando força natural e exigência da função estão em equilíbrio.'))}
         </div>
@@ -3185,7 +3077,7 @@ export function renderReportHtml(input = {}) {
                 <h3>TOP 10 RISCOS COMPORTAMENTAIS PRIORITÁRIOS</h3>
                 <p>Os riscos abaixo indicam padrões que podem comprometer previsibilidade de entrega, qualidade relacional e consistência decisória quando o perfil opera sob pressão sem calibragem.</p>
                 ${listHtml(
-                  premiumTopRisks,
+                  premiumTopRisks.slice(0, 6),
                   ['Risco de oscilação de clareza quando a pressão aumenta sem critério de decisão.'],
                 )}
               </div>
@@ -3195,7 +3087,7 @@ export function renderReportHtml(input = {}) {
         <div class="card">
           <h3>${isPremiumTier ? 'Riscos complementares para monitoramento' : 'Pontos de desenvolvimento prioritários'}</h3>
           ${listHtml(
-            isPremiumTier ? premiumComplementaryRisks : profileContent?.developmentPoints,
+            isPremiumTier ? premiumComplementaryRisks.slice(0, 4) : profileContent?.developmentPoints,
             ['Ponto de desenvolvimento com alto potencial de impacto no resultado.'],
           )}
         </div>
@@ -3203,7 +3095,7 @@ export function renderReportHtml(input = {}) {
           <div class="card">
             <h3>Risco de exagero do perfil</h3>
             <p>${esc(safeText(insights?.riskOfExcess, safeText(insights?.behavioralRisk, 'Exagero de fator primário sem calibragem pode gerar queda de qualidade relacional e impacto em performance sustentável.')))}</p>
-            ${listHtml(narratives?.developmentRisks, ['Exagero comportamental sem revisão de contexto pode reduzir performance sustentável.'])}
+            ${listHtml((narratives?.developmentRisks || []).slice(0, 3), ['Exagero comportamental sem revisão de contexto pode reduzir performance sustentável.'])}
           </div>
           <div class="card">
             <h3>Impacto na carreira</h3>
@@ -3850,47 +3742,43 @@ export function renderReportHtml(input = {}) {
             <p><strong>Fatores de maior expressão:</strong> ${esc(profile.primary)} e ${esc(profile.secondary)}</p>
             <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta ?? 'n/d')} pontos)</p>
             <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
-            <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, 'suporte@insightdisc.app'))}</p>
+            <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, platformEmail))}</p>
             <p>Este relatório utiliza o modelo DISC como ferramenta de análise comportamental e não constitui diagnóstico psicológico.</p>
           </div>
           <div class="card">
-            <h3>Assinatura institucional</h3>
-            <p><strong>${esc(meta.responsibleName)}</strong></p>
-            <p>${esc(meta.responsibleRole)}</p>
-            <p>${esc(branding.company_name)}</p>
-            <p>${esc(branding.report_footer_text)}</p>
+            <h3>Encerramento institucional</h3>
+            <p><strong>${esc(PLATFORM_BRAND_LINE)}</strong></p>
+            <p><strong>Site:</strong> ${esc(platformWebsite)}</p>
+            <p><strong>E-mail:</strong> ${esc(platformEmail)}</p>
+            <p><strong>Instagram:</strong> ${esc(platformInstagram)}</p>
+            <p><strong>Emissão:</strong> ${esc(issuerResponsibleName)} • ${esc(issuerResponsibleRole)}</p>
+            <p><strong>Organização emissora:</strong> ${esc(coverIssuerOrganization)}</p>
+            <p><strong>Contato da emissão:</strong> ${esc(issuerResponsibleContact)}</p>
           </div>
         </div>
         <div class="card final-lockup">
           ${
-            finalLockupLogoSrc
+            shouldRenderFinalLockupLogo
               ? `<img src="${esc(finalLockupLogoSrc)}" alt="InsightDISC" class="final-lockup-logo" />`
               : '<div class="final-lockup-logo-fallback">InsightDISC</div>'
           }
           <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
         </div>
-        ${
-          isPremiumTier
-            ? strategicNote(
-                'Encerramento premium',
-                'Use este relatório como instrumento de decisão e desenvolvimento contínuo. O valor está na aplicação prática com disciplina, contexto e acompanhamento real.'
-              )
-            : strategicNote(
-                'Próximos passos recomendados',
-                'Selecione duas prioridades comportamentais, defina indicadores simples de evolução e revise o progresso em um ciclo de 30 dias com feedback estruturado.'
-              )
-        }
+        <div class="grid two">
+          <div class="card">
+            <h3>Respaldo técnico-profissional</h3>
+            <p><strong>Verônica Feuser</strong> – Psicanalista</p>
+            <p>Responsável pelo respaldo técnico-profissional do modelo de leitura comportamental adotado neste relatório.</p>
+          </div>
+          <div class="card">
+            <h3>Fechamento</h3>
+            <p>Relatório gerado automaticamente pela plataforma InsightDISC.</p>
+            <p>Use este documento como instrumento de decisão, desenvolvimento e acompanhamento contínuo, sempre combinado ao contexto real de atuação.</p>
+          </div>
+        </div>
       `,
     })
   );
-
-  const institutionalOpeningPage = buildBackCoverPage(branding, {
-    isPremiumTier,
-    reportType,
-    generatedAt: coverGeneratedDate,
-    variant: isPremiumTier ? 'premium-opening' : 'standard-closing',
-    logoSrc: institutionalLogoSrc,
-  });
 
   let selectedPagesRaw;
   if (reportType === REPORT_TIER.STANDARD) {
@@ -3901,21 +3789,9 @@ export function renderReportHtml(input = {}) {
     selectedPagesRaw = pages;
   }
 
-  if (selectedPagesRaw.length > 1) {
-    selectedPagesRaw = [selectedPagesRaw[0], institutionalOpeningPage, ...selectedPagesRaw.slice(1)];
-  } else if (selectedPagesRaw.length === 1) {
-    selectedPagesRaw = [selectedPagesRaw[0], institutionalOpeningPage];
-  }
-
   const visibleTotalPages = selectedPagesRaw.length || meta.totalPages;
-  const premiumFooterLabel =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 'Relatório Professional InsightDISC'
-      : reportType === REPORT_TIER.PREMIUM
-        ? 'Relatório Premium InsightDISC'
-        : '';
   const selectedPages = selectedPagesRaw.map((pageHtml, index) =>
-    remapPageForTier(pageHtml, index + 1, visibleTotalPages, premiumFooterLabel),
+    remapPageForTier(pageHtml, index + 1, visibleTotalPages, ''),
   );
 
   const html = `<!doctype html>
@@ -4013,7 +3889,15 @@ export function renderReportHtml(input = {}) {
       .grid.two.stack-on-print,
       .visual-panel-notes,
       .back-cover-columns {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .summary-layout-grid {
+        grid-template-columns: 1.22fr 0.78fr !important;
+      }
+
+      .summary-balance-grid {
+        grid-template-columns: 1.1fr 0.9fr !important;
       }
 
       .split-half-layout {
@@ -4021,7 +3905,7 @@ export function renderReportHtml(input = {}) {
       }
 
       .kpi-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
       }
 
       .kpi-pill-wide {
@@ -4029,7 +3913,7 @@ export function renderReportHtml(input = {}) {
       }
 
       .decision-path-row {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr !important;
       }
 
       .decision-arrow {
@@ -4115,26 +3999,13 @@ export function renderReportHtml(input = {}) {
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
     }
 
-    .report-header-text {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .report-header-brand {
-      font-size: 20px;
-      font-weight: 800;
+    .report-header-line {
+      font-size: 12px;
+      font-weight: 700;
       color: #0b1f3b;
-      line-height: 1;
-      letter-spacing: 0.2px;
-    }
-
-    .report-header-subtitle {
-      font-size: 11px;
-      color: #64748b;
       line-height: 1.2;
+      letter-spacing: 0.25px;
+      white-space: nowrap;
     }
 
     .section-head {
@@ -4237,8 +4108,8 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-page {
-      background: #ffffff;
-      border: 1px solid #e7ebf1;
+      background: #eef2f7;
+      border: 1px solid rgba(11, 31, 59, 0.08);
     }
 
     .cover-page::before {
@@ -4246,20 +4117,24 @@ export function renderReportHtml(input = {}) {
     }
 
     .cover-content {
+      --navy: #0b1f3b;
+      --gold: #f7b500;
+      --gold-2: #ff8a00;
+      --white: #ffffff;
+      --bg: #eef2f7;
+      --text: #243447;
+      --muted: #6b7280;
       position: relative;
       z-index: 1;
       padding: 0;
-      height: 100%;
+      min-height: 296mm;
+      height: 296mm;
       width: 100%;
       display: flex;
       align-items: stretch;
       justify-content: stretch;
       overflow: hidden;
-      background-color: #ffffff;
-      background-image: linear-gradient(180deg, #ffffff, #ffffff);
-      background-size: cover;
-      background-position: center center;
-      background-repeat: no-repeat;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--white) 100%);
     }
 
     .cover-content::before {
@@ -4267,214 +4142,252 @@ export function renderReportHtml(input = {}) {
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 94% 7%, rgba(15, 23, 42, 0.035), transparent 36%),
-        radial-gradient(circle at 8% 92%, rgba(216, 164, 68, 0.08), transparent 35%);
-      z-index: 1;
+        radial-gradient(circle at 88% 10%, rgba(247, 181, 0, 0.18), transparent 28%),
+        radial-gradient(circle at 10% 88%, rgba(11, 31, 59, 0.1), transparent 34%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .cover-content::after {
+      content: "";
+      position: absolute;
+      right: 18mm;
+      top: 58mm;
+      width: 44mm;
+      height: 44mm;
+      border-radius: 999px;
+      border: 1px solid rgba(11, 31, 59, 0.08);
+      background: linear-gradient(135deg, rgba(247, 181, 0, 0.2), rgba(255, 138, 0, 0.12));
+      z-index: 0;
       pointer-events: none;
     }
 
     .cover-art-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      opacity: 0.06;
+      display: none;
     }
 
     .cover-shell {
       position: absolute;
-      left: 20mm;
-      right: 20mm;
-      top: 18mm;
-      bottom: 20mm;
+      inset: 0;
       z-index: 2;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 12mm;
+      min-height: 100%;
+      height: 100%;
     }
 
-    .cover-identity-block {
-      align-self: flex-start;
-      padding: 3.2mm 4.2mm;
-      border-radius: 12px;
-      border: 1px solid #d7e1ef;
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    .cover-top-band {
+      padding: 16mm 18mm 13mm;
+      background: var(--navy);
+      color: var(--white);
+      text-align: center;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .cover-brand-title {
-      font-size: 20px;
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: 0.3px;
-      color: #0b1f3b;
-    }
-
-    .cover-brand-logo {
+    .cover-top-band::after {
+      content: "";
       display: block;
-      width: 54mm;
-      max-width: 100%;
-      height: auto;
-      margin-bottom: 2.6mm;
-      object-fit: contain;
-    }
-
-    .cover-brand-logo-fallback {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 16mm;
-      margin-bottom: 2.6mm;
-      padding: 2.2mm 4mm;
-      border-radius: 10px;
-      border: 1px solid #d9e3f0;
-      background: linear-gradient(180deg, #f8fbff, #ffffff);
-      color: #0b1f3b;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 0.3px;
-    }
-
-    .cover-brand-subtitle {
-      font-size: 10.6px;
-      color: #4b5f7e;
-      line-height: 1.35;
-      margin-top: 1.2mm;
-    }
-
-    .cover-info-card {
-      padding: 8.5mm 9mm 8mm;
-      border-radius: 16px;
-      border: 1px solid #d6e1ef;
-      color: #0f172a;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
-    }
-
-    .cover-info-card-premium {
-      background: linear-gradient(180deg, #ffffff, #fbfdff);
-      border-top: 4px solid rgba(216, 164, 68, 0.76);
-    }
-
-    .cover-info-card-standard {
-      background: linear-gradient(180deg, #ffffff, #fbfdff);
-      border-top: 4px solid rgba(11, 31, 59, 0.35);
-    }
-
-    .cover-info-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 4.2mm;
-    }
-
-    .cover-tier-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.6mm 4mm;
+      width: 32mm;
+      height: 1.4mm;
+      margin: 4mm auto 0;
       border-radius: 999px;
-      font-size: 10px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-2));
+    }
+
+    .cover-top-brand {
+      font-size: 26px;
       font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
+      line-height: 1.05;
+      letter-spacing: 0.4px;
     }
 
-    .cover-tier-premium {
-      border: 1px solid rgba(216, 164, 68, 0.65);
-      background: linear-gradient(180deg, rgba(216, 164, 68, 0.2), rgba(216, 164, 68, 0.05));
-      color: #7a5715;
-    }
-
-    .cover-tier-standard {
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: linear-gradient(180deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
-      color: #24344f;
-    }
-
-    .cover-tier-caption {
-      font-size: 10px;
+    .cover-top-subtitle {
+      margin-top: 2.2mm;
+      font-size: 11.8px;
       line-height: 1.35;
-      color: #51637f;
-      text-align: right;
-      max-width: 56%;
+      letter-spacing: 0.4px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .cover-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6.5mm;
+      padding: 12mm 18mm 10mm;
+    }
+
+    .cover-central-block,
+    .cover-identity-card,
+    .cover-support-card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(11, 31, 59, 0.08);
+      box-shadow: 0 14px 34px rgba(11, 31, 59, 0.08);
+    }
+
+    .cover-central-block {
+      padding: 9mm 10mm 8mm;
+      border-radius: 22px;
     }
 
     .cover-report-kicker {
-      margin: 0;
-      font-size: 12px;
+      margin: 0 0 2.8mm;
+      font-size: 11px;
       font-weight: 800;
-      letter-spacing: 1.1px;
+      letter-spacing: 1.15px;
       text-transform: uppercase;
-      margin-bottom: 3.4mm;
-      color: #0b1f3b;
+      color: var(--navy);
     }
 
-    .cover-report-subtitle {
-      font-size: 12.4px;
-      line-height: 1.4;
-      color: #384c67;
-      margin-bottom: 5.2mm;
-      max-width: 96%;
+    .cover-mode-line {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5mm 3.8mm;
+      margin-bottom: 4.2mm;
+      border-radius: 999px;
+      border: 1px solid rgba(247, 181, 0, 0.48);
+      background: rgba(247, 181, 0, 0.16);
+      color: var(--navy);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
     }
 
     .cover-name-highlight {
-      display: inline-flex;
-      align-items: center;
-      max-width: 100%;
-      margin-bottom: 4.6mm;
-      padding: 1.9mm 4.2mm;
-      border-radius: 10px;
-      background: linear-gradient(180deg, #ffffff, #f5f9ff);
-      border: 1px solid #d7e3f1;
-      font-size: 19px;
+      display: block;
+      margin: 0 0 5mm;
+      font-size: 28px;
       font-weight: 800;
-      line-height: 1.1;
+      line-height: 1.04;
+      letter-spacing: 0.1px;
+      color: var(--navy);
       overflow-wrap: anywhere;
-      letter-spacing: 0.2px;
-      color: #0f172a;
     }
 
-    .cover-report-premium-note {
-      margin-top: -1.2mm;
-      margin-bottom: 4.8mm;
-      font-size: 10.7px;
-      line-height: 1.42;
-      color: #6f5318;
-      border-left: 2px solid rgba(216, 164, 68, 0.7);
-      padding-left: 3mm;
-      max-width: 92%;
+    .cover-name-highlight::after {
+      content: "";
+      display: block;
+      width: 44mm;
+      height: 1.8mm;
+      margin-top: 3.4mm;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-2));
     }
 
-    .cover-info-grid {
+    .cover-meta-pair,
+    .cover-id-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 4.2mm 7mm;
+      gap: 4.2mm 8mm;
     }
 
-    .cover-info-item {
+    .cover-meta-column,
+    .cover-id-item {
       min-width: 0;
     }
 
-    .cover-info-item span {
+    .cover-card-heading,
+    .cover-meta-column span,
+    .cover-id-item span {
       display: block;
-      font-size: 10px;
+      font-size: 9.8px;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.9px;
-      color: #5a6e8c;
-      margin-bottom: 1.4mm;
+      color: var(--muted);
     }
 
-    .cover-info-item strong {
+    .cover-meta-column strong,
+    .cover-id-item strong {
       display: block;
+      margin-top: 1.4mm;
       font-size: 13px;
       font-weight: 700;
-      line-height: 1.25;
+      line-height: 1.3;
+      color: var(--text);
       overflow-wrap: anywhere;
-      color: #0f172a;
+    }
+
+    .cover-identity-card {
+      padding: 8mm 10mm 7.6mm;
+      border-radius: 20px;
+    }
+
+    .cover-card-heading {
+      margin-bottom: 4mm;
+    }
+
+    .cover-support-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 6mm;
+      margin-top: auto;
+    }
+
+    .cover-support-card {
+      padding: 6.5mm 7mm 6.5mm 9mm;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .cover-support-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2.4mm;
+      background: linear-gradient(180deg, var(--gold), var(--gold-2));
+    }
+
+    .cover-institution-title {
+      font-size: 15.2px;
+      font-weight: 800;
+      line-height: 1.28;
+      color: var(--navy);
+      margin-bottom: 2.2mm;
+    }
+
+    .cover-institution-url {
+      font-size: 12.2px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    .cover-institution-contact {
+      margin-top: 2mm;
+      font-size: 11.4px;
+      line-height: 1.35;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .cover-support-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text);
+      margin-bottom: 3.2mm;
+    }
+
+    .cover-support-name {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--navy);
+      margin-bottom: 1.2mm;
+    }
+
+    .cover-support-role {
+      font-size: 12.2px;
+      line-height: 1.35;
+      color: var(--muted);
+      font-weight: 600;
     }
 
     .executive-hero {
@@ -4501,10 +4414,16 @@ export function renderReportHtml(input = {}) {
       color: #4a5b76;
     }
 
-    .cover-footer {
-      background: transparent;
-      color: #51637f;
-      border-top: 1px solid #dce4ef;
+    .cover-footer-note {
+      position: relative;
+      z-index: 1;
+      padding: 4.6mm 18mm 9mm;
+      border-top: 1px solid rgba(11, 31, 59, 0.08);
+      background: rgba(255, 255, 255, 0.5);
+      font-size: 9.8px;
+      line-height: 1.45;
+      text-align: center;
+      color: var(--muted);
     }
 
     p {
@@ -5467,7 +5386,9 @@ export function renderReportHtml(input = {}) {
     .summary-item,
     .summary-col,
     .executive-hero,
-    .cover-info-card,
+    .cover-central-block,
+    .cover-identity-card,
+    .cover-support-card,
     .final-lockup {
       page-break-inside: avoid;
       break-inside: avoid;
@@ -5827,6 +5748,242 @@ export function renderReportHtml(input = {}) {
       margin-bottom: 0;
     }
 
+    body.theme-premium {
+      background:
+        radial-gradient(circle at 16% 12%, rgba(229, 54, 141, 0.15), transparent 20%),
+        radial-gradient(circle at 84% 10%, rgba(55, 116, 255, 0.16), transparent 22%),
+        linear-gradient(180deg, #050413 0%, #09081f 45%, #050412 100%);
+      color: #eef2ff;
+    }
+
+    body.theme-premium .page {
+      background: linear-gradient(180deg, #08061d 0%, #110c31 55%, #08051a 100%);
+      border-color: rgba(139, 127, 255, 0.14);
+      box-shadow: 0 18px 44px rgba(2, 4, 16, 0.45);
+      color: #eef2ff;
+    }
+
+    body.theme-premium .page-even {
+      background: linear-gradient(180deg, #0b0824 0%, #130d36 55%, #09061f 100%);
+    }
+
+    body.theme-premium .page-odd {
+      background: linear-gradient(180deg, #070519 0%, #100b2f 55%, #070518 100%);
+    }
+
+    body.theme-premium .page-backdrop {
+      background:
+        radial-gradient(circle at 88% 8%, rgba(52, 113, 255, 0.2), transparent 22%),
+        radial-gradient(circle at 14% 18%, rgba(235, 48, 148, 0.18), transparent 22%),
+        radial-gradient(circle at 12% 92%, rgba(147, 69, 255, 0.16), transparent 24%);
+      opacity: 1;
+    }
+
+    body.theme-premium .content {
+      color: #eef2ff;
+    }
+
+    body.theme-premium .page-brand-strip {
+      background: linear-gradient(180deg, rgba(20, 17, 58, 0.94), rgba(11, 10, 40, 0.94));
+      border-color: rgba(136, 122, 255, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    body.theme-premium .report-header-line {
+      color: #edf2ff;
+      letter-spacing: 0.32px;
+      text-shadow: none;
+    }
+
+    body.theme-premium .section-head {
+      border-bottom-color: rgba(138, 123, 255, 0.18);
+    }
+
+    body.theme-premium .section-icon {
+      border-color: rgba(138, 123, 255, 0.24);
+      background: linear-gradient(180deg, rgba(63, 37, 133, 0.92), rgba(33, 21, 88, 0.96));
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.26);
+    }
+
+    body.theme-premium .section-icon svg {
+      stroke: #f7b500;
+    }
+
+    body.theme-premium .section-head h2,
+    body.theme-premium h3,
+    body.theme-premium h4 {
+      color: #f5f7ff;
+    }
+
+    body.theme-premium .section-head span,
+    body.theme-premium .muted-note,
+    body.theme-premium .kpi-copy span,
+    body.theme-premium .kpi-copy small,
+    body.theme-premium .report-header-subtitle,
+    body.theme-premium small {
+      color: rgba(213, 221, 255, 0.74);
+    }
+
+    body.theme-premium p,
+    body.theme-premium .bullet-list li,
+    body.theme-premium .back-cover-card p,
+    body.theme-premium .back-cover-confidence {
+      color: #e5eaff;
+    }
+
+    body.theme-premium .card,
+    body.theme-premium .strategic-note,
+    body.theme-premium .callout-box,
+    body.theme-premium .kpi-pill,
+    body.theme-premium .factor-card,
+    body.theme-premium .factor-tech-card,
+    body.theme-premium .visual-panel,
+    body.theme-premium .behavior-matrix,
+    body.theme-premium .decision-path,
+    body.theme-premium .stress-escalation,
+    body.theme-premium .executive-hero,
+    body.theme-premium .final-lockup,
+    body.theme-premium .summary-item,
+    body.theme-premium .summary-col {
+      background: linear-gradient(180deg, rgba(66, 33, 140, 0.82), rgba(25, 19, 80, 0.94));
+      border-color: rgba(156, 141, 255, 0.18);
+      box-shadow: 0 12px 28px rgba(1, 3, 12, 0.3);
+    }
+
+    body.theme-premium .card::after {
+      background: radial-gradient(circle, rgba(255, 66, 153, 0.18), rgba(255, 66, 153, 0));
+    }
+
+    body.theme-premium .strategic-note,
+    body.theme-premium .callout-box {
+      background: linear-gradient(180deg, rgba(57, 31, 125, 0.9), rgba(22, 19, 74, 0.96));
+    }
+
+    body.theme-premium .bullet-list li::before {
+      color: #f7b500;
+    }
+
+    body.theme-premium .table,
+    body.theme-premium .table td {
+      color: #e7ecff;
+    }
+
+    body.theme-premium .table th {
+      background: rgba(255, 255, 255, 0.06);
+      color: #f6f8ff;
+    }
+
+    body.theme-premium .table th,
+    body.theme-premium .table td,
+    body.theme-premium .footer,
+    body.theme-premium .back-cover-bottom {
+      border-color: rgba(138, 123, 255, 0.18);
+    }
+
+    body.theme-premium .mini-disc-track,
+    body.theme-premium .stress-track,
+    body.theme-premium .factor-mini-track,
+    body.theme-premium .bar-track {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    body.theme-premium .decision-arrow,
+    body.theme-premium .mini-disc-header span,
+    body.theme-premium .stress-label small,
+    body.theme-premium .matrix-quadrant small {
+      color: rgba(218, 225, 255, 0.7);
+    }
+
+    body.theme-premium .decision-step,
+    body.theme-premium .matrix-quadrant,
+    body.theme-premium .summary-item,
+    body.theme-premium .summary-col,
+    body.theme-premium .summary-copy,
+    body.theme-premium .summary-order,
+    body.theme-premium .kpi-pill-wide {
+      border-color: rgba(156, 141, 255, 0.16);
+      color: #eef2ff;
+    }
+
+    body.theme-premium .footer {
+      color: rgba(212, 220, 255, 0.8);
+    }
+
+    body.theme-premium .footer span:first-child {
+      color: #f2f5ff;
+    }
+
+    body.theme-premium .cover-page {
+      background: linear-gradient(180deg, #060418 0%, #0d0a27 55%, #060515 100%);
+      border-color: rgba(139, 127, 255, 0.16);
+    }
+
+    body.theme-premium .cover-content {
+      background:
+        radial-gradient(circle at 14% 42%, rgba(237, 55, 145, 0.2), transparent 24%),
+        radial-gradient(circle at 74% 16%, rgba(57, 113, 255, 0.22), transparent 22%),
+        linear-gradient(135deg, #060416 0%, #0d0a27 48%, #09061e 100%);
+    }
+
+    body.theme-premium .cover-content::before {
+      background:
+        radial-gradient(circle at 88% 10%, rgba(247, 181, 0, 0.12), transparent 24%),
+        radial-gradient(circle at 10% 88%, rgba(146, 64, 255, 0.16), transparent 30%);
+    }
+
+    body.theme-premium .cover-content::after {
+      border-color: rgba(129, 113, 255, 0.16);
+      background: linear-gradient(135deg, rgba(229, 54, 141, 0.18), rgba(55, 116, 255, 0.15));
+    }
+
+    body.theme-premium .cover-top-band {
+      background: linear-gradient(180deg, rgba(10, 9, 34, 0.94), rgba(8, 8, 26, 0.92));
+    }
+
+    body.theme-premium .cover-central-block,
+    body.theme-premium .cover-identity-card,
+    body.theme-premium .cover-support-card {
+      background: linear-gradient(180deg, rgba(37, 25, 96, 0.84), rgba(18, 15, 58, 0.92));
+      border-color: rgba(151, 136, 255, 0.16);
+      box-shadow: 0 18px 38px rgba(1, 3, 12, 0.28);
+    }
+
+    body.theme-premium .cover-report-kicker,
+    body.theme-premium .cover-mode-line,
+    body.theme-premium .cover-card-heading,
+    body.theme-premium .cover-meta-column span,
+    body.theme-premium .cover-id-item span {
+      color: rgba(229, 235, 255, 0.76);
+    }
+
+    body.theme-premium .cover-mode-line {
+      border-color: rgba(247, 181, 0, 0.42);
+      background: rgba(247, 181, 0, 0.1);
+      color: #f7d78b;
+    }
+
+    body.theme-premium .cover-name-highlight,
+    body.theme-premium .cover-meta-column strong,
+    body.theme-premium .cover-id-item strong,
+    body.theme-premium .cover-institution-title,
+    body.theme-premium .cover-institution-url,
+    body.theme-premium .cover-support-title,
+    body.theme-premium .cover-support-name {
+      color: #f4f7ff;
+    }
+
+    body.theme-premium .cover-top-subtitle,
+    body.theme-premium .cover-support-role,
+    body.theme-premium .cover-institution-contact,
+    body.theme-premium .cover-footer-note {
+      color: rgba(222, 229, 255, 0.76);
+    }
+
+    body.theme-premium .cover-footer-note {
+      border-top-color: rgba(145, 131, 255, 0.14);
+      background: rgba(5, 6, 20, 0.34);
+    }
+
     @media print {
       .back-cover-page {
         margin: 0 !important;
@@ -5841,7 +5998,7 @@ export function renderReportHtml(input = {}) {
     }
   </style>
 </head>
-<body>
+<body class="${isPremiumTier ? 'theme-premium' : 'theme-standard'}">
   ${selectedPages.join('\n')}
 </body>
 </html>`;

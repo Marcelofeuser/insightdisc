@@ -8,6 +8,7 @@ import {
   getApiAuthHeaders,
   getApiBaseUrl,
   getApiToken,
+  resolveApiRequestUrl,
 } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -206,7 +207,7 @@ export default function LeadsDashboard() {
       const canUseApiExport = Boolean(apiBaseUrl && apiToken && !base44?.__isMock);
 
       if (canUseApiExport) {
-        const response = await fetch(`${apiBaseUrl}/api/leads/export/csv`, {
+        const response = await fetch(resolveApiRequestUrl('/api/leads/export/csv', { baseUrl: apiBaseUrl }), {
           method: 'GET',
           headers: {
             ...getApiAuthHeaders(),

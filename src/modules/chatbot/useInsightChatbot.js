@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import insightChatbotFlow from '@/modules/chatbot/insightChatbotFlow';
-import { getApiBaseUrl } from '@/lib/apiClient';
+import { getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 
 const LEADS_STORAGE_KEY = 'insightdisc_chatbot_leads';
 
@@ -228,7 +228,7 @@ export function useInsightChatbot() {
     let sentToApi = false;
     if (apiBaseUrl) {
       try {
-        const response = await fetch(`${apiBaseUrl}/api/leads`, {
+        const response = await fetch(resolveApiRequestUrl('/api/leads', { baseUrl: apiBaseUrl }), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(leadRecord),

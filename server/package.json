@@ -16,7 +16,7 @@
     "create:super-admin": "node scripts/create-super-admin.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "6.19.2",
     "@sparticuz/chromium": "^143.0.4",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -30,6 +30,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "prisma": "^6.4.1"
+    "prisma": "6.19.2"
   }
 }

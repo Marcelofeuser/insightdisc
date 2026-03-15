@@ -12,7 +12,7 @@ Production-oriented backend scaffold for InsightDISC.
 
 ## Quick start
 1. Copy `.env.example` to `.env`.
-2. Configure `DATABASE_URL` and `JWT_SECRET`.
+2. Configure `DATABASE_URL`, `DIRECT_URL` and `JWT_SECRET`.
 3. Install dependencies:
    - `cd server && npm install`
 4. Initialize database:

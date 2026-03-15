@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { apiRequest, getApiAuthHeaders, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiAuthHeaders, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -209,9 +209,7 @@ export default function SuperAdminDashboard() {
     (rawUrl = '') => {
       const normalized = String(rawUrl || '').trim();
       if (!normalized) return '';
-      if (/^https?:\/\//i.test(normalized)) return normalized;
-      if (!apiBaseUrl) return normalized;
-      return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
+      return resolveApiRequestUrl(normalized, { baseUrl: apiBaseUrl });
     },
     [apiBaseUrl],
   );
@@ -497,7 +495,7 @@ export default function SuperAdminDashboard() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/leads/export/csv`, {
+      const response = await fetch(resolveApiRequestUrl('/api/leads/export/csv', { baseUrl: apiBaseUrl }), {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -678,7 +676,9 @@ export default function SuperAdminDashboard() {
           </div>
         </section>
 
-        <CampaignsPanel />
+        <section id="campaigns" className="scroll-mt-24">
+          <CampaignsPanel />
+        </section>
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-white">Leads</h2>

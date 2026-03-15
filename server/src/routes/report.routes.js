@@ -14,10 +14,136 @@ const router = Router();
 
 function normalizeReportType(value) {
   const normalized = String(value || '').toLowerCase().trim();
+  if (normalized === 'business') return 'premium';
   if (normalized === 'professional') return 'professional';
   if (normalized === 'premium') return 'premium';
   return 'standard';
 }
+
+const reportGenerateSchema = z.object({
+  assessmentId: z.string().min(1),
+  reportType: z.enum(['standard', 'premium', 'professional', 'business']).optional(),
+});
+
+const reportGenerateGetSchema = z.object({
+  assessmentId: z.string().trim().optional(),
+  reportType: z.enum(['standard', 'premium', 'professional', 'business']).optional(),
+});
+
+async function resolveAssessmentIdForGeneration({ assessmentId, req }) {
+  const normalizedAssessmentId = String(assessmentId || '').trim();
+  if (normalizedAssessmentId) return normalizedAssessmentId;
+
+  const userRole = String(req.user?.role || '').trim().toUpperCase();
+  const whereClause =
+    userRole === 'SUPER_ADMIN'
+      ? {}
+      : {
+          OR: [{ createdBy: req.auth.userId }, { candidateUserId: req.auth.userId }],
+        };
+
+  const fallback = await prisma.assessment.findFirst({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
+    select: { id: true },
+  });
+
+  if (fallback?.id) return fallback.id;
+
+  const error = new Error('ASSESSMENT_ID_REQUIRED');
+  error.statusCode = 400;
+  throw error;
+}
+
+async function generateReportPayload({ assessmentId, reportType, req }) {
+  const assetBaseUrl = getRequestBaseUrl(req);
+  const normalizedReportType = normalizeReportType(reportType);
+  const resolvedAssessmentId = await resolveAssessmentIdForGeneration({ assessmentId, req });
+  const assessment = await prisma.assessment.findUnique({
+    where: { id: resolvedAssessmentId },
+    include: {
+      report: true,
+      creator: true,
+      organization: { include: { owner: true } },
+      quickContext: true,
+    },
+  });
+  if (!assessment) {
+    const error = new Error('Assessment não encontrado.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
+  if (!allowed) {
+    const error = new Error('FORBIDDEN');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const reportModel = await buildPremiumReportModel({
+    assessment,
+    discResult: assessment.report?.discProfile || {},
+    assetBaseUrl,
+    currentUser: req.user || null,
+    reportType: normalizedReportType,
+  });
+
+  console.info('[report/generate] generating report', {
+    assessmentId: assessment.id,
+    reportType: normalizedReportType,
+    userId: req.auth.userId,
+  });
+
+  const pdf = await generatePremiumPdf(reportModel, assessment.id, assessment);
+
+  const report = await prisma.report.upsert({
+    where: { assessmentId: assessment.id },
+    create: {
+      assessmentId: assessment.id,
+      discProfile: reportModel,
+      pdfUrl: pdf.pdfUrl || null,
+    },
+    update: {
+      discProfile: reportModel,
+      pdfUrl: pdf.pdfUrl || null,
+    },
+  });
+
+  console.info('[report/generate] report generated', {
+    assessmentId: assessment.id,
+    reportId: report.id,
+    reportType: normalizedReportType,
+  });
+
+  return {
+    report,
+    html: pdf.html,
+    pdfUrl: report.pdfUrl,
+  };
+}
+
+router.get(
+  '/generate',
+  requireAuth,
+  attachUser,
+  requireActiveCustomer,
+  requireReportExport,
+  async (req, res) => {
+    try {
+      const input = reportGenerateGetSchema.parse(req.query || {});
+      const payload = await generateReportPayload({
+        assessmentId: input.assessmentId,
+        reportType: input.reportType,
+        req,
+      });
+      return res.status(200).json({ ok: true, ...payload });
+    } catch (error) {
+      const status = Number(error?.statusCode) || 400;
+      return res.status(status).json({ ok: false, error: error?.message || 'Falha ao gerar relatório.' });
+    }
+  },
+);
 
 router.get(
   '/:assessmentId/html',
@@ -74,73 +200,13 @@ router.post(
   requireReportExport,
   async (req, res) => {
     try {
-      const assetBaseUrl = getRequestBaseUrl(req);
-      const schema = z.object({
-        assessmentId: z.string().min(1),
-        reportType: z.enum(['standard', 'premium', 'professional']).optional(),
+      const input = reportGenerateSchema.parse(req.body || {});
+      const payload = await generateReportPayload({
+        assessmentId: input.assessmentId,
+        reportType: input.reportType,
+        req,
       });
-      const input = schema.parse(req.body || {});
-      const reportType = normalizeReportType(input.reportType);
-
-      const assessment = await prisma.assessment.findUnique({
-        where: { id: input.assessmentId },
-        include: {
-          report: true,
-          creator: true,
-          organization: { include: { owner: true } },
-          quickContext: true,
-        },
-      });
-      if (!assessment) {
-        return res.status(404).json({ ok: false, error: 'Assessment não encontrado.' });
-      }
-
-      const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
-      if (!allowed) {
-        return res.status(403).json({ error: 'FORBIDDEN' });
-      }
-
-      const reportModel = await buildPremiumReportModel({
-        assessment,
-        discResult: assessment.report?.discProfile || {},
-        assetBaseUrl,
-        currentUser: req.user || null,
-        reportType,
-      });
-
-      console.info('[report/generate] generating report', {
-        assessmentId: assessment.id,
-        reportType,
-        userId: req.auth.userId,
-      });
-
-      const pdf = await generatePremiumPdf(reportModel, assessment.id, assessment);
-
-      const report = await prisma.report.upsert({
-        where: { assessmentId: assessment.id },
-        create: {
-          assessmentId: assessment.id,
-          discProfile: reportModel,
-          pdfUrl: pdf.pdfUrl || null,
-        },
-        update: {
-          discProfile: reportModel,
-          pdfUrl: pdf.pdfUrl || null,
-        },
-      });
-
-      console.info('[report/generate] report generated', {
-        assessmentId: assessment.id,
-        reportId: report.id,
-        reportType,
-      });
-
-      return res.status(200).json({
-        ok: true,
-        report,
-        html: pdf.html,
-        pdfUrl: report.pdfUrl,
-      });
+      return res.status(200).json({ ok: true, ...payload });
     } catch (error) {
       const status = Number(error?.statusCode) || 400;
       return res.status(status).json({ ok: false, error: error?.message || 'Falha ao gerar relatório.' });

@@ -100,10 +100,10 @@ echo "EMAIL:"
 echo "admin@insightdisc.app"
 echo
 echo "PASSWORD:"
-echo "Trocar123!"
+echo "change_me_in_production"
 echo
 echo "MASTER KEY:"
-echo "InsightDiscMaster2026!"
+echo "example_master_key"
 echo "----------------------------------------"
 
 echo "Starting backend..."

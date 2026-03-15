@@ -1,17 +1,5 @@
 {
   "routes": [
-    {
-      "src": "/(auth|super-admin|payments|assessment|assessments|report|candidate|branding|jobs|admin|health)(?:/(.*))?$",
-      "dest": "/api/proxy?path=$1/$2"
-    },
-    {
-      "src": "/api/(leads|dossier|campaigns)(?:/(.*))?$",
-      "dest": "/api/proxy?path=api/$1/$2"
-    },
-    {
-      "src": "/api/(profile-comparison|team-map|checkout)(?:/(.*))?$",
-      "dest": "/api/proxy?path=api/$1/$2"
-    },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
   ]

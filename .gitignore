@@ -1,21 +1,53 @@
+# ENV
 .env
 .env.*
 .env.local
+server/.env
+server/.env.local
+
+# Node
 node_modules
 dist
 build
+
+# OS
 .DS_Store
+
+# Logs
 *.log
+
+# Editor
 .vscode
 
+# Test
 playwright-report
-test-results/
+test-results
 
-playwright-report
-test-results/
-*.log
-
-playwright-report
-test-results/
-*.log
+# Uploads
 server/uploads/
+
+# Generated reports
+reports/
+tmp/
+server/generated/
+
+# PDFs
+*.pdf
+
+# Debug images
+*.png
+*.zip
+
+# Allow real assets
+!assets/
+!public/logos/.env
+server/.env
+
+.env
+server/.env
+node_modules/
+dist/
+tmp/
+reports/
+server/generated/
+*.pdf

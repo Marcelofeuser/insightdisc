@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import '../config/load-env.js';
 
 const globalForPrisma = globalThis;
 const PRISMA_GLOBAL_KEY = '__insightdiscPrisma';

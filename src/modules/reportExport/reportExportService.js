@@ -1,4 +1,4 @@
-import { getApiAuthHeaders, getApiBaseUrl } from '@/lib/apiClient';
+import { getApiAuthHeaders, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 
 function parseFileNameFromContentDisposition(header = '') {
   const value = String(header || '');
@@ -13,14 +13,6 @@ function parseFileNameFromContentDisposition(header = '') {
   }
 
   return '';
-}
-
-function resolveAbsoluteApiUrl(raw = '', apiBaseUrl = '') {
-  const normalized = String(raw || '').trim();
-  if (!normalized) return '';
-  if (/^https?:\/\//i.test(normalized)) return normalized;
-  if (!apiBaseUrl) return normalized;
-  return `${apiBaseUrl}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
 }
 
 function resolveExportErrorMessage({ status, reason = '', payloadMessage = '' } = {}) {
@@ -73,9 +65,9 @@ export async function exportAssessmentReportPdf({ assessmentId, apiBaseUrl: apiB
     throw error;
   }
 
-  const endpoint = resolveAbsoluteApiUrl(
+  const endpoint = resolveApiRequestUrl(
     `/report/${encodeURIComponent(normalizedAssessmentId)}/pdf`,
-    apiBaseUrl,
+    { baseUrl: apiBaseUrl },
   );
 
   const response = await fetch(endpoint, {

@@ -19,6 +19,8 @@ import dossierRoutes from './routes/dossier.routes.js';
 import teamMapRoutes from './routes/team-map.routes.js';
 import profileComparisonRoutes from './routes/profile-comparison.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import campaignsRoutes from './routes/campaigns.routes.js';
+import anamnesisRoutes from './routes/anamnesis.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +48,8 @@ export function createApp() {
   app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
+  app.use('/api/campaigns', campaignsRoutes);
+  app.use('/api/anamnesis', anamnesisRoutes);
   app.use('/api/team-map', teamMapRoutes);
   app.use('/api/profile-comparison', profileComparisonRoutes);
   app.use('/billing', billingRoutes);

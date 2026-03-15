@@ -6,20 +6,33 @@ export default function SectionShell({
   eyebrow,
   title,
   description,
+  centered = false,
   className,
   headerClassName,
   children,
 }) {
   return (
-    <section id={id} className={cn('py-20 sm:py-24', className)}>
-      <div className="mx-auto max-w-7xl px-6">
+    <section id={id} className={cn('px-6 py-24', className)}>
+      <div className="mx-auto max-w-7xl">
         {(title || description || eyebrow) && (
-          <div className={cn('mb-10 max-w-3xl', headerClassName)}>
+          <div
+            className={cn(
+              'mb-14 max-w-3xl',
+              centered ? 'mx-auto text-center' : '',
+              headerClassName
+            )}
+          >
             {eyebrow ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">{eyebrow}</p>
+              <p className="landing-section-eyebrow mb-3 text-xs font-semibold uppercase tracking-[0.16em]">{eyebrow}</p>
             ) : null}
-            {title ? <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{title}</h2> : null}
-            {description ? <p className="mt-3 text-base leading-relaxed text-slate-600 sm:text-lg">{description}</p> : null}
+            {title ? (
+              <h2 className="landing-section-title text-4xl font-extrabold md:text-5xl">
+                {title}
+              </h2>
+            ) : null}
+            {description ? (
+              <p className="landing-section-description mt-4 text-xl leading-relaxed">{description}</p>
+            ) : null}
           </div>
         )}
         {children}
@@ -27,4 +40,3 @@ export default function SectionShell({
     </section>
   );
 }
-

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import {
@@ -93,8 +93,12 @@ export default function CheckoutSuccess() {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 7000);
+          const endpoint = resolveApiRequestUrl(
+            `/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+            { baseUrl: apiBaseUrl },
+          );
           const response = await fetch(
-            `${apiBaseUrl}/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+            endpoint,
             { signal: controller.signal }
           );
           clearTimeout(timeoutId);
@@ -102,7 +106,7 @@ export default function CheckoutSuccess() {
           if (!response.ok) return '';
           const rawPdfUrl = payload?.report?.pdfUrl || '';
           if (!rawPdfUrl) return '';
-          return /^https?:\/\//i.test(rawPdfUrl) ? rawPdfUrl : `${apiBaseUrl}${rawPdfUrl}`;
+          return resolveApiRequestUrl(rawPdfUrl, { baseUrl: apiBaseUrl });
         } catch {
           return '';
         }

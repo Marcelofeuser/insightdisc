@@ -23,6 +23,7 @@
 - Relatório público: `npm run test:public-report`
 - Claim/salvar no portal: `npm run test:portal-claim`
 - Job Matching: `npm run test:job-matching`
+- Relatório autenticado local: `npm run test:report:local -- --plan business`
 
 ## Estrutura
 - `tests/e2e/helpers/`
@@ -39,6 +40,27 @@
 - Em falha, os artefatos ficam em:
   - `test-results/` (screenshots/videos/traces)
   - `playwright-report/` (relatório HTML)
+
+## Validar `/report/generate` localmente
+- O endpoint exige autenticacao por `Authorization: Bearer <jwt>`. Ele nao usa cookie de sessao.
+- O helper `npm run test:report:local` faz login real, descobre um `assessmentId` acessivel, chama `POST /report/generate` e valida o PDF retornado.
+- Exemplos:
+
+```bash
+npm run test:report:local -- --plan personal
+npm run test:report:local -- --plan professional
+npm run test:report:local -- --plan business
+```
+
+- Mapeamento usado no helper para os planos locais:
+  - `personal -> standard`
+  - `professional -> premium`
+  - `business -> professional`
+- Para salvar o PDF baixado em disco:
+
+```bash
+npm run test:report:local -- --plan business --output reports/dev/business.pdf
+```
 
 ## Ajuste da fixture de relatório
 Edite `tests/e2e/fixtures/publicReport.js` ou exporte env:

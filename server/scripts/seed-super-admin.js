@@ -58,7 +58,7 @@ async function main() {
   // eslint-disable-next-line no-console
   console.log(
     `  senha de login: ${
-      hasSeedPassword || hasLegacyPassword ? '(definida em variável de ambiente)' : 'Trocar123! (fallback padrão)'
+      hasSeedPassword || hasLegacyPassword ? '(definida em variável de ambiente)' : 'change_me_in_production (fallback padrão)'
     }`,
   );
   // eslint-disable-next-line no-console

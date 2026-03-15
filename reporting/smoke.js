@@ -152,18 +152,39 @@ function validateHtml(model, html) {
   assert(pageBodies.length === 30, `Esperado 30 paginas, encontrado ${pageBodies.length}.`);
   assert(html.includes('class="page cover-page"'), 'Pagina 1 (capa) nao encontrada como cover-page.');
   assert(
-    html.includes('class="cover-art-image"') && html.includes('/report-assets/cover-insightdisc-premium.png'),
-    'Asset oficial da nova capa nao encontrado na pagina 1.',
+    html.includes('class="cover-top-band"') && html.includes('InsightDISC')
+      && html.includes('Plataforma de Análise Comportamental'),
+    'Faixa superior institucional da capa nao encontrada.',
   );
-  assert(!html.includes('/brand/insightdisc-logo-transparent.png'), 'Logo antiga ainda encontrada.');
-  assert(html.includes(REQUIRED_LOGO), 'Logo oficial nao encontrada no HTML.');
+  assert(
+    html.includes('class="cover-report-kicker">Relatório de Análise Comportamental DISC</div>'),
+    'Titulo principal da capa nao encontrado.',
+  );
+  assert(
+    html.includes('class="cover-card-heading">Identificação do relatório</div>'),
+    'Card de identificacao da capa nao encontrado.',
+  );
+  assert(
+    html.includes('www.insightdisc.app') && html.includes('contato@insightdisc.app'),
+    'Bloco institucional da capa nao encontrado.'
+  );
+  assert(
+    html.includes('Verônica Feuser') && html.includes('Psicanalista'),
+    'Bloco de respaldo profissional nao encontrado.',
+  );
   const coverTitleMatches = [...html.matchAll(/class="cover-title"/g)];
   assert(coverTitleMatches.length === 0, `Estrutura antiga de titulo da capa ainda ativa (${coverTitleMatches.length}).`);
-  assert(html.includes('>Sumário<') || html.includes('>Sumario<'), 'Pagina de sumario nao encontrada.');
+  assert(
+    html.includes('>SUMÁRIO<') || html.includes('>SUMARIO<') || html.includes('>Sumário<') || html.includes('>Sumario<'),
+    'Pagina de sumario nao encontrada.',
+  );
   assert(
     html.includes('Conclusão do Perfil Comportamental')
+      || html.includes('Conclusão do perfil comportamental')
       || html.includes('Conclusao do Perfil Comportamental')
+      || html.includes('Conclusao do perfil comportamental')
       || html.includes('Conclusão Estratégica do Perfil')
+      || html.includes('Conclusão estratégica do perfil')
       || html.includes('Conclusao Estrategica do Perfil'),
     'Pagina final premium nao encontrada.'
   );
@@ -172,8 +193,7 @@ function validateHtml(model, html) {
     'Conclusao final personalizada nao inicia com nome do participante.',
   );
   assert(
-    html.includes('class="report-header-brand">InsightDISC</div>')
-      && html.includes('class="report-header-subtitle">Plataforma de Análise Comportamental</div>'),
+    html.includes(`class="report-header-line">InsightDISC – Plataforma de Análise Comportamental</div>`),
     'Header interno textual padrao nao encontrado.',
   );
   assert(!html.includes('class="page-logo"'), 'Header interno nao deve renderizar imagem de logo.');
@@ -186,9 +206,9 @@ function validateHtml(model, html) {
   );
   assert(html.includes('Forças Naturais') || html.includes('Forcas Naturais'), 'Secao de forcas nao encontrada.');
   assert(html.includes('Pontos de Desenvolvimento'), 'Secao de desenvolvimento nao encontrada.');
-
-  const coverArtMatches = [...html.matchAll(/<img[^>]+class="cover-art-image"[^>]*>/g)];
-  assert(coverArtMatches.length === 1, `Esperado 1 asset de capa oficial, encontrado ${coverArtMatches.length}.`);
+  assert(html.includes('www.insightdisc.app'), 'Site institucional da ultima pagina nao encontrado.');
+  assert(html.includes('contato@insightdisc.app') || html.includes('suporte@insightdisc.app'), 'E-mail institucional da ultima pagina nao encontrado.');
+  assert(html.includes('@insightdisc'), 'Instagram institucional da ultima pagina nao encontrado.');
 
   for (let index = 0; index < pageBodies.length; index += 1) {
     const plain = stripTags(pageBodies[index]);
@@ -257,9 +277,7 @@ async function run() {
 
     const result = await generatePdfFromData(scenario, { outputDir });
     const physicalPages = await countPhysicalPdfPages(result.outputPath);
-    const hasInstitutionalPage = /class="back-cover-page\b/.test(html);
-    const expectedPhysicalPages =
-      reportModel.meta.totalPages + (hasInstitutionalPage ? 1 : 0);
+    const expectedPhysicalPages = reportModel.meta.totalPages;
     assert(
       physicalPages === expectedPhysicalPages,
       `${scenario.meta.reportId}: esperado ${expectedPhysicalPages} paginas fisicas, encontrado ${physicalPages}.`
