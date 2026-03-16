@@ -1,0 +1,65 @@
+{
+  "low": {
+    "headline": "Baixa Estabilidade: ritmo acelerado e baixa tolerância à rotina",
+    "paragraphs": [
+      "Na faixa baixa de Estabilidade, há preferência por dinamismo, mudanças e desafios frequentes. O perfil tende a agir com agilidade e buscar variedade no trabalho.",
+      "O ponto de atenção está na consistência de processos e no acompanhamento de entregas. Estruturas leves ajudam a manter ritmo sem perder continuidade."
+    ],
+    "actions": [
+      "Definir rituais mínimos de revisão semanal.",
+      "Criar checklist para tarefas recorrentes.",
+      "Planejar blocos curtos de foco operacional.",
+      "Antecipar impacto de mudanças no time.",
+      "Estabelecer critérios claros para interrupções."
+    ],
+    "redFlags": [
+      "Abandonar atividades antes de concluir.",
+      "Troca constante de prioridades sem critério.",
+      "Baixa previsibilidade para o time.",
+      "Cansaço por ritmo alto sustentado.",
+      "Resistência a rotinas essenciais de controle."
+    ]
+  },
+  "mid": {
+    "headline": "Estabilidade moderada: consistência com adaptação saudável",
+    "paragraphs": [
+      "Com Estabilidade em faixa média, a pessoa mantém boa confiabilidade de execução sem perder flexibilidade diante de novas demandas. Esse perfil contribui para clima equilibrado.",
+      "A tendência é sustentar acordos e apoiar continuidade operacional. O ganho adicional vem de explicitar limites e priorizar mudanças com mais transparência."
+    ],
+    "actions": [
+      "Negociar prioridades quando houver sobrecarga.",
+      "Comunicar impactos de alterações no plano.",
+      "Registrar acordos críticos com o time.",
+      "Praticar feedback direto em momentos-chave.",
+      "Usar métricas simples para estabilidade de entrega."
+    ],
+    "redFlags": [
+      "Aceitar excesso de demandas por evitar conflito.",
+      "Adiar posicionamento em discussões importantes.",
+      "Confiar apenas em alinhamentos verbais.",
+      "Subdimensionar riscos de mudança.",
+      "Perder tração por excesso de cautela."
+    ]
+  },
+  "high": {
+    "headline": "Alta Estabilidade: previsibilidade, confiança e suporte contínuo",
+    "paragraphs": [
+      "Estabilidade alta indica forte capacidade de sustentar rotinas, apoiar o time e preservar qualidade relacional no longo prazo. O perfil costuma ser referência de confiabilidade.",
+      "Em ambientes de mudança rápida, pode haver desconforto inicial. Planejamento de transição e comunicação antecipada aumentam adaptação sem perda de performance."
+    ],
+    "actions": [
+      "Preparar plano de transição para mudanças relevantes.",
+      "Definir gatilhos para escalar problemas cedo.",
+      "Treinar conversas difíceis com estrutura.",
+      "Balancear suporte ao time com foco em resultado.",
+      "Atualizar prioridades semanalmente com clareza."
+    ],
+    "redFlags": [
+      "Evitar conflitos necessários por tempo excessivo.",
+      "Resistir a decisões rápidas sem discutir critérios.",
+      "Manter processos ineficientes por hábito.",
+      "Baixa exposição de opinião em fóruns críticos.",
+      "Sobrecarga silenciosa por assumir apoio constante."
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "title": "Execução Analítica",
+  "executiveSummary": [
+    "Combina foco em resultado com rigor técnico.",
+    "Decide com base em evidência e impacto.",
+    "Entrega consistência em contextos críticos.",
+    "Escala quando equilibra profundidade e velocidade."
+  ],
+  "strengths": [
+    "Decisão estruturada",
+    "Foco em qualidade com prazo",
+    "Capacidade de resolver problemas complexos",
+    "Objetividade com critério",
+    "Boa gestão de risco",
+    "Execução técnica confiável"
+  ],
+  "risks": [
+    "Perfeccionismo em contexto urgente",
+    "Comunicação excessivamente técnica",
+    "Baixa tolerância a ambiguidades",
+    "Microgestão de detalhes",
+    "Dificuldade em delegar sem controle",
+    "Rigidez diante de mudanças rápidas"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Apresentar decisão com dados e impacto",
+      "Definir critérios de qualidade",
+      "Comunicar riscos e mitigação",
+      "Delegar com checklists claros",
+      "Fechar com cronograma objetivo"
+    ],
+    "dont": [
+      "Expandir escopo sem validação",
+      "Revisar indefinidamente temas de baixo impacto",
+      "Ignorar percepção do time",
+      "Concentrar todo controle no líder",
+      "Negligenciar alinhamento interpessoal"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança técnica orientada a performance.",
+    "Alta clareza de padrão e responsabilidade.",
+    "Forte condução em ambientes regulados."
+  ],
+  "stressPattern": [
+    "Aumenta exigência de precisão.",
+    "Eleva revisão e controle de qualidade.",
+    "Pode reduzir flexibilidade de execução."
+  ],
+  "motivators": [
+    "Problemas complexos",
+    "Autonomia técnica",
+    "Desafios com impacto mensurável",
+    "Ambientes meritocráticos"
+  ],
+  "idealEnvironment": [
+    "Critérios claros",
+    "Dados confiáveis",
+    "Equipe qualificada",
+    "Processo de decisão estruturado"
+  ],
+  "conflictStyle": [
+    "Debate com base em evidências.",
+    "Busca decisão lógica e rastreável.",
+    "Baixa tolerância a argumentos sem fundamento."
+  ],
+  "coachingTips": [
+    "Definir limite de análise por contexto.",
+    "Traduzir complexidade para linguagem executiva.",
+    "Delegar mantendo governança mínima.",
+    "Priorizar 20% de análise para 80% do impacto.",
+    "Ampliar flexibilidade diante de incerteza."
+  ],
+  "recommendedRoles": [
+    "Gestão de operações",
+    "Liderança de qualidade",
+    "Gerência técnica",
+    "PMO",
+    "Planejamento estratégico",
+    "Coordenação de risco",
+    "Engenharia de processos",
+    "Compliance operacional"
+  ]
+}

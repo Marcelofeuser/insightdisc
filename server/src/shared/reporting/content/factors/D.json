@@ -1,0 +1,65 @@
+{
+  "low": {
+    "headline": "Baixa Dominância: decisão cautelosa e foco em harmonia",
+    "paragraphs": [
+      "Quando Dominância está em faixa baixa, a pessoa tende a avaliar cenários com calma e evitar decisões precipitadas. Esse padrão favorece ambiente colaborativo e reduz atritos desnecessários.",
+      "Em contexto de alta pressão, pode haver atraso na tomada de decisão. O ganho de performance vem ao combinar escuta com checkpoints objetivos de prazo e prioridade."
+    ],
+    "actions": [
+      "Definir prazo máximo para decisões recorrentes.",
+      "Usar critério de impacto (alto/médio/baixo) para priorização.",
+      "Treinar respostas curtas para situações de conflito.",
+      "Negociar escopo com base em capacidade real do time.",
+      "Documentar decisões para reduzir retrabalho."
+    ],
+    "redFlags": [
+      "Evitar confrontos críticos por tempo excessivo.",
+      "Adiar decisões até perder janela de oportunidade.",
+      "Transferir responsabilidade em temas de liderança.",
+      "Aceitar prioridades conflitantes sem alinhamento.",
+      "Dificuldade de impor limites em demandas urgentes."
+    ]
+  },
+  "mid": {
+    "headline": "Dominância moderada: equilíbrio entre firmeza e colaboração",
+    "paragraphs": [
+      "Na faixa média de Dominância, a pessoa costuma combinar objetividade com abertura para diálogo. Esse equilíbrio favorece decisões sustentáveis e boa execução em equipe.",
+      "Com prática, esse perfil pode alternar entre direção e escuta conforme o contexto. O ponto-chave é tornar explícito quando é hora de discutir e quando é hora de decidir."
+    ],
+    "actions": [
+      "Abrir discussão com limite de tempo definido.",
+      "Encerrar reuniões com decisão, dono e prazo.",
+      "Mapear riscos mínimos antes de aprovar execução.",
+      "Fazer revisão semanal de decisões críticas.",
+      "Trabalhar alinhamento de prioridades com stakeholders."
+    ],
+    "redFlags": [
+      "Oscilar entre excesso de consenso e imposição súbita.",
+      "Mudar prioridades sem comunicar racional.",
+      "Conduzir debates longos sem fechamento.",
+      "Assumir tarefas operacionais em vez de delegar.",
+      "Perder foco de impacto por microgestão."
+    ]
+  },
+  "high": {
+    "headline": "Alta Dominância: foco em resultado, velocidade e direção",
+    "paragraphs": [
+      "Com Dominância alta, há tendência natural a decidir rápido, assumir liderança e direcionar esforços para metas relevantes. Em cenários de incerteza, esse padrão impulsiona avanço.",
+      "O desafio é equilibrar ritmo com qualidade de alinhamento. A efetividade cresce quando o estilo direto é combinado com escuta estratégica e critérios claros de priorização."
+    ],
+    "actions": [
+      "Explicitar objetivo, métrica e prazo no início.",
+      "Delegar com checkpoints curtos e autonomia real.",
+      "Reservar tempo para ouvir objeções críticas.",
+      "Separar urgência real de urgência percebida.",
+      "Padronizar critérios de decisão em projetos."
+    ],
+    "redFlags": [
+      "Pressão excessiva sem contexto adequado.",
+      "Baixa tolerância a ritmos distintos do time.",
+      "Tom percebido como autoritário em feedbacks.",
+      "Corte precoce de alternativas relevantes.",
+      "Acúmulo de decisões sem acompanhamento."
+    ]
+  }
+}

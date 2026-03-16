@@ -1,0 +1,242 @@
+{
+  "key": "ID",
+  "title": "Influencia com Dominancia",
+  "archetype": "Protagonista Persuasivo",
+  "summary": "Perfil visivel, energetico e dominante no posicionamento, com alto poder de mobilizacao.",
+  "executiveSummary": [
+    "Combina carisma social com postura de comando.",
+    "Movimenta pessoas rapidamente em torno de uma narrativa forte.",
+    "Gera tracao e visibilidade para projetos de alto impacto.",
+    "Evolui quando transforma protagonismo em consistencia de entrega."
+  ],
+  "identityDynamics": [
+    "Busca presenca e reconhecimento em ambientes de decisao.",
+    "Comunica com intensidade e conviccao.",
+    "Assume protagonismo com naturalidade.",
+    "Tende a influenciar pelo carisma e pela firmeza.",
+    "Quer crescimento, visibilidade e avancos concretos."
+  ],
+  "decisionStyle": [
+    "Decide rapido com ambicao de resultado.",
+    "Considera impacto relacional e ganho de oportunidade.",
+    "Pode subestimar risco operacional em cenarios otimistas.",
+    "Prefere manter movimento a ficar em analise longa.",
+    "Decide melhor quando combina energia com validacao de viabilidade."
+  ],
+  "motivators": [
+    "Destaque profissional",
+    "Lideranca visivel",
+    "Reconhecimento por conquista",
+    "Ambiente dinamico",
+    "Espaco para influenciar"
+  ],
+  "energyDrainers": [
+    "Invisibilidade no processo",
+    "Microgestao excessiva",
+    "Rigidez extrema sem abertura",
+    "Critica fria sem construcao",
+    "Ambiente sem margem de expressao"
+  ],
+  "workStrengths": [
+    "Carisma de mobilizacao",
+    "Influência em decisao",
+    "Tracao de equipe",
+    "Comunicacao de alto alcance",
+    "Energia para iniciar frentes",
+    "Capacidade de atrair adesao"
+  ],
+  "workRisks": [
+    "Centralizacao por protagonismo",
+    "Superficialidade de analise",
+    "Prometer acima do executavel",
+    "Dispersao por excesso de frente",
+    "Impaciencia com detalhamento",
+    "Baixa disciplina de fechamento"
+  ],
+  "communicationStyle": [
+    "Expressiva e dominante",
+    "Alta presenca verbal",
+    "Persuasao com energia",
+    "Tom de lideranca exposta"
+  ],
+  "communicationNeeds": [
+    "Reconhecimento de contribuicao",
+    "Canal aberto para protagonismo",
+    "Objetivo claro de impacto",
+    "Feedback direto sobre resultado"
+  ],
+  "communicationDo": [
+    "Direcione conversa para meta e impacto.",
+    "Reconheca contribuicao antes de ajustar rota.",
+    "Peça fechamento com compromisso objetivo.",
+    "Equilibre espaco de fala com responsabilidade de entrega.",
+    "Use dados curtos para ancorar decisao."
+  ],
+  "communicationDont": [
+    "Nao corte protagonismo sem explicar criterio.",
+    "Evite confronto publico desnecessario.",
+    "Nao confunda visibilidade com efetividade.",
+    "Nao alongue debate sem direcionamento claro.",
+    "Evite promessa de ultima hora sem plano."
+  ],
+  "leadershipStyle": [
+    "Lidera com presenca, energia e influencia social.",
+    "Engaja rapidamente em torno de objetivo ambicioso.",
+    "Tem forte capacidade de mobilizar adesao.",
+    "Precisa de disciplina para sustentar consistencia no longo prazo."
+  ],
+  "leadershipStrengths": [
+    "Inspiracao de equipe",
+    "Visibilidade de agenda",
+    "Influencia em stakeholders",
+    "Capacidade de iniciar movimento",
+    "Comunicação de alta adesao"
+  ],
+  "leadershipRisks": [
+    "Foco excessivo em exposicao",
+    "Baixa profundidade de governanca",
+    "Dificuldade de sustentar rotina operacional",
+    "Promessa de curto prazo sem estrutura",
+    "Cobranca irregular"
+  ],
+  "stressPattern": [
+    "Aumenta intensidade de fala.",
+    "Busca controlar narrativa de forma mais central.",
+    "Pode acelerar decisao para manter protagonismo.",
+    "Oscila entre entusiasmo e irritacao."
+  ],
+  "stressSignals": [
+    "Interrupcoes frequentes",
+    "Mudanca de prioridade por impulso",
+    "Queda de consistencia em follow-up",
+    "Conflito por disputa de espaco",
+    "Promessa acelerada sem capacidade"
+  ],
+  "recoveryStrategy": [
+    "Reduzir agenda para prioridades de alto retorno.",
+    "Checar viabilidade antes de anunciar compromisso.",
+    "Delegar execucao e manter checkpoint objetivo.",
+    "Equilibrar visibilidade com disciplina de rotina.",
+    "Pedir feedback sobre clareza e consistencia percebida."
+  ],
+  "conflictStyle": [
+    "Conflita de forma visivel e argumentativa.",
+    "Procura vencer narrativa e conduzir direcao.",
+    "Pode escalar disputa quando sente perda de controle.",
+    "Conflito melhora com regra clara e mediacao objetiva.",
+    "Precisa separar imagem pessoal de tema em debate."
+  ],
+  "teamContribution": [
+    "Aumenta energia coletiva",
+    "Atrai adesao para projetos",
+    "Dá visibilidade para metas",
+    "Conecta stakeholder com equipe",
+    "Impulsiona iniciativas de crescimento"
+  ],
+  "bestMatches": [
+    "S",
+    "C",
+    "SI",
+    "IC",
+    "DI"
+  ],
+  "frictionMatches": [
+    "CS",
+    "SC",
+    "C muito rigido",
+    "D muito duro"
+  ],
+  "idealEnvironment": [
+    "Ambiente dinamico com espaco de lideranca",
+    "Metas visiveis e desafiadoras",
+    "Reconhecimento por impacto real",
+    "Equipe aberta a colaboracao e ritmo",
+    "Governanca minima para sustentar entrega"
+  ],
+  "lowFitEnvironment": [
+    "Ambiente sem abertura de protagonismo",
+    "Rigidez excessiva sem margem de influencia",
+    "Cultura de critica fria constante",
+    "Rotina sem visibilidade de resultado"
+  ],
+  "recommendedRoles": [
+    "Lideranca comercial",
+    "Gestao de contas estrategicas",
+    "Expansao de mercado",
+    "Representacao executiva",
+    "Parcerias e alianças",
+    "Lider de comunicacao de negocio",
+    "Growth de relacionamento",
+    "Direcao de front office"
+  ],
+  "lowFitRoles": [
+    "Funcoes isoladas de baixa interacao",
+    "Escopos estritamente tecnicos sem exposicao",
+    "Ambientes sem abertura para influencia",
+    "Rotina com visibilidade minima"
+  ],
+  "naturalStrengths": [
+    "Carisma",
+    "Presenca executiva",
+    "Persuasao",
+    "Mobilizacao",
+    "Visao de oportunidade",
+    "Energia social",
+    "Coragem de exposicao",
+    "Capacidade de engajar"
+  ],
+  "developmentPoints": [
+    "Profundidade de analise",
+    "Consistencia de execucao",
+    "Disciplina de follow-up",
+    "Priorizacao rigorosa",
+    "Escuta ativa em decisao critica",
+    "Gestao de expectativa",
+    "Delegacao estruturada",
+    "Foco em fechamento"
+  ],
+  "developmentRisks": [
+    "Excesso de centralizacao",
+    "Impacto de imagem acima de entrega",
+    "Oscilacao de foco por dispersao",
+    "Perda de credibilidade por promessa alta"
+  ],
+  "managerGuidance": [
+    "Use metas claras com indicador de fechamento.",
+    "Reconheca impacto e cobre consistencia de entrega.",
+    "Traga contraponto tecnico para calibrar decisao.",
+    "Evite microgestao e mantenha checkpoints objetivos.",
+    "Reforce disciplina operacional apos anuncio de metas."
+  ],
+  "selfLeadershipGuidance": [
+    "Converta protagonismo em rotina de resultado.",
+    "Valide capacidade real antes de assumir novo compromisso.",
+    "Pratique escuta de contraponto tecnico.",
+    "Mantenha foco em menos frentes com maior impacto.",
+    "Meça credibilidade por entrega concluida."
+  ],
+  "plan30": [
+    "Mapear promessas feitas e status real de conclusao.",
+    "Definir criterio de viabilidade antes de anunciar meta.",
+    "Treinar sintese objetiva em reunioes de decisao.",
+    "Aplicar checkpoint semanal de consistencia."
+  ],
+  "plan60": [
+    "Reduzir dispersao para 3 frentes de alto retorno.",
+    "Aprimorar governanca de follow-up com equipe.",
+    "Pedir feedback sobre equilibrio entre influencia e execucao.",
+    "Conduzir conflito com foco em fatos e acordos."
+  ],
+  "plan90": [
+    "Consolidar lideranca visivel com previsibilidade de entrega.",
+    "Escalar boas praticas de mobilizacao no time.",
+    "Aumentar profundidade de decisao sem perder ritmo.",
+    "Mensurar impacto de reputacao alinhado a resultado real."
+  ],
+  "executiveClosing": [
+    "O perfil ID mobiliza pessoas e acelera iniciativas de alto impacto.",
+    "Seu salto de performance depende de consistencia e profundidade de execucao.",
+    "Quando integra carisma com disciplina, amplia alcance e credibilidade.",
+    "A trilha proposta transforma protagonismo em lideranca sustentavel."
+  ]
+}

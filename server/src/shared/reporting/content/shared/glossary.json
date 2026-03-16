@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "term": "Perfil Natural",
+      "definition": "Tendencia comportamental espontanea em contexto de menor pressao de adaptacao."
+    },
+    {
+      "term": "Perfil Adaptado",
+      "definition": "Ajuste comportamental ativado pelas demandas atuais do ambiente de trabalho."
+    },
+    {
+      "term": "Banda de Fator",
+      "definition": "Classificacao de intensidade de cada fator DISC em low, mid ou high."
+    },
+    {
+      "term": "Benchmark",
+      "definition": "Comparacao do score individual com faixa tipica interna do perfil identificado."
+    },
+    {
+      "term": "Custo de Adaptacao",
+      "definition": "Distancia media entre perfil natural e adaptado; indica energia exigida para manter o ajuste."
+    },
+    {
+      "term": "Risco de Exagero",
+      "definition": "Quando um fator dominante aparece sem calibragem e gera impacto negativo recorrente."
+    }
+  ]
+}

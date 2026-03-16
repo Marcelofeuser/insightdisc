@@ -1,0 +1,242 @@
+{
+  "key": "DI",
+  "title": "Dominancia com Influencia",
+  "archetype": "Catalisador de Resultado",
+  "summary": "Perfil expansivo, assertivo e persuasivo, com alta orientacao a conquista e tracao.",
+  "executiveSummary": [
+    "Combina velocidade decisoria com forte poder de influencia.",
+    "Mobiliza pessoas para meta com energia e conviccao.",
+    "Gera avancos rapidos em contexto comercial e de crescimento.",
+    "Evolui quando equilibra impulso com profundidade e consistencia."
+  ],
+  "identityDynamics": [
+    "Une forca de comando com presenca social elevada.",
+    "Ocupa espaco rapidamente e define direcao com conviccao.",
+    "Tende a liderar pelo exemplo de energia e urgencia.",
+    "Busca conquista visivel e impacto imediato.",
+    "Reage bem a desafio alto e autonomia ampla."
+  ],
+  "decisionStyle": [
+    "Decide rapido e com alto senso de oportunidade.",
+    "Assume risco para manter tracao de resultado.",
+    "Influencia decisao do grupo com narrativa forte.",
+    "Pode agir antes de consolidar analise tecnica.",
+    "Decide melhor quando valida viabilidade com checkpoint curto."
+  ],
+  "motivators": [
+    "Vitoria e reconhecimento",
+    "Protagonismo em metas",
+    "Impacto visivel",
+    "Autonomia para executar",
+    "Ambiente competitivo saudavel"
+  ],
+  "energyDrainers": [
+    "Lentidao decisoria",
+    "Resistencia passiva da equipe",
+    "Excesso de regra sem acao",
+    "Ambiente tecnico sem movimento",
+    "Falta de resposta a cobranca"
+  ],
+  "workStrengths": [
+    "Tracao comercial",
+    "Convencimento rapido",
+    "Mobilizacao de equipe",
+    "Coragem de acao",
+    "Energia de execucao",
+    "Capacidade de acelerar resultado"
+  ],
+  "workRisks": [
+    "Impulsividade",
+    "Atropelo de alinhamento",
+    "Excesso de confianca",
+    "Escuta limitada",
+    "Promessa acima da capacidade operacional",
+    "Oscilacao de consistencia em follow-up"
+  ],
+  "communicationStyle": [
+    "Direta e persuasiva",
+    "Alta energia",
+    "Tom de comando e mobilizacao",
+    "Foco em acao imediata"
+  ],
+  "communicationNeeds": [
+    "Resposta rapida",
+    "Clareza de objetivo",
+    "Espaco para influenciar",
+    "Feedback objetivo de resultado"
+  ],
+  "communicationDo": [
+    "Alinhe meta, impacto e urgencia com clareza.",
+    "Traga fatos curtos antes da decisao final.",
+    "Feche conversa com compromisso explicito.",
+    "Reforce responsabilidade compartilhada na execucao.",
+    "Valide capacidade real antes de ampliar escopo."
+  ],
+  "communicationDont": [
+    "Nao alongue discussao sem direcao.",
+    "Nao responda impulso com confronto emocional.",
+    "Evite mudanca de prioridade sem criterio.",
+    "Nao confunda energia com fechamento efetivo.",
+    "Evite promessa sem plano operacional."
+  ],
+  "leadershipStyle": [
+    "Lidera por energia, direcao e influencia.",
+    "Consegue acelerar resultado em time comercial.",
+    "Mobiliza com narrativa de conquista.",
+    "Ganha escala quando instala disciplina de execucao."
+  ],
+  "leadershipStrengths": [
+    "Coragem de decisao",
+    "Influencia de alto impacto",
+    "Capacidade de mobilizacao",
+    "Presenca de comando",
+    "Tracao de crescimento"
+  ],
+  "leadershipRisks": [
+    "Pressa sem calibragem",
+    "Centralizacao por protagonismo",
+    "Tom excessivo em cobranca",
+    "Dispersao por excesso de pauta",
+    "Subestimar risco operacional"
+  ],
+  "stressPattern": [
+    "Intensifica ritmo e cobranca.",
+    "Reduz tolerancia a atraso.",
+    "Aumenta fala e reduz escuta.",
+    "Pode entrar em modo de confronto rapido."
+  ],
+  "stressSignals": [
+    "Interrupcao recorrente de pares",
+    "Decisao sem validacao minima",
+    "Promessa acelerada sem capacidade",
+    "Conflito frequente por forma de cobranca",
+    "Perda de consistencia em rotina"
+  ],
+  "recoveryStrategy": [
+    "Diminuir pauta simultanea para foco real.",
+    "Separar conquista de curto prazo de sustentabilidade.",
+    "Retomar escuta ativa com contrapartes chave.",
+    "Estabelecer checkpoint tecnico antes de escalar acao.",
+    "Revisar promessas abertas e fechar pendencias."
+  ],
+  "conflictStyle": [
+    "Confronta de forma direta e intensa.",
+    "Busca resolucao rapida com alto protagonismo.",
+    "Pode dominar a conversa em desacordo.",
+    "Conflito melhora com regra clara e mediacao objetiva.",
+    "Precisa equilibrar firmeza com escuta."
+  ],
+  "teamContribution": [
+    "Acelera ritmo coletivo",
+    "Gera energia de conquista",
+    "Influence decisao de grupo",
+    "Abre oportunidades de negocio",
+    "Impulsiona cultura de resultado"
+  ],
+  "bestMatches": [
+    "C",
+    "S",
+    "ID",
+    "DC",
+    "IS"
+  ],
+  "frictionMatches": [
+    "CS",
+    "SC",
+    "S muito cauteloso",
+    "C muito rigido"
+  ],
+  "idealEnvironment": [
+    "Meta agressiva com estrutura minima",
+    "Autonomia com accountability",
+    "Ritmo alto e resposta rapida",
+    "Equipe resiliente a confronto construtivo",
+    "Cultura de resultado com foco em fechamento"
+  ],
+  "lowFitEnvironment": [
+    "Processo lento sem decisao",
+    "Cultura de evitacao de responsabilidade",
+    "Excesso de burocracia sem impacto",
+    "Ambiente sem espaco para protagonismo"
+  ],
+  "recommendedRoles": [
+    "Lideranca comercial",
+    "Head de crescimento",
+    "Expansao de mercado",
+    "Gestao de receita",
+    "Direcao de novos negocios",
+    "Gestao de performance comercial",
+    "Negociacao estrategica",
+    "Lider de turnaround"
+  ],
+  "lowFitRoles": [
+    "Rotina administrativa de baixa autonomia",
+    "Escopo sem meta clara",
+    "Ambiente tecnico sem interacao",
+    "Papel sem impacto de negocio"
+  ],
+  "naturalStrengths": [
+    "Agressividade comercial saudavel",
+    "Influência de convencimento",
+    "Coragem para iniciar",
+    "Direcao em crise",
+    "Energia de conquista",
+    "Carisma executivo",
+    "Ritmo de decisao",
+    "Foco em resultado"
+  ],
+  "developmentPoints": [
+    "Escuta estruturada",
+    "Disciplina de follow-up",
+    "Aprofundamento tecnico minimo",
+    "Calibragem de intensidade",
+    "Gestao de risco antes de prometer",
+    "Delegacao com controle de qualidade",
+    "Priorizacao de pauta",
+    "Sustentacao de resultado no longo prazo"
+  ],
+  "developmentRisks": [
+    "Excesso de impulso",
+    "Conflito por forma de comando",
+    "Desgaste de equipe por ritmo unico",
+    "Oscilacao de entrega por dispersao"
+  ],
+  "managerGuidance": [
+    "Canalize energia para poucas prioridades de alto impacto.",
+    "Cobre fechamento com indicador claro.",
+    "Inclua checkpoint tecnico para reduzir erro de pressa.",
+    "Feedback direto sobre tom e consistencia.",
+    "Reforce disciplina de promessa versus entrega."
+  ],
+  "selfLeadershipGuidance": [
+    "Pause antes de escalonar decisao irreversivel.",
+    "Valide capacidade real de execucao antes de assumir novo escopo.",
+    "Pratique escuta ativa em negociacoes criticas.",
+    "Conclua ciclos iniciados antes de abrir novas frentes.",
+    "Mensure impacto por resultado sustentavel, nao apenas por velocidade."
+  ],
+  "plan30": [
+    "Mapear 3 momentos de impulso sem validacao tecnica.",
+    "Aplicar checklist de decisao em temas comerciais.",
+    "Instalar rotina de follow-up semanal para compromissos assumidos.",
+    "Pedir feedback sobre clareza e tom de cobranca."
+  ],
+  "plan60": [
+    "Reduzir promessas sem plano de capacidade.",
+    "Aprimorar disciplina de fechamento de ciclo.",
+    "Delegar parte da execucao com checkpoints definidos.",
+    "Conduzir conversa dificil com foco em fatos e alinhamento."
+  ],
+  "plan90": [
+    "Consolidar ritmo alto com previsibilidade de entrega.",
+    "Escalar modelo de mobilizacao sem perder qualidade.",
+    "Aumentar maturidade de lideranca relacional.",
+    "Mensurar ganho de resultado com menor desgaste de equipe."
+  ],
+  "executiveClosing": [
+    "O perfil DI tem forte potencial de aceleracao de resultado e crescimento.",
+    "Seu maior ganho vem de unir energia de conquista com disciplina de consistencia.",
+    "Quando equilibra influencia e profundidade, aumenta escala de impacto.",
+    "A trilha proposta reduz risco de impulsividade e fortalece lideranca executiva."
+  ]
+}

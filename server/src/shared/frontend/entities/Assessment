@@ -1,0 +1,131 @@
+{
+  "name": "Assessment",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que realizou a avalia\u00e7\u00e3o"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "free",
+        "premium"
+      ],
+      "default": "free",
+      "description": "Tipo da avalia\u00e7\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "professional_id": {
+      "type": "string",
+      "description": "ID do profissional que enviou o convite (B2B)"
+    },
+    "workspace_id": {
+      "type": "string",
+      "description": "ID do workspace/empresa"
+    },
+    "answers": {
+      "type": "array",
+      "description": "Respostas do usu\u00e1rio",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "most": {
+            "type": "string"
+          },
+          "least": {
+            "type": "string"
+          },
+          "answered_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "description": "Resultados calculados",
+      "properties": {
+        "natural_profile": {
+          "type": "object",
+          "properties": {
+            "D": {
+              "type": "number"
+            },
+            "I": {
+              "type": "number"
+            },
+            "S": {
+              "type": "number"
+            },
+            "C": {
+              "type": "number"
+            }
+          }
+        },
+        "adapted_profile": {
+          "type": "object",
+          "properties": {
+            "D": {
+              "type": "number"
+            },
+            "I": {
+              "type": "number"
+            },
+            "S": {
+              "type": "number"
+            },
+            "C": {
+              "type": "number"
+            }
+          }
+        },
+        "dominant_factor": {
+          "type": "string"
+        },
+        "secondary_factor": {
+          "type": "string"
+        },
+        "adjustment_energy": {
+          "type": "number"
+        }
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "time_spent_seconds": {
+      "type": "number"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "Token \u00fanico para acesso ao teste (B2B)"
+    },
+    "report_unlocked": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id",
+    "type"
+  ]
+}

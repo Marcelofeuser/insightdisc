@@ -1,0 +1,242 @@
+{
+  "key": "D",
+  "title": "Dominancia",
+  "archetype": "Executor Estrategico",
+  "summary": "Perfil orientado a resultado, velocidade, autonomia e decisao.",
+  "executiveSummary": [
+    "Atua com senso de urgencia e foco em entrega concreta.",
+    "Assume protagonismo em cenarios de pressao e ambiguidade.",
+    "Gera tracao quando encontra desafio com autonomia real.",
+    "Evolui fortemente quando combina firmeza com escuta ativa."
+  ],
+  "identityDynamics": [
+    "Tende a agir com assertividade e postura de comando.",
+    "Prefere controlar variaveis criticas para acelerar resultado.",
+    "Busca desafio, meta clara e espaco para decidir.",
+    "Tolera pressao quando enxerga direcao e impacto.",
+    "Valoriza objetividade e rejeita dispersao operacional."
+  ],
+  "decisionStyle": [
+    "Decide rapido quando percebe oportunidade de impacto.",
+    "Privilegia resultado e prazo sobre conforto relacional.",
+    "Assume risco com mais facilidade que outros perfis.",
+    "Pode antecipar decisao antes de ouvir contrapontos suficientes.",
+    "Decide melhor quando define criterio objetivo de sucesso."
+  ],
+  "motivators": [
+    "Autonomia real de decisao",
+    "Metas desafiadoras e mensuraveis",
+    "Avanco rapido com responsabilidade clara",
+    "Reconhecimento por performance",
+    "Projetos com alto impacto de negocio"
+  ],
+  "energyDrainers": [
+    "Lentidao sem justificativa",
+    "Burocracia excessiva",
+    "Reunioes improdutivas",
+    "Dependencia alta de aprovacao",
+    "Indecisao recorrente da equipe"
+  ],
+  "workStrengths": [
+    "Velocidade de execucao",
+    "Coragem de enfrentar problema dificil",
+    "Foco em resultado e prazo",
+    "Iniciativa em cenarios incertos",
+    "Direcao clara em momentos criticos",
+    "Capacidade de destravar agenda"
+  ],
+  "workRisks": [
+    "Impaciencia com ritmos diferentes",
+    "Dureza relacional em cobranca",
+    "Escuta insuficiente em temas sensiveis",
+    "Atropelo de etapas importantes",
+    "Centralizacao de decisao",
+    "Simplificacao excessiva de complexidade humana"
+  ],
+  "communicationStyle": [
+    "Direto e objetivo",
+    "Tom firme",
+    "Baixa tolerancia a rodeios",
+    "Mensagem orientada a acao"
+  ],
+  "communicationNeeds": [
+    "Clareza de objetivo",
+    "Contexto curto e relevante",
+    "Dados essenciais para decidir",
+    "Definicao de dono e prazo"
+  ],
+  "communicationDo": [
+    "Abra com objetivo e impacto esperado.",
+    "Seja breve, claro e orientado a resultado.",
+    "Traga opcoes com recomendacao pratica.",
+    "Feche com responsabilidade, prazo e criterio.",
+    "Antecipe risco principal e plano de mitigacao."
+  ],
+  "communicationDont": [
+    "Evite excesso de contextualizacao sem decisao.",
+    "Nao use linguagem vaga ou ambigua.",
+    "Nao empurre problema sem proposta concreta.",
+    "Nao confunda urgencia com pressa desorganizada.",
+    "Nao esconda risco relevante por medo de confronto."
+  ],
+  "leadershipStyle": [
+    "Lidera por direcao, ritmo e cobranca de entrega.",
+    "Define prioridade com objetividade e foco no alvo.",
+    "Opera melhor em contextos de alta responsabilidade.",
+    "Gera movimento rapido em ambientes travados."
+  ],
+  "leadershipStrengths": [
+    "Define rumo com nitidez",
+    "Acelera execucao",
+    "Toma decisao sob pressao",
+    "Sustenta postura de responsabilidade",
+    "Protege resultado em cenarios de risco"
+  ],
+  "leadershipRisks": [
+    "Tom coercitivo em momentos de tensao",
+    "Subutilizar contribuicao do time",
+    "Forcar ritmo unico para todos",
+    "Confundir controle com lideranca madura",
+    "Perder aderencia relacional da equipe"
+  ],
+  "stressPattern": [
+    "Eleva intensidade de cobranca.",
+    "Reduz paciencia para explicacoes longas.",
+    "Acelera decisao com menor checagem de risco.",
+    "Pode endurecer tom para manter controle."
+  ],
+  "stressSignals": [
+    "Interrupcoes frequentes em reuniao",
+    "Aumento de irritacao com detalhes",
+    "Cobrança mais curta e agressiva",
+    "Menor abertura para contraponto",
+    "Escalada de conflito por pressa"
+  ],
+  "recoveryStrategy": [
+    "Repriorizar agenda por impacto real.",
+    "Separar urgencia de importancia em 3 blocos.",
+    "Pedir contraponto tecnico antes de fechar decisao.",
+    "Definir pausas curtas para recompor clareza.",
+    "Retomar conversas com foco em solucao compartilhada."
+  ],
+  "conflictStyle": [
+    "Enfrenta conflito de forma direta.",
+    "Busca resolucao rapida e objetiva.",
+    "Tolera confronto quando ha fato e criterio.",
+    "Pode elevar dureza se percepciona lentidao.",
+    "Precisa calibrar empatia para preservar relacao."
+  ],
+  "teamContribution": [
+    "Impulsiona velocidade de entrega",
+    "Dá direcao em momento critico",
+    "Assume responsabilidade quando ha risco",
+    "Remove bloqueios operacionais",
+    "Eleva senso de foco no resultado"
+  ],
+  "bestMatches": [
+    "I",
+    "C",
+    "DI",
+    "DC",
+    "CD"
+  ],
+  "frictionMatches": [
+    "S",
+    "IS",
+    "CS",
+    "SI"
+  ],
+  "idealEnvironment": [
+    "Metas claras com autonomia",
+    "Decisao descentralizada com accountability",
+    "Ritmo alto e governanca objetiva",
+    "Equipe madura para feedback direto",
+    "Espaco para iniciativa e ownership"
+  ],
+  "lowFitEnvironment": [
+    "Hierarquia lenta e burocratica",
+    "Cultura avessa a decisao",
+    "Ambiente de baixa responsabilidade",
+    "Dependencia excessiva de consenso"
+  ],
+  "recommendedRoles": [
+    "Lideranca comercial",
+    "Gestao de operacoes",
+    "Direcao de projetos",
+    "Gestao de performance",
+    "Expansao de negocios",
+    "Gestao de crise",
+    "Growth com foco em resultado",
+    "Direcao de unidade"
+  ],
+  "lowFitRoles": [
+    "Funcao altamente repetitiva sem autonomia",
+    "Posicao sem poder de decisao",
+    "Ambiente com ritmo muito lento",
+    "Escopo sem desafio ou impacto claro"
+  ],
+  "naturalStrengths": [
+    "Assertividade",
+    "Coragem decisoria",
+    "Foco em resultado",
+    "Rapidez de resposta",
+    "Postura de comando",
+    "Capacidade de priorizacao",
+    "Senso de responsabilidade",
+    "Energia de execucao"
+  ],
+  "developmentPoints": [
+    "Escuta ativa estruturada",
+    "Empatia em cobranca",
+    "Calibragem de tom em pressao",
+    "Delegacao com confianca",
+    "Alinhamento antes da decisao final",
+    "Gestao de ritmo da equipe",
+    "Abertura a visoes complementares",
+    "Construcao de engajamento relacional"
+  ],
+  "developmentRisks": [
+    "Excesso de controle",
+    "Conflito recorrente por forma de cobranca",
+    "Desgaste de relacao com pares",
+    "Perda de qualidade por velocidade sem calibragem"
+  ],
+  "managerGuidance": [
+    "Defina desafio com autonomia clara.",
+    "Negocie criterio objetivo de sucesso.",
+    "Traga feedback direto com evidencias.",
+    "Cobrar alinhamento relacional junto do resultado.",
+    "Acompanhe risco de centralizacao em ciclos curtos."
+  ],
+  "selfLeadershipGuidance": [
+    "Pratique pausa antes de decidir tema sensivel.",
+    "Escute ao menos dois contrapontos relevantes.",
+    "Delegue escopo operacional para evitar sobrecarga.",
+    "Documente criterio decisorio em temas criticos.",
+    "Meça resultado com indicador de qualidade relacional."
+  ],
+  "plan30": [
+    "Mapear 3 situacoes de decisao acelerada com risco relacional.",
+    "Aplicar roteiro de escuta ativa em reunioes criticas.",
+    "Definir checklist de decisao para temas de alto impacto.",
+    "Revisar semanalmente tom de cobranca com feedback de pares."
+  ],
+  "plan60": [
+    "Delegar dois blocos operacionais com checkpoints claros.",
+    "Reduzir retrabalho por alinhamento inicial de contexto.",
+    "Treinar conversas de confronto com foco em fatos e impacto.",
+    "Aprimorar previsibilidade com rotina quinzenal de risco."
+  ],
+  "plan90": [
+    "Consolidar ritmo de lideranca com equilibrio entre velocidade e escuta.",
+    "Mensurar evolucao de engajamento da equipe.",
+    "Estabelecer padrao de decisao replicavel para o time.",
+    "Escalar boas praticas de comando sem perder aderencia relacional."
+  ],
+  "executiveClosing": [
+    "O perfil D gera alto valor em contextos de desafio e responsabilidade.",
+    "Seu salto de maturidade vem de combinar firmeza com qualidade relacional.",
+    "Quando equilibra velocidade e escuta, amplia resultado sustentavel.",
+    "A evolucao proposta aumenta impacto sem elevar desgaste da equipe."
+  ]
+}

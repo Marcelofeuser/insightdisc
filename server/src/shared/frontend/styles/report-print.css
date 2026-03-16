@@ -1,0 +1,165 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.pdf-root {
+  background: #ffffff;
+  color: #111827;
+}
+
+.pdf-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  margin: 0 auto;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+  display: flex;
+  flex-direction: column;
+  gap: 5mm;
+  background: #ffffff;
+}
+
+.pdf-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.pdf-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 3mm;
+}
+
+.pdf-brand-name {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pdf-brand-subtitle {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.pdf-page-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pdf-title {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pdf-subtitle {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pdf-section-title {
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 3mm;
+}
+
+.pdf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4mm;
+}
+
+.pdf-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4mm;
+  background: #ffffff;
+}
+
+.pdf-muted {
+  color: #475569;
+}
+
+.pdf-list {
+  margin: 0;
+  padding-left: 5mm;
+}
+
+.pdf-list li {
+  margin-bottom: 2.2mm;
+}
+
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.pdf-table th,
+.pdf-table td {
+  border: 1px solid #e2e8f0;
+  padding: 2.2mm;
+  text-align: left;
+}
+
+.pdf-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+}
+
+.pdf-score-row {
+  margin-bottom: 3mm;
+}
+
+.pdf-score-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 1mm;
+}
+
+.pdf-score-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.pdf-score-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  .pdf-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+}

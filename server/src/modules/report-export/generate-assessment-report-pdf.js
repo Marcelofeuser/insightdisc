@@ -1,5 +1,5 @@
 import { buildAssessmentReportViewModel } from '../reports/reportViewModel.js';
-import { renderAssessmentReportPdfHtml } from '../../../../src/modules/reportExport/pdf/reportPdfDocument.js';
+import { renderAssessmentReportPdfHtml } from '../../shared/frontend/modules/reportExport/pdf/reportPdfDocument.js';
 import { loadServerBrowserLauncher } from '../report/generate-pdf.js';
 
 const DISC_FACTORS = ['D', 'I', 'S', 'C'];

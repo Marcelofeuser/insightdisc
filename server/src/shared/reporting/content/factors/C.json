@@ -1,0 +1,65 @@
+{
+  "low": {
+    "headline": "Baixa Conformidade: pragmatismo e baixa aderência a regras rígidas",
+    "paragraphs": [
+      "Na faixa baixa de Conformidade, a pessoa tende a priorizar velocidade e experimentação, com menor foco em padronização detalhada. Isso favorece inovação e ação rápida.",
+      "Para evitar retrabalho, é importante definir critérios mínimos de qualidade e risco. Estrutura essencial protege entrega sem engessar execução."
+    ],
+    "actions": [
+      "Definir padrão mínimo de qualidade por entrega.",
+      "Usar checklist de risco antes de finalizar.",
+      "Revisar dados críticos com um par analítico.",
+      "Documentar decisões de alto impacto.",
+      "Criar templates simples para tarefas repetidas."
+    ],
+    "redFlags": [
+      "Ignorar detalhes que afetam resultado final.",
+      "Aprovar mudanças sem avaliação de risco.",
+      "Baixa rastreabilidade de decisões importantes.",
+      "Retrabalho por falta de padrão.",
+      "Conflito com áreas mais reguladas."
+    ]
+  },
+  "mid": {
+    "headline": "Conformidade moderada: equilíbrio entre método e velocidade",
+    "paragraphs": [
+      "Com Conformidade em nível médio, há boa capacidade de estruturar trabalho com pragmatismo. O perfil combina análise suficiente para decidir sem paralisar execução.",
+      "Esse equilíbrio funciona bem em ambientes dinâmicos. O avanço está em consolidar padrões reutilizáveis para escalar qualidade."
+    ],
+    "actions": [
+      "Aplicar checklist padrão em decisões críticas.",
+      "Definir indicadores mínimos por projeto.",
+      "Formalizar aprendizados de entregas recorrentes.",
+      "Separar etapa de ideação e validação.",
+      "Negociar profundidade analítica conforme risco."
+    ],
+    "redFlags": [
+      "Analisar demais tarefas de baixo impacto.",
+      "Documentação incompleta em decisões relevantes.",
+      "Mudança de critérios no meio da execução.",
+      "Dependência de validação externa para concluir.",
+      "Oscilação entre rigidez e improviso."
+    ]
+  },
+  "high": {
+    "headline": "Alta Conformidade: precisão, método e consistência técnica",
+    "paragraphs": [
+      "Conformidade alta revela forte orientação a qualidade, análise de risco e cumprimento de critérios. O perfil é valioso para decisões complexas e ambientes regulados.",
+      "O desafio é evitar excesso de análise e perfeccionismo. Definir limite de profundidade por contexto mantém agilidade sem perder rigor técnico."
+    ],
+    "actions": [
+      "Estabelecer critério de “bom o suficiente”.",
+      "Definir tempo máximo para análise de cada decisão.",
+      "Comunicar recomendações em linguagem executiva.",
+      "Priorizar riscos críticos sobre detalhes secundários.",
+      "Equilibrar precisão com velocidade de entrega."
+    ],
+    "redFlags": [
+      "Paralisia por análise em decisões operacionais.",
+      "Perfeccionismo que compromete prazos.",
+      "Comunicação excessivamente técnica para o público.",
+      "Resistência a mudanças sem histórico completo.",
+      "Baixa tolerância a ambiguidade de curto prazo."
+    ]
+  }
+}

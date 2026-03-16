@@ -1,0 +1,85 @@
+{
+  "title": "Análise Relacional",
+  "executiveSummary": [
+    "Combina rigor analítico com sensibilidade interpessoal.",
+    "Contribui para decisões de qualidade com boa gestão de relacionamento.",
+    "Atua bem em contextos consultivos e de melhoria contínua.",
+    "Aumenta impacto ao acelerar fechamento de decisões."
+  ],
+  "strengths": [
+    "Análise sólida com comunicação cuidadosa",
+    "Alta qualidade em recomendações",
+    "Boa leitura de contexto humano",
+    "Capacidade de reduzir ruído em decisões complexas",
+    "Consistência técnica",
+    "Colaboração com critério"
+  ],
+  "risks": [
+    "Excesso de análise antes de agir",
+    "Evitar exposição em conflitos diretos",
+    "Dificuldade em priorizar velocidade",
+    "Dependência de validação social/técnica",
+    "Comunicação detalhada demais para urgência",
+    "Demora em decisões de baixa criticidade"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Apresentar recomendação com síntese executiva",
+      "Explicar risco e impacto de forma simples",
+      "Definir próxima ação objetiva",
+      "Ajustar profundidade ao tempo disponível",
+      "Formalizar consenso final"
+    ],
+    "dont": [
+      "Esperar informação perfeita para tudo",
+      "Postergar decisões de baixa complexidade",
+      "Diluir posicionamento técnico para evitar conflito",
+      "Conduzir debate sem prazo de fechamento",
+      "Superdetalhar temas operacionais"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança técnica-relacional com foco em consistência.",
+    "Equilibra qualidade, escuta e alinhamento de expectativas.",
+    "Boa para contextos de transformação com múltiplos atores."
+  ],
+  "stressPattern": [
+    "Amplia revisão e checagem de hipóteses.",
+    "Evita confronto direto em alta tensão.",
+    "Pode reduzir velocidade de resposta."
+  ],
+  "motivators": [
+    "Qualidade e reconhecimento técnico",
+    "Ambiente respeitoso",
+    "Autonomia para análise",
+    "Aprendizado contínuo"
+  ],
+  "idealEnvironment": [
+    "Governança clara",
+    "Colaboração madura",
+    "Processos com flexibilidade",
+    "Feedback estruturado"
+  ],
+  "conflictStyle": [
+    "Busca resolver por evidência e diálogo.",
+    "Prefere mediação estruturada.",
+    "Evita polarização sem base factual."
+  ],
+  "coachingTips": [
+    "Definir critérios de decisão por nível de risco.",
+    "Treinar assertividade em cenários urgentes.",
+    "Limitar tempo de análise em temas operacionais.",
+    "Aumentar objetividade no fechamento de reuniões.",
+    "Priorizar comunicação executiva em stakeholders críticos."
+  ],
+  "recommendedRoles": [
+    "Planejamento estratégico",
+    "Gestão de qualidade",
+    "Consultoria interna",
+    "Business intelligence",
+    "People analytics",
+    "PMO consultivo",
+    "Pesquisa e desenvolvimento",
+    "Gestão de processos"
+  ]
+}

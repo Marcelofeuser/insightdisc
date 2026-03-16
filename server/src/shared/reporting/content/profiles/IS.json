@@ -1,0 +1,242 @@
+{
+  "key": "IS",
+  "title": "Influencia com Estabilidade",
+  "archetype": "Engajador Relacional",
+  "summary": "Perfil caloroso, colaborativo, relacional e orientado a manter vinculos e clima positivo.",
+  "executiveSummary": [
+    "Combina conexao social com busca de harmonia e constancia.",
+    "Influencia de forma agradavel, sem recorrer a confronto direto.",
+    "Fortalece confianca e coesao em ambientes colaborativos.",
+    "Evolui quando une sensibilidade relacional com assertividade."
+  ],
+  "identityDynamics": [
+    "Constroi vinculo com rapidez e naturalidade.",
+    "Valoriza ambiente humano, respeitoso e previsivel.",
+    "Influencia mais por relacao do que por imposicao.",
+    "Busca preservar clima e evitar atrito desnecessario.",
+    "Atua como integrador da equipe em contexto tenso."
+  ],
+  "decisionStyle": [
+    "Considera impacto da decisao sobre pessoas e clima.",
+    "Prefere caminho que preserve colaboracao e seguranca relacional.",
+    "Pode postergar decisao dura para evitar tensao.",
+    "Decide melhor com contexto claro e apoio de criterio objetivo.",
+    "Ganha firmeza quando define limite e responsabilidade."
+  ],
+  "motivators": [
+    "Pertencimento",
+    "Reconhecimento",
+    "Ambiente positivo",
+    "Colaboracao",
+    "Confianca"
+  ],
+  "energyDrainers": [
+    "Conflito agressivo",
+    "Frieza relacional",
+    "Hostilidade de equipe",
+    "Cobrança dura sem contexto",
+    "Ambiente emocionalmente instavel"
+  ],
+  "workStrengths": [
+    "Empatia",
+    "Engajamento de pessoas",
+    "Comunicacao acolhedora",
+    "Integracao de equipe",
+    "Manutencao de clima",
+    "Construcao de vinculo"
+  ],
+  "workRisks": [
+    "Evitar conversa dificil",
+    "Agradar alem do necessario",
+    "Dificuldade de cobranca firme",
+    "Hesitacao em conflito",
+    "Baixa assertividade em limite",
+    "Adiar decisao desconfortavel"
+  ],
+  "communicationStyle": [
+    "Calorosa e acolhedora",
+    "Tom colaborativo",
+    "Foco em relacao de confianca",
+    "Busca reduzir tensao emocional"
+  ],
+  "communicationNeeds": [
+    "Respeito",
+    "Clareza com cuidado",
+    "Contexto humano",
+    "Tom construtivo"
+  ],
+  "communicationDo": [
+    "Aborde com cordialidade e respeito.",
+    "Explique contexto antes de cobrar mudanca.",
+    "Reconheca contribuicao relacional do perfil.",
+    "Traga firmeza sem agressividade.",
+    "Feche conversa com proximo passo objetivo."
+  ],
+  "communicationDont": [
+    "Evite dureza desnecessaria.",
+    "Nao transforme tudo em confronto.",
+    "Evite cobranca fria e impessoal.",
+    "Nao use ameaca relacional para pressionar.",
+    "Nao deixe ambiguo o limite esperado."
+  ],
+  "leadershipStyle": [
+    "Lidera por proximidade, apoio e integracao.",
+    "Cria ambiente de confianca e colaboracao.",
+    "Tem alta capacidade de engajar e sustentar clima.",
+    "Ganha maturidade com maior firmeza em decisao e cobranca."
+  ],
+  "leadershipStrengths": [
+    "Desenvolvimento de pessoas",
+    "Integracao da equipe",
+    "Escuta e suporte",
+    "Manutencao de clima saudavel",
+    "Conexao interpessoal"
+  ],
+  "leadershipRisks": [
+    "Baixa firmeza de cobranca",
+    "Evitar conflito necessario",
+    "Preservar conforto acima de resultado",
+    "Dificuldade de decisao dura",
+    "Acumular tensao por omissao"
+  ],
+  "stressPattern": [
+    "Absorve clima emocional da equipe.",
+    "Pode retrair em conflito duro.",
+    "Evita tensao direta quando sobrecarregado.",
+    "Precisa de estrutura para manter firmeza."
+  ],
+  "stressSignals": [
+    "Queda de assertividade",
+    "Silencio excessivo",
+    "Acomodacao temporaria",
+    "Evitação de conversa dificil",
+    "Sobrecarga relacional"
+  ],
+  "recoveryStrategy": [
+    "Clarificar prioridades com criterio objetivo.",
+    "Separar fato de emocao na conversa.",
+    "Planejar confronto necessario com roteiro.",
+    "Definir limite de disponibilidade emocional.",
+    "Reforcar posicionamento com apoio de dados."
+  ],
+  "conflictStyle": [
+    "Busca conciliacao antes de confrontar.",
+    "Evita embate direto quando possivel.",
+    "Precisa de estrutura para manter firmeza em tensao.",
+    "Conflito melhora com respeito e objetividade.",
+    "Tende a ceder para preservar relacao se nao houver limite claro."
+  ],
+  "teamContribution": [
+    "Integra pessoas com confianca",
+    "Fortalece vinculo de equipe",
+    "Sustenta clima colaborativo",
+    "Facilita comunicacao interpessoal",
+    "Reduz ruído relacional"
+  ],
+  "bestMatches": [
+    "SC",
+    "SI",
+    "C",
+    "S",
+    "CI"
+  ],
+  "frictionMatches": [
+    "DI",
+    "D",
+    "DC",
+    "ID"
+  ],
+  "idealEnvironment": [
+    "Ambiente respeitoso e humano",
+    "Ritmo previsivel com colaboracao",
+    "Lideranca com empatia e direcao",
+    "Comunicacao clara e construtiva",
+    "Seguranca relacional para posicionar-se"
+  ],
+  "lowFitEnvironment": [
+    "Agressividade constante",
+    "Competicao toxica",
+    "Pressao caotica sem suporte",
+    "Frieza extrema de relacionamento"
+  ],
+  "recommendedRoles": [
+    "Relacionamento com clientes",
+    "People e cultura",
+    "Treinamento",
+    "Customer success",
+    "Coordenacao de equipe",
+    "Facilitacao de onboarding",
+    "Atendimento consultivo",
+    "Funcoes de integracao"
+  ],
+  "lowFitRoles": [
+    "Ambiente de confronto extremo",
+    "Operacao de pressao agressiva sem suporte",
+    "Papel com hostilidade recorrente",
+    "Funcao sem espaco relacional"
+  ],
+  "naturalStrengths": [
+    "Empatia",
+    "Conexao humana",
+    "Engajamento",
+    "Construcao de vinculo",
+    "Cooperacao",
+    "Influencia gentil",
+    "Acolhimento",
+    "Clima positivo"
+  ],
+  "developmentPoints": [
+    "Assertividade",
+    "Cobrança saudavel",
+    "Decisao em contexto dificil",
+    "Posicionamento sob pressao",
+    "Definicao de limites",
+    "Confronto construtivo",
+    "Priorizacao objetiva",
+    "Exposicao de divergencia"
+  ],
+  "developmentRisks": [
+    "Excesso de agradabilidade",
+    "Evitar atrito necessario",
+    "Demorar para confrontar problema",
+    "Acumular tensao silenciosa"
+  ],
+  "managerGuidance": [
+    "Ofereca feedback com respeito e clareza.",
+    "Traga firmeza sem agressividade.",
+    "Valorize impacto relacional positivo do perfil.",
+    "Ajude a estruturar conversas dificeis.",
+    "Estimule posicionamento mais assertivo."
+  ],
+  "selfLeadershipGuidance": [
+    "Diferencie gentileza de omissao.",
+    "Treine posicionamento em situacao desconfortavel.",
+    "Desenvolva cobranca objetiva sem perder humanidade.",
+    "Use clareza para evitar tensao silenciosa.",
+    "Estabeleca limite saudavel de disponibilidade."
+  ],
+  "plan30": [
+    "Identificar uma situacao em que precisa posicionar-se melhor.",
+    "Treinar uma conversa de alinhamento mais assertiva.",
+    "Registrar momentos em que evitou confronto.",
+    "Definir limite de cobranca com clareza."
+  ],
+  "plan60": [
+    "Praticar cobranca estruturada com respeito.",
+    "Pedir feedback sobre firmeza de comunicacao.",
+    "Rever padrao de agradabilidade excessiva.",
+    "Aumentar velocidade em decisao desconfortavel."
+  ],
+  "plan90": [
+    "Consolidar novo padrao de comunicacao firme e humana.",
+    "Assumir decisoes dificeis com mais seguranca.",
+    "Equilibrar acolhimento com direcao de resultado.",
+    "Mensurar ganho de clareza e aderencia da equipe."
+  ],
+  "executiveClosing": [
+    "O perfil IS gera valor por conexao, confianca e clima positivo.",
+    "Seu principal salto esta em unir sensibilidade com firmeza.",
+    "Quando desenvolve assertividade, torna-se altamente estrategico para equipes.",
+    "A trilha proposta fortalece lideranca relacional com resultado."
+  ]
+}

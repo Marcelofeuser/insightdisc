@@ -1,0 +1,85 @@
+{
+  "title": "Rigor Assertivo",
+  "executiveSummary": [
+    "Alta precisão com tomada de decisão firme.",
+    "Atuação forte em cenários críticos e regulados.",
+    "Consolida padrões elevados de desempenho.",
+    "Ganha eficiência ao simplificar comunicação executiva."
+  ],
+  "strengths": [
+    "Critério técnico robusto",
+    "Assertividade em decisões difíceis",
+    "Foco em padrão de qualidade",
+    "Gestão de risco consistente",
+    "Capacidade de estruturação complexa",
+    "Compromisso com excelência"
+  ],
+  "risks": [
+    "Excesso de exigência sobre o time",
+    "Baixa tolerância a erros de processo",
+    "Análise prolongada em decisões simples",
+    "Comunicação percebida como dura",
+    "Dificuldade em reconhecer ritmos distintos",
+    "Resistência a experimentação rápida"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Definir padrão e evidência esperada",
+      "Oferecer contexto para exigências",
+      "Priorizar riscos críticos",
+      "Formalizar decisões relevantes",
+      "Reconhecer avanços parciais do time"
+    ],
+    "dont": [
+      "Cobrar sem explicar critério",
+      "Generalizar erro pontual",
+      "Exigir precisão máxima em baixa criticidade",
+      "Postergar decisão aguardando informação perfeita",
+      "Desconsiderar impacto relacional"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança de alta exigência com foco em confiabilidade.",
+    "Direciona por padrão técnico e accountability.",
+    "Opera bem em ambientes que exigem precisão."
+  ],
+  "stressPattern": [
+    "Aumenta rigidez de processo.",
+    "Amplia cobrança por conformidade.",
+    "Reduz paciência com desvios operacionais."
+  ],
+  "motivators": [
+    "Qualidade superior",
+    "Controle de risco",
+    "Autonomia técnica",
+    "Resultados robustos"
+  ],
+  "idealEnvironment": [
+    "Governança clara",
+    "Papéis definidos",
+    "Dados consistentes",
+    "Cultura de excelência"
+  ],
+  "conflictStyle": [
+    "Aborda conflito por critério e evidência.",
+    "Defende padrão mesmo sob pressão.",
+    "Busca solução definitiva e rastreável."
+  ],
+  "coachingTips": [
+    "Ajustar profundidade de análise por criticidade.",
+    "Praticar comunicação mais acessível ao time.",
+    "Incluir checkpoints de aprendizado além de cobrança.",
+    "Delegar decisões de baixa complexidade.",
+    "Equilibrar rigor com velocidade de negócio."
+  ],
+  "recommendedRoles": [
+    "Compliance",
+    "Auditoria interna",
+    "Gestão de qualidade",
+    "Controle de processos",
+    "Liderança de engenharia",
+    "Risco e governança",
+    "Operações críticas",
+    "Gestão de projetos regulados"
+  ]
+}

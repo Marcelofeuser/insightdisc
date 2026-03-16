@@ -1,0 +1,242 @@
+{
+  "key": "I",
+  "title": "Influencia",
+  "archetype": "Mobilizador Relacional",
+  "summary": "Perfil comunicativo, persuasivo e orientado a pessoas, com forte energia social.",
+  "executiveSummary": [
+    "Conecta pessoas com rapidez e gera clima de movimento.",
+    "Influencia por entusiasmo, narrativa e presenca social.",
+    "Amplia engajamento em contextos de colaboracao e visibilidade.",
+    "Evolui quando transforma energia relacional em consistencia de execucao."
+  ],
+  "identityDynamics": [
+    "Socialmente expansivo e confortavel em ambientes de interacao.",
+    "Valoriza reconhecimento e pertencimento no grupo.",
+    "Cria conexao com facilidade e promove clima positivo.",
+    "Tende a agir com otimismo e abertura para novidade.",
+    "Prefere liberdade de expressao a estruturas muito rigidas."
+  ],
+  "decisionStyle": [
+    "Decide com base em oportunidade e impacto relacional.",
+    "Valoriza movimento rapido e abertura de possibilidades.",
+    "Pode superestimar viabilidade por entusiasmo.",
+    "Decide melhor quando combina narrativa com dados de fechamento.",
+    "Precisa de checkpoints para manter foco ate a conclusao."
+  ],
+  "motivators": [
+    "Reconhecimento publico",
+    "Interacao frequente com pessoas",
+    "Novidade e dinamismo",
+    "Visibilidade de contribuicao",
+    "Liberdade para comunicar ideias"
+  ],
+  "energyDrainers": [
+    "Isolamento prolongado",
+    "Rotina excessivamente rigida",
+    "Ambiente frio e impessoal",
+    "Critica tecnica sem contexto humano",
+    "Falta de abertura para dialogo"
+  ],
+  "workStrengths": [
+    "Comunicacao envolvente",
+    "Persuasao",
+    "Networking",
+    "Mobilizacao de pessoas",
+    "Integracao de time",
+    "Presenca social em projetos"
+  ],
+  "workRisks": [
+    "Dispersao por excesso de pauta",
+    "Follow-up inconsistente",
+    "Superficialidade de analise",
+    "Promessa acima da capacidade real",
+    "Otimismo sem plano operacional",
+    "Dificuldade de manter disciplina de fechamento"
+  ],
+  "communicationStyle": [
+    "Expressivo e caloroso",
+    "Ritmo rapido de fala",
+    "Foco em conexao e entusiasmo",
+    "Narrativa orientada a influencia"
+  ],
+  "communicationNeeds": [
+    "Interacao autentica",
+    "Espaco de expressao",
+    "Feedback com reconhecimento",
+    "Direcao clara para fechamento"
+  ],
+  "communicationDo": [
+    "Conecte objetivo a impacto humano e de negocio.",
+    "Use linguagem clara com energia positiva.",
+    "Confirme prioridades para evitar dispersao.",
+    "Transforme ideia em proximo passo objetivo.",
+    "Reforce encerramento com dono e prazo."
+  ],
+  "communicationDont": [
+    "Nao neutralize a conversa com frieza excessiva.",
+    "Evite critica sem contexto construtivo.",
+    "Nao prolongue brainstorm sem fechamento.",
+    "Nao assuma que entusiasmo equivale a alinhamento.",
+    "Evite excesso de informacao sem priorizacao."
+  ],
+  "leadershipStyle": [
+    "Lidera por inspiracao e mobilizacao social.",
+    "Engaja equipe com narrativa de futuro.",
+    "Cria ambiente energizado para colaboracao.",
+    "Ganha efetividade com rotinas claras de acompanhamento."
+  ],
+  "leadershipStrengths": [
+    "Engajamento do time",
+    "Influencia positiva",
+    "Comunicacao de visao",
+    "Capacidade de conectar areas",
+    "Ambiente de alta energia"
+  ],
+  "leadershipRisks": [
+    "Baixa disciplina de execucao",
+    "Excesso de promessas",
+    "Dificuldade de cobranca firme",
+    "Priorizacao instavel",
+    "Perda de foco em detalhes criticos"
+  ],
+  "stressPattern": [
+    "Oscila entre entusiasmo e frustracao.",
+    "Pode evitar aprofundamento sob pressao.",
+    "Aumenta fala e reduz foco de execucao.",
+    "Busca validacao externa para decidir."
+  ],
+  "stressSignals": [
+    "Dispersao de prioridade",
+    "Queda de follow-up",
+    "Promessa sem fechamento",
+    "Variacao emocional acentuada",
+    "Dificuldade de concluir ciclo"
+  ],
+  "recoveryStrategy": [
+    "Reduzir pauta para 3 prioridades objetivas.",
+    "Converter ideia em plano com dono e prazo.",
+    "Criar rotina diaria de fechamento rapido.",
+    "Pedir contraponto tecnico para equilibrar entusiasmo.",
+    "Reforcar criterio de sucesso em cada entrega."
+  ],
+  "conflictStyle": [
+    "Prefere influenciar e conciliar antes de confrontar.",
+    "Pode evitar tensao para preservar clima.",
+    "Reage melhor a conflito com respeito e clareza.",
+    "Precisa de estrutura para manter objetividade.",
+    "Conflito mal conduzido gera dispersao e desgaste."
+  ],
+  "teamContribution": [
+    "Fortalece conexao do grupo",
+    "Eleva clima e motivacao",
+    "Facilita comunicacao entre areas",
+    "Atrai colaboracao em projetos",
+    "Aumenta visibilidade de iniciativas"
+  ],
+  "bestMatches": [
+    "S",
+    "C",
+    "IS",
+    "SI",
+    "IC"
+  ],
+  "frictionMatches": [
+    "DC",
+    "CD",
+    "D muito alto",
+    "CS"
+  ],
+  "idealEnvironment": [
+    "Ambiente colaborativo e humano",
+    "Espaco para interacao frequente",
+    "Reconhecimento por contribuicao",
+    "Ritmo dinamico com foco claro",
+    "Lideranca que combina apoio e direcionamento"
+  ],
+  "lowFitEnvironment": [
+    "Rotina isolada e sem contato",
+    "Excesso de rigidez sem espaco de dialogo",
+    "Cultura fria de cobranca",
+    "Baixa abertura para criatividade"
+  ],
+  "recommendedRoles": [
+    "Relacionamento com clientes",
+    "Desenvolvimento de negocios",
+    "Comercial consultivo",
+    "Customer success",
+    "Treinamento",
+    "Comunicacao interna",
+    "People e cultura",
+    "Gestao de comunidade"
+  ],
+  "lowFitRoles": [
+    "Funcao solitaria com baixa interacao",
+    "Escopo tecnico repetitivo sem dialogo",
+    "Ambiente de cobranca fria continua",
+    "Trabalho sem visibilidade de contribuicao"
+  ],
+  "naturalStrengths": [
+    "Carisma",
+    "Persuasao",
+    "Comunicacao",
+    "Conexao social",
+    "Engajamento",
+    "Energia positiva",
+    "Networking",
+    "Mobilizacao"
+  ],
+  "developmentPoints": [
+    "Consistencia de follow-up",
+    "Priorizacao objetiva",
+    "Profundidade de analise",
+    "Disciplina de execucao",
+    "Gestao de expectativa",
+    "Sintese em comunicacao",
+    "Fechamento de ciclos",
+    "Controle de dispersao"
+  ],
+  "developmentRisks": [
+    "Entusiasmo sem plano",
+    "Prometer sem capacidade real",
+    "Perder credibilidade por falta de fechamento",
+    "Oscilar foco em pressao prolongada"
+  ],
+  "managerGuidance": [
+    "Defina objetivos curtos com visibilidade de progresso.",
+    "Reconheca contribuicao e cobre fechamento.",
+    "Ajude a transformar ideia em plano concreto.",
+    "Use checkpoints frequentes de prioridade.",
+    "Equilibre encorajamento com responsabilidade clara."
+  ],
+  "selfLeadershipGuidance": [
+    "Converta entusiasmo em rotina de entrega.",
+    "Escolha menos pautas e conclua mais ciclos.",
+    "Pratique sintese objetiva em comunicacao.",
+    "Valide risco e viabilidade antes de prometer.",
+    "Revise semanalmente o que foi iniciado e finalizado."
+  ],
+  "plan30": [
+    "Definir 3 entregas criticas com criterio claro de conclusao.",
+    "Aplicar rotina diaria de follow-up em prioridades.",
+    "Registrar promessas e status de fechamento.",
+    "Pedir feedback sobre clareza e objetividade da comunicacao."
+  ],
+  "plan60": [
+    "Reduzir retrabalho por desalinhamento de expectativa.",
+    "Aprimorar profundidade em temas de maior risco.",
+    "Consolidar rituais de execucao com indicadores semanais.",
+    "Treinar conversas de cobranca com firmeza respeitosa."
+  ],
+  "plan90": [
+    "Manter ritmo de engajamento com consistencia de entrega.",
+    "Elevar previsibilidade de resultado em projetos-chave.",
+    "Escalar boas praticas de comunicacao no time.",
+    "Sustentar equilibrio entre energia social e disciplina."
+  ],
+  "executiveClosing": [
+    "O perfil I amplia engajamento e conexao em ambientes colaborativos.",
+    "Seu principal ganho vem de unir influencia com consistencia operacional.",
+    "Quando fecha ciclos com disciplina, aumenta credibilidade de lideranca.",
+    "A evolucao proposta sustenta impacto com maturidade profissional."
+  ]
+}

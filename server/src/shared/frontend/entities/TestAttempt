@@ -1,0 +1,51 @@
+{
+  "name": "TestAttempt",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string"
+    },
+    "assessment_type": {
+      "type": "string",
+      "description": "Exemplo: DISC"
+    },
+    "respondent_user_id": {
+      "type": "string"
+    },
+    "respondent_email": {
+      "type": "string"
+    },
+    "invited_by_user_id": {
+      "type": "string"
+    },
+    "source_order_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "report_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "assessment_type",
+    "status"
+  ]
+}
+

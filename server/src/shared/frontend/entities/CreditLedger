@@ -1,0 +1,51 @@
+{
+  "name": "CreditLedger",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string"
+    },
+    "entry_type": {
+      "type": "string",
+      "enum": [
+        "credit",
+        "debit"
+      ]
+    },
+    "amount": {
+      "type": "number",
+      "description": "Quantidade de creditos movimentada"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Saldo apos aplicacao da entrada"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "order",
+        "attempt",
+        "manual_adjustment",
+        "refund",
+        "expiration"
+      ]
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "created_by_user_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "entry_type",
+    "amount",
+    "balance_after",
+    "source_type"
+  ]
+}
+

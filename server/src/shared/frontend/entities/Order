@@ -1,0 +1,62 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string"
+    },
+    "buyer_user_id": {
+      "type": "string"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "credit_pack",
+        "single_test",
+        "report_upgrade",
+        "subscription"
+      ]
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor total em centavos"
+    },
+    "currency": {
+      "type": "string",
+      "default": "BRL"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "failed",
+        "refunded",
+        "chargeback"
+      ],
+      "default": "pending"
+    },
+    "payment_gateway": {
+      "type": "string"
+    },
+    "gateway_transaction_id": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "product_type",
+    "amount",
+    "status"
+  ]
+}
+

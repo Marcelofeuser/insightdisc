@@ -1,0 +1,79 @@
+{
+  "name": "Question",
+  "type": "object",
+  "properties": {
+    "question_text": {
+      "type": "string",
+      "description": "Texto da pergunta ou instru\u00e7\u00e3o"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "forced_choice",
+        "scale",
+        "ranking"
+      ],
+      "default": "forced_choice"
+    },
+    "options": {
+      "type": "array",
+      "description": "Op\u00e7\u00f5es de resposta",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "factor": {
+            "type": "string",
+            "enum": [
+              "D",
+              "I",
+              "S",
+              "C"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "work_style",
+        "communication",
+        "decision_making",
+        "stress_response",
+        "leadership",
+        "teamwork"
+      ],
+      "description": "Categoria da pergunta"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "intermediate",
+        "advanced"
+      ],
+      "default": "intermediate"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "usage_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "question_text",
+    "options"
+  ]
+}

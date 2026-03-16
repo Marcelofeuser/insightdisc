@@ -1,0 +1,123 @@
+{
+  "name": "JobPosition",
+  "type": "object",
+  "properties": {
+    "workspace_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da vaga/cargo"
+    },
+    "department": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "ideal_profile": {
+      "type": "object",
+      "description": "Perfil DISC ideal para a vaga",
+      "properties": {
+        "D": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            },
+            "ideal": {
+              "type": "number"
+            }
+          }
+        },
+        "I": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            },
+            "ideal": {
+              "type": "number"
+            }
+          }
+        },
+        "S": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            },
+            "ideal": {
+              "type": "number"
+            }
+          }
+        },
+        "C": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            },
+            "ideal": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "key_competencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "assessment_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "match_score": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "workspace_id",
+    "title"
+  ]
+}
