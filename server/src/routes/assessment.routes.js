@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { sendSafeJsonError } from '../lib/http-security.js';
 import { prisma } from '../lib/prisma.js';
 import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
@@ -324,7 +325,11 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
     if (message.includes('USER_NOT_FOUND')) {
       return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
     }
-    return res.status(400).json({ ok: false, error: error?.message || 'SELF_START_FAILED' });
+    return sendSafeJsonError(res, {
+      status: error instanceof z.ZodError ? 400 : 500,
+      error: error instanceof z.ZodError ? 'INVALID_SELF_START_PAYLOAD' : 'SELF_START_FAILED',
+      message: 'Falha ao iniciar autoavaliação.',
+    });
   }
 });
 
@@ -353,9 +358,10 @@ router.get('/credits', requireAuth, attachUser, async (req, res) => {
       isSuperAdmin,
     });
   } catch (error) {
-    return res.status(400).json({
-      ok: false,
-      error: error?.message || 'ASSESSMENT_CREDITS_FAILED',
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: 'ASSESSMENT_CREDITS_FAILED',
+      message: 'Falha ao carregar créditos.',
     });
   }
 });
@@ -385,7 +391,12 @@ router.get('/validate-token', async (req, res) => {
       expiresAt: result.invite.expiresAt,
     });
   } catch (error) {
-    return res.status(500).json({ valid: false, reason: error?.message || 'VALIDATION_ERROR' });
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: 'VALIDATION_ERROR',
+      message: 'Falha ao validar token.',
+      details: { valid: false, reason: 'VALIDATION_ERROR' },
+    });
   }
 });
 
@@ -454,7 +465,12 @@ router.get('/report-by-token', async (req, res) => {
     });
   } catch (error) {
     const reason = normalizeReason(error?.message || 'REPORT_BY_TOKEN_ERROR');
-    return res.status(500).json({ ok: false, reason });
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: reason || 'REPORT_BY_TOKEN_ERROR',
+      message: 'Falha ao carregar relatório por token.',
+      details: { reason: reason || 'REPORT_BY_TOKEN_ERROR' },
+    });
   }
 });
 
@@ -989,7 +1005,12 @@ router.post('/consume', async (req, res) => {
 
     return res.status(200).json({ ok: true, assessmentId: currentInvite.assessmentId });
   } catch (error) {
-    return res.status(400).json({ ok: false, reason: error?.message || 'CONSUME_ERROR' });
+    return sendSafeJsonError(res, {
+      status: error instanceof z.ZodError ? 400 : 500,
+      error: error instanceof z.ZodError ? 'INVALID_CONSUME_PAYLOAD' : 'CONSUME_ERROR',
+      message: 'Falha ao consumir convite.',
+      details: { reason: error instanceof z.ZodError ? 'INVALID_CONSUME_PAYLOAD' : 'CONSUME_ERROR' },
+    });
   }
 });
 
@@ -1127,7 +1148,11 @@ router.post('/submit', async (req, res) => {
         error: 'INSUFFICIENT_CREDITS',
       });
     }
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao submeter assessment.' });
+    return sendSafeJsonError(res, {
+      status: error instanceof z.ZodError ? 400 : 500,
+      error: error instanceof z.ZodError ? 'INVALID_ASSESSMENT_SUBMIT_PAYLOAD' : 'ASSESSMENT_SUBMIT_FAILED',
+      message: 'Falha ao submeter assessment.',
+    });
   }
 });
 

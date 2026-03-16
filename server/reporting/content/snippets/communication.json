@@ -1,0 +1,16 @@
+{
+  "defaultDo": [
+    "Defina objetivo da conversa antes de iniciar.",
+    "Ajuste nível de detalhe ao perfil do interlocutor.",
+    "Confirme entendimento com resumo final.",
+    "Finalize com responsável, prazo e próximo passo.",
+    "Registre decisões importantes por escrito."
+  ],
+  "defaultDont": [
+    "Evitar decisões ambíguas sem dono.",
+    "Sair de reunião sem critério de sucesso.",
+    "Assumir alinhamento sem validação explícita.",
+    "Usar apenas tom único para todos os perfis.",
+    "Deixar conflitos críticos sem tratamento."
+  ]
+}

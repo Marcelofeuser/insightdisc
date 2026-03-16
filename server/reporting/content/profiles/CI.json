@@ -1,0 +1,242 @@
+{
+  "key": "CI",
+  "title": "Conformidade com Influencia",
+  "archetype": "Especialista Persuasivo",
+  "summary": "Perfil analitico e criterioso, com boa exposicao e influencia por competencia.",
+  "executiveSummary": [
+    "Combina profundidade tecnica com capacidade de comunicacao.",
+    "Influencia por clareza, didatica e credibilidade profissional.",
+    "Entrega qualidade com boa articulacao entre logica e relacao.",
+    "Evolui quando aumenta sintese e agilidade em decisao."
+  ],
+  "identityDynamics": [
+    "Busca clareza, refinamento e coerencia de mensagem.",
+    "Valoriza competencia percebida com consistencia.",
+    "Gosta de explicar, ensinar e detalhar racional.",
+    "Combina analise cuidadosa com maior abertura social que C puro.",
+    "Prefere contexto organizado e intelectualmente exigente."
+  ],
+  "decisionStyle": [
+    "Decide com base em dado e consistencia logica.",
+    "Considera impacto reputacional e qualidade de entrega.",
+    "Pode alongar justificativa para reduzir risco percebido.",
+    "Decide melhor com criterio claro e limite de tempo.",
+    "Ganha velocidade quando simplifica racional para o essencial."
+  ],
+  "motivators": [
+    "Credibilidade tecnica",
+    "Reconhecimento por competencia",
+    "Clareza e qualidade",
+    "Domínio de conteudo",
+    "Ambiente estruturado com dialogo"
+  ],
+  "energyDrainers": [
+    "Erro recorrente sem aprendizagem",
+    "Simplificacao grosseira de tema complexo",
+    "Desorganizacao cronica",
+    "Superficialidade analitica",
+    "Ruido relacional sem criterio"
+  ],
+  "workStrengths": [
+    "Didatica tecnica",
+    "Argumentacao logica",
+    "Influência por competencia",
+    "Organizacao de conteudo",
+    "Qualidade de entrega",
+    "Comunicacao estruturada"
+  ],
+  "workRisks": [
+    "Excesso de explicacao",
+    "Criticidade social em detalhes",
+    "Baixa objetividade em urgencia",
+    "Rigidez com erro de aprendizagem",
+    "Demora para simplificar decisao",
+    "Dificuldade de tolerar ambiguidades"
+  ],
+  "communicationStyle": [
+    "Tecnica e articulada",
+    "Didatica com detalhamento",
+    "Tom criterioso",
+    "Busca coerencia em cada argumento"
+  ],
+  "communicationNeeds": [
+    "Dados de qualidade",
+    "Espaco para explicar racional",
+    "Contexto claro de decisao",
+    "Feedback sobre clareza e aplicabilidade"
+  ],
+  "communicationDo": [
+    "Estruture explicacao com inicio, meio e fim.",
+    "Conecte detalhe tecnico ao impacto de negocio.",
+    "Defina conclusao objetiva apos argumentacao.",
+    "Use exemplos praticos para acelerar entendimento.",
+    "Valide entendimento do interlocutor antes de seguir."
+  ],
+  "communicationDont": [
+    "Nao prolongue analise sem fechar decisao.",
+    "Evite excesso de detalhe fora de prioridade.",
+    "Nao use criticidade como substituto de orientacao.",
+    "Evite linguagem tecnica sem traducao para negocio.",
+    "Nao adie posicionamento por busca de perfeicao total."
+  ],
+  "leadershipStyle": [
+    "Lidera com base em criterio, didatica e consistencia.",
+    "Consegue elevar qualidade por orientacao tecnica clara.",
+    "Tem boa capacidade de influenciar por argumento robusto.",
+    "Ganha escala quando acelera sintese e decisao."
+  ],
+  "leadershipStrengths": [
+    "Orientacao tecnica clara",
+    "Didatica para equipe",
+    "Padrao de qualidade",
+    "Coerencia de processo",
+    "Influencia por credibilidade"
+  ],
+  "leadershipRisks": [
+    "Excesso de detalhamento",
+    "Baixa velocidade de decisao",
+    "Criticidade social elevada",
+    "Rigidez com variacao de metodo",
+    "Dificuldade de simplificar cobranca"
+  ],
+  "stressPattern": [
+    "Aumenta analise e justificativa sob pressao.",
+    "Eleva sensibilidade a erro e incoerencia.",
+    "Pode prolongar discussao para reduzir risco.",
+    "Tende a endurecer criterio de avaliacao."
+  ],
+  "stressSignals": [
+    "Explicacao longa sem fechamento",
+    "Demora de decisao em tema recorrente",
+    "Aumento de criticidade sobre detalhe",
+    "Dificuldade de aceitar solucao parcial",
+    "Queda de objetividade em urgencia"
+  ],
+  "recoveryStrategy": [
+    "Definir limite de profundidade por risco.",
+    "Converter explicacao em decisao objetiva.",
+    "Priorizar impacto sobre perfeicao em baixa criticidade.",
+    "Pedir contraponto pratico para simplificacao.",
+    "Reforcar ritmo de fechamento com checkpoints."
+  ],
+  "conflictStyle": [
+    "Conflita por coerencia tecnica e qualidade.",
+    "Prefere debate racional com evidencia.",
+    "Pode soar critico em excesso sob pressao.",
+    "Conflito reduz com criterio claro e linguagem objetiva.",
+    "Precisa equilibrar rigor com acolhimento relacional."
+  ],
+  "teamContribution": [
+    "Eleva clareza tecnica do time",
+    "Organiza conhecimento aplicavel",
+    "Apoia decisao com argumento robusto",
+    "Melhora padrao de qualidade",
+    "Conecta analise e comunicacao"
+  ],
+  "bestMatches": [
+    "S",
+    "I",
+    "C",
+    "SC",
+    "IC"
+  ],
+  "frictionMatches": [
+    "DI impulsivo",
+    "D muito duro",
+    "ID dispersivo",
+    "I sem disciplina"
+  ],
+  "idealEnvironment": [
+    "Ambiente tecnicamente exigente e colaborativo",
+    "Processo claro com espaco de dialogo",
+    "Cultura de aprendizado com criterio",
+    "Ritmo sustentavel para qualidade",
+    "Lideranca coerente em expectativa"
+  ],
+  "lowFitEnvironment": [
+    "Improviso cronico sem estrutura",
+    "Pressao agressiva sem criterio",
+    "Ambiente de superficialidade constante",
+    "Papel sem clareza de prioridade"
+  ],
+  "recommendedRoles": [
+    "Consultoria tecnica",
+    "Treinamento especializado",
+    "Pre-vendas tecnicas",
+    "Gestao de conhecimento",
+    "Qualidade e melhoria de processo",
+    "Comunicacao tecnica para negocio",
+    "Arquitetura de solucao",
+    "Customer advisory tecnico"
+  ],
+  "lowFitRoles": [
+    "Escopo de improviso sem criterio",
+    "Funcao de alta pressao sem base tecnica",
+    "Ambiente com baixa valorizacao de qualidade",
+    "Papel sem espaco de argumentacao"
+  ],
+  "naturalStrengths": [
+    "Analise",
+    "Didatica",
+    "Organizacao",
+    "Clareza tecnica",
+    "Coerencia",
+    "Influência por competencia",
+    "Rigor",
+    "Confiabilidade"
+  ],
+  "developmentPoints": [
+    "Sintese executiva",
+    "Agilidade decisoria",
+    "Flexibilidade em ambiguidade",
+    "Tolerancia ao imperfeito",
+    "Objetividade em cobranca",
+    "Calibragem de criticidade social",
+    "Priorizacao de impacto",
+    "Comunicacao de alto nivel"
+  ],
+  "developmentRisks": [
+    "Excesso de explicacao sem fechamento",
+    "Lentidao em cenario dinamico",
+    "Atrito por criticidade elevada",
+    "Rigidez em situacao de mudanca"
+  ],
+  "managerGuidance": [
+    "Defina objetivo de negocio junto de criterio tecnico.",
+    "Cobre conclusao objetiva apos analise.",
+    "Incentive sintese em comunicacao de decisao.",
+    "Reforce flexibilidade em contexto de media incerteza.",
+    "Monitore risco de perfeccionismo improdutivo."
+  ],
+  "selfLeadershipGuidance": [
+    "Transforme explicacao em decisao com prazo.",
+    "Pratique comunicacao em camadas: resumo e detalhe.",
+    "Aceite nivel adequado de imperfeicao por risco.",
+    "Mantenha foco no impacto principal.",
+    "Treine rapidez em temas de baixa complexidade."
+  ],
+  "plan30": [
+    "Mapear situacoes de excesso de detalhamento.",
+    "Aplicar formato de resumo executivo em 3 reunioes.",
+    "Definir limite de tempo para decisao recorrente.",
+    "Pedir feedback sobre objetividade da comunicacao."
+  ],
+  "plan60": [
+    "Aumentar agilidade sem perder criterio tecnico.",
+    "Reduzir criticidade social em feedback.",
+    "Aprimorar flexibilidade em contexto ambiguo.",
+    "Consolidar rotina de priorizacao por impacto."
+  ],
+  "plan90": [
+    "Sustentar qualidade com maior velocidade de entrega.",
+    "Escalar influencia tecnica para diferentes publicos.",
+    "Consolidar estilo de lideranca clara e acessivel.",
+    "Mensurar ganho de performance e aderencia do time."
+  ],
+  "executiveClosing": [
+    "O perfil CI alia rigor e comunicacao com potencial alto para lideranca tecnica.",
+    "Seu principal salto esta em sintese e rapidez de fechamento.",
+    "Quando simplifica com criterio, aumenta impacto e alcance.",
+    "A trilha proposta fortalece performance tecnica com influencia madura."
+  ]
+}

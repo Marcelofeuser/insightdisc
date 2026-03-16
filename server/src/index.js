@@ -6,6 +6,7 @@ const app = createApp();
 
 const server = app.listen(env.port, () => {
   console.log(`InsightDISC API running on http://localhost:${env.port}`);
+  console.log('[server] CORS allowed origins:', env.corsAllowedOrigins.join(', '));
   void printSuperAdminBootstrapStatus();
 });
 

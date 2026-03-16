@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "brand": "InsightDISC",
+    "reportTitle": "Relatório de Análise Comportamental DISC",
+    "reportSubtitle": "Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento",
+    "generatedAt": "2026-03-06T12:00:00.000Z",
+    "reportId": "assessment-luana-is-001",
+    "version": "5.0",
+    "responsibleName": "Marcelo Feuser",
+    "responsibleRole": "Especialista em Análise Comportamental",
+    "workspaceId": "workspace-insightdisc"
+  },
+  "participant": {
+    "name": "Luana Faleiro Santos",
+    "email": "luana.santos@example.com",
+    "assessmentId": "assessment-luana-is-001",
+    "role": "Executiva Comercial",
+    "company": "InsightDISC"
+  },
+  "branding": {
+    "company_name": "InsightDISC",
+    "logo_url": "/brand/insightdisc-report-logo.png",
+    "brand_primary_color": "#0b1f3b",
+    "brand_secondary_color": "#f7b500",
+    "report_footer_text": "InsightDISC - Plataforma de Análise Comportamental"
+  },
+  "scores": {
+    "natural": {
+      "D": 32,
+      "I": 74,
+      "S": 69,
+      "C": 30
+    },
+    "adapted": {
+      "D": 37,
+      "I": 66,
+      "S": 62,
+      "C": 36
+    }
+  }
+}

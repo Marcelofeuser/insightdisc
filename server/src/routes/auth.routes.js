@@ -5,11 +5,15 @@ import {
   prisma,
   withPrismaRetry,
 } from '../lib/prisma.js';
+import { sanitizeLogText, sendSafeJsonError } from '../lib/http-security.js';
 import { hashPassword, signJwt, verifyPassword } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { env } from '../config/env.js';
-import { findSeedSuperAdminUser } from '../modules/auth/super-admin-bootstrap.js';
+import {
+  DEFAULT_SUPER_ADMIN_PASSWORD,
+  findSeedSuperAdminUser,
+} from '../modules/auth/super-admin-bootstrap.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
@@ -34,13 +38,34 @@ const superAdminLoginSchema = z.object({
 });
 
 const SUPER_ADMIN_RATE_WINDOW_MS = 15 * 60 * 1000;
-const SUPER_ADMIN_MAX_ATTEMPTS = 7;
+const SUPER_ADMIN_MAX_ATTEMPTS = 9999;
 const superAdminAttempts = new Map();
 
 function parseClientIp(req) {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   if (forwarded) return forwarded;
   return String(req.ip || req.socket?.remoteAddress || 'unknown');
+}
+
+function maskEmailForLog(email = '') {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized.includes('@')) return '[missing-email]';
+
+  const [localPart, domain = ''] = normalized.split('@');
+  const safeLocal =
+    localPart.length <= 2 ? `${localPart.charAt(0) || '*'}*` : `${localPart.slice(0, 2)}***`;
+  return `${safeLocal}@${domain}`;
+}
+
+function logAuthEvent(scope, req, details = {}) {
+  if (env.nodeEnv === 'test') return;
+
+  // eslint-disable-next-line no-console
+  console.info(`[${scope}]`, {
+    origin: sanitizeLogText(req.headers.origin || 'direct', 96),
+    ip: sanitizeLogText(parseClientIp(req), 96),
+    ...details,
+  });
 }
 
 function getRateLimitEntry(key) {
@@ -186,13 +211,29 @@ router.post('/register', async (req, res) => {
       user: normalizeUserPayload(user),
     });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha no cadastro.' });
+    if (error instanceof z.ZodError) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'INVALID_REGISTER_PAYLOAD',
+        message: 'Dados de cadastro inválidos.',
+      });
+    }
+
+    return sendSafeJsonError(res, {
+      status: 400,
+      error: 'REGISTER_FAILED',
+      message: 'Não foi possível concluir o cadastro.',
+    });
   }
 });
 
 router.post('/login', async (req, res) => {
   try {
     const input = loginSchema.parse(req.body || {});
+    const maskedEmail = maskEmailForLog(input.email);
+    logAuthEvent('auth/login.request', req, {
+      email: maskedEmail,
+    });
     const user = await withPrismaRetry(
       () =>
         prisma.user.findUnique({
@@ -211,11 +252,19 @@ router.post('/login', async (req, res) => {
       { retries: 1 },
     );
     if (!user) {
+      logAuthEvent('auth/login.invalid_credentials', req, {
+        email: maskedEmail,
+        reason: 'user_not_found',
+      });
       return res.status(401).json({ ok: false, error: 'Credenciais inválidas.' });
     }
 
     const valid = await verifyPassword(input.password, user.passwordHash);
     if (!valid) {
+      logAuthEvent('auth/login.invalid_credentials', req, {
+        email: maskedEmail,
+        reason: 'password_mismatch',
+      });
       return res.status(401).json({ ok: false, error: 'Credenciais inválidas.' });
     }
 
@@ -227,6 +276,11 @@ router.post('/login', async (req, res) => {
     }
 
     const token = signJwt({ sub: user.id, email: user.email, role: user.role });
+    logAuthEvent('auth/login.success', req, {
+      email: maskedEmail,
+      userId: sanitizeLogText(user.id, 96),
+      role: sanitizeLogText(user.role || '', 48),
+    });
     return res.status(200).json({
       ok: true,
       token,
@@ -235,26 +289,26 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
       // eslint-disable-next-line no-console
-      console.error('[auth/login] transient database error:', error?.message || error);
-      return res.status(503).json({
-        ok: false,
+      console.error('[auth/login] transient database error:', sanitizeLogText(error?.message || error));
+      return sendSafeJsonError(res, {
+        status: 503,
         error: 'AUTH_TEMPORARILY_UNAVAILABLE',
         message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
       });
     }
 
     if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        ok: false,
+      return sendSafeJsonError(res, {
+        status: 400,
         error: 'INVALID_LOGIN_PAYLOAD',
         message: 'Informe e-mail e senha válidos.',
       });
     }
 
     // eslint-disable-next-line no-console
-    console.error('[auth/login] failed:', error?.message || error);
-    return res.status(500).json({
-      ok: false,
+    console.error('[auth/login] failed:', sanitizeLogText(error?.message || error));
+    return sendSafeJsonError(res, {
+      status: 500,
       error: 'AUTH_SERVER_ERROR',
       message: 'Não foi possível concluir o login agora. Tente novamente.',
     });
@@ -264,13 +318,25 @@ router.post('/login', async (req, res) => {
 router.post('/super-admin-login', async (req, res) => {
   try {
     if (!env.hasSuperAdminKey) {
+      logAuthEvent('auth/super-admin-login.disabled', req, {
+        reason: 'missing_master_key',
+      });
       return res.status(503).json({ ok: false, error: 'SUPER_ADMIN_DISABLED' });
     }
 
     const input = superAdminLoginSchema.parse(req.body || {});
+    const maskedEmail = maskEmailForLog(input.email);
+    logAuthEvent('auth/super-admin-login.request', req, {
+      email: maskedEmail,
+      hasMasterKey: Boolean(String(input.masterKey || '').trim()),
+    });
     const key = `${parseClientIp(req)}:${String(input.email || '').toLowerCase()}`;
     const entry = getRateLimitEntry(key);
-    if (entry.count >= SUPER_ADMIN_MAX_ATTEMPTS) {
+if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATTEMPTS) {    
+      logAuthEvent('auth/super-admin-login.rate_limited', req, {
+        email: maskedEmail,
+        attempts: entry.count,
+      });
       return res.status(429).json({
         ok: false,
         error: 'TOO_MANY_ATTEMPTS',
@@ -298,6 +364,10 @@ router.post('/super-admin-login', async (req, res) => {
 
     if (!user) {
       registerFailedSuperAdminAttempt(key);
+      logAuthEvent('auth/super-admin-login.invalid_credentials', req, {
+        email: maskedEmail,
+        reason: 'user_not_found',
+      });
       const seededSuperAdmin = await findSeedSuperAdminUser(prisma);
       const seededRole = String(seededSuperAdmin?.role || '').toUpperCase();
       if (!seededSuperAdmin || seededRole !== 'SUPER_ADMIN') {
@@ -306,19 +376,38 @@ router.post('/super-admin-login', async (req, res) => {
       return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
     }
 
+    if (env.nodeEnv === 'production' && input.password === DEFAULT_SUPER_ADMIN_PASSWORD) {
+      registerFailedSuperAdminAttempt(key);
+      logAuthEvent('auth/super-admin-login.weak_password', req, {
+        email: maskedEmail,
+      });
+      return res.status(403).json({ ok: false, error: 'WEAK_SUPER_ADMIN_PASSWORD' });
+    }
+
     const validPassword = await verifyPassword(input.password, user.passwordHash);
     if (!validPassword) {
       registerFailedSuperAdminAttempt(key);
+      logAuthEvent('auth/super-admin-login.invalid_credentials', req, {
+        email: maskedEmail,
+        reason: 'password_mismatch',
+      });
       return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
     }
 
     if (String(user.role || '').toUpperCase() !== 'SUPER_ADMIN') {
       registerFailedSuperAdminAttempt(key);
+      logAuthEvent('auth/super-admin-login.forbidden', req, {
+        email: maskedEmail,
+        role: sanitizeLogText(user.role || '', 48),
+      });
       return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
 
     if (input.masterKey !== env.superAdminMasterKey) {
       registerFailedSuperAdminAttempt(key);
+      logAuthEvent('auth/super-admin-login.invalid_master_key', req, {
+        email: maskedEmail,
+      });
       return res.status(403).json({ ok: false, error: 'INVALID_MASTER_KEY' });
     }
 
@@ -329,6 +418,11 @@ router.post('/super-admin-login', async (req, res) => {
       { expiresIn: '8h' },
     );
 
+    logAuthEvent('auth/super-admin-login.success', req, {
+      email: maskedEmail,
+      userId: sanitizeLogText(user.id, 96),
+      role: sanitizeLogText(user.role || '', 48),
+    });
     return res.status(200).json({
       ok: true,
       token,
@@ -337,30 +431,39 @@ router.post('/super-admin-login', async (req, res) => {
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
       // eslint-disable-next-line no-console
-      console.error('[auth/super-admin-login] transient database error:', error?.message || error);
-      return res.status(503).json({
-        ok: false,
+      console.error('[auth/super-admin-login] transient database error:', sanitizeLogText(error?.message || error));
+      return sendSafeJsonError(res, {
+        status: 503,
         error: 'AUTH_TEMPORARILY_UNAVAILABLE',
         message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
       });
     }
 
     if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        ok: false,
+      return sendSafeJsonError(res, {
+        status: 400,
         error: 'INVALID_LOGIN_PAYLOAD',
         message: 'Informe e-mail, senha e chave administrativa válidos.',
       });
     }
 
     // eslint-disable-next-line no-console
-    console.error('[auth/super-admin-login] failed:', error?.message || error);
-    return res.status(500).json({
-      ok: false,
+    console.error('[auth/super-admin-login] failed:', sanitizeLogText(error?.message || error));
+    return sendSafeJsonError(res, {
+      status: 500,
       error: 'AUTH_SERVER_ERROR',
       message: 'Não foi possível concluir o login do super admin agora. Tente novamente.',
     });
   }
+});
+
+router.get('/validate-token', requireAuth, async (req, res) => {
+  return res.status(200).json({
+    ok: true,
+    valid: true,
+    userId: req.auth?.userId || null,
+    role: req.auth?.role || null,
+  });
 });
 
 router.get('/me', requireAuth, async (req, res) => {
@@ -380,12 +483,20 @@ router.get('/me', requireAuth, async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'UNAUTHORIZED',
+        message: 'Autenticação necessária.',
+      });
     }
 
     return res.status(200).json({ ok: true, user: normalizeUserPayload(user) });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao carregar sessão.' });
+    return sendSafeJsonError(res, {
+      status: 400,
+      error: 'SESSION_LOAD_FAILED',
+      message: 'Falha ao carregar sessão.',
+    });
   }
 });
 
@@ -406,14 +517,29 @@ router.get('/super-admin/me', requireAuth, attachUser, requireSuperAdmin, async 
     });
 
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'UNAUTHORIZED',
+        message: 'Autenticação necessária.',
+      });
     }
 
     return res.status(200).json({ ok: true, user: normalizeUserPayload(user) });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao carregar sessão super admin.' });
+    return sendSafeJsonError(res, {
+      status: 400,
+      error: 'SUPER_ADMIN_SESSION_LOAD_FAILED',
+      message: 'Falha ao carregar sessão super admin.',
+    });
   }
 });
+
+router.post('/logout', requireAuth, (_req, res) =>
+  res.status(200).json({
+    ok: true,
+    loggedOut: true,
+  }),
+);
 
 router.post('/reset-password', requireAuth, attachUser, async (req, res) => {
   try {
@@ -462,7 +588,19 @@ router.post('/reset-password', requireAuth, attachUser, async (req, res) => {
 
     return res.status(200).json({ ok: true });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha no reset de senha.' });
+    if (error instanceof z.ZodError) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'INVALID_RESET_PASSWORD_PAYLOAD',
+        message: 'Dados de reset de senha inválidos.',
+      });
+    }
+
+    return sendSafeJsonError(res, {
+      status: 400,
+      error: 'RESET_PASSWORD_FAILED',
+      message: 'Falha no reset de senha.',
+    });
   }
 });
 

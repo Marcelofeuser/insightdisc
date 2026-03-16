@@ -1,0 +1,242 @@
+{
+  "key": "C",
+  "title": "Conformidade",
+  "archetype": "Analista de Precisao",
+  "summary": "Perfil analitico, criterioso e orientado a qualidade com alto rigor tecnico.",
+  "executiveSummary": [
+    "Opera com logica, metodo e controle de qualidade.",
+    "Reduz risco por analise cuidadosa de criterios.",
+    "Eleva padrao de entrega em ambientes tecnicos.",
+    "Evolui quando combina precisao com agilidade e flexibilidade."
+  ],
+  "identityDynamics": [
+    "Valoriza coerencia, criterio e clareza tecnica.",
+    "Prefere decidir com base em dados e evidencias.",
+    "Observa detalhe antes de concluir avaliacao.",
+    "Mantem foco em qualidade e consistencia de processo.",
+    "Busca previsibilidade para reduzir erro operacional."
+  ],
+  "decisionStyle": [
+    "Decide por analise estruturada e avaliacao de risco.",
+    "Tende a ponderar cenarios antes de assumir compromisso.",
+    "Pode retardar decisao em busca de precisao total.",
+    "Decide melhor com escopo, criterio e prazo definidos.",
+    "Ganha velocidade quando adota limite de profundidade por risco."
+  ],
+  "motivators": [
+    "Qualidade de entrega",
+    "Coerencia tecnica",
+    "Metodo e padrao",
+    "Seguranca logica",
+    "Ambiente organizado"
+  ],
+  "energyDrainers": [
+    "Improviso excessivo",
+    "Desorganizacao recorrente",
+    "Superficialidade de analise",
+    "Erro repetido sem correcao",
+    "Ambiguidade de criterio"
+  ],
+  "workStrengths": [
+    "Precisao tecnica",
+    "Analise de risco",
+    "Padronizacao de qualidade",
+    "Disciplina de processo",
+    "Controle de consistencia",
+    "Confiabilidade em entrega critica"
+  ],
+  "workRisks": [
+    "Perfeccionismo paralisante",
+    "Rigidez de metodo",
+    "Demora para decidir",
+    "Critica excessiva ao erro",
+    "Baixa tolerancia a improviso",
+    "Dificuldade de simplificar comunicacao"
+  ],
+  "communicationStyle": [
+    "Detalhado e tecnico",
+    "Raciocinio logico",
+    "Tom cauteloso",
+    "Busca precisao na mensagem"
+  ],
+  "communicationNeeds": [
+    "Dados confiaveis",
+    "Criterio explicito",
+    "Escopo claro",
+    "Tempo para analise adequada"
+  ],
+  "communicationDo": [
+    "Apresente contexto com fatos e criterios.",
+    "Defina nivel de risco e impacto esperado.",
+    "Use linguagem precisa e sem ambiguidade.",
+    "Feche com criterio de qualidade mensuravel.",
+    "Acorde prazos realistas para entrega consistente."
+  ],
+  "communicationDont": [
+    "Nao force improviso sem base minima.",
+    "Evite mudanca de criterio sem justificativa.",
+    "Nao omita risco relevante para acelerar decisao.",
+    "Evite comunicacao vaga ou sem estrutura.",
+    "Nao reduzir qualidade por pressao sem alinhamento."
+  ],
+  "leadershipStyle": [
+    "Lidera elevando padrao tecnico e de processo.",
+    "Organiza rotina para reduzir erro e retrabalho.",
+    "Gera confiabilidade por disciplina de execucao.",
+    "Ganha aderencia quando comunica com simplicidade pragmatica."
+  ],
+  "leadershipStrengths": [
+    "Governanca de qualidade",
+    "Controle de risco",
+    "Padronizacao eficiente",
+    "Clareza tecnica",
+    "Confiabilidade operacional"
+  ],
+  "leadershipRisks": [
+    "Excesso de criticidade",
+    "Demora decisoria em contexto dinamico",
+    "Rigidez com erro de aprendizagem",
+    "Dificuldade de adaptar metodo ao contexto",
+    "Comunicacao tecnica pouco acessivel"
+  ],
+  "stressPattern": [
+    "Aumenta controle e revisao detalhada.",
+    "Fica mais rigido com erro ou ambiguidade.",
+    "Eleva criticidade em conversas de pressao.",
+    "Pode travar decisao por excesso de cautela."
+  ],
+  "stressSignals": [
+    "Revisoes sucessivas sem fechamento",
+    "Tensao elevada com imprecisao",
+    "Aumento de critica pontual",
+    "Dificuldade de delegar",
+    "Retraimento em ambiente caotico"
+  ],
+  "recoveryStrategy": [
+    "Definir criterio minimo viavel por risco.",
+    "Separar essencial de detalhe acessorio.",
+    "Estabelecer limite de tempo para decidir.",
+    "Comunicar risco com linguagem simples.",
+    "Delegar revisoes secundarias com checkpoint."
+  ],
+  "conflictStyle": [
+    "Conflita por criterio e qualidade, nao por confronto emocional.",
+    "Prefere discutir fatos e padroes observaveis.",
+    "Reage mal a improviso sem justificativa.",
+    "Pode soar frio quando pressiona consistencia.",
+    "Conflito reduz quando ha regra clara de decisao."
+  ],
+  "teamContribution": [
+    "Eleva qualidade da entrega",
+    "Reduz risco de retrabalho",
+    "Traz clareza de processo",
+    "Sustenta disciplina tecnica",
+    "Aumenta confiabilidade do time"
+  ],
+  "bestMatches": [
+    "S",
+    "D",
+    "SC",
+    "CD",
+    "CI"
+  ],
+  "frictionMatches": [
+    "I muito alto sem metodo",
+    "DI impulsivo",
+    "IS com baixa cobranca",
+    "ID"
+  ],
+  "idealEnvironment": [
+    "Processo claro e confiavel",
+    "Cultura de qualidade com pragmatismo",
+    "Objetivos mensuraveis",
+    "Lideranca coerente em criterio",
+    "Espaco para analise estruturada"
+  ],
+  "lowFitEnvironment": [
+    "Caos operacional continuo",
+    "Improvisacao sem responsabilidade",
+    "Ambiente emocionalmente instavel",
+    "Falta de criterio tecnico de decisao"
+  ],
+  "recommendedRoles": [
+    "Qualidade e compliance",
+    "Analise de processos",
+    "Planejamento operacional",
+    "Controladoria",
+    "Auditoria interna",
+    "Projetos tecnicos",
+    "Gestao de risco",
+    "Estruturacao de governanca"
+  ],
+  "lowFitRoles": [
+    "Ambiente de improviso permanente",
+    "Escopo sem criterio ou padrao",
+    "Funcao com mudanca constante sem base tecnica",
+    "Papel sem previsibilidade minima"
+  ],
+  "naturalStrengths": [
+    "Precisao",
+    "Rigor tecnico",
+    "Analise de risco",
+    "Disciplina",
+    "Organizacao",
+    "Padronizacao",
+    "Confiabilidade",
+    "Consistencia"
+  ],
+  "developmentPoints": [
+    "Flexibilidade de abordagem",
+    "Velocidade decisoria em contexto dinamico",
+    "Comunicacao simples e acessivel",
+    "Tolerancia ao erro de aprendizagem",
+    "Priorizacao por impacto",
+    "Delegacao com confianca",
+    "Adaptabilidade a mudanca",
+    "Equilibrio entre perfeicao e prazo"
+  ],
+  "developmentRisks": [
+    "Rigidez excessiva",
+    "Paralisia por analise",
+    "Atrito relacional por criticidade alta",
+    "Baixa agilidade em janela de oportunidade"
+  ],
+  "managerGuidance": [
+    "Defina escopo e criterio com clareza tecnica.",
+    "Acorde limite de profundidade por nivel de risco.",
+    "Valorize qualidade sem perder prazo de negocio.",
+    "Incentive comunicacao objetiva para diferentes publicos.",
+    "Acompanhe risco de perfeccionismo e retrabalho."
+  ],
+  "selfLeadershipGuidance": [
+    "Pratique decisao com janela de tempo definida.",
+    "Comunique risco em linguagem simples.",
+    "Aceite versao minima viavel em contexto de baixa criticidade.",
+    "Diferencie erro critico de ajuste de aprendizagem.",
+    "Mantenha foco em impacto de negocio, nao apenas em detalhe."
+  ],
+  "plan30": [
+    "Mapear pontos de excesso de analise em decisoes recentes.",
+    "Definir criterio minimo viavel para 3 entregas.",
+    "Aplicar sintese executiva em comunicacoes tecnicas.",
+    "Treinar delegacao de revisoes secundarias."
+  ],
+  "plan60": [
+    "Reduzir tempo de decisao em temas de risco moderado.",
+    "Aprimorar didatica para interlocutor nao tecnico.",
+    "Equilibrar profundidade e prazo com checkpoints claros.",
+    "Pedir feedback sobre clareza e agilidade percebida."
+  ],
+  "plan90": [
+    "Consolidar padrao de qualidade com ritmo sustentavel.",
+    "Escalar modelo de governanca pragmatica para a equipe.",
+    "Aumentar influencia tecnica sem rigidez relacional.",
+    "Mensurar reducao de retrabalho e ganho de previsibilidade."
+  ],
+  "executiveClosing": [
+    "O perfil C protege qualidade e confiabilidade em ambientes de alta exigencia.",
+    "Seu salto de maturidade vem de combinar precisao com adaptabilidade.",
+    "Quando acelera decisao sem perder criterio, amplia impacto estrategico.",
+    "A trilha proposta fortalece performance com equilibrio tecnico e humano."
+  ]
+}

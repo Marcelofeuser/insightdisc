@@ -1,0 +1,28 @@
+{
+  "terms": [
+    {
+      "term": "Perfil Natural",
+      "definition": "Padrão comportamental espontâneo em contexto de menor pressão."
+    },
+    {
+      "term": "Perfil Adaptado",
+      "definition": "Ajustes comportamentais percebidos no contexto atual."
+    },
+    {
+      "term": "Síntese",
+      "definition": "Consolidação dos achados para orientar ação prática."
+    },
+    {
+      "term": "Banda de Adaptação",
+      "definition": "Nível de distância média entre Natural e Adaptado."
+    },
+    {
+      "term": "Top2",
+      "definition": "Dois fatores mais altos no Perfil Natural, usados para definir combinação."
+    }
+  ],
+  "lgpd": {
+    "notice": "Este relatório contém dados pessoais e deve ser utilizado exclusivamente para desenvolvimento comportamental, respeitando finalidade, consentimento e segurança da informação.",
+    "contact": "suporte@insightdisc.app"
+  }
+}

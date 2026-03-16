@@ -1,0 +1,242 @@
+{
+  "key": "SI",
+  "title": "Estabilidade com Influencia",
+  "archetype": "Conector Confiavel",
+  "summary": "Perfil colaborativo, constante e acolhedor, com sociabilidade estavel e confiavel.",
+  "executiveSummary": [
+    "Combina estabilidade emocional com boa capacidade de conexao social.",
+    "Constrói confianca de forma gradual e consistente.",
+    "Sustenta colaboracao com presenca tranquila e respeitosa.",
+    "Evolui quando amplia iniciativa e posicionamento em contexto tenso."
+  ],
+  "identityDynamics": [
+    "Valoriza seguranca emocional e relacao duradoura.",
+    "Opera com ritmo estavel e cooperativo.",
+    "Acolhe pessoas com escuta e confiabilidade.",
+    "Prefere ambientes de baixa hostilidade e alta clareza.",
+    "Tende a preservar vinculo antes de confrontar divergencia."
+  ],
+  "decisionStyle": [
+    "Decide de forma ponderada e relacional.",
+    "Busca estabilidade antes de ruptura.",
+    "Ouve diferentes perspectivas antes de se posicionar.",
+    "Pode hesitar em tema de confronto direto.",
+    "Decide melhor com criterio claro e apoio de contexto."
+  ],
+  "motivators": [
+    "Confianca",
+    "Clima saudavel",
+    "Pertencimento",
+    "Seguranca de rotina",
+    "Continuidade relacional"
+  ],
+  "energyDrainers": [
+    "Agressividade recorrente",
+    "Mudanca sem explicacao",
+    "Pressao instavel",
+    "Desrespeito relacional",
+    "Ambiente de conflito aberto"
+  ],
+  "workStrengths": [
+    "Apoio consistente",
+    "Relacionamento estavel",
+    "Cooperacao",
+    "Confiabilidade operacional",
+    "Presenca tranquila",
+    "Sustentacao de clima"
+  ],
+  "workRisks": [
+    "Passividade em decisao dura",
+    "Demora para posicionar limite",
+    "Resistencia indireta",
+    "Acomodacao em contexto conhecido",
+    "Baixa exposicao em pauta estrategica",
+    "Dificuldade de confronto necessario"
+  ],
+  "communicationStyle": [
+    "Acolhedora e estavel",
+    "Ritmo moderado",
+    "Tom respeitoso",
+    "Busca consenso com clareza"
+  ],
+  "communicationNeeds": [
+    "Contexto previsivel",
+    "Tom humano e respeitoso",
+    "Espaco para escuta",
+    "Seguranca para posicionamento"
+  ],
+  "communicationDo": [
+    "Conduza conversa com respeito e objetividade.",
+    "Explique mudanca com racional claro.",
+    "Dê tempo de processamento sem perder prazo.",
+    "Confirme acordos e responsabilidades.",
+    "Incentive posicionamento sem confronto hostil."
+  ],
+  "communicationDont": [
+    "Evite pressao agressiva sem contexto.",
+    "Nao trate cautela como desinteresse.",
+    "Evite mudanca de direcao sem alinhamento.",
+    "Nao acumule tensao sem conversa franca.",
+    "Evite critica publica desnecessaria."
+  ],
+  "leadershipStyle": [
+    "Lidera por estabilidade, apoio e confianca.",
+    "Sustenta equipe com relacao de respeito.",
+    "Promove colaboracao consistente em rotina.",
+    "Ganha impacto quando aumenta assertividade em decisao critica."
+  ],
+  "leadershipStrengths": [
+    "Confianca de equipe",
+    "Acolhimento",
+    "Consistencia relacional",
+    "Cooperacao duradoura",
+    "Previsibilidade de convivio"
+  ],
+  "leadershipRisks": [
+    "Baixa firmeza de cobranca",
+    "Demora em enfrentar conflito",
+    "Acomodacao de baixa performance",
+    "Dificuldade de decisao rapida",
+    "Sobrecarga por excesso de suporte"
+  ],
+  "stressPattern": [
+    "Pode recolher comunicacao em pressao intensa.",
+    "Evita confronto para preservar relacao.",
+    "Acumula tensao antes de reagir.",
+    "Precisa de estrutura para manter assertividade."
+  ],
+  "stressSignals": [
+    "Silencio em tema critico",
+    "Queda de iniciativa",
+    "Atraso de posicionamento",
+    "Sobrecarga emocional",
+    "Resistencia silenciosa"
+  ],
+  "recoveryStrategy": [
+    "Definir prioridade com clareza objetiva.",
+    "Planejar conversa dificil com antecedencia.",
+    "Treinar posicionamento firme e curto.",
+    "Compartilhar carga em equipe com acordo claro.",
+    "Reforcar rotina de feedback de limite."
+  ],
+  "conflictStyle": [
+    "Busca conciliacao com postura cooperativa.",
+    "Evita embate direto quando possivel.",
+    "Reage melhor com respeito e fatos concretos.",
+    "Conflito cresce quando ha desrespeito relacional.",
+    "Precisa de apoio para confrontar tema recorrente."
+  ],
+  "teamContribution": [
+    "Sustenta clima de confianca",
+    "Fortalece cooperacao",
+    "Apoia integracao de equipe",
+    "Mantem estabilidade em transicao",
+    "Contribui para continuidade operacional"
+  ],
+  "bestMatches": [
+    "SC",
+    "IS",
+    "C",
+    "S",
+    "CI"
+  ],
+  "frictionMatches": [
+    "DI",
+    "D muito agressivo",
+    "ID",
+    "DC"
+  ],
+  "idealEnvironment": [
+    "Cultura respeitosa e previsivel",
+    "Ritmo estavel com objetivo claro",
+    "Lideranca com apoio e direcao",
+    "Espaco para colaboracao de qualidade",
+    "Seguranca emocional para posicionar-se"
+  ],
+  "lowFitEnvironment": [
+    "Conflito agressivo continuo",
+    "Mudanca abrupta sem contexto",
+    "Ambiente hostil de cobranca",
+    "Instabilidade de relacao e prioridade"
+  ],
+  "recommendedRoles": [
+    "Customer success relacional",
+    "Atendimento consultivo",
+    "People support",
+    "Coordenacao de rotina operacional",
+    "Suporte de equipe",
+    "Onboarding de clientes",
+    "Relacoes internas",
+    "Gestao de experiencia"
+  ],
+  "lowFitRoles": [
+    "Ambiente de conflito extremo",
+    "Escopo de pressao agressiva sem suporte",
+    "Papel com instabilidade cronica",
+    "Funcao de confronto continuo"
+  ],
+  "naturalStrengths": [
+    "Confiabilidade",
+    "Empatia",
+    "Cooperacao",
+    "Presenca calma",
+    "Escuta",
+    "Consistencia",
+    "Vinculo relacional",
+    "Suporte de equipe"
+  ],
+  "developmentPoints": [
+    "Iniciativa em pauta critica",
+    "Assertividade de limite",
+    "Velocidade de resposta",
+    "Confronto construtivo",
+    "Protagonismo decisorio",
+    "Posicionamento claro",
+    "Priorizacao sob pressao",
+    "Reducao de acomodacao"
+  ],
+  "developmentRisks": [
+    "Passividade prolongada",
+    "Conflito evitado virar desgaste",
+    "Baixa visibilidade de potencial estrategico",
+    "Sobrecarga por excesso de disponibilidade"
+  ],
+  "managerGuidance": [
+    "Construa seguranca para posicionamento firme.",
+    "Defina expectativa com clareza e respeito.",
+    "Incentive iniciativa em temas de maior impacto.",
+    "Evite agressividade em cobranca.",
+    "Monitore sinais de sobrecarga silenciosa."
+  ],
+  "selfLeadershipGuidance": [
+    "Pratique dizer nao com clareza e respeito.",
+    "Antecipe conversa dificil antes do aculo.",
+    "Defina prioridade diaria com foco em entrega.",
+    "Assuma exposicao gradual em pauta estrategica.",
+    "Converta cuidado com pessoas em acao objetiva."
+  ],
+  "plan30": [
+    "Mapear situacoes de passividade em decisao.",
+    "Treinar posicionamento curto em reunioes.",
+    "Definir limite de disponibilidade por semana.",
+    "Aplicar priorizacao diaria de 3 focos."
+  ],
+  "plan60": [
+    "Aumentar assertividade em conflito recorrente.",
+    "Reduzir acomodacao em pauta de resultado.",
+    "Pedir feedback sobre clareza de posicionamento.",
+    "Ampliar protagonismo em decisao de equipe."
+  ],
+  "plan90": [
+    "Consolidar estilo colaborativo com firmeza.",
+    "Manter estabilidade com maior agilidade.",
+    "Escalar contribuicao estrategica no time.",
+    "Mensurar ganho de impacto e confiabilidade."
+  ],
+  "executiveClosing": [
+    "O perfil SI fortalece cooperacao e confianca em ambientes de equipe.",
+    "Seu salto de maturidade esta em elevar assertividade e iniciativa.",
+    "Quando combina acolhimento com decisao, amplia valor estrategico.",
+    "A trilha proposta sustenta estabilidade com maior protagonismo."
+  ]
+}

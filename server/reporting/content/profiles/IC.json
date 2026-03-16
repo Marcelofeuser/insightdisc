@@ -1,0 +1,242 @@
+{
+  "key": "IC",
+  "title": "Influencia com Conformidade",
+  "archetype": "Comunicador Estrategico",
+  "summary": "Perfil relacional e expressivo, com maior analise e refinamento do que o I puro.",
+  "executiveSummary": [
+    "Combina carisma comunicacional com criterio analitico.",
+    "Influencia com argumento mais estruturado e credivel.",
+    "Tem boa presenca em mediação e apresentacao de ideias complexas.",
+    "Evolui quando amplia foco e consistencia de execucao."
+  ],
+  "identityDynamics": [
+    "Gosta de comunicar com qualidade e impacto.",
+    "Equilibra entusiasmo com preocupacao de coerencia.",
+    "Busca reconhecimento por entrega bem apresentada.",
+    "Tende a pensar estrategicamente sobre imagem e credibilidade.",
+    "Oscila entre expansao social e analise critica."
+  ],
+  "decisionStyle": [
+    "Mistura impulso relacional com avaliacao de coerencia.",
+    "Considera impacto de reputacao e resultado.",
+    "Pode alternar rapidez e cautela conforme contexto.",
+    "Decide melhor com criterio claro e foco em prioridade.",
+    "Ganha consistencia quando reduz dispersao de pauta."
+  ],
+  "motivators": [
+    "Reconhecimento por qualidade",
+    "Influência com credibilidade",
+    "Expressao com preparo",
+    "Ambiente colaborativo e inteligente",
+    "Boa imagem profissional"
+  ],
+  "energyDrainers": [
+    "Desorganizacao operacional",
+    "Critica sem contexto",
+    "Improviso grosseiro",
+    "Ambiente frio extremo",
+    "Mensagem sem profundidade"
+  ],
+  "workStrengths": [
+    "Comunicacao elaborada",
+    "Persuasao refinada",
+    "Argumentacao estruturada",
+    "Mediacao de interesses",
+    "Apresentacao de valor",
+    "Conexao entre relacao e criterio"
+  ],
+  "workRisks": [
+    "Oscilacao de foco",
+    "Excesso de fala sem fechamento",
+    "Dificuldade de sintese",
+    "Alternancia entre entusiasmo e criticidade",
+    "Dispersao sofisticada",
+    "Ritmo irregular de execucao"
+  ],
+  "communicationStyle": [
+    "Expressiva com estrutura",
+    "Argumentativa e persuasiva",
+    "Busca refinamento de mensagem",
+    "Combina relacao e conteudo"
+  ],
+  "communicationNeeds": [
+    "Espaco para argumentar",
+    "Critica construtiva com criterio",
+    "Objetivo claro de comunicacao",
+    "Feedback sobre clareza e impacto"
+  ],
+  "communicationDo": [
+    "Estruture mensagem em objetivo, argumento e acao.",
+    "Use exemplos concretos para sustentar convencimento.",
+    "Feche pauta com decisao e responsabilidade.",
+    "Balanceie calor relacional com precisao tecnica.",
+    "Defina limite de tempo para evitar dispersao."
+  ],
+  "communicationDont": [
+    "Nao prolongue explicacao sem conclusao.",
+    "Evite alternar tom sem necessidade.",
+    "Nao superdimensione argumento sem evidencia.",
+    "Evite abrir muitas frentes de comunicacao simultanea.",
+    "Nao troque foco de execucao por estetica da mensagem."
+  ],
+  "leadershipStyle": [
+    "Lidera por comunicacao estruturada e influencia social.",
+    "Conecta diferentes perfis com narrativa coerente.",
+    "Tem potencial para facilitar decisao complexa.",
+    "Ganha impacto quando instala disciplina de fechamento."
+  ],
+  "leadershipStrengths": [
+    "Didatica relacional",
+    "Conexao entre areas",
+    "Persuasao de qualidade",
+    "Capacidade de mediação",
+    "Boa leitura de publico"
+  ],
+  "leadershipRisks": [
+    "Excesso de elaboracao",
+    "Baixa objetividade em urgencia",
+    "Oscilacao entre critica e entusiasmo",
+    "Dispersao de pauta",
+    "Falta de fechamento consistente"
+  ],
+  "stressPattern": [
+    "Pode falar mais e concluir menos sob pressao.",
+    "Alterna entre otimismo e criticidade.",
+    "Sente desgaste em ambiente de ruido relacional.",
+    "Precisa de foco para manter consistencia."
+  ],
+  "stressSignals": [
+    "Excesso de reuniao sem decisao",
+    "Queda de sintese objetiva",
+    "Oscilacao de prioridade",
+    "Aumento de autocrítica e critica externa",
+    "Retrabalho por falta de fechamento"
+  ],
+  "recoveryStrategy": [
+    "Reduzir pauta para prioridades de maior impacto.",
+    "Definir estrutura de comunicacao em 3 blocos.",
+    "Fechar cada conversa com proximo passo objetivo.",
+    "Pedir feedback sobre clareza e conclusao.",
+    "Transformar argumento em plano executavel."
+  ],
+  "conflictStyle": [
+    "Busca argumentar e convencer no conflito.",
+    "Prefere mediação a confronto bruto.",
+    "Pode prolongar debate em busca de refinamento.",
+    "Conflito melhora quando criterio e prazo sao definidos.",
+    "Precisa equilibrar profundidade com objetividade."
+  ],
+  "teamContribution": [
+    "Conecta visao e execução",
+    "Facilita entendimento entre perfis",
+    "Eleva qualidade de comunicacao",
+    "Ajuda em negociação interna",
+    "Apoia alinhamento de mensagem"
+  ],
+  "bestMatches": [
+    "C",
+    "S",
+    "CI",
+    "IS",
+    "CD"
+  ],
+  "frictionMatches": [
+    "D muito direto",
+    "DI impulsivo",
+    "I dispersivo",
+    "DC rigido"
+  ],
+  "idealEnvironment": [
+    "Ambiente com debate qualificado",
+    "Espaco para apresentacao de ideias",
+    "Processo com criterio e abertura",
+    "Equipe colaborativa e madura",
+    "Ritmo que combine qualidade e entrega"
+  ],
+  "lowFitEnvironment": [
+    "Cultura de improviso sem criterio",
+    "Ambiente hostil sem dialogo",
+    "Pressao caotica com baixa estrutura",
+    "Espaco sem reconhecimento de qualidade"
+  ],
+  "recommendedRoles": [
+    "Consultoria interna",
+    "Pre-vendas consultivo",
+    "Treinamento e capacitação",
+    "Comunicacao estrategica",
+    "Customer advisory",
+    "Gestao de relacionamento tecnico",
+    "Facilitacao de workshops",
+    "Planejamento comercial estruturado"
+  ],
+  "lowFitRoles": [
+    "Escopo operacional sem dialogo",
+    "Ambiente agressivo sem criterio",
+    "Funcao de alta pressao sem estrutura",
+    "Papel sem espaco para argumentacao"
+  ],
+  "naturalStrengths": [
+    "Persuasao com conteudo",
+    "Comunicacao qualificada",
+    "Argumentacao",
+    "Conexao relacional",
+    "Leitura de publico",
+    "Mediacao",
+    "Refinamento de mensagem",
+    "Visao integrada"
+  ],
+  "developmentPoints": [
+    "Objetividade em decisao",
+    "Foco em fechamento",
+    "Consistencia de execucao",
+    "Sintese em comunicacao",
+    "Priorizacao de pauta",
+    "Redução de oscilacao de ritmo",
+    "Disciplina de follow-up",
+    "Simplificacao de mensagem"
+  ],
+  "developmentRisks": [
+    "Excesso de elaboracao sem entrega",
+    "Dispersao por temas paralelos",
+    "Oscilacao de consistencia operacional",
+    "Perda de credibilidade por falta de fechamento"
+  ],
+  "managerGuidance": [
+    "Defina criterio de conclusao para cada pauta.",
+    "Use feedback sobre sintese e objetividade.",
+    "Aproveite capacidade de influencia em projetos transversais.",
+    "Cobre follow-up com prazos claros.",
+    "Evite sobrecarregar com muitas frentes simultaneas."
+  ],
+  "selfLeadershipGuidance": [
+    "Conclua antes de abrir nova frente.",
+    "Estruture mensagem em objetivo, evidencia e acao.",
+    "Pratique comunicacao curta em decisao urgente.",
+    "Mensure resultado por entrega, nao apenas por adesao.",
+    "Mantenha rotina de revisao semanal de prioridades."
+  ],
+  "plan30": [
+    "Mapear situacoes de excesso de fala sem fechamento.",
+    "Aplicar formato de sintese em reunioes criticas.",
+    "Definir 3 prioridades de entrega com dono e prazo.",
+    "Pedir feedback sobre clareza de comunicacao executiva."
+  ],
+  "plan60": [
+    "Reduzir oscilacao de foco em projetos-chave.",
+    "Aprimorar follow-up de acordos com rotina fixa.",
+    "Converter argumentos em plano de execucao rastreavel.",
+    "Treinar decisao com limite de tempo em temas recorrentes."
+  ],
+  "plan90": [
+    "Consolidar estilo de influencia com consistencia operacional.",
+    "Escalar capacidade de mediação com resultado mensuravel.",
+    "Manter qualidade de mensagem com ritmo de entrega.",
+    "Mensurar ganho de previsibilidade e impacto de comunicacao."
+  ],
+  "executiveClosing": [
+    "O perfil IC combina influencia e criterio com potencial elevado para contextos consultivos.",
+    "Seu salto de maturidade esta em foco e fechamento consistente.",
+    "Quando equilibra refinamento com objetividade, amplia resultado.",
+    "A trilha proposta fortalece impacto comunicacional com disciplina executiva."
+  ]
+}

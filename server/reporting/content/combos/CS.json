@@ -1,0 +1,85 @@
+{
+  "title": "Conformidade Confiável",
+  "executiveSummary": [
+    "Alto padrão técnico com estabilidade de execução.",
+    "Entrega precisão e consistência em ambientes críticos.",
+    "Contribui para governança e melhoria contínua.",
+    "Aumenta efetividade ao simplificar decisões de baixa criticidade."
+  ],
+  "strengths": [
+    "Rigor com constância",
+    "Alta confiabilidade operacional",
+    "Controle de qualidade forte",
+    "Organização metódica",
+    "Boa gestão de conformidade",
+    "Disciplina em processos"
+  ],
+  "risks": [
+    "Perfeccionismo com lentidão",
+    "Resistência a mudanças rápidas",
+    "Excesso de cautela em inovação",
+    "Comunicação pouco concisa em urgência",
+    "Dificuldade de delegar sem padrão completo",
+    "Sobrecarga por assumir revisão final"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Definir critérios e padrão esperado",
+      "Comunicar risco e impacto objetivamente",
+      "Priorizar itens críticos",
+      "Formalizar acordos com clareza",
+      "Simplificar mensagem para público executivo"
+    ],
+    "dont": [
+      "Buscar perfeição em todas as entregas",
+      "Atrasar decisão por detalhe secundário",
+      "Acumular tarefas de validação sozinho",
+      "Ignorar contexto humano em mudanças",
+      "Aplicar mesma profundidade para tudo"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança de governança com foco em confiabilidade.",
+    "Promove estabilidade e melhoria de processos.",
+    "Ótimo em ambientes regulados e de alta exigência técnica."
+  ],
+  "stressPattern": [
+    "Aumenta controle e revisão detalhada.",
+    "Reduz flexibilidade em urgências.",
+    "Pode elevar cobrança por conformidade."
+  ],
+  "motivators": [
+    "Qualidade reconhecida",
+    "Segurança de processo",
+    "Autonomia técnica",
+    "Ambiente previsível"
+  ],
+  "idealEnvironment": [
+    "Processos definidos",
+    "Critérios claros",
+    "Baixa ambiguidade",
+    "Cultura de excelência"
+  ],
+  "conflictStyle": [
+    "Aborda conflito com evidências e método.",
+    "Prefere solução estruturada e documentada.",
+    "Evita decisões impulsivas."
+  ],
+  "coachingTips": [
+    "Classificar decisões por criticidade.",
+    "Definir “pronto” para cada tipo de entrega.",
+    "Treinar comunicação concisa para liderança.",
+    "Delegar validações de menor risco.",
+    "Aumentar adaptabilidade em ciclos rápidos."
+  ],
+  "recommendedRoles": [
+    "Compliance e qualidade",
+    "Process excellence",
+    "Auditoria de processos",
+    "Gestão de risco",
+    "Coordenação de documentação",
+    "Operações reguladas",
+    "Governança interna",
+    "PMO de qualidade"
+  ]
+}

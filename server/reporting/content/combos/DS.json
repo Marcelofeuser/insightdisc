@@ -1,0 +1,85 @@
+{
+  "title": "Direção Estável",
+  "executiveSummary": [
+    "Combina foco em resultado com consistência de execução.",
+    "Entrega com ritmo previsível e direção clara.",
+    "Tende a sustentar decisões no médio prazo.",
+    "Ganha potência com comunicação mais assertiva em conflito."
+  ],
+  "strengths": [
+    "Direção com constância",
+    "Boa execução sob pressão",
+    "Priorização objetiva",
+    "Confiabilidade em entregas críticas",
+    "Capacidade de manter o time focado",
+    "Equilíbrio entre ação e estabilidade"
+  ],
+  "risks": [
+    "Evitar conflitos para preservar ritmo",
+    "Centralizar decisões em excesso",
+    "Dificuldade para recalibrar rápido",
+    "Subdimensionar necessidade de mudança",
+    "Tom rígido em momentos de pressão",
+    "Resistência a experimentos fora do plano"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Definir rota e marcos de entrega",
+      "Comunicar contexto de mudança",
+      "Alinhar expectativas de ritmo",
+      "Usar feedback objetivo e frequente",
+      "Negociar prioridades com dados"
+    ],
+    "dont": [
+      "Presumir consenso sem confirmação",
+      "Acumular decisões sem revisão",
+      "Ignorar sinais de desengajamento",
+      "Postergar conversas críticas",
+      "Alterar plano sem explicar racional"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança orientada a execução sustentável.",
+    "Combina firmeza de direção com estabilidade operacional.",
+    "Boa aderência a objetivos de médio prazo."
+  ],
+  "stressPattern": [
+    "Aumenta controle sobre o processo.",
+    "Reduz abertura a mudanças de rota.",
+    "Pode sobrecarregar-se para manter previsibilidade."
+  ],
+  "motivators": [
+    "Metas claras",
+    "Ambiente previsível",
+    "Autonomia com responsabilidade",
+    "Evolução consistente de resultados"
+  ],
+  "idealEnvironment": [
+    "Processos definidos",
+    "Papéis claros",
+    "Objetivos mensuráveis",
+    "Cultura de disciplina operacional"
+  ],
+  "conflictStyle": [
+    "Prefere resolver com objetividade e evidência.",
+    "Evita escalada emocional desnecessária.",
+    "Busca acordo funcional com foco em resultado."
+  ],
+  "coachingTips": [
+    "Praticar confronto construtivo cedo.",
+    "Delegar com clareza de decisão.",
+    "Criar espaço para experimentação controlada.",
+    "Revisar riscos de rigidez trimestralmente.",
+    "Treinar comunicação em mudanças abruptas."
+  ],
+  "recommendedRoles": [
+    "Coordenação operacional",
+    "Gestão de projetos",
+    "Liderança de implantação",
+    "Gerência de produção",
+    "Operações comerciais",
+    "Supervisão de equipes",
+    "Planejamento tático",
+    "Gestão de qualidade"
+  ]
+}

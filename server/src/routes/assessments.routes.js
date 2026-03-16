@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
+import { sendSafeJsonError } from '../lib/http-security.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
@@ -40,7 +41,11 @@ router.post('/create', async (req, res) => {
 
     return res.status(201).json({ ok: true, assessment });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao criar assessment.' });
+    return sendSafeJsonError(res, {
+      status: error instanceof z.ZodError ? 400 : 500,
+      error: error instanceof z.ZodError ? 'INVALID_ASSESSMENT_CREATE_PAYLOAD' : 'ASSESSMENT_CREATE_FAILED',
+      message: 'Falha ao criar assessment.',
+    });
   }
 });
 
@@ -92,7 +97,11 @@ router.post('/generate-link', async (req, res) => {
       expiresAt: expiresAt.toISOString(),
     });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao gerar link.' });
+    return sendSafeJsonError(res, {
+      status: error instanceof z.ZodError ? 400 : 500,
+      error: error instanceof z.ZodError ? 'INVALID_ASSESSMENT_LINK_PAYLOAD' : 'ASSESSMENT_LINK_FAILED',
+      message: 'Falha ao gerar link.',
+    });
   }
 });
 

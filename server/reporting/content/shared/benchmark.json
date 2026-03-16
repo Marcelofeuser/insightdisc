@@ -1,0 +1,13 @@
+{
+  "legend": "Faixas de referencia internas para leitura comparativa do perfil. Uso recomendado para desenvolvimento e calibragem de contexto.",
+  "interpretation": [
+    "Acima da faixa: fator aparece com maior intensidade; pode ampliar resultado ou risco de exagero.",
+    "Dentro da faixa: comportamento alinhado ao padrao esperado para a combinacao do perfil.",
+    "Abaixo da faixa: menor ativacao do fator; pode exigir compensacao contextual ou desenvolvimento focal."
+  ],
+  "ranges": {
+    "low": "0-33",
+    "mid": "34-66",
+    "high": "67-100"
+  }
+}

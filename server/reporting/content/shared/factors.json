@@ -1,0 +1,262 @@
+{
+  "D": {
+    "low": {
+      "headline": "Dominancia baixa: ritmo ponderado e menor confronto",
+      "paragraphs": [
+        "Com Dominancia baixa, a pessoa tende a evitar imposicao direta e prefere construir consenso antes de decidir.",
+        "A contribuicao aparece em ambientes que exigem cooperacao e continuidade, desde que haja criterios claros para priorizar."
+      ],
+      "actions": [
+        "Definir limites de decisao",
+        "Treinar posicionamento em reunioes",
+        "Praticar fechamento de acordos",
+        "Priorizar por impacto",
+        "Criar rotina de follow-up"
+      ],
+      "redFlags": [
+        "Evitar confronto necessario",
+        "Delegar sem criterio",
+        "Atrasar decisoes criticas",
+        "Aceitar escopo excessivo",
+        "Perder foco em resultado"
+      ]
+    },
+    "mid": {
+      "headline": "Dominancia moderada: assertividade equilibrada",
+      "paragraphs": [
+        "Com Dominancia moderada, existe boa combinacao entre firmeza e colaboracao.",
+        "A tendencia e decidir com criterio, mantendo espaco para escuta e ajustes no percurso."
+      ],
+      "actions": [
+        "Definir metas objetivas",
+        "Praticar decisao por cenarios",
+        "Comunicar criterio de prioridade",
+        "Delegar com checkpoints",
+        "Revisar resultados quinzenalmente"
+      ],
+      "redFlags": [
+        "Oscilar entre firmeza e concessao",
+        "Adiar decisoes sob pressao",
+        "Centralizar sem necessidade",
+        "Negociar sem registrar",
+        "Perder velocidade em excesso de analise"
+      ]
+    },
+    "high": {
+      "headline": "Dominancia alta: decisao, velocidade e direcao",
+      "paragraphs": [
+        "Com Dominancia alta, a pessoa tende a assumir comando, acelerar execucao e remover bloqueios rapidamente.",
+        "O ganho de performance depende de equilibrar velocidade com escuta ativa e qualidade de alinhamento."
+      ],
+      "actions": [
+        "Abrir contexto antes de cobrar",
+        "Usar checklist de risco",
+        "Validar entendimento do time",
+        "Delegar para reduzir centralizacao",
+        "Separar urgencia de importancia"
+      ],
+      "redFlags": [
+        "Impaciencia recorrente",
+        "Tom excessivamente duro",
+        "Decisao sem consulta minima",
+        "Sobrecarga por centralizacao",
+        "Conflito relacional frequente"
+      ]
+    }
+  },
+  "I": {
+    "low": {
+      "headline": "Influencia baixa: comunicacao reservada e objetiva",
+      "paragraphs": [
+        "Com Influencia baixa, a pessoa tende a comunicar de forma direta, com menor expansao social.",
+        "A entrega melhora quando ha espaco para preparacao previa e criterios claros de interacao."
+      ],
+      "actions": [
+        "Preparar roteiro de comunicacao",
+        "Fazer perguntas abertas",
+        "Praticar visibilidade de resultado",
+        "Registrar acordos",
+        "Aumentar frequencia de alinhamento"
+      ],
+      "redFlags": [
+        "Baixa presenca em discussoes",
+        "Dificuldade para influenciar",
+        "Mensagem tecnica sem contexto",
+        "Feedback tardio",
+        "Isolamento em projetos coletivos"
+      ]
+    },
+    "mid": {
+      "headline": "Influencia moderada: boa conexao sem perder objetividade",
+      "paragraphs": [
+        "Com Influencia moderada, existe capacidade de relacionamento com equilibrio entre clareza e empatia.",
+        "A pessoa tende a engajar interlocutores quando combina narrativa com dados concretos."
+      ],
+      "actions": [
+        "Abrir com objetivo de negocio",
+        "Ajustar linguagem por publico",
+        "Concluir com proximo passo",
+        "Solicitar feedback de entendimento",
+        "Reforcar combinados-chave"
+      ],
+      "redFlags": [
+        "Excesso de concilicao",
+        "Promessa sem lastro",
+        "Alinhamento verbal sem registro",
+        "Foco excessivo em aprovacao",
+        "Mensagem longa sem priorizacao"
+      ]
+    },
+    "high": {
+      "headline": "Influencia alta: persuasao, energia e visibilidade",
+      "paragraphs": [
+        "Com Influencia alta, a pessoa tende a gerar conexao rapida, inspirar e mobilizar pessoas.",
+        "Para sustentar resultado, e essencial transformar entusiasmo em disciplina de execucao e follow-up."
+      ],
+      "actions": [
+        "Converter ideias em plano concreto",
+        "Definir prazos e donos",
+        "Manter rotina de acompanhamento",
+        "Balancear entusiasmo com dados",
+        "Priorizar profundidade em temas criticos"
+      ],
+      "redFlags": [
+        "Dispersao por excesso de pautas",
+        "Superestimativa de prazo",
+        "Dependencia de reconhecimento",
+        "Promessa acima da capacidade",
+        "Perda de foco em detalhes criticos"
+      ]
+    }
+  },
+  "S": {
+    "low": {
+      "headline": "Estabilidade baixa: ritmo dinamico e menor previsibilidade",
+      "paragraphs": [
+        "Com Estabilidade baixa, a pessoa tende a preferir variedade, mudanca e ciclos curtos.",
+        "A performance melhora quando existe disciplina de fechamento e rotina minima de continuidade."
+      ],
+      "actions": [
+        "Criar agenda de acompanhamento",
+        "Fechar entregas em blocos",
+        "Padronizar checkpoints",
+        "Evitar troca constante de prioridade",
+        "Definir ritos de equipe"
+      ],
+      "redFlags": [
+        "Mudanca constante de foco",
+        "Baixa consistencia",
+        "Desconforto com rotina",
+        "Quebra de combinado",
+        "Impacto em previsibilidade"
+      ]
+    },
+    "mid": {
+      "headline": "Estabilidade moderada: constancia com adaptacao",
+      "paragraphs": [
+        "Com Estabilidade moderada, existe boa combinacao entre cooperacao, ritmo e adaptacao ao contexto.",
+        "A pessoa tende a sustentar entregas sem perder flexibilidade para ajustes taticos."
+      ],
+      "actions": [
+        "Definir cadencia de revisao",
+        "Consolidar aprendizados de sprint",
+        "Proteger tempo de execucao",
+        "Dar visibilidade de riscos",
+        "Manter acordos de convivencia"
+      ],
+      "redFlags": [
+        "Evitar conversa dificil",
+        "Aceitar sobrecarga silenciosa",
+        "Ajustar sem comunicar",
+        "Excesso de acomodacao",
+        "Perda de energia em mudanca longa"
+      ]
+    },
+    "high": {
+      "headline": "Estabilidade alta: confiabilidade, paciencia e continuidade",
+      "paragraphs": [
+        "Com Estabilidade alta, a pessoa tende a sustentar ritmo consistente e oferecer suporte ao time.",
+        "O desenvolvimento depende de aumentar assertividade em cenarios de mudanca e conflito."
+      ],
+      "actions": [
+        "Treinar posicionamento direto",
+        "Antecipar riscos de mudanca",
+        "Definir limites de suporte",
+        "Aumentar velocidade em decisoes recorrentes",
+        "Priorizar conversas de alinhamento"
+      ],
+      "redFlags": [
+        "Resistencia a mudanca",
+        "Evitar confronto necessario",
+        "Demora para decidir",
+        "Excesso de acomodacao",
+        "Sobrecarga por disponibilidade alta"
+      ]
+    }
+  },
+  "C": {
+    "low": {
+      "headline": "Conformidade baixa: pragmatismo e menor foco em regra",
+      "paragraphs": [
+        "Com Conformidade baixa, a pessoa tende a buscar simplicidade e agilidade, com menor apego a processo formal.",
+        "A evolucao vem de elevar consistencia de qualidade sem perder velocidade."
+      ],
+      "actions": [
+        "Adotar checklist minimo",
+        "Definir criterios de qualidade",
+        "Revisar impacto de risco",
+        "Registrar decisoes-chave",
+        "Fechar pendencias criticas"
+      ],
+      "redFlags": [
+        "Erro por falta de detalhe",
+        "Subestimar compliance",
+        "Padrao inconsistente",
+        "Improviso excessivo",
+        "Retrabalho por validacao tardia"
+      ]
+    },
+    "mid": {
+      "headline": "Conformidade moderada: equilibrio entre qualidade e agilidade",
+      "paragraphs": [
+        "Com Conformidade moderada, ha boa relacao entre criterio tecnico e fluidez de execucao.",
+        "A pessoa tende a combinar analise suficiente com pragmatismo orientado a entrega."
+      ],
+      "actions": [
+        "Padronizar criterio de revisao",
+        "Dimensionar profundidade por risco",
+        "Documentar decisoes complexas",
+        "Evitar retrabalho com alinhamento previo",
+        "Treinar objetividade em comunicacao"
+      ],
+      "redFlags": [
+        "Detalhe excessivo em baixa prioridade",
+        "Analise longa sem fechamento",
+        "Exigencia desalinhada ao contexto",
+        "Perfeccionismo tatico",
+        "Dificuldade em simplificar"
+      ]
+    },
+    "high": {
+      "headline": "Conformidade alta: precisao, analise e controle de qualidade",
+      "paragraphs": [
+        "Com Conformidade alta, a pessoa tende a proteger qualidade, padrao e consistencia tecnica.",
+        "O ganho de escala exige equilibrar criterio com velocidade e flexibilidade contextual."
+      ],
+      "actions": [
+        "Definir limite de profundidade",
+        "Criar versao minima viavel",
+        "Comunicar risco em linguagem simples",
+        "Priorizar impacto sobre perfeicao",
+        "Tomar decisao com janela de tempo"
+      ],
+      "redFlags": [
+        "Perfeccionismo paralisante",
+        "Rigidez de processo",
+        "Dificuldade com ambiguidade",
+        "Demora em decisao",
+        "Criticidade elevada no relacionamento"
+      ]
+    }
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "key": "DS",
+  "title": "Dominancia com Estabilidade",
+  "archetype": "Executor Sustentado",
+  "summary": "Perfil firme, pratico e consistente, orientado a resultado com continuidade operacional.",
+  "executiveSummary": [
+    "Combina direcao forte com maior estabilidade de ritmo.",
+    "Entrega com firmeza e senso de responsabilidade.",
+    "Mantem tracao sem oscilar tanto quanto o D puro.",
+    "Evolui quando amplia flexibilidade e abertura relacional."
+  ],
+  "identityDynamics": [
+    "Gosta de conduzir com direcao e controle do contexto.",
+    "Busca resultado com continuidade e previsibilidade.",
+    "Combina assertividade com maior senso de constancia.",
+    "Prefere ambiente organizado com ritmo sustentado.",
+    "Trabalha bem com metas claras e responsabilidade definida."
+  ],
+  "decisionStyle": [
+    "Decide de forma objetiva e pragmatica.",
+    "Mais ponderado que o D puro, sem perder firmeza.",
+    "Priorizacao baseada em impacto e estabilidade de execucao.",
+    "Pode resistir a mudancas que ameacem previsibilidade.",
+    "Decide melhor quando ha criterio e sequencia clara."
+  ],
+  "motivators": [
+    "Controle com progresso",
+    "Rotina eficiente",
+    "Meta clara com autonomia",
+    "Entrega sustentada",
+    "Responsabilidade reconhecida"
+  ],
+  "energyDrainers": [
+    "Desorganizacao recorrente",
+    "Indecisao da equipe",
+    "Excesso de dramatizacao",
+    "Ambiente caotico",
+    "Falta de direcao operacional"
+  ],
+  "workStrengths": [
+    "Execucao firme",
+    "Ritmo consistente",
+    "Responsabilidade alta",
+    "Direcao com continuidade",
+    "Capacidade de manter padrao",
+    "Entrega confiavel sob pressao"
+  ],
+  "workRisks": [
+    "Inflexibilidade tatico-operacional",
+    "Controle excessivo",
+    "Abertura relacional limitada",
+    "Resistencia a abordagem emocional",
+    "Dificuldade de adaptar em mudanca rapida",
+    "Cobranca rigida em equipe heterogenea"
+  ],
+  "communicationStyle": [
+    "Direta e estruturada",
+    "Tom firme com estabilidade",
+    "Orientada a prioridade",
+    "Busca objetividade sem ruido"
+  ],
+  "communicationNeeds": [
+    "Clareza de processo",
+    "Acordo de responsabilidade",
+    "Ritmo previsivel de alinhamento",
+    "Respeito ao criterio definido"
+  ],
+  "communicationDo": [
+    "Estruture conversa com sequencia e prioridade.",
+    "Defina o que precisa ser feito e por quem.",
+    "Comunique impacto de mudanca com antecedencia.",
+    "Reforce checkpoints de continuidade.",
+    "Valide entendimento do plano operacional."
+  ],
+  "communicationDont": [
+    "Nao altere direcao sem contexto claro.",
+    "Evite improviso sem controle minimo.",
+    "Nao confunda firmeza com rigidez inflexivel.",
+    "Evite cobranca sem explicitar criterio.",
+    "Nao negligencie impacto relacional da decisao."
+  ],
+  "leadershipStyle": [
+    "Lidera pela combinacao de firmeza e constancia.",
+    "Mantem disciplina de execucao e previsibilidade.",
+    "Sustenta entrega em ciclos continuos.",
+    "Ganha escala quando combina controle com adaptabilidade."
+  ],
+  "leadershipStrengths": [
+    "Estabilidade de execucao",
+    "Clareza de direcao",
+    "Disciplina operacional",
+    "Responsabilidade consistente",
+    "Capacidade de manter ritmo"
+  ],
+  "leadershipRisks": [
+    "Controle excessivo da equipe",
+    "Baixa abertura a abordagens diferentes",
+    "Rigidez em mudanca de contexto",
+    "Dureza em cobranca sem calibragem",
+    "Dificuldade de flexibilizar plano"
+  ],
+  "stressPattern": [
+    "Aumenta controle para preservar previsibilidade.",
+    "Fica menos aberto a variacao de abordagem.",
+    "Eleva cobranca por ritmo e disciplina.",
+    "Pode reduzir escuta para manter direcao."
+  ],
+  "stressSignals": [
+    "Microcontrole de tarefas",
+    "Resistencia a ajustes necessarios",
+    "Tom mais rigido em alinhamentos",
+    "Dificuldade de delegar mudancas",
+    "Queda de abertura relacional"
+  ],
+  "recoveryStrategy": [
+    "Reavaliar plano com foco em impacto real.",
+    "Diferenciar controle necessario de excesso.",
+    "Abrir espaco para contraponto estruturado.",
+    "Redistribuir responsabilidade com clareza.",
+    "Reforcar flexibilidade em pontos nao criticos."
+  ],
+  "conflictStyle": [
+    "Conflita por controle de direcao e metodo.",
+    "Prefere resolver com criterio e regra clara.",
+    "Pode endurecer quando percebe desorganizacao.",
+    "Conflito melhora com acordo operacional objetivo.",
+    "Precisa calibrar escuta para evitar rigidez."
+  ],
+  "teamContribution": [
+    "Sustenta ritmo de entrega",
+    "Mantem continuidade em projeto longo",
+    "Define responsabilidade com clareza",
+    "Protege resultado em contexto de pressao",
+    "Gera confiabilidade operacional"
+  ],
+  "bestMatches": [
+    "C",
+    "S",
+    "SC",
+    "CD",
+    "SD"
+  ],
+  "frictionMatches": [
+    "I muito volatil",
+    "ID",
+    "DI impulsivo",
+    "IS sem firmeza"
+  ],
+  "idealEnvironment": [
+    "Operacao organizada com metas claras",
+    "Cadencia previsivel de acompanhamento",
+    "Autonomia com accountability real",
+    "Equipe comprometida com disciplina",
+    "Mudanca planejada com criterio"
+  ],
+  "lowFitEnvironment": [
+    "Caos de prioridade sem dono",
+    "Cultura altamente emocional e instavel",
+    "Improviso continuo sem governanca",
+    "Ambiente sem criterio de execucao"
+  ],
+  "recommendedRoles": [
+    "Gestao de operacoes",
+    "Coordenacao de implantacao",
+    "Gestao de processos",
+    "Lideranca de equipe de execucao",
+    "Projetos de melhoria continua",
+    "Planejamento operacional",
+    "Gestao de atendimento estruturado",
+    "Supervisao de campo"
+  ],
+  "lowFitRoles": [
+    "Escopo sem previsibilidade minima",
+    "Ambiente de improviso radical",
+    "Funcao sem direcao ou responsabilidade clara",
+    "Papel de mudanca continua sem metodo"
+  ],
+  "naturalStrengths": [
+    "Firmeza",
+    "Consistencia",
+    "Direcao",
+    "Responsabilidade",
+    "Disciplina",
+    "Estabilidade de execucao",
+    "Confiabilidade",
+    "Resistencia operacional"
+  ],
+  "developmentPoints": [
+    "Flexibilidade em contexto novo",
+    "Escuta de perspectivas alternativas",
+    "Ajuste relacional de cobranca",
+    "Adaptação em mudanca rapida",
+    "Delegacao com confianca",
+    "Abertura a experimentacao controlada",
+    "Calibragem de controle",
+    "Comunicacao mais empatica"
+  ],
+  "developmentRisks": [
+    "Rigidez operacional",
+    "Resistencia a inovacao necessaria",
+    "Atrito por controle excessivo",
+    "Perda de agilidade em cenario dinamico"
+  ],
+  "managerGuidance": [
+    "Defina meta com sequencia clara de execucao.",
+    "Estabeleca margem de ajuste para evitar rigidez.",
+    "Cobre resultado com feedback de forma e impacto.",
+    "Incentive delegacao com checkpoints objetivos.",
+    "Acompanhe aderencia relacional da lideranca."
+  ],
+  "selfLeadershipGuidance": [
+    "Pratique flexibilidade em pontos de baixo risco.",
+    "Escute contrapontos antes de fechar metodo final.",
+    "Diferencie controle util de microgestao.",
+    "Ajuste tom de cobranca para preservar engajamento.",
+    "Revise semanalmente o que pode ser simplificado."
+  ],
+  "plan30": [
+    "Mapear situacoes de controle excessivo em rotina.",
+    "Definir duas delegacoes com checkpoint claro.",
+    "Aplicar escuta estruturada em reunioes de alinhamento.",
+    "Ajustar uma cobranca rigida para formato colaborativo."
+  ],
+  "plan60": [
+    "Aumentar flexibilidade em mudanca de prioridade.",
+    "Reduzir atrito relacional por forma de comando.",
+    "Consolidar ritual de revisao quinzenal de risco.",
+    "Pedir feedback sobre abertura e adaptabilidade."
+  ],
+  "plan90": [
+    "Sustentar performance com controle calibrado.",
+    "Escalar boas praticas de execucao no time.",
+    "Manter estabilidade com maior plasticidade de abordagem.",
+    "Mensurar ganho de resultado com menor desgaste relacional."
+  ],
+  "executiveClosing": [
+    "O perfil DS entrega resultado com consistencia e responsabilidade.",
+    "Seu principal ganho vem de ampliar flexibilidade sem perder firmeza.",
+    "Quando calibra controle e relacao, cresce como lider de execucao.",
+    "A trilha proposta fortalece performance sustentada em ambiente complexo."
+  ]
+}

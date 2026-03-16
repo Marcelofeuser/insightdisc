@@ -1,4 +1,5 @@
 import { verifyJwt } from '../lib/security.js';
+import { getSafeErrorCode, sendSafeJsonError } from '../lib/http-security.js';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 
@@ -17,7 +18,11 @@ export async function requireAuth(req, res, next) {
       if (email) {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-          return res.status(401).json({ ok: false, error: 'Unauthorized' });
+          return sendSafeJsonError(res, {
+            status: 401,
+            error: 'UNAUTHORIZED',
+            message: 'Autenticação necessária.',
+          });
         }
         req.auth = {
           userId: user.id,
@@ -31,13 +36,21 @@ export async function requireAuth(req, res, next) {
     }
 
     if (!token) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'UNAUTHORIZED',
+        message: 'Autenticação necessária.',
+      });
     }
 
     const payload = verifyJwt(token);
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'INVALID_TOKEN',
+        message: 'Token inválido ou expirado.',
+      });
     }
 
     req.auth = {
@@ -49,6 +62,12 @@ export async function requireAuth(req, res, next) {
     };
     return next();
   } catch (error) {
-    return res.status(401).json({ ok: false, error: error?.message || 'Unauthorized' });
+    const errorCode = getSafeErrorCode(error, 'INVALID_TOKEN');
+    const message = errorCode === 'TOKEN_EXPIRED' ? 'Token expirado.' : 'Token inválido ou expirado.';
+    return sendSafeJsonError(res, {
+      status: 401,
+      error: errorCode,
+      message,
+    });
   }
 }

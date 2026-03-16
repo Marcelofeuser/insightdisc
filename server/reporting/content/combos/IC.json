@@ -1,0 +1,85 @@
+{
+  "title": "Influência Estruturada",
+  "executiveSummary": [
+    "Persuasão com suporte analítico e organização.",
+    "Boa capacidade de traduzir temas técnicos em linguagem acessível.",
+    "Atua bem em ambientes de consultoria e comunicação estratégica.",
+    "Evolui ao consolidar ritmo de execução contínua."
+  ],
+  "strengths": [
+    "Comunicação clara com método",
+    "Boa síntese para públicos diversos",
+    "Relacionamento com critério técnico",
+    "Capacidade de influenciar decisões baseadas em dados",
+    "Organização de argumentos complexos",
+    "Alto potencial consultivo"
+  ],
+  "risks": [
+    "Excesso de contextualização antes de decidir",
+    "Dificuldade de priorizar em múltiplas demandas",
+    "Otimismo sobre prazos técnicos",
+    "Foco elevado em apresentação vs execução",
+    "Perfeccionismo na comunicação",
+    "Dependência de validação externa"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Estruturar narrativa com evidência",
+      "Traduzir dados para linguagem executiva",
+      "Concluir com ação e prazo",
+      "Ajustar profundidade ao público",
+      "Registrar decisões-chave"
+    ],
+    "dont": [
+      "Alongar reunião sem fechamento",
+      "Prometer sem validar capacidade técnica",
+      "Ignorar riscos por entusiasmo",
+      "Excesso de detalhes em pauta operacional",
+      "Alterar mensagem sem alinhar impactos"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança consultiva orientada a influência técnica.",
+    "Conecta estratégia, comunicação e governança.",
+    "Favorece alinhamento em contextos complexos."
+  ],
+  "stressPattern": [
+    "Aumenta revisão de mensagens e documentos.",
+    "Pode prolongar decisão para reduzir risco reputacional.",
+    "Oscila entre sociabilidade e isolamento técnico."
+  ],
+  "motivators": [
+    "Desafios intelectuais",
+    "Interação com stakeholders",
+    "Reconhecimento por expertise",
+    "Ambiente de aprendizagem"
+  ],
+  "idealEnvironment": [
+    "Projetos estratégicos",
+    "Cultura orientada a dados",
+    "Espaço para diálogo qualificado",
+    "Ritmo com checkpoints claros"
+  ],
+  "conflictStyle": [
+    "Argumenta com dados e diplomacia.",
+    "Busca consenso técnico antes de fechar.",
+    "Evita confronto improvisado."
+  ],
+  "coachingTips": [
+    "Definir limite de preparação por entrega.",
+    "Priorizar impacto sobre perfeição na comunicação.",
+    "Usar sprint de execução após decisões.",
+    "Equilibrar visibilidade e profundidade técnica.",
+    "Treinar respostas objetivas em pressão."
+  ],
+  "recommendedRoles": [
+    "Consultoria de negócios",
+    "Product marketing",
+    "Pré-vendas técnico",
+    "Gestão de stakeholders",
+    "Liderança de projetos estratégicos",
+    "Comunicação corporativa",
+    "Business analysis",
+    "Customer education"
+  ]
+}

@@ -1,0 +1,242 @@
+{
+  "key": "S",
+  "title": "Estabilidade",
+  "archetype": "Sustentador Confiavel",
+  "summary": "Perfil estavel, colaborativo, paciente e orientado a constancia.",
+  "executiveSummary": [
+    "Mantem ritmo confiavel e previsivel em ambiente colaborativo.",
+    "Gera seguranca relacional e apoio consistente ao time.",
+    "Contribui fortemente para continuidade e qualidade de convivencia.",
+    "Evolui quando combina estabilidade com assertividade em momentos criticos."
+  ],
+  "identityDynamics": [
+    "Valoriza previsibilidade, rotina e seguranca relacional.",
+    "Prefere cooperacao a confronto direto.",
+    "Sustenta clima de confianca com presenca constante.",
+    "Opera melhor com papeis claros e expectativa definida.",
+    "Tende a proteger relacoes em cenarios de tensao."
+  ],
+  "decisionStyle": [
+    "Decide com cautela e avaliacao de impacto humano.",
+    "Busca estabilidade antes de assumir ruptura.",
+    "Pode adiar decisao para preservar harmonia.",
+    "Decide melhor quando recebe contexto claro e tempo de analise.",
+    "Ganha velocidade quando ha criterio objetivo de prioridade."
+  ],
+  "motivators": [
+    "Seguranca no ambiente",
+    "Harmonia de equipe",
+    "Clareza de papel",
+    "Constancia de processo",
+    "Relacao de confianca"
+  ],
+  "energyDrainers": [
+    "Conflito agressivo",
+    "Mudanca abrupta sem contexto",
+    "Pressao caotica",
+    "Instabilidade de lideranca",
+    "Cobrança desrespeitosa"
+  ],
+  "workStrengths": [
+    "Consistencia de entrega",
+    "Cooperacao genuina",
+    "Paciência operacional",
+    "Suporte ao time",
+    "Confiabilidade em rotina",
+    "Capacidade de manter continuidade"
+  ],
+  "workRisks": [
+    "Demora para agir em urgencia",
+    "Evitar confronto necessario",
+    "Resistencia silenciosa a mudanca",
+    "Dificuldade de se posicionar com firmeza",
+    "Acomodacao em zona conhecida",
+    "Sobrecarga por excesso de disponibilidade"
+  ],
+  "communicationStyle": [
+    "Calmo e respeitoso",
+    "Tom acolhedor",
+    "Ritmo estavel",
+    "Busca seguranca relacional"
+  ],
+  "communicationNeeds": [
+    "Contexto claro e previsivel",
+    "Tom respeitoso",
+    "Tempo para processar mudanca",
+    "Relacao de confianca"
+  ],
+  "communicationDo": [
+    "Explique contexto e motivo da mudanca.",
+    "Comunique com respeito e previsibilidade.",
+    "Defina passo a passo da execucao.",
+    "Confirme entendimento e apoio necessario.",
+    "Mantenha regularidade de alinhamento."
+  ],
+  "communicationDont": [
+    "Evite confronto agressivo sem preparo.",
+    "Nao imponha mudanca brusca sem direcao.",
+    "Nao confunda calma com falta de comprometimento.",
+    "Evite critica publica desnecessaria.",
+    "Nao altere prioridade sem explicacao clara."
+  ],
+  "leadershipStyle": [
+    "Lidera com acolhimento e estabilidade.",
+    "Protege continuidade da operacao e relacao da equipe.",
+    "Fortalece confianca por presenca consistente.",
+    "Ganha impacto quando aumenta assertividade em decisao dificil."
+  ],
+  "leadershipStrengths": [
+    "Estabilidade de equipe",
+    "Cuidado com pessoas",
+    "Consistencia de processo",
+    "Escuta e suporte",
+    "Confiabilidade sob pressao moderada"
+  ],
+  "leadershipRisks": [
+    "Evitar confronto necessario",
+    "Postergar decisao dura",
+    "Permitir acomodacao prolongada",
+    "Dificuldade de cobrar com firmeza",
+    "Absorver carga emocional do time"
+  ],
+  "stressPattern": [
+    "Tende a recolher comunicacao em pressao alta.",
+    "Pode demonstrar resistencia passiva.",
+    "Acumula desconforto antes de se posicionar.",
+    "Busca manter paz mesmo com sobrecarga."
+  ],
+  "stressSignals": [
+    "Silencio prolongado",
+    "Queda de iniciativa",
+    "Atraso em posicionamento",
+    "Sobrecarga sem pedido de ajuda",
+    "Fadiga por absorver demandas do time"
+  ],
+  "recoveryStrategy": [
+    "Clarificar prioridade e limite de escopo.",
+    "Estruturar conversas de alinhamento com antecedencia.",
+    "Treinar posicionamento assertivo em pauta dificil.",
+    "Redistribuir carga com acordo claro de responsabilidade.",
+    "Criar rotina de pausa e revisao de energia."
+  ],
+  "conflictStyle": [
+    "Prefere evitar confronto direto.",
+    "Busca conciliacao e preservacao de vinculo.",
+    "Reage melhor com dialogo respeitoso e objetivo.",
+    "Conflito nao tratado vira resistencia silenciosa.",
+    "Precisa de estrutura para se posicionar com firmeza."
+  ],
+  "teamContribution": [
+    "Sustenta clima de confianca",
+    "Mantem continuidade de rotina",
+    "Favorece cooperacao",
+    "Apoia pares em momentos de pressao",
+    "Contribui para estabilidade operacional"
+  ],
+  "bestMatches": [
+    "I",
+    "C",
+    "SC",
+    "SI",
+    "CS"
+  ],
+  "frictionMatches": [
+    "DI",
+    "D",
+    "ID",
+    "DC"
+  ],
+  "idealEnvironment": [
+    "Ritmo previsivel com objetivos claros",
+    "Cultura de respeito relacional",
+    "Lideranca coerente e estavel",
+    "Processo com cadencia definida",
+    "Espaco seguro para colaboracao"
+  ],
+  "lowFitEnvironment": [
+    "Ambiente agressivo e instavel",
+    "Mudanca constante sem direcao",
+    "Conflito aberto sem mediacao",
+    "Cobrança caotica e imprevisivel"
+  ],
+  "recommendedRoles": [
+    "Operacoes com continuidade",
+    "Atendimento relacional",
+    "Suporte a equipe",
+    "People operations",
+    "Coordenacao administrativa",
+    "Customer success consultivo",
+    "Qualidade de processo",
+    "Backoffice de alta confiabilidade"
+  ],
+  "lowFitRoles": [
+    "Ambiente de confronto constante",
+    "Funcao com mudanca diaria sem previsao",
+    "Escopo de decisao extremamente agressiva",
+    "Ritmo sem estabilidade minima"
+  ],
+  "naturalStrengths": [
+    "Paciência",
+    "Confiabilidade",
+    "Cooperacao",
+    "Consistencia",
+    "Estabilidade emocional",
+    "Escuta",
+    "Continuidade",
+    "Compromisso com equipe"
+  ],
+  "developmentPoints": [
+    "Assertividade em conflito",
+    "Velocidade de decisao",
+    "Posicionamento em tema critico",
+    "Capacidade de dizer nao",
+    "Adaptacao a mudanca",
+    "Exposicao de opiniao divergente",
+    "Priorizacao sob pressao",
+    "Limite de sobrecarga"
+  ],
+  "developmentRisks": [
+    "Acomodacao prolongada",
+    "Conflito evitado virar desgaste silencioso",
+    "Baixa visibilidade de contribuicao estrategica",
+    "Perda de agilidade em cenarios dinamicos"
+  ],
+  "managerGuidance": [
+    "Forneca previsibilidade e clareza de prioridade.",
+    "Conduza feedback com respeito e objetividade.",
+    "Estimule posicionamento assertivo em pauta critica.",
+    "Evite mudanca brusca sem contexto.",
+    "Acompanhe sinais de sobrecarga silenciosa."
+  ],
+  "selfLeadershipGuidance": [
+    "Treine confrontos curtos com foco em fatos.",
+    "Defina limite de disponibilidade em ciclos de alta demanda.",
+    "Priorize acao quando houver risco de atraso.",
+    "Comunique necessidade de apoio antes de saturar energia.",
+    "Amplie visibilidade de contribuicao para o time."
+  ],
+  "plan30": [
+    "Mapear situacoes em que evita confronto necessario.",
+    "Praticar um posicionamento assertivo por semana.",
+    "Definir limite de carga com alinhamento de lideranca.",
+    "Criar rotina curta de priorizacao diaria."
+  ],
+  "plan60": [
+    "Aumentar velocidade de decisao em temas recorrentes.",
+    "Conduzir conversas dificeis com roteiro estruturado.",
+    "Reduzir sobrecarga silenciosa com redistribuicao de escopo.",
+    "Pedir feedback sobre firmeza e clareza de posicao."
+  ],
+  "plan90": [
+    "Consolidar padrao de colaboracao com assertividade.",
+    "Sustentar ritmo estavel mesmo em mudanca relevante.",
+    "Elevar protagonismo em decisoes de equipe.",
+    "Mensurar ganho de confiabilidade com agilidade."
+  ],
+  "executiveClosing": [
+    "O perfil S sustenta estabilidade e confianca em ambientes colaborativos.",
+    "Seu salto de maturidade passa por maior assertividade e velocidade em pauta critica.",
+    "Quando combina suporte com posicionamento firme, torna-se eixo de performance duradoura.",
+    "O plano proposto amplia impacto sem perder equilibrio relacional."
+  ]
+}

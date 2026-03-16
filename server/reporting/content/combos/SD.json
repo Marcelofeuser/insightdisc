@@ -1,0 +1,85 @@
+{
+  "title": "Estabilidade Resolutiva",
+  "executiveSummary": [
+    "Prioriza colaboração sem perder foco em entrega.",
+    "Gera confiança em ambientes com pressão moderada.",
+    "Atua bem em equipes que exigem coordenação contínua.",
+    "Evolui ao antecipar decisões difíceis."
+  ],
+  "strengths": [
+    "Confiabilidade com foco em resultado",
+    "Boa mediação entre pessoas e metas",
+    "Execução consistente",
+    "Escuta ativa com pragmatismo",
+    "Estabilidade em cenários complexos",
+    "Aderência a acordos coletivos"
+  ],
+  "risks": [
+    "Postergar decisões duras",
+    "Evitar conflito por excesso de harmonia",
+    "Sobrecarga por assumir suporte do time",
+    "Dificuldade em impor limites",
+    "Resistência inicial a mudanças rápidas",
+    "Dependência de consenso para avançar"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Contextualizar impacto humano e técnico",
+      "Definir próximos passos explícitos",
+      "Validar entendimento da equipe",
+      "Negociar prazos com transparência",
+      "Escalar riscos cedo"
+    ],
+    "dont": [
+      "Aceitar demandas sem capacidade",
+      "Silenciar discordâncias críticas",
+      "Conduzir mudanças sem preparar pessoas",
+      "Evitar feedback corretivo",
+      "Confundir colaboração com ausência de decisão"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança de suporte com orientação a resultado.",
+    "Fortalece coesão de time e continuidade operacional.",
+    "Traz estabilidade em ciclos de alta demanda."
+  ],
+  "stressPattern": [
+    "Internaliza tensão antes de sinalizar.",
+    "Aumenta esforço pessoal para manter equilíbrio.",
+    "Pode adiar conflitos relevantes."
+  ],
+  "motivators": [
+    "Ambiente cooperativo",
+    "Objetivos alcançáveis",
+    "Reconhecimento por confiabilidade",
+    "Relações de confiança"
+  ],
+  "idealEnvironment": [
+    "Papéis claros",
+    "Ritmo previsível",
+    "Liderança acessível",
+    "Espaço para contribuição coletiva"
+  ],
+  "conflictStyle": [
+    "Busca mediação e entendimento mútuo.",
+    "Prefere solução gradual com compromisso explícito.",
+    "Evita confronto direto sem preparo prévio."
+  ],
+  "coachingTips": [
+    "Treinar assertividade em conversas críticas.",
+    "Definir limites operacionais claros.",
+    "Praticar tomada de decisão com prazo curto.",
+    "Fortalecer exposição de opinião em fóruns estratégicos.",
+    "Evitar assumir responsabilidades além do escopo."
+  ],
+  "recommendedRoles": [
+    "People operations",
+    "Coordenação de atendimento",
+    "Gestão de times de suporte",
+    "Recursos humanos",
+    "Customer success",
+    "Facilitação de projetos",
+    "Coordenação acadêmica",
+    "Gestão de relacionamento interno"
+  ]
+}

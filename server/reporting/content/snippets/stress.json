@@ -1,0 +1,16 @@
+{
+  "signals": [
+    "Aumento de urgência percebida.",
+    "Redução da escuta ativa.",
+    "Oscilação de qualidade de decisão.",
+    "Comunicação mais reativa.",
+    "Queda de previsibilidade do time."
+  ],
+  "recovery": [
+    "Pausar 5 minutos antes de decisões críticas.",
+    "Revalidar prioridade e impacto esperado.",
+    "Aplicar checklist de risco mínimo.",
+    "Solicitar contraponto técnico ou relacional.",
+    "Definir uma ação concreta de curto prazo."
+  ]
+}

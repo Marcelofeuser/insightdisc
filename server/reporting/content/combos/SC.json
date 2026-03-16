@@ -1,0 +1,85 @@
+{
+  "title": "Estabilidade Metódica",
+  "executiveSummary": [
+    "Perfil confiável, orientado a processo e qualidade contínua.",
+    "Mantém consistência operacional com baixo ruído relacional.",
+    "Excelente para ambientes que exigem previsibilidade.",
+    "Cresce ao acelerar resposta em mudanças rápidas."
+  ],
+  "strengths": [
+    "Execução estável",
+    "Alta confiabilidade",
+    "Atenção a padrão e qualidade",
+    "Bom suporte ao time",
+    "Disciplina em rotina",
+    "Baixa variabilidade de entrega"
+  ],
+  "risks": [
+    "Resistência inicial a mudanças abruptas",
+    "Evitar conflitos necessários",
+    "Baixa velocidade em decisões urgentes",
+    "Excesso de cautela em inovação",
+    "Dificuldade em priorizar exposição estratégica",
+    "Adoção lenta de novos processos"
+  ],
+  "communicationPlaybook": {
+    "do": [
+      "Comunique mudança com antecedência",
+      "Detalhe próximos passos com clareza",
+      "Defina prioridades e marcos",
+      "Use feedback objetivo e frequente",
+      "Escalone riscos precocemente"
+    ],
+    "dont": [
+      "Mudar direção sem contexto",
+      "Acumular pendências não ditas",
+      "Evitar posicionamento em conflitos",
+      "Assumir mais tarefas que capacidade",
+      "Manter processo ineficiente por hábito"
+    ]
+  },
+  "leadershipStyle": [
+    "Liderança operacional baseada em consistência.",
+    "Sustenta estabilidade e qualidade no longo prazo.",
+    "Favorece previsibilidade de entregas."
+  ],
+  "stressPattern": [
+    "Aumenta cautela e controle de rotina.",
+    "Pode retardar adaptação a novas demandas.",
+    "Internaliza tensão para manter padrão."
+  ],
+  "motivators": [
+    "Ambiente organizado",
+    "Processos claros",
+    "Relações estáveis",
+    "Reconhecimento por confiabilidade"
+  ],
+  "idealEnvironment": [
+    "Baixa ambiguidade",
+    "Planejamento previsível",
+    "Equipe cooperativa",
+    "Qualidade valorizada"
+  ],
+  "conflictStyle": [
+    "Busca resolução cuidadosa e gradual.",
+    "Prefere evitar escalada emocional.",
+    "Valoriza acordos sustentáveis."
+  ],
+  "coachingTips": [
+    "Treinar tomada de decisão em janelas curtas.",
+    "Praticar feedback assertivo em conflitos.",
+    "Criar plano de adaptação para mudanças.",
+    "Evitar sobrecarga por excesso de suporte.",
+    "Priorizar impacto sobre conforto operacional."
+  ],
+  "recommendedRoles": [
+    "Operações",
+    "Backoffice estratégico",
+    "Garantia de qualidade",
+    "Coordenação administrativa",
+    "Suporte especializado",
+    "Gestão de processos",
+    "Planejamento operacional",
+    "Documentação e governança"
+  ]
+}

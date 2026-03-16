@@ -1,4 +1,4 @@
-import { renderReportHtml as renderDeterministicReportHtml } from '../../../../reporting/renderReportHtml.js';
+import { renderReportHtml as renderDeterministicReportHtml } from '../../../reporting/renderReportHtml.js';
 
 export function renderReportHtml(input) {
   return renderDeterministicReportHtml(input);

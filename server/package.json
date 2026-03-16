@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
+    "dev": "node --watch-path=src src/index.js",
     "start": "node src/index.js",
     "build": "prisma generate",
     "vercel-build": "prisma generate",
@@ -16,12 +16,15 @@
     "create:super-admin": "node scripts/create-super-admin.js"
   },
   "dependencies": {
+    "@google/genai": "^1.45.0",
     "@prisma/client": "6.19.2",
     "@sparticuz/chromium": "^143.0.4",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "groq-sdk": "^1.1.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
     "puppeteer": "^24.4.0",

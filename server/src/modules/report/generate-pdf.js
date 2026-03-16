@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
-import { generatePdfFromData } from '../../../../reporting/generatePdf.js';
+import { generatePdfFromData } from '../../../reporting/generatePdf.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

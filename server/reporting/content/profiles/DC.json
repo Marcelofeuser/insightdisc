@@ -1,0 +1,242 @@
+{
+  "key": "DC",
+  "title": "Dominancia com Conformidade",
+  "archetype": "Comandante Analitico",
+  "summary": "Perfil firme, exigente e logico, orientado a resultado com alta criticidade tecnica.",
+  "executiveSummary": [
+    "Combina decisao forte com rigor analitico.",
+    "Comanda com foco em resultado e padrao elevado.",
+    "Tem alta capacidade de correcao de rota com criterio.",
+    "Evolui quando equilibra exigencia tecnica com sensibilidade relacional."
+  ],
+  "identityDynamics": [
+    "Decide com firmeza sustentada por logica.",
+    "Valoriza controle, metodo e excelencia.",
+    "Une cobranca de desempenho com analise de risco.",
+    "Prefere ambientes tecnicos e organizados.",
+    "Tende a reduzir tolerancia a erro recorrente."
+  ],
+  "decisionStyle": [
+    "Decide rapido quando possui base logica suficiente.",
+    "Pondera risco antes de validar caminho final.",
+    "Tolera pouco improviso sem criterio.",
+    "Assume responsabilidade alta por resultado.",
+    "Decide melhor com dados confiaveis e janela de execucao clara."
+  ],
+  "motivators": [
+    "Excelencia tecnica",
+    "Autonomia com responsabilidade",
+    "Eficiencia de alto nivel",
+    "Competencia reconhecida",
+    "Padrao elevado de entrega"
+  ],
+  "energyDrainers": [
+    "Erro recorrente sem correcao",
+    "Desorganizacao cronica",
+    "Baixa qualidade de execucao",
+    "Superficialidade analitica",
+    "Descompromisso com criterio"
+  ],
+  "workStrengths": [
+    "Decisao tecnica forte",
+    "Rigor de qualidade",
+    "Correcao de rota rapida",
+    "Comando racional",
+    "Governanca de processo",
+    "Exigencia de performance"
+  ],
+  "workRisks": [
+    "Frieza relacional",
+    "Rigidez de abordagem",
+    "Critica excessiva",
+    "Baixa tolerancia a falha de aprendizagem",
+    "Dureza na cobranca",
+    "Dificuldade de adaptar estilo para publico diverso"
+  ],
+  "communicationStyle": [
+    "Direta, tecnica e exigente",
+    "Foco em criterio e resultado",
+    "Baixa tolerancia a ambiguidade",
+    "Tom de comando racional"
+  ],
+  "communicationNeeds": [
+    "Dados objetivos",
+    "Criterio tecnico claro",
+    "Plano de execucao confiavel",
+    "Responsabilidade definida"
+  ],
+  "communicationDo": [
+    "Apresente problema com dado e impacto.",
+    "Traga opcao com risco e recomendacao objetiva.",
+    "Defina padrao de qualidade esperado.",
+    "Feche com dono, prazo e validacao tecnica.",
+    "Comunique divergencia sem rodeio, com respeito profissional."
+  ],
+  "communicationDont": [
+    "Nao omita risco relevante para acelerar consenso.",
+    "Evite discussao abstrata sem criterio objetivo.",
+    "Nao reduza tema tecnico a opiniao vaga.",
+    "Evite improviso sem plano minimo.",
+    "Nao confunda firmeza com hostilidade."
+  ],
+  "leadershipStyle": [
+    "Lidera por comando tecnico e direcao de resultado.",
+    "Eleva padrao com forte senso de responsabilidade.",
+    "Garante controle de qualidade em entregas criticas.",
+    "Amplia aderencia quando calibra forma de cobranca."
+  ],
+  "leadershipStrengths": [
+    "Governanca robusta",
+    "Decisao em cenario complexo",
+    "Padrao elevado de entrega",
+    "Correcao tecnica rapida",
+    "Foco em performance mensuravel"
+  ],
+  "leadershipRisks": [
+    "Rigidez com erro de aprendizagem",
+    "Tom duro em feedback",
+    "Baixa sensibilidade de contexto humano",
+    "Centralizacao por alta exigencia",
+    "Atrito por criticidade elevada"
+  ],
+  "stressPattern": [
+    "Aumenta controle tecnico e cobranca de padrao.",
+    "Torna-se mais critico com desvio de qualidade.",
+    "Reduz flexibilidade em contexto de pressao.",
+    "Pode comunicar de forma excessivamente dura."
+  ],
+  "stressSignals": [
+    "Microcorrecao frequente",
+    "Irritacao com erro operacional",
+    "Fechamento de escuta em reuniao",
+    "Aumento de controle central",
+    "Conflito por forma de cobranca"
+  ],
+  "recoveryStrategy": [
+    "Reavaliar risco real versus exigencia ideal.",
+    "Definir prioridade tecnica por impacto.",
+    "Calibrar tom de feedback para preservar adesao.",
+    "Delegar controles secundarios com checkpoint.",
+    "Retomar dialogo com foco em melhoria e nao em culpa."
+  ],
+  "conflictStyle": [
+    "Conflita por criterio, qualidade e responsabilidade.",
+    "Prefere confronto objetivo baseado em fato.",
+    "Tolera pouco argumento sem base tecnica.",
+    "Conflito cresce quando ha ataque pessoal.",
+    "Conflito reduz com regra clara e acordo operacional."
+  ],
+  "teamContribution": [
+    "Eleva padrao tecnico do time",
+    "Reduz risco de execucao",
+    "Garante coerencia de processo",
+    "Sustenta decisao em cenario complexo",
+    "Aumenta confiabilidade de entrega critica"
+  ],
+  "bestMatches": [
+    "S",
+    "C",
+    "CD",
+    "SC",
+    "D"
+  ],
+  "frictionMatches": [
+    "I impulsivo",
+    "IS muito conciliador",
+    "ID dispersivo",
+    "DI agressivo sem metodo"
+  ],
+  "idealEnvironment": [
+    "Ambiente tecnico de alta exigencia",
+    "Processo claro com accountability forte",
+    "Cultura de qualidade e resultado",
+    "Equipe madura para feedback direto",
+    "Decisao baseada em dados"
+  ],
+  "lowFitEnvironment": [
+    "Improviso constante sem governanca",
+    "Ambiente emocionalmente caotico",
+    "Baixa disciplina operacional",
+    "Cultura de tolerancia ao erro recorrente"
+  ],
+  "recommendedRoles": [
+    "Direcao de operacoes tecnicas",
+    "Gestao de qualidade e compliance",
+    "Lideranca de engenharia de processo",
+    "Gestao de risco",
+    "Controladoria operacional",
+    "Auditoria e governanca",
+    "Programas de excelencia",
+    "Lideranca de turnaround tecnico"
+  ],
+  "lowFitRoles": [
+    "Ambiente de improviso permanente",
+    "Escopo sem padrao minimo",
+    "Funcao sem criterio de performance",
+    "Papel com alta ambiguidade e baixa responsabilidade"
+  ],
+  "naturalStrengths": [
+    "Rigor",
+    "Disciplina",
+    "Analise de risco",
+    "Comando racional",
+    "Direcao sob pressao",
+    "Padrao de qualidade",
+    "Cobranca de resultado",
+    "Consistencia tecnica"
+  ],
+  "developmentPoints": [
+    "Empatia na forma de cobranca",
+    "Flexibilidade de abordagem",
+    "Escuta ativa de perspectivas",
+    "Calibragem de criticidade",
+    "Delegacao com confianca gradual",
+    "Comunicacao mais acessivel",
+    "Gestao de conflito sem endurecimento",
+    "Abertura para experimentacao controlada"
+  ],
+  "developmentRisks": [
+    "Relacionamento duro com equipe",
+    "Rigidez excessiva em mudanca",
+    "Perda de engajamento por criticidade alta",
+    "Centralizacao por baixa tolerancia a erro"
+  ],
+  "managerGuidance": [
+    "Defina criterio tecnico e limite de decisao com clareza.",
+    "Use feedback sobre forma e impacto relacional.",
+    "Reforce delegacao com checkpoints objetivos.",
+    "Equilibre exigencia de qualidade com prazo de negocio.",
+    "Acompanhe risco de rigidez em contexto dinamico."
+  ],
+  "selfLeadershipGuidance": [
+    "Diferencie erro critico de erro de aprendizagem.",
+    "Comunique exigencia com respeito e objetividade.",
+    "Defina nivel de profundidade adequado por risco.",
+    "Pratique escuta para ampliar adesao da equipe.",
+    "Mensure resultado tambem por engajamento sustentavel."
+  ],
+  "plan30": [
+    "Mapear situacoes de criticidade excessiva em feedback.",
+    "Aplicar linguagem de melhoria em vez de culpa.",
+    "Delegar uma frente com checkpoint tecnico.",
+    "Revisar criterio de qualidade por nivel de risco."
+  ],
+  "plan60": [
+    "Aumentar flexibilidade em contexto de mudanca controlada.",
+    "Reduzir atrito por forma de cobranca.",
+    "Aprimorar comunicacao tecnica para publico nao especialista.",
+    "Pedir feedback sobre aderencia da equipe ao estilo de lideranca."
+  ],
+  "plan90": [
+    "Consolidar comando tecnico com maior aderencia relacional.",
+    "Escalar governanca sem microcontrole.",
+    "Manter padrao alto com ritmo sustentavel.",
+    "Mensurar resultado por qualidade e engajamento."
+  ],
+  "executiveClosing": [
+    "O perfil DC entrega alto valor em cenarios de exigencia tecnica e pressao por resultado.",
+    "Seu salto de maturidade esta em combinar rigor com inteligencia relacional.",
+    "Quando calibra forma de cobranca, amplia influencia e sustentabilidade.",
+    "A trilha proposta fortalece comando tecnico com lideranca mais completa."
+  ]
+}

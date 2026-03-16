@@ -1,0 +1,65 @@
+{
+  "low": {
+    "headline": "Baixa Influência: comunicação objetiva e reservada",
+    "paragraphs": [
+      "Na faixa baixa de Influência, a comunicação tende a ser mais técnica e direta, com menor necessidade de exposição social. Esse estilo favorece foco e clareza em tarefas complexas.",
+      "Para funções com alta interface, vale ampliar intencionalmente conexão interpessoal. Pequenos ajustes de linguagem aumentam adesão sem perder objetividade."
+    ],
+    "actions": [
+      "Iniciar reuniões com contexto e objetivo compartilhado.",
+      "Confirmar entendimento com perguntas curtas.",
+      "Ajustar tom para diferentes perfis de interlocutor.",
+      "Treinar sínteses verbais de 60 segundos.",
+      "Agendar rituais de relacionamento com stakeholders."
+    ],
+    "redFlags": [
+      "Comunicação percebida como fria ou distante.",
+      "Baixa visibilidade de contribuições importantes.",
+      "Pouca construção de alianças internas.",
+      "Dificuldade de persuadir sem dados adicionais.",
+      "Feedbacks técnicos sem conexão humana mínima."
+    ]
+  },
+  "mid": {
+    "headline": "Influência moderada: boa persuasão com equilíbrio",
+    "paragraphs": [
+      "Em nível médio de Influência, há capacidade consistente de engajar pessoas sem perder estrutura. O perfil costuma adaptar linguagem conforme público e objetivo.",
+      "Esse equilíbrio é um ativo para liderança situacional. O próximo salto está em transformar comunicação eficaz em rotina de acompanhamento."
+    ],
+    "actions": [
+      "Usar narrativas curtas com dados de apoio.",
+      "Fechar conversas com próximos passos objetivos.",
+      "Definir cadência de follow-up com stakeholders.",
+      "Alternar escuta e direcionamento conforme contexto.",
+      "Registrar acordos-chave em canais compartilhados."
+    ],
+    "redFlags": [
+      "Prometer sem consolidar execução.",
+      "Dependência de carisma sem processo.",
+      "Perda de foco em reuniões longas.",
+      "Adiar conversas difíceis por conforto social.",
+      "Subestimar necessidade de documentação."
+    ]
+  },
+  "high": {
+    "headline": "Alta Influência: energia social e poder de mobilização",
+    "paragraphs": [
+      "Com Influência alta, a pessoa tende a engajar rapidamente, construir relacionamento e persuadir com facilidade. Isso acelera alinhamento inicial e motivação do grupo.",
+      "Para sustentar resultados, é essencial transformar entusiasmo em compromissos com prazo, dono e indicador. Disciplina de execução potencializa o talento relacional."
+    ],
+    "actions": [
+      "Converter reuniões em plano com responsáveis.",
+      "Limitar prioridades da semana a três entregas.",
+      "Usar checkpoints para garantir fechamento.",
+      "Equilibrar entusiasmo com análise de risco.",
+      "Praticar comunicação assertiva em conflitos."
+    ],
+    "redFlags": [
+      "Dispersão por excesso de iniciativas simultâneas.",
+      "Acordos verbais sem confirmação formal.",
+      "Otimismo sem plano de mitigação.",
+      "Dificuldade de manter rotina operacional.",
+      "Interrupções frequentes que reduzem profundidade."
+    ]
+  }
+}
