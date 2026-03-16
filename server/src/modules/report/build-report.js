@@ -1,4 +1,4 @@
-import { buildReportModel } from '../../../../reporting/buildReportModel.js';
+import { buildReportModel } from '../../reporting/buildReportModel.js';
 import { normalizeBrandingFromOrganization } from '../branding/branding-service.js';
 
 function firstNonEmpty(values = []) {
