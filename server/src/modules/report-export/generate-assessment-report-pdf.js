@@ -1,4 +1,4 @@
-import { buildAssessmentReportViewModel } from '../../../../src/modules/reports/reportViewModel.js';
+import { buildAssessmentReportViewModel } from '../reports/reportViewModel.js';
 import { renderAssessmentReportPdfHtml } from '../../../../src/modules/reportExport/pdf/reportPdfDocument.js';
 import { loadServerBrowserLauncher } from '../report/generate-pdf.js';
 
