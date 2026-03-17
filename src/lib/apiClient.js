@@ -458,7 +458,7 @@ export function getApiAuthHeaders({
   userEmail = getApiUserEmail(),
 } = {}) {
   const headers = {
-    'ngrok-skip-browser-warning': '1',};
+    };
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
