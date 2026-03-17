@@ -5,6 +5,9 @@ const API_TOKEN_KEYS = [
   'server_api_token',
 ];
 
+const SUPER_ADMIN_TOKEN_KEY = 'insightdisc_super_admin_token';
+const SUPER_ADMIN_EMAIL_KEY = 'insightdisc_super_admin_email';
+
 const CANONICAL_PRODUCTION_API_URL = 'https://insightdisc-production.up.railway.app';
 const LOCAL_DEV_API_URL = 'http://localhost:4000';
 const DEFAULT_API_TIMEOUT_MS = 10_000;
@@ -397,6 +400,16 @@ export function getApiToken() {
   return getFromStorage(API_TOKEN_KEYS);
 }
 
+export function getSuperAdminToken() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(SUPER_ADMIN_TOKEN_KEY) || '';
+}
+
+export function getSuperAdminEmail() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(SUPER_ADMIN_EMAIL_KEY) || '';
+}
+
 export function getApiUserEmail() {
   return getFromStorage(API_EMAIL_KEYS);
 }
@@ -415,6 +428,16 @@ export function setApiSession({ token = '', email = '' } = {}) {
   }
 }
 
+export function setSuperAdminSession({ token = '', email = '' } = {}) {
+  if (typeof window === 'undefined') return;
+  if (token) {
+    window.localStorage.setItem(SUPER_ADMIN_TOKEN_KEY, token);
+  }
+  if (email) {
+    window.localStorage.setItem(SUPER_ADMIN_EMAIL_KEY, String(email).toLowerCase());
+  }
+}
+
 export function clearApiSession() {
   if (typeof window === 'undefined') return;
 
@@ -422,6 +445,12 @@ export function clearApiSession() {
     window.localStorage.removeItem(key);
     window.sessionStorage.removeItem(key);
   });
+}
+
+export function clearSuperAdminSession() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
+  window.localStorage.removeItem(SUPER_ADMIN_EMAIL_KEY);
 }
 
 export function getApiAuthHeaders({
@@ -442,15 +471,29 @@ export function getApiAuthHeaders({
   return headers;
 }
 
+function isSuperAdminProtectedRoute(url = '') {
+  // Detecta rotas que exigem auth de super admin (exclui o login)
+  // Ex: /auth/super-admin/me, /super-admin/overview
+  return (
+    (url.includes('/super-admin/') || url.includes('/auth/super-admin/')) &&
+    !url.endsWith('/super-admin-login')
+  );
+}
+
 async function performFetchRequest(url, options = {}) {
   const method = toMethod(options.method || 'GET');
   const timeoutMs = normalizeTimeout(options.timeoutMs, DEFAULT_API_TIMEOUT_MS);
   const baseHeaders = {
     ...(options.headers || {}),
   };
+
+  // Lógica inteligente para Super Admin:
+  // Se for rota protegida de super admin, usa o token específico se não foi passado outro.
+  const isSuperAdminContext = isSuperAdminProtectedRoute(url);
+  
   const includeAuthHeaders = options.includeAuthHeaders !== false;
-  const token = options.token || getApiToken();
-  const userEmail = options.userEmail || getApiUserEmail();
+  const token = options.token || (isSuperAdminContext ? getSuperAdminToken() : getApiToken());
+  const userEmail = options.userEmail || (isSuperAdminContext ? getSuperAdminEmail() : getApiUserEmail());
 
   if (options.requireAuth && !token && !userEmail) {
     throw createApiError({
@@ -515,6 +558,14 @@ async function performFetchRequest(url, options = {}) {
       ok: response.ok,
     });
 
+    // Intercepta login de Super Admin com sucesso para salvar sessão automaticamente
+    if (response.ok && url.endsWith('/auth/super-admin-login') && method === 'POST') {
+      setSuperAdminSession({
+        token: payload?.token,
+        email: payload?.user?.email,
+      });
+    }
+
     if (!response.ok) {
       throw createApiError({
         code: payload?.error || payload?.reason || `HTTP_${response.status}`,
@@ -534,6 +585,11 @@ async function performFetchRequest(url, options = {}) {
 
     return payload;
   } catch (error) {
+    // Intercepta erro 401 em rotas de Super Admin para limpar sessão
+    if (isSuperAdminContext && Number(error?.status) === 401) {
+      clearSuperAdminSession();
+    }
+
     const normalizedError = isNormalizedApiError(error)
       ? error
       : normalizeNetworkError(error, { requestUrl: url, method, timeoutMs });
