@@ -33,10 +33,10 @@ export default function ReportHeroSection({
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="min-w-0 max-w-4xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-700">
-            Relatório oficial InsightDISC
+            Análise comportamental InsightDISC
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            Relatório DISC
+            Relatório comportamental
           </h1>
 
           <p className="mt-2 text-sm text-slate-700 sm:text-base">
@@ -47,7 +47,7 @@ export default function ReportHeroSection({
 
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
             {interpretation?.summaryShort ||
-              'Leitura comportamental em consolidação. Conclua novas avaliações para aprofundar os insights.'}
+              'Leitura comportamental estruturada com base no modelo atual do relatório.'}
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
