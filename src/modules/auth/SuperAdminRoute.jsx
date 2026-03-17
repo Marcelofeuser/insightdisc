@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiBaseUrl, getApiErrorMessage, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiErrorMessage, getSuperAdminToken } from '@/lib/apiClient';
 import { GLOBAL_ROLES, hasAnyGlobalRole } from '@/modules/auth/access-control';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -26,7 +26,7 @@ export default function SuperAdminRoute({ children }) {
   const location = useLocation();
   const { access, user, isLoadingAuth, isLoadingPublicSettings } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
-  const apiToken = getApiToken();
+  const apiToken = getSuperAdminToken();
   const [validation, setValidation] = useState({
     state: 'idle',
     message: '',

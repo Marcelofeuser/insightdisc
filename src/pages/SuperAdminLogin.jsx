@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getApiBaseUrl, setApiSession } from '@/lib/apiClient';
+import { getApiBaseUrl, setSuperAdminSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { mapAuthRequestError, submitAuthRequest } from '@/modules/auth/authApi';
 import { createPageUrl } from '@/utils';
@@ -59,7 +59,7 @@ export default function SuperAdminLogin() {
         throw new Error('Resposta sem token de sessão.');
       }
 
-      setApiSession({
+      setSuperAdminSession({
         token: payload.token,
         email: payload?.user?.email || email.trim().toLowerCase(),
       });
