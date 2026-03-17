@@ -5,4 +5,4 @@ export {
   resolveProductId,
   getProductById,
   formatPriceBRL,
-} from '../../../shared/pricing.js';
+} from '../../shared/pricing.js';
