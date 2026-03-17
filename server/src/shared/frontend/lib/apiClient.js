@@ -5,7 +5,7 @@ const API_TOKEN_KEYS = [
   'server_api_token',
 ];
 
-const CANONICAL_PRODUCTION_API_URL = 'https://api.insightdisc.com';
+const CANONICAL_PRODUCTION_API_URL = 'https://insightdisc-production.up.railway.app';
 const LOCAL_DEV_API_URL = 'http://localhost:4000';
 const DEFAULT_API_TIMEOUT_MS = 10_000;
 const DEFAULT_API_RETRY_DELAY_MS = 350;
@@ -57,7 +57,7 @@ function isLocalRuntimeHost(hostname = '') {
 
 function isInsightDiscFrontendHost(hostname = '') {
   const normalized = String(hostname || '').toLowerCase();
-  if (!normalized || normalized === 'api.insightdisc.com') return false;
+  if (!normalized || normalized === 'insightdisc-production.up.railway.app') return false;
 
   return (
     normalized === 'app.insightdisc.com' ||

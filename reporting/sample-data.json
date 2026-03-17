@@ -1,13 +1,13 @@
 {
   "meta": {
     "brand": "InsightDISC",
-    "reportTitle": "Relatorio de Analise Comportamental DISC",
-    "reportSubtitle": "Diagnostico comportamental completo com benchmark, comunicacao, lideranca, riscos, carreira e plano de desenvolvimento",
+    "reportTitle": "Relatório de Análise Comportamental DISC",
+    "reportSubtitle": "Diagnóstico comportamental completo com benchmark, comunicação, liderança, riscos, carreira e plano de desenvolvimento",
     "generatedAt": "2026-03-06T12:00:00.000Z",
     "reportId": "assessment-luana-is-001",
     "version": "5.0",
     "responsibleName": "Marcelo Feuser",
-    "responsibleRole": "Especialista em Analise Comportamental",
+    "responsibleRole": "Especialista em Análise Comportamental",
     "workspaceId": "workspace-insightdisc"
   },
   "participant": {

@@ -51,3 +51,5 @@ tmp/
 reports/
 server/generated/
 *.pdf
+.vercel
+.env*.local

@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiRequest, getApiBaseUrl, setApiSession } from '@/lib/apiClient';
+import { getApiBaseUrl, setApiSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { mapAuthRequestError, submitAuthRequest } from '@/modules/auth/authApi';
 import { createPageUrl } from '@/utils';
 
 function sanitizeNextPath(nextPath) {
@@ -16,33 +17,10 @@ function sanitizeNextPath(nextPath) {
   return raw;
 }
 
-function mapErrorMessage(error) {
-  const reason = String(error?.payload?.error || error?.message || '').toUpperCase();
-  if (reason.includes('SUPER_ADMIN_NOT_FOUND')) {
-    return 'Usuário super admin não encontrado. Execute o seed inicial no backend.';
-  }
-  if (reason.includes('INVALID_CREDENTIALS')) {
-    return 'Credenciais inválidas.';
-  }
-  if (reason.includes('INVALID_MASTER_KEY')) {
-    return 'Chave administrativa inválida.';
-  }
-  if (reason.includes('FORBIDDEN')) {
-    return 'Acesso não autorizado.';
-  }
-  if (reason.includes('TOO_MANY_ATTEMPTS')) {
-    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  }
-  if (reason.includes('SUPER_ADMIN_DISABLED')) {
-    return 'Login de super admin indisponível: SUPER_ADMIN_MASTER_KEY não configurada.';
-  }
-  return error?.payload?.error || error?.message || 'Falha ao autenticar super admin.';
-}
-
 export default function SuperAdminLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { checkAppState } = useAuth();
+  const { applyAuthenticatedUser } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
 
   const [email, setEmail] = useState('');
@@ -61,14 +39,15 @@ export default function SuperAdminLogin() {
     setError('');
 
     if (!apiBaseUrl) {
-      setError('Backend indisponível. Configure VITE_API_URL para autenticação super admin.');
+      setError('API não configurada para este ambiente.');
       return;
     }
 
     setLoading(true);
     try {
-      const payload = await apiRequest('/auth/super-admin-login', {
-        method: 'POST',
+      const payload = await submitAuthRequest({
+        path: '/auth/super-admin-login',
+        apiBaseUrl,
         body: {
           email: email.trim().toLowerCase(),
           password,
@@ -76,7 +55,7 @@ export default function SuperAdminLogin() {
         },
       });
 
-      if (!payload?.token) {
+      if (!payload?.token || !payload?.user) {
         throw new Error('Resposta sem token de sessão.');
       }
 
@@ -86,10 +65,15 @@ export default function SuperAdminLogin() {
       });
 
       setMasterKey('');
-      await checkAppState();
+      applyAuthenticatedUser(payload.user);
       navigate(nextPath, { replace: true });
     } catch (submitError) {
-      setError(mapErrorMessage(submitError));
+      setError(
+        mapAuthRequestError(submitError, {
+          apiBaseUrl,
+          path: '/auth/super-admin-login',
+        }),
+      );
     } finally {
       setLoading(false);
     }

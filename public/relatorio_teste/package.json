@@ -1,0 +1,20 @@
+{
+  "name": "relatorio_teste",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "disc_engine.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "disc:personal": "node disc_engine.js --mode=personal && node gerar_pdf.mjs relatorio_disc_personal.html relatorio_disc_personal.pdf",
+    "disc:professional": "node disc_engine.js --mode=professional && node gerar_pdf.mjs relatorio_disc_professional.html relatorio_disc_professional.pdf",
+    "disc:business": "node disc_engine.js --mode=business && node gerar_pdf.mjs relatorio_disc_business.html relatorio_disc_business.pdf",
+    "disc:all": "./gerar_todos.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "puppeteer": "^24.39.1"
+  }
+}

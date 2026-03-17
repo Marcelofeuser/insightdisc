@@ -1020,6 +1020,9 @@ export default function SuperAdminDashboard() {
                 <Button variant="outline" onClick={() => navigate('/SendAssessment?mode=demo')}>
                   Gerar assessment demo
                 </Button>
+                <Button variant="outline" onClick={() => navigate('/super-admin/ai-lab')}>
+                  Abrir AI Lab
+                </Button>
                 <Button
                   onClick={() => void handleGenerateReportFromAssessment(latestDemoAssessment?.id)}
                   disabled={!latestDemoAssessment?.id || generatingReport === latestDemoAssessment?.id}

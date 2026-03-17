@@ -66,6 +66,9 @@ const FACTOR_META = {
 const PT_REPLACEMENTS = [
   ["Relatorio", "Relatório"],
   ["relatorio", "relatório"],
+  ["deAnalise", "de Análise"],
+  ["deAção", "de Ação"],
+  ["deAcao", "de Ação"],
   ["Analise", "Análise"],
   ["analise", "análise"],
   ["Diagnostico", "Diagnóstico"],
@@ -150,6 +153,130 @@ const PT_REPLACEMENTS = [
   ["Excelencia", "Excelência"],
   ["padroes", "padrões"],
   ["Padroes", "Padrões"],
+  ["constancia", "constância"],
+  ["Constancia", "Constância"],
+  ["agradavel", "agradável"],
+  ["Agradavel", "Agradável"],
+  ["proximo", "próximo"],
+  ["Proximo", "Próximo"],
+  ["proximos", "próximos"],
+  ["Proximos", "Próximos"],
+  ["criterio", "critério"],
+  ["Criterio", "Critério"],
+  ["criterios", "critérios"],
+  ["Criterios", "Critérios"],
+  ["ruido", "ruído"],
+  ["Ruido", "Ruído"],
+  ["direcao", "direção"],
+  ["Direcao", "Direção"],
+  ["seguranca", "segurança"],
+  ["Seguranca", "Segurança"],
+  ["tensao", "tensão"],
+  ["Tensao", "Tensão"],
+  ["padrao", "padrão"],
+  ["Padrao", "Padrão"],
+  ["reforcado", "reforçado"],
+  ["Reforcado", "Reforçado"],
+  ["reforcada", "reforçada"],
+  ["Reforcada", "Reforçada"],
+  ["cobranca", "cobrança"],
+  ["Cobranca", "Cobrança"],
+  ["visivel", "visível"],
+  ["Visivel", "Visível"],
+  ["coesao", "coesão"],
+  ["Coesao", "Coesão"],
+  ["precisao", "precisão"],
+  ["Precisao", "Precisão"],
+  ["influencia", "influência"],
+  ["Influencia", "Influência"],
+  ["cooperacao", "cooperação"],
+  ["Cooperacao", "Cooperação"],
+  ["expressao", "expressão"],
+  ["Expressao", "Expressão"],
+  ["persuasao", "persuasão"],
+  ["Persuasao", "Persuasão"],
+  ["paciencia", "paciência"],
+  ["Paciencia", "Paciência"],
+  ["possivel", "possível"],
+  ["Possivel", "Possível"],
+  ["nao", "não"],
+  ["Nao", "Não"],
+  ["tres", "três"],
+  ["Tres", "Três"],
+  ["alem", "além"],
+  ["Alem", "Além"],
+  ["aderencia", "aderência"],
+  ["Aderencia", "Aderência"],
+  ["referencia", "referência"],
+  ["Referencia", "Referência"],
+  ["referencias", "referências"],
+  ["Referencias", "Referências"],
+  ["revisao", "revisão"],
+  ["Revisao", "Revisão"],
+  ["criticos", "críticos"],
+  ["Criticos", "Críticos"],
+  ["vinculo", "vínculo"],
+  ["Vinculo", "Vínculo"],
+  ["vinculos", "vínculos"],
+  ["Vinculos", "Vínculos"],
+  ["consistencia", "consistência"],
+  ["Consistencia", "Consistência"],
+  ["manutencao", "manutenção"],
+  ["Manutencao", "Manutenção"],
+  ["silencio", "silêncio"],
+  ["Silencio", "Silêncio"],
+  ["acomodacao", "acomodação"],
+  ["Acomodacao", "Acomodação"],
+  ["definicao", "definição"],
+  ["Definicao", "Definição"],
+  ["situacao", "situação"],
+  ["Situacao", "Situação"],
+  ["relacao", "relação"],
+  ["Relacao", "Relação"],
+  ["funcoes", "funções"],
+  ["Funcoes", "Funções"],
+  ["facilitacao", "facilitação"],
+  ["Facilitacao", "Facilitação"],
+  ["coordenacao", "coordenação"],
+  ["Coordenacao", "Coordenação"],
+  ["tipica", "típica"],
+  ["Tipica", "Típica"],
+  ["saudavel", "saudável"],
+  ["Saudavel", "Saudável"],
+  ["hesitacao", "hesitação"],
+  ["Hesitacao", "Hesitação"],
+  ["necessario", "necessário"],
+  ["Necessario", "Necessário"],
+  ["necessaria", "necessária"],
+  ["Necessaria", "Necessária"],
+  ["temporaria", "temporária"],
+  ["Temporaria", "Temporária"],
+  ["previsivel", "previsível"],
+  ["Previsivel", "Previsível"],
+  ["diaria", "diária"],
+  ["Diaria", "Diária"],
+  ["negociaveis", "negociáveis"],
+  ["Negociaveis", "Negociáveis"],
+  ["observavel", "observável"],
+  ["Observavel", "Observável"],
+  ["responsabilizacao", "responsabilização"],
+  ["Responsabilizacao", "Responsabilização"],
+  ["delegacao", "delegação"],
+  ["Delegacao", "Delegação"],
+  ["interpretacao", "interpretação"],
+  ["Interpretacao", "Interpretação"],
+  ["evolucao", "evolução"],
+  ["Evolucao", "Evolução"],
+  ["critica", "crítica"],
+  ["Critica", "Crítica"],
+  ["priorizacao", "priorização"],
+  ["Priorizacao", "Priorização"],
+  ["exposicao", "exposição"],
+  ["Exposicao", "Exposição"],
+  ["pratico", "prático"],
+  ["Pratico", "Prático"],
+  ["decisoes", "decisões"],
+  ["Decisoes", "Decisões"],
 ];
 
 const SUMMARY_CONTENT = {
@@ -171,12 +298,12 @@ const SUMMARY_CONTENT = {
       {
         index: "03",
         title: "Comportamento & Estilo",
-        description: "Pontos fortes, limitações, pressão, negociação, vendas e aprendizado",
+        description: "Pontos fortes, motivadores, comunicação, liderança, pressão e percepção externa",
       },
       {
         index: "04",
         title: "Desenvolvimento & Plano de Ação",
-        description: "Carreira, crescimento, relacionamentos, síntese e recomendações",
+        description: "DNA, matriz, carreira, crescimento, plano de ação, estilos avançados, relações e recomendações",
       },
     ],
   },
@@ -198,12 +325,12 @@ const SUMMARY_CONTENT = {
       {
         index: "03",
         title: "Comportamento & Estilo",
-        description: "Pontos fortes, limitações, pressão, motivadores e relacionamentos",
+        description: "Pontos fortes, motivadores, comunicação, liderança, pressão e percepção externa",
       },
       {
         index: "04",
         title: "Desenvolvimento & Plano de Ação",
-        description: "Carreira, ação de 90 dias, recomendações e fechamento executivo",
+        description: "Carreira, plano de ação de 90 dias, recomendações executivas e síntese final",
       },
     ],
   },
@@ -225,14 +352,162 @@ const SUMMARY_CONTENT = {
       {
         index: "03",
         title: "Estilo Pessoal & Ambiente",
-        description: "Forças, pontos de atenção, motivadores e contexto de melhor performance",
+        description: "Forças, limitações, motivadores e comunicação no contexto de melhor performance",
       },
       {
         index: "04",
         title: "Comunicação, Pressão & Síntese",
-        description: "Tomada de decisão, pressão, recomendações práticas e conclusão",
+        description: "Tomada de decisão, comportamento sob pressão e fechamento conclusivo",
       },
     ],
+  },
+};
+
+const PROFILE_EDITORIAL = {
+  IS: {
+    strengths: {
+      Empatia: "Percebe nuances emocionais e ajusta o tom com sensibilidade, favorecendo abertura, confiança e cooperação.",
+      "Engajamento de pessoas": "Mobiliza o grupo com presença calorosa, linguagem positiva e senso de pertencimento.",
+      "Comunicação acolhedora": "Facilita diálogo, reduz resistências e cria ambiente seguro para alinhamentos mais honestos.",
+      "Integração de equipe": "Conecta perfis diferentes, aproxima interesses e sustenta colaboração entre áreas.",
+      "Manutenção de clima": "Preserva estabilidade relacional mesmo em períodos intensos, evitando desgaste desnecessário.",
+      "Construção de vínculo": "Desenvolve relações duradouras com base em escuta, consistência e confiabilidade.",
+    },
+    risks: {
+      "Evitar conversa difícil": "Pode adiar ajustes críticos e permitir que ruídos pequenos cresçam antes de serem tratados.",
+      "Agradar além do necessário": "O excesso de concessão pode enfraquecer limites, prioridades e clareza de cobrança.",
+      "Dificuldade de cobrança firme": "Corre o risco de preservar o vínculo no curto prazo e perder tração na execução.",
+      "Hesitação em conflito": "Quando evita tensão legítima, tende a alongar decisões e aumentar ambiguidade no time.",
+      "Baixa assertividade em limite": "Sem marcar fronteiras de forma clara, pode assumir demandas demais e perder foco.",
+      "Adiar decisão desconfortável": "Decisões sensíveis podem ser postergadas além do ideal, elevando custo relacional e operacional.",
+    },
+    balanced: {
+      Empatia: "Lê o ambiente com rapidez e percebe como cada pessoa recebe a mensagem, ajustando a abordagem sem perder proximidade.",
+      "Conexão humana": "Constrói confiança com naturalidade e cria sensação de acolhimento nas interações profissionais.",
+      Engajamento: "Energiza conversas, aproxima pessoas e estimula adesão quando o grupo precisa de mobilização.",
+      "Construção de vínculo": "Sustenta relações estáveis e colaborativas, o que favorece continuidade e parceria no médio prazo.",
+    },
+    pressure: {
+      "Queda de assertividade": "Sob tensão, tende a suavizar demais a mensagem e adiar posicionamentos que exigem firmeza.",
+      "Silêncio excessivo": "Pode retrair para evitar atrito, deixando dúvidas importantes sem tratamento imediato.",
+      "Acomodação temporária": "Aceita soluções medianas por mais tempo do que deveria para preservar a harmonia do ambiente.",
+      "Evitação de conversa difícil": "Fica mais propenso a contornar o confronto direto, mesmo quando a conversa é necessária.",
+    },
+    perception: {
+      peers:
+        "Os pares costumam perceber alguém acessível, cooperativo e agregador, que facilita alinhamento sem gerar atrito desnecessário.",
+      reports:
+        "Os liderados tendem a perceber escuta genuína, apoio e presença humana, mas podem esperar mais firmeza em cobranças críticas.",
+      leaders:
+        "Os superiores costumam perceber confiabilidade relacional, boa capacidade de engajamento e potencial para liderar com consistência.",
+    },
+    negotiation: {
+      negotiation:
+        "Negocia buscando equilíbrio entre resultado e vínculo. Prefere construir acordos sustentáveis, reduzindo tensão e preservando colaboração.",
+      sales:
+        "Vende com proximidade, escuta e confiança. Tem força em relacionamento consultivo, fidelização e leitura fina de necessidades do cliente.",
+      learning:
+        "Aprende melhor em contextos aplicados, com exemplos concretos, trocas estruturadas e espaço para testar o conteúdo sem exposição excessiva.",
+    },
+    communication: {
+      intro: "Calorosa, acolhedora e orientada a criar segurança relacional sem perder clareza.",
+      tone: "Tom colaborativo, positivo e respeitoso, com foco em aproximação e vínculo de confiança.",
+      pace: "Ritmo estável, com clareza progressiva e cuidado ao expor a mensagem.",
+      channel: "Prefere conversas diretas, em ambiente seguro, com contexto humano, objetivo claro e próximo passo definido.",
+      listening: "Escuta ativa, validando percepções antes de posicionar encaminhamentos e expectativas.",
+      decisions: [
+        "Considera o impacto da decisão sobre pessoas, clima e continuidade do trabalho.",
+        "Decide melhor quando combina critério objetivo com tempo curto de reflexão e alinhamento.",
+        "Precisa explicitar limites com rapidez para não adiar decisões desconfortáveis além do necessário.",
+      ],
+    },
+    dna: {
+      Empatia: "Percebe sinais emocionais com rapidez e ajusta presença, linguagem e aproximação de forma consistente.",
+      "Conexão humana": "Constrói relações de confiança sem esforço aparente, favorecendo abertura e cooperação.",
+      Engajamento: "Mobiliza pessoas com energia estável, tom positivo e capacidade de gerar adesão.",
+      "Construção de vínculo": "Sustenta parcerias duradouras ao combinar presença, constância e senso de cuidado.",
+    },
+    careers: {
+      "Relacionamento com clientes":
+        "Área aderente para transformar vínculo em confiança comercial, retenção e expansão de relacionamento de longo prazo.",
+      "People e cultura":
+        "Tem boa leitura humana para fortalecer clima, integração, comunicação interna e experiências consistentes de equipe.",
+      Treinamento:
+        "Consegue ensinar com acolhimento, ritmo didático e linguagem acessível, favorecendo adesão e transferência prática do conteúdo.",
+      "Customer success":
+        "Combina escuta, constância e proximidade para acompanhar jornada, reduzir atrito e ampliar percepção de valor do cliente.",
+    },
+    developmentFocus: {
+      Assertividade:
+        "Transformar cuidado em posicionamento claro, com pedidos objetivos, limite explícito e fechamento de responsabilidade.",
+      "Cobrança saudável":
+        "Cobrar sem perder respeito, mantendo cadência, critério e acompanhamento visível da entrega.",
+      "Decisão em contexto difícil":
+        "Reduzir hesitação diante de desconforto e escolher com mais rapidez quando o cenário pede firmeza.",
+      "Posicionamento sob pressão":
+        "Sustentar clareza e presença emocional mesmo quando houver tensão, urgência ou frustração da equipe.",
+    },
+    growth: {
+      Autoconhecimento:
+        "Mapeie os contextos em que o desejo de preservar o clima reduz sua firmeza. O ganho vem de perceber esse padrão cedo.",
+      "Mentoria e Coaching":
+        "Use acompanhamento estruturado para treinar cobrança, conversas difíceis e tomada de decisão com mais segurança.",
+      "Relacionamentos Estratégicos":
+        "Direcione sua força relacional para alianças que ampliem influência, cooperação e execução entre áreas-chave.",
+      "Excelência Sustentável":
+        "Seu melhor desempenho aparece quando sensibilidade, constância e direção trabalham juntas em torno de prioridades claras.",
+    },
+    advanced: {
+      leadership: [
+        "Liderança eficaz combina acolhimento, direção clara e responsabilização visível da equipe.",
+        "Resultados sustentáveis exigem equilíbrio entre clima saudável, critério de decisão e acompanhamento disciplinado.",
+        "Rituais curtos de alinhamento, follow-up e feedback reduzem ruído e evitam acomodação.",
+      ],
+      communication: [
+        ["1:1 com liderados", "Abrir com contexto, explicitar expectativa e fechar com próximo passo observável."],
+        ["Reuniões de equipe", "Conduzir com cadência, reforçar prioridades e dar espaço para alinhamentos sem perder direção."],
+        ["Com perfil C", "Apresentar dados, critérios e passos de decisão."],
+        ["Com perfil S", "Ser gentil, dar tempo de resposta e reduzir urgência desnecessária."],
+      ],
+    },
+    recommendations: {
+      business: [
+        {
+          title: "Liderança com Direção Clara",
+          text: "Transforme acolhimento em tração com rituais curtos de alinhamento, cobrança e decisão explícita.",
+        },
+        {
+          title: "Inteligência Emocional Aplicada",
+          text: "Use prioridades, limites e critérios objetivos para evitar acomodação quando a pressão aumentar.",
+        },
+        {
+          title: "Clientes, People & Cultura",
+          text: "Sua força relacional cresce quando é canalizada para fidelização, clima saudável e coordenação entre áreas.",
+        },
+        {
+          title: "Resultado Sustentável",
+          text: "Combine sensibilidade com firmeza para sustentar performance sem perder coesão, confiança e consistência.",
+        },
+      ],
+      professional: [
+        {
+          title: "Liderança com Mais Firmeza",
+          text: "Reforce combinados, prazos e checkpoints para traduzir cuidado em clareza de execução.",
+        },
+        {
+          title: "Autocontrole sob Pressão",
+          text: "Nomeie prioridades e trate tensões cedo para não transferir a decisão crítica para depois.",
+        },
+        {
+          title: "Comunicação entre Perfis",
+          text: "Ajuste ritmo e profundidade conforme o interlocutor para reduzir ruído e aumentar aderência.",
+        },
+        {
+          title: "Crescimento Consistente",
+          text: "Seu salto está em unir vínculo, cobrança saudável e posicionamento claro nas conversas importantes.",
+        },
+      ],
+    },
   },
 };
 
@@ -259,6 +534,20 @@ function safeText(value, fallback = "") {
   return text || fallback;
 }
 
+function normalizeEmail(value, fallback = "-") {
+  const text = safeText(value, fallback);
+  if (!text || !text.includes("@")) return text;
+  const [localPartRaw, ...domainParts] = text.split("@");
+  const localPart = localPartRaw.replace(/\s+/g, "");
+  const domainRaw = domainParts.join("@").trim();
+  const domain = domainRaw.replace(/\s+/g, ".").replace(/\.{2,}/g, ".");
+  return `${localPart}@${domain}`;
+}
+
+function getProfileKey(model) {
+  return `${safeText(model?.profile?.primary)}${safeText(model?.profile?.secondary)}` || "DISC";
+}
+
 function firstNonEmpty(...values) {
   for (const value of values) {
     const text = safeText(value);
@@ -276,12 +565,22 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function fixPt(value, fallback = "") {
   let text = safeText(value, fallback);
   if (!text) return "";
   for (const [source, target] of PT_REPLACEMENTS) {
+    if (/^[A-Za-zÀ-ÿ-]+$/.test(source)) {
+      text = text.replace(new RegExp(`(?<![A-Za-zÀ-ÿ])${escapeRegExp(source)}(?![A-Za-zÀ-ÿ])`, "g"), target);
+      continue;
+    }
     text = text.replaceAll(source, target);
   }
+  text = text.replace(/ de(?=[A-ZÁ-Ý])/g, " de ");
+  text = text.replace(/\s{2,}/g, " ").trim();
   return text;
 }
 
@@ -373,7 +672,7 @@ function buildContext(model, variant) {
       )
     ),
     participantName: fixPt(firstNonEmpty(participant.name, "Avaliado")),
-    participantEmail: safeText(participant.email, "-"),
+    participantEmail: normalizeEmail(participant.email, "-"),
     participantCompany: fixPt(firstNonEmpty(participant.company, issuerOrganization, "-")),
     participantRole: fixPt(firstNonEmpty(participant.role, participant.jobTitle, "-")),
     reportId: fixPt(firstNonEmpty(meta.reportId, participant.assessmentId, "-")),
@@ -382,11 +681,11 @@ function buildContext(model, variant) {
     responsibleName: fixPt(firstNonEmpty(meta.responsibleName, "Equipe InsightDISC")),
     responsibleRole: fixPt(firstNonEmpty(meta.responsibleRole, "Especialista em Análise Comportamental")),
     issuerOrganization: fixPt(issuerOrganization),
-    issuerContact: safeText(issuerContact, "-"),
+    issuerContact: issuerContact.includes("@") ? normalizeEmail(issuerContact, "-") : fixPt(issuerContact, "-"),
     brandLine: "InsightDISC – Plataforma de Análise Comportamental",
     brandName: fixPt(firstNonEmpty(branding.company_name, "InsightDISC")),
     brandWebsite: safeText(firstNonEmpty(branding.website, "www.insightdisc.app")),
-    brandEmail: safeText(firstNonEmpty(branding.support_email, "contato@insightdisc.app")),
+    brandEmail: normalizeEmail(firstNonEmpty(branding.support_email, "contato@insightdisc.app")),
     brandInstagram: safeText(firstNonEmpty(branding.instagram, "@insightdisc")),
     supportName: "Verônica Feuser",
     supportRole: "Psicanalista",
@@ -712,17 +1011,18 @@ function renderInstitutionalCover(context) {
               <p><span>Contato</span> ${escapeHtml(context.issuerContact)}</p>
             </article>
 
-            <article class="institutional-card">
-              <div class="institutional-card__label">Institucional</div>
-              <strong>${escapeHtml(context.brandLine)}</strong>
-              <p>${escapeHtml(context.brandWebsite)}</p>
-            </article>
-
-            <article class="institutional-card institutional-card--support">
-              <div class="institutional-card__label">Respaldo técnico-profissional</div>
-              <strong>${escapeHtml(context.supportName)}</strong>
-              <p>${escapeHtml(context.supportRole)}</p>
-              <p>${escapeHtml(context.supportTitle)}</p>
+            <article class="institutional-card institutional-card--dual">
+              <div class="institutional-subblock">
+                <div class="institutional-card__label">Institucional</div>
+                <strong>${escapeHtml(context.brandLine)}</strong>
+                <p>${escapeHtml(context.brandWebsite)}</p>
+              </div>
+              <div class="institutional-subblock institutional-subblock--support">
+                <div class="institutional-card__label">Respaldo técnico-profissional</div>
+                <strong>${escapeHtml(context.supportName)}</strong>
+                <p>${escapeHtml(context.supportRole)}</p>
+                <p>${escapeHtml(context.supportTitle)}</p>
+              </div>
             </article>
           </div>
         </div>
@@ -1063,6 +1363,7 @@ function renderBenchmarkPage(model) {
 }
 
 function renderStrengthsPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const strengths = fixList(model.profileContent?.workStrengths, 5);
   const risks = fixList(model.profileContent?.workRisks, 5);
   return renderPageFrame({
@@ -1083,7 +1384,7 @@ function renderStrengthsPage(model) {
                   (item, index) => `
                     <div class="table-row">
                       <strong>${escapeHtml(item)}</strong>
-                      <span>${escapeHtml(fixPt(firstNonEmpty(model.narratives?.communicationPrinciples?.[index], model.narratives?.leadershipStrengths?.[index], item)))}</span>
+                      <span>${escapeHtml(fixPt(firstNonEmpty(editorial.strengths?.[item], model.narratives?.leadershipStrengths?.[index], model.narratives?.communicationPrinciples?.[index], item)))}</span>
                     </div>
                   `
                 )
@@ -1099,7 +1400,7 @@ function renderStrengthsPage(model) {
                   (item, index) => `
                     <div class="table-row">
                       <strong>${escapeHtml(item)}</strong>
-                      <span>${escapeHtml(fixPt(firstNonEmpty(model.narratives?.developmentRisks?.[index], model.narratives?.stressSignals?.[index], item)))}</span>
+                      <span>${escapeHtml(fixPt(firstNonEmpty(editorial.risks?.[item], model.narratives?.developmentRisks?.[index], model.narratives?.stressSignals?.[index], item)))}</span>
                     </div>
                   `
                 )
@@ -1144,6 +1445,7 @@ function renderMotivatorsPage(model) {
 }
 
 function renderCommunicationPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const needs = fixList(model.profileContent?.communicationNeeds, 4);
   const decisions = fixList(model.narratives?.decisionParagraphs, 3);
   return renderPageFrame({
@@ -1155,24 +1457,24 @@ function renderCommunicationPage(model) {
         <div class="two-col-layout__main">
           <div class="page-title-block page-title-block--tight">
             <h2>Comunicação & Tomada de Decisão</h2>
-            <p>${escapeHtml(fixPt(firstNonEmpty(model.profileContent?.communicationStyle?.[0], model.narratives?.communicationStyle?.[0])))}</p>
+            <p>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.intro, model.profileContent?.communicationStyle?.[0], model.narratives?.communicationStyle?.[0])))}</p>
           </div>
           <article class="table-card">
             <h3>Como se comunica</h3>
             <div class="table-card__rows">
-              <div class="table-row"><strong>Tom</strong><span>${escapeHtml(fixPt(firstNonEmpty(needs[0], model.narratives?.communicationStyle?.[1], "Assertivo e confiante.")))}</span></div>
-              <div class="table-row"><strong>Velocidade</strong><span>${escapeHtml(fixPt(firstNonEmpty(needs[1], "Rápido e objetivo.")))}</span></div>
-              <div class="table-row"><strong>Canal preferido</strong><span>${escapeHtml(fixPt(firstNonEmpty(needs[2], "Reuniões objetivas, trocas claras e pouca ambiguidade.")))}</span></div>
-              <div class="table-row"><strong>Escuta</strong><span>${escapeHtml(fixPt(firstNonEmpty(needs[3], model.narratives?.communicationNeeds?.[0], "Foco no essencial e no próximo passo.")))}</span></div>
+              <div class="table-row"><strong>Tom</strong><span>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.tone, model.narratives?.communicationStyle?.[1], "Respeitoso, acolhedor e orientado à relação de confiança.")))}</span></div>
+              <div class="table-row"><strong>Velocidade</strong><span>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.pace, needs[1], "Ritmo estável, com clareza e cuidado ao expor a mensagem.")))}</span></div>
+              <div class="table-row"><strong>Canal preferido</strong><span>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.channel, "Conversas estruturadas, com contexto humano, objetivo claro e próximo passo definido.")))}</span></div>
+              <div class="table-row"><strong>Escuta</strong><span>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.listening, needs[3], model.narratives?.communicationNeeds?.[0], "Escuta construtiva, com atenção ao impacto da mensagem sobre as pessoas.")))}</span></div>
             </div>
           </article>
         </div>
         <aside class="two-col-layout__side">
           <article class="steps-card">
             <h3>Tomada de Decisão</h3>
-            <div class="steps-card__item"><span>1</span><div><strong>Lê o cenário</strong><p>${escapeHtml(firstNonEmpty(decisions[0], "Identifica rapidamente variáveis críticas e padrões do contexto."))}</p></div></div>
-            <div class="steps-card__item"><span>2</span><div><strong>Decide com convicção</strong><p>${escapeHtml(firstNonEmpty(decisions[1], "Escolhe o rumo com clareza e senso de responsabilidade."))}</p></div></div>
-            <div class="steps-card__item"><span>3</span><div><strong>Ajusta em movimento</strong><p>${escapeHtml(firstNonEmpty(decisions[2], "Refina a rota sem perder o momentum de execução."))}</p></div></div>
+            <div class="steps-card__item"><span>1</span><div><strong>Lê o cenário</strong><p>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.decisions?.[0], decisions[0], "Identifica rapidamente variáveis críticas e padrões do contexto.")))}</p></div></div>
+            <div class="steps-card__item"><span>2</span><div><strong>Decide com convicção</strong><p>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.decisions?.[1], decisions[1], "Escolhe o rumo com clareza e senso de responsabilidade.")))}</p></div></div>
+            <div class="steps-card__item"><span>3</span><div><strong>Ajusta em movimento</strong><p>${escapeHtml(fixPt(firstNonEmpty(editorial.communication?.decisions?.[2], decisions[2], "Refina a rota sem perder o momentum de execução.")))}</p></div></div>
           </article>
         </aside>
       </div>
@@ -1227,6 +1529,7 @@ function renderLeadershipPage(model) {
 }
 
 function renderPressurePage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const normal = fixList(model.profileContent?.naturalStrengths, 4);
   const stress = fixList(model.profileContent?.stressSignals, 4);
   return renderPageFrame({
@@ -1236,27 +1539,34 @@ function renderPressurePage(model) {
     body: `
       <div class="pressure-page">
         <div class="page-title-block page-title-block--tight">
-          <h2>Comportamento sob Pressão — Normal vs. Pressão</h2>
-          <p>${escapeHtml(fixPt(firstNonEmpty(model.profileContent?.stressPattern?.[0], model.profileContent?.stressPattern, model.adaptation?.interpretation)))}</p>
+          <h2>Comportamento sob Pressão</h2>
+          <p>${escapeHtml(fixPt(firstNonEmpty(model.profileContent?.stressPattern?.[0], model.profileContent?.stressPattern?.[1], model.profileContent?.stressPattern, model.adaptation?.interpretation)))}</p>
         </div>
         <div class="pressure-grid">
           <article class="pressure-column">
-            <h3>Comportamento Normal</h3>
+            <h3>No estado equilibrado</h3>
             <div class="pressure-cards">
               ${normal
-                .map((item) => `<div class="pressure-card"><strong>${escapeHtml(item)}</strong><p>${escapeHtml(item)}</p></div>`)
+                .map(
+                  (item, index) => `
+                    <div class="pressure-card">
+                      <strong>${escapeHtml(item)}</strong>
+                      <p>${escapeHtml(fixPt(firstNonEmpty(editorial.balanced?.[item], model.narratives?.summaryParagraphs?.[index], item)))}</p>
+                    </div>
+                  `
+                )
                 .join("")}
             </div>
           </article>
           <article class="pressure-column pressure-column--alert">
-            <h3>Comportamento sob Pressão</h3>
+            <h3>Sob pressão</h3>
             <div class="pressure-cards">
               ${stress
                 .map(
                   (item, index) => `
                     <div class="pressure-card pressure-card--alert">
                       <strong>${escapeHtml(item)}</strong>
-                      <p>${escapeHtml(fixPt(firstNonEmpty(model.narratives?.stressRecovery?.[index], item)))}</p>
+                      <p>${escapeHtml(fixPt(firstNonEmpty(editorial.pressure?.[item], model.narratives?.stressRecovery?.[index], item)))}</p>
                     </div>
                   `
                 )
@@ -1270,18 +1580,19 @@ function renderPressurePage(model) {
 }
 
 function renderPerceptionPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const cards = [
     {
       label: "Pelos pares",
-      text: fixPt(firstNonEmpty(model.narratives?.communicationManagerNotes?.[0], "Competente, confiável e mobilizador, com forte presença relacional.")),
+      text: fixPt(firstNonEmpty(editorial.perception?.peers, model.narratives?.communicationManagerNotes?.[0], "Competente, confiável e mobilizador, com forte presença relacional.")),
     },
     {
       label: "Pelos liderados",
-      text: fixPt(firstNonEmpty(model.narratives?.leadershipPitfalls?.[0], "Inspirador, exigente e orientado a ritmo, mas sensível à qualidade do vínculo.")),
+      text: fixPt(firstNonEmpty(editorial.perception?.reports, model.narratives?.leadershipPitfalls?.[3], "Inspirador, exigente e orientado a ritmo, mas sensível à qualidade do vínculo.")),
     },
     {
       label: "Pelos superiores",
-      text: fixPt(firstNonEmpty(model.insights?.managerLens?.headline, "Confiável para gerar alinhamento, engajamento e consistência.")),
+      text: fixPt(firstNonEmpty(editorial.perception?.leaders, model.insights?.managerLens?.headline, "Confiável para gerar alinhamento, engajamento e consistência.")),
     },
   ];
   return renderPageFrame({
@@ -1313,7 +1624,7 @@ function renderPerceptionPage(model) {
                 <div class="table-row table-row--three">
                   <strong>${factor}</strong>
                   <span>${escapeHtml(fixPt(FACTOR_META[factor].relationship.synergy))}</span>
-                  <span>${escapeHtml(fixPt(FACTOR_META[factor].relationship.strategy))}</span>
+                  <span>${escapeHtml(fixPt(`${FACTOR_META[factor].relationship.challenge} ${FACTOR_META[factor].relationship.strategy}`))}</span>
                 </div>
               `
             ).join("")}
@@ -1325,18 +1636,19 @@ function renderPerceptionPage(model) {
 }
 
 function renderNegotiationPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const cards = [
     {
       title: "Estilo de Negociação",
-      text: fixPt(firstNonEmpty(model.insights?.executiveByPage?.decision?.headline, model.narratives?.decisionParagraphs?.[0])),
+      text: fixPt(firstNonEmpty(editorial.negotiation?.negotiation, model.insights?.executiveByPage?.decision?.headline, model.narratives?.decisionParagraphs?.[0])),
     },
     {
       title: "Estilo de Vendas",
-      text: fixPt(firstNonEmpty(model.insights?.executiveByPage?.communication?.headline, model.narratives?.communicationStyle?.[0])),
+      text: fixPt(firstNonEmpty(editorial.negotiation?.sales, model.insights?.executiveByPage?.communication?.headline, model.narratives?.communicationStyle?.[0])),
     },
     {
       title: "Estilo de Aprendizado",
-      text: fixPt(firstNonEmpty(model.narratives?.developmentHabits?.[0], model.profileContent?.developmentPoints?.[0])),
+      text: fixPt(firstNonEmpty(editorial.negotiation?.learning, model.narratives?.developmentHabits?.[0], model.profileContent?.developmentPoints?.[0])),
     },
   ];
   return renderPageFrame({
@@ -1366,6 +1678,7 @@ function renderNegotiationPage(model) {
 }
 
 function renderDnaPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const traits = fixList(model.profileContent?.naturalStrengths, 4);
   const entries = factorEntries(model.scores?.natural);
   return renderPageFrame({
@@ -1386,7 +1699,7 @@ function renderDnaPage(model) {
                   <article class="trait-card">
                     <span>${index + 1}</span>
                     <strong>${escapeHtml(trait)}</strong>
-                    <p>${escapeHtml(fixPt(firstNonEmpty(model.narratives?.summaryParagraphs?.[index], trait)))}</p>
+                    <p>${escapeHtml(fixPt(firstNonEmpty(editorial.dna?.[trait], model.narratives?.summaryParagraphs?.[index], trait)))}</p>
                   </article>
                 `
               )
@@ -1451,8 +1764,21 @@ function renderMatrixPage(model) {
 }
 
 function renderCareerPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const roles = fixList(model.profileContent?.recommendedRoles, 4);
   const dev = fixList(model.profileContent?.developmentPoints, 4);
+  const developmentRows = dev.map((item, index) => ({
+    item,
+    text: fixPt(
+      firstNonEmpty(
+        editorial.developmentFocus?.[item],
+        `${safeText(model.narratives?.developmentQuestions?.[index])} ${safeText(model.narratives?.developmentHabits?.[index])}`.trim(),
+        model.narratives?.developmentQuestions?.[index],
+        model.narratives?.developmentHabits?.[index],
+        item
+      )
+    ),
+  }));
   return renderPageFrame({
     className: "page--career",
     pageNumber: "19",
@@ -1468,23 +1794,23 @@ function renderCareerPage(model) {
               (role) => `
                 <article class="role-card">
                   <strong>${escapeHtml(role)}</strong>
-                  <p>${escapeHtml("Contexto com espaço para autonomia, relacionamento e construção de impacto consistente.")}</p>
+                  <p>${escapeHtml(fixPt(firstNonEmpty(editorial.careers?.[role], "Contexto com espaço para autonomia, relacionamento e construção de impacto consistente.")))}</p>
                 </article>
               `
             )
             .join("")}
         </div>
         <article class="table-card table-card--wide">
-          <h3>Tabela de Desenvolvimento</h3>
+          <h3>Focos de Desenvolvimento Prioritário</h3>
           <div class="table-card__rows">
-            ${dev
+            ${developmentRows
               .map(
-                (item, index) => `
-                  <div class="table-row">
-                    <strong>${escapeHtml(item)}</strong>
-                    <span>${escapeHtml(fixPt(firstNonEmpty(model.narratives?.developmentQuestions?.[index], model.narratives?.developmentHabits?.[index], item)))}</span>
-                  </div>
-                `
+                  (row) => `
+                    <div class="table-row">
+                      <strong>${escapeHtml(row.item)}</strong>
+                      <span>${escapeHtml(row.text)}</span>
+                    </div>
+                  `
               )
               .join("")}
           </div>
@@ -1495,22 +1821,23 @@ function renderCareerPage(model) {
 }
 
 function renderGrowthPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const cards = [
     {
       title: "Autoconhecimento",
-      text: fixPt(firstNonEmpty(model.narratives?.developmentQuestions?.[0], model.profileContent?.developmentPoints?.[0])),
+      text: fixPt(firstNonEmpty(editorial.growth?.Autoconhecimento, model.narratives?.developmentQuestions?.[0], model.profileContent?.developmentPoints?.[0])),
     },
     {
       title: "Mentoria e Coaching",
-      text: fixPt(firstNonEmpty(model.narratives?.developmentHabits?.[1], model.narratives?.developmentHabits?.[0])),
+      text: fixPt(firstNonEmpty(editorial.growth?.["Mentoria e Coaching"], model.narratives?.developmentHabits?.[1], model.narratives?.developmentHabits?.[0])),
     },
     {
       title: "Relacionamentos Estratégicos",
-      text: fixPt(firstNonEmpty(model.narratives?.communicationManagerNotes?.[1], model.profileContent?.bestMatches?.[0])),
+      text: fixPt(firstNonEmpty(editorial.growth?.["Relacionamentos Estratégicos"], model.narratives?.communicationManagerNotes?.[1], model.profileContent?.bestMatches?.[0])),
     },
     {
       title: "Excelência Sustentável",
-      text: fixPt(firstNonEmpty(model.narratives?.executiveClosing?.[0], model.profileContent?.closingSummary)),
+      text: fixPt(firstNonEmpty(editorial.growth?.["Excelência Sustentável"], model.narratives?.executiveClosing?.[0], model.profileContent?.closingSummary)),
     },
   ];
   return renderPageFrame({
@@ -1560,8 +1887,9 @@ function renderActionPlanPage(model) {
 }
 
 function renderAdvancedStylesPage(model) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
   const leadership = fixList(model.narratives?.leadershipPrinciples, 3);
-  const rows = [
+  const rows = editorial.advanced?.communication || [
     ["1:1 com liderados", fixPt(firstNonEmpty(model.narratives?.communicationPrinciples?.[0], "Ouvir antes de orientar e alinhar o objetivo da conversa."))],
     ["Reuniões de equipe", fixPt(firstNonEmpty(model.narratives?.communicationPrinciples?.[1], "Deixar espaço para contribuições sem perder clareza de direção."))],
     ["Com perfil C", "Apresentar dados, critérios e passos de decisão."],
@@ -1579,7 +1907,7 @@ function renderAdvancedStylesPage(model) {
           </div>
           <article class="narrative-card narrative-card--wide">
             <strong>Estilo de Liderança</strong>
-            ${renderList(leadership, "bullet-list bullet-list--spacious", 3)}
+            ${renderList(editorial.advanced?.leadership || leadership, "bullet-list bullet-list--spacious", 3)}
           </article>
         </div>
         <aside class="two-col-layout__side">
@@ -1647,25 +1975,29 @@ function renderRelationshipsPage(model) {
   });
 }
 
-function renderRecommendationsPage(model) {
-  const recommendations = [
-    {
-      title: "Potencialize a Liderança",
-      text: fixPt(firstNonEmpty(model.narratives?.leadershipPrinciples?.[0], "Invista em liderança situacional para adaptar firmeza, ritmo e escuta ao contexto.")),
-    },
-    {
-      title: "Desenvolva a Inteligência Emocional",
-      text: fixPt(firstNonEmpty(model.narratives?.stressRecovery?.[0], "Autocontrole sob pressão amplia impacto, clareza e consistência de decisão.")),
-    },
-    {
-      title: "Monte Equipes Complementares",
-      text: fixPt(firstNonEmpty(model.narratives?.communicationManagerNotes?.[2], "Cerque-se de perfis complementares para compensar pontos cegos e ampliar qualidade de execução.")),
-    },
-    {
-      title: "Construa Resultados Sustentáveis",
-      text: fixPt(firstNonEmpty(model.narratives?.executiveClosing?.[1], "Alta performance exige consistência, processo e atenção à energia do time.")),
-    },
-  ];
+function renderRecommendationsPage(model, context) {
+  const editorial = PROFILE_EDITORIAL[getProfileKey(model)] || {};
+  const variantRecommendations = editorial.recommendations?.[context.variant];
+  const recommendations =
+    variantRecommendations ||
+    [
+      {
+        title: "Potencialize a Liderança",
+        text: fixPt(firstNonEmpty(model.narratives?.leadershipPrinciples?.[0], "Invista em liderança situacional para adaptar firmeza, ritmo e escuta ao contexto.")),
+      },
+      {
+        title: "Desenvolva a Inteligência Emocional",
+        text: fixPt(firstNonEmpty(model.narratives?.stressRecovery?.[0], "Autocontrole sob pressão amplia impacto, clareza e consistência de decisão.")),
+      },
+      {
+        title: "Monte Equipes Complementares",
+        text: fixPt(firstNonEmpty(model.narratives?.communicationManagerNotes?.[2], "Cerque-se de perfis complementares para compensar pontos cegos e ampliar qualidade de execução.")),
+      },
+      {
+        title: "Construa Resultados Sustentáveis",
+        text: fixPt(firstNonEmpty(model.narratives?.executiveClosing?.[1], "Alta performance exige consistência, processo e atenção à energia do time.")),
+      },
+    ];
   return renderPageFrame({
     className: "page--recommendations",
     pageNumber: "24",
@@ -1674,7 +2006,11 @@ function renderRecommendationsPage(model) {
       <div class="recommendations-page">
         <div class="recommendations-page__copy">
           <div class="page-title-block page-title-block--tight">
-            <h2>Recomendações Finais</h2>
+            <img
+              class="page-title-image page-title-image--recommendations"
+              src="assets/report-native/recommendations-title.png"
+              alt="Recomendações Finais"
+            />
           </div>
           <div class="recommendation-list">
             ${recommendations
@@ -1695,7 +2031,7 @@ function renderRecommendationsPage(model) {
   });
 }
 
-function renderConclusionPage(model) {
+function renderConclusionPage(model, context) {
   const cards = [
     {
       title: `Perfil ${model.profile?.primary || "D"}/${model.profile?.secondary || "I"} — Síntese`,
@@ -1742,6 +2078,15 @@ function renderConclusionPage(model) {
           ${escapeHtml(
             fixPt(
               firstNonEmpty(
+                context.variant === "business"
+                  ? "Leitura executiva orientada a liderança, relacionamento, clientes, people e desenvolvimento organizacional."
+                  : "",
+                context.variant === "professional"
+                  ? "Leitura aplicada ao contexto profissional, com foco em comunicação, desenvolvimento e clareza de ação."
+                  : "",
+                context.variant === "personal"
+                  ? "Leitura orientada a autoconhecimento, comunicação e evolução prática no dia a dia."
+                  : "",
                 model.narratives?.executiveClosing?.[2],
                 "Este relatório foi gerado pela plataforma InsightDISC para apoiar leitura comportamental, desenvolvimento e decisões mais conscientes."
               )
@@ -1834,9 +2179,9 @@ function renderPageByKey(key, model, context) {
     case 23:
       return renderRelationshipsPage(model);
     case 24:
-      return renderRecommendationsPage(model);
+      return renderRecommendationsPage(model, context);
     case 25:
-      return renderConclusionPage(model);
+      return renderConclusionPage(model, context);
     default:
       return "";
   }
@@ -1849,7 +2194,13 @@ function renderHtmlDocument({ variant, model }) {
     renderInstitutionalCover(context),
     ...config.sequence.map((key) => renderPageByKey(key, model, context)),
     renderInstitutionalClosing(context),
-  ].join("");
+  ].map((pageHtml, index) => {
+    if (!pageHtml.includes("slide-footer__page")) return pageHtml;
+    return pageHtml.replace(
+      /<div class="slide-footer__page">.*?<\/div>/,
+      `<div class="slide-footer__page">${index + 1}</div>`
+    );
+  }).join("");
 
   return `
     <!doctype html>

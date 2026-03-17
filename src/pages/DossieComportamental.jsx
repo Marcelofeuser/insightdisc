@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
+import { buildDossierPath } from '@/modules/dossier/routes';
 
 const FEATURE_ITEMS = [
   'Notas privadas por avaliado',
@@ -69,6 +70,8 @@ function setSeoMeta() {
 }
 
 export default function DossieComportamentalLandingPage() {
+  const dossierPath = buildDossierPath();
+
   useEffect(() => {
     setSeoMeta();
     trackEvent('dossier_landing_view', {
@@ -180,7 +183,7 @@ export default function DossieComportamentalLandingPage() {
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Link
                 id="cta-primary"
-                to="/Dossier"
+                to={dossierPath}
                 onClick={() => handleCtaClick('hero_acessar_modulo')}
                 className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-500 px-7 py-4 text-base font-bold text-white shadow-2xl shadow-violet-900/30 transition hover:scale-[1.01] hover-lift"
               >
@@ -483,7 +486,7 @@ export default function DossieComportamentalLandingPage() {
           </div>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
-              to="/Dossier"
+              to={dossierPath}
               onClick={() => handleCtaClick('final_acessar_modulo')}
               className="inline-flex items-center justify-center rounded-2xl bg-white px-7 py-4 text-base font-bold text-slate-950 transition hover:scale-[1.01] hover-lift"
             >

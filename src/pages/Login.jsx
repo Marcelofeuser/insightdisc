@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiRequest, getApiBaseUrl, setApiSession } from '@/lib/apiClient';
+import { getApiBaseUrl, setApiSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { mapAuthRequestError, submitAuthRequest } from '@/modules/auth/authApi';
 import { deriveUserLifecycle, USER_LIFECYCLE } from '@/modules/auth/access-control';
 
 const DEV_MOCK_ACCOUNTS = Object.freeze([
@@ -43,7 +44,7 @@ function resolvePostLoginPath(user, nextPath = '') {
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { checkAppState } = useAuth();
+  const { applyAuthenticatedUser, checkAppState } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
   const isDev = import.meta.env.DEV && String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || "").toLowerCase() === "true";
   const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
@@ -79,15 +80,16 @@ export default function Login() {
     try {
       let resolvedUser = null;
       if (apiBaseUrl) {
-        const payload = await apiRequest('/auth/login', {
-          method: 'POST',
+        const payload = await submitAuthRequest({
+          path: '/auth/login',
+          apiBaseUrl,
           body: {
             email: email.trim().toLowerCase(),
             password,
           },
         });
 
-        if (!payload?.token) {
+        if (!payload?.token || !payload?.user) {
           throw new Error('Falha ao iniciar sessão.');
         }
 
@@ -96,17 +98,20 @@ export default function Login() {
           email: payload?.user?.email || email.trim().toLowerCase(),
         });
         resolvedUser = payload?.user || null;
+        applyAuthenticatedUser(resolvedUser);
       } else {
-        throw new Error(
-          'Autenticação indisponível: backend não configurado. Defina VITE_API_URL/BACKEND_API_URL.'
-        );
+        throw new Error('API_BASE_URL_NOT_CONFIGURED');
       }
 
-      await checkAppState();
       const destination = resolvePostLoginPath(resolvedUser, nextPath);
       navigate(destination, { replace: true });
     } catch (loginError) {
-      setError(loginError?.payload?.error || loginError?.message || 'Falha ao entrar.');
+      setError(
+        mapAuthRequestError(loginError, {
+          apiBaseUrl,
+          path: '/auth/login',
+        }),
+      );
     } finally {
       setLoading(false);
     }

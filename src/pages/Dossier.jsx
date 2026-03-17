@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarClock,
@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { buildDossierPath, resolveDossierRouteContext } from '@/modules/dossier/routes';
 import { createPageUrl } from '@/utils';
 
 const LOCAL_DOSSIER_KEY = 'insightdisc_behavioral_dossiers';
@@ -284,6 +285,7 @@ function InlineStat({ icon: Icon, label, value }) {
 }
 
 export default function Dossier() {
+  const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -301,13 +303,19 @@ export default function Dossier() {
     user?.tenant_id ||
     'default-workspace';
 
-  const candidateId = String(
-    searchParams.get('candidateId') ||
-      location.state?.candidateId ||
-      location.state?.candidate?.id ||
-      ''
-  ).trim();
-  const assessmentId = String(searchParams.get('assessmentId') || '').trim();
+  const dossierRouteContext = useMemo(
+    () =>
+      resolveDossierRouteContext({
+        paramsCandidateId: params.candidateId,
+        searchParams,
+        locationState: location.state,
+      }),
+    [params.candidateId, searchParams, location.state]
+  );
+  const candidateId = dossierRouteContext.candidateId;
+  const assessmentId = dossierRouteContext.assessmentId;
+  const candidateNameHint = dossierRouteContext.candidateName;
+  const candidateEmailHint = dossierRouteContext.candidateEmail;
   const dossierQueryKey = useMemo(
     () => ['behavioral-dossier', apiBaseUrl, workspaceId, candidateId],
     [apiBaseUrl, workspaceId, candidateId]
@@ -348,16 +356,8 @@ export default function Dossier() {
       const local = ensureLocalRecord({
         workspaceId,
         candidateId,
-        candidateName:
-          searchParams.get('candidateName') ||
-          location.state?.candidateName ||
-          location.state?.candidate?.name ||
-          '-',
-        candidateEmail:
-          searchParams.get('candidateEmail') ||
-          location.state?.candidateEmail ||
-          location.state?.candidate?.email ||
-          '-',
+        candidateName: candidateNameHint || '-',
+        candidateEmail: candidateEmailHint || '-',
       });
       return {
         ok: true,
@@ -416,16 +416,8 @@ export default function Dossier() {
         assessment: {
           assessmentId: effectiveAssessmentId,
           candidateId,
-          candidateName:
-            searchParams.get('candidateName') ||
-            location.state?.candidateName ||
-            location.state?.candidate?.name ||
-            'Participante',
-          candidateEmail:
-            searchParams.get('candidateEmail') ||
-            location.state?.candidateEmail ||
-            location.state?.candidate?.email ||
-            '',
+          candidateName: candidateNameHint || 'Participante',
+          candidateEmail: candidateEmailHint || '',
         },
         anamnesis: localValue,
         hasData: Boolean(localValue),
@@ -1071,12 +1063,15 @@ export default function Dossier() {
                       </div>
                       <Button
                         size="sm"
-                        disabled={!rowCandidateId || !rowAssessmentId}
+                        disabled={!rowCandidateId}
                         onClick={() =>
                           navigate(
-                            `/Dossier?candidateId=${encodeURIComponent(
-                              rowCandidateId,
-                            )}&assessmentId=${encodeURIComponent(rowAssessmentId)}`,
+                            buildDossierPath({
+                              candidateId: rowCandidateId,
+                              assessmentId: rowAssessmentId,
+                              candidateName: item?.candidateName,
+                              candidateEmail: item?.candidateEmail,
+                            })
                           )
                         }
                       >

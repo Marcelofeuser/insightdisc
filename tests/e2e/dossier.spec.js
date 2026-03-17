@@ -145,7 +145,7 @@ test.describe('Dossiê Comportamental', () => {
       await route.continue();
     });
 
-    await page.goto(`/Dossier?candidateId=e2e-candidate-${seed}&candidateName=Avaliado+E2E`, {
+    await page.goto(`/app/dossier/e2e-candidate-${seed}?candidateName=Avaliado+E2E`, {
       waitUntil: 'domcontentloaded',
     });
     await waitForApp(page);

@@ -14,7 +14,7 @@ test('mantem localhost no ambiente local quando a API local esta configurada', (
   assert.equal(apiBaseUrl, 'http://localhost:4000');
 });
 
-test('usa api.insightdisc.com no app publicado quando o build vier sem VITE_API_URL', () => {
+test('usa insightdisc-production.up.railway.app no app publicado quando o build vier sem VITE_API_URL', () => {
   const apiBaseUrl = resolveApiBaseUrl({
     mode: 'production',
     dev: false,
@@ -23,10 +23,10 @@ test('usa api.insightdisc.com no app publicado quando o build vier sem VITE_API_
     runtimeOrigin: 'https://app.insightdisc.com',
   });
 
-  assert.equal(apiBaseUrl, 'https://api.insightdisc.com');
+  assert.equal(apiBaseUrl, 'https://insightdisc-production.up.railway.app');
 });
 
-test('canoniza host legado insightdisc-api.vercel.app para api.insightdisc.com em producao', () => {
+test('canoniza host legado insightdisc-api.vercel.app para insightdisc-production.up.railway.app em producao', () => {
   const apiBaseUrl = resolveApiBaseUrl({
     mode: 'production',
     dev: false,
@@ -35,7 +35,7 @@ test('canoniza host legado insightdisc-api.vercel.app para api.insightdisc.com e
     runtimeOrigin: 'https://app.insightdisc.com',
   });
 
-  assert.equal(apiBaseUrl, 'https://api.insightdisc.com');
+  assert.equal(apiBaseUrl, 'https://insightdisc-production.up.railway.app');
 });
 
 test('preserva configuracao absoluta customizada fora do host publico principal', () => {
@@ -52,7 +52,7 @@ test('preserva configuracao absoluta customizada fora do host publico principal'
 
 test('usa proxy same-origin para campanhas no app publicado', () => {
   const url = resolveApiRequestUrl('/api/campaigns', {
-    baseUrl: 'https://api.insightdisc.com',
+    baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
@@ -62,7 +62,7 @@ test('usa proxy same-origin para campanhas no app publicado', () => {
 
 test('usa proxy same-origin para rotas autenticadas do backend no app publicado', () => {
   const url = resolveApiRequestUrl('/super-admin/overview', {
-    baseUrl: 'https://api.insightdisc.com',
+    baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
@@ -70,9 +70,19 @@ test('usa proxy same-origin para rotas autenticadas do backend no app publicado'
   assert.equal(url, 'https://app.insightdisc.com/api/proxy/super-admin/overview');
 });
 
+test('usa proxy same-origin para rotas de autenticacao no app publicado', () => {
+  const url = resolveApiRequestUrl('/auth/login', {
+    baseUrl: 'https://insightdisc-production.up.railway.app',
+    runtimeOrigin: 'https://app.insightdisc.com',
+    prod: true,
+  });
+
+  assert.equal(url, 'https://app.insightdisc.com/api/proxy/auth/login');
+});
+
 test('converte URL absoluta do backend para proxy same-origin no app publicado', () => {
-  const url = resolveApiRequestUrl('https://api.insightdisc.com/report/report-123/pdf?download=1', {
-    baseUrl: 'https://api.insightdisc.com',
+  const url = resolveApiRequestUrl('https://insightdisc-production.up.railway.app/report/report-123/pdf?download=1', {
+    baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
@@ -82,7 +92,7 @@ test('converte URL absoluta do backend para proxy same-origin no app publicado',
 
 test('mantem endpoints serverless locais fora do proxy de backend', () => {
   const url = resolveApiRequestUrl('/api/stripe/verify', {
-    baseUrl: 'https://api.insightdisc.com',
+    baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });

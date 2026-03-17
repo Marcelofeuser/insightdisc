@@ -1,6 +1,6 @@
 import { sendJson } from './http.js';
 
-const CANONICAL_BACKEND_URL = 'https://api.insightdisc.com';
+const CANONICAL_BACKEND_URL = 'https://insightdisc-production.up.railway.app';
 const LEGACY_BACKEND_URL = 'https://insightdisc-api.vercel.app';
 
 function normalizeBaseUrl(value = '') {
@@ -18,7 +18,7 @@ function getHostname(value = '') {
 
 function isFrontendHost(hostname = '') {
   const normalized = String(hostname || '').toLowerCase();
-  if (!normalized || normalized === 'api.insightdisc.com') return false;
+  if (!normalized || normalized === 'insightdisc-production.up.railway.app') return false;
   return (
     normalized === 'app.insightdisc.com' ||
     normalized === 'insightdisc.com' ||

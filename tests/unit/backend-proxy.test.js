@@ -7,12 +7,12 @@ import {
 
 test('resolveBackendCandidates prioriza BACKEND_API_URL e adiciona fallback legado', () => {
   const candidates = resolveBackendCandidates({
-    BACKEND_API_URL: 'https://api.insightdisc.com',
+    BACKEND_API_URL: 'https://insightdisc-production.up.railway.app',
   });
 
   assert.deepEqual(
     candidates.map((entry) => entry.url),
-    ['https://api.insightdisc.com', 'https://insightdisc-api.vercel.app'],
+    ['https://insightdisc-production.up.railway.app', 'https://insightdisc-api.vercel.app'],
   );
 });
 
@@ -25,7 +25,7 @@ test('resolveBackendCandidates ignora host do frontend por seguranca', () => {
 
   assert.deepEqual(
     candidates.map((entry) => entry.url),
-    ['https://api.insightdisc.com', 'https://insightdisc-api.vercel.app'],
+    ['https://insightdisc-production.up.railway.app', 'https://insightdisc-api.vercel.app'],
   );
 });
 

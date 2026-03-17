@@ -18,6 +18,7 @@ import CandidateUpgrade from '@/pages/candidate/CandidateUpgrade';
 import InsightChatWidget from '@/components/InsightChatWidget';
 import SuperAdminLogin from '@/pages/SuperAdminLogin';
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
+import AiDiscLab from '@/pages/AiDiscLab';
 import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
@@ -54,6 +55,7 @@ const EXCLUDED_AUTO_ROUTES = new Set([
 
 const APP_ALIAS_ROUTES = [
   { path: '/app/dossier', pageName: 'Dossier' },
+  { path: '/app/dossier/:candidateId', pageName: 'Dossier' },
   { path: '/app/my-assessments', pageName: 'MyAssessments' },
   { path: '/app/send-assessment', pageName: 'SendAssessment' },
   { path: '/app/team-mapping', pageName: 'TeamMapping' },
@@ -376,6 +378,14 @@ const AuthenticatedApp = () => {
         element={
           <SuperAdminRoute>
             <SuperAdminDashboard />
+          </SuperAdminRoute>
+        }
+      />
+      <Route
+        path="/super-admin/ai-lab"
+        element={
+          <SuperAdminRoute>
+            <AiDiscLab />
           </SuperAdminRoute>
         }
       />

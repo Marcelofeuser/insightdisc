@@ -22,7 +22,7 @@
   --radius-sm: 14px;
   --page-padding-x: 72px;
   --page-padding-y: 54px;
-  --font-sans: "Helvetica Neue", Arial, "Segoe UI", sans-serif;
+  --font-sans: Arial, "Helvetica Neue", "Segoe UI", sans-serif;
   --font-serif: "Georgia", "Times New Roman", serif;
 }
 
@@ -46,7 +46,7 @@ body {
 
 body {
   -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
 }
 
 .report {
@@ -117,7 +117,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: rgba(239, 232, 255, 0.7);
@@ -147,9 +147,19 @@ body {
 .page-title-block h2 {
   margin: 0;
   font-size: 58px;
-  line-height: 1.02;
+  line-height: 1.08;
   font-weight: 500;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.025em;
+}
+
+.page-title-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.page-title-image--recommendations {
+  width: 640px;
 }
 
 .page-title-block p {
@@ -331,10 +341,10 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 18px;
   height: 100%;
   border-radius: 34px;
-  padding: 42px 44px 34px;
+  padding: 34px 40px 24px;
   background:
     radial-gradient(circle at 16% 20%, rgba(255, 77, 150, 0.22), transparent 26%),
     radial-gradient(circle at 82% 22%, rgba(74, 127, 255, 0.25), transparent 22%),
@@ -356,12 +366,12 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 14px;
+  gap: 10px;
   max-width: 860px;
 }
 
 .institutional-cover__logo {
-  width: 170px;
+  width: 150px;
   height: auto;
 }
 
@@ -375,15 +385,15 @@ body {
 .institutional-cover__title {
   margin: 0;
   max-width: 900px;
-  font-size: 62px;
-  line-height: 1.02;
+  font-size: 56px;
+  line-height: 1;
   font-weight: 500;
   letter-spacing: -0.05em;
 }
 
 .institutional-cover__subtitle {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   color: var(--text-soft);
 }
 
@@ -391,12 +401,12 @@ body {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  padding: 10px 18px;
+  padding: 9px 16px;
   border-radius: 999px;
   background: rgba(125, 74, 255, 0.22);
   border: 1px solid rgba(191, 171, 255, 0.3);
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -406,32 +416,33 @@ body {
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.18fr) 420px;
-  gap: 26px;
-  flex: 1;
+  gap: 22px;
+  align-items: start;
   min-height: 0;
 }
 
 .institutional-cover__stack {
   display: grid;
-  gap: 18px;
+  gap: 10px;
+  align-content: start;
 }
 
 .institutional-card {
   border-radius: 24px;
-  padding: 24px 24px 22px;
+  padding: 16px 18px 14px;
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .institutional-card__label {
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-muted);
 }
 
 .institutional-card__name {
-  font-size: 42px;
+  font-size: 36px;
   line-height: 1.02;
   letter-spacing: -0.05em;
 }
@@ -439,36 +450,76 @@ body {
 .institutional-card__meta-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 18px;
-  margin-top: 6px;
+  gap: 12px 16px;
+  margin-top: 4px;
 }
 
 .institutional-card__meta-grid div {
   display: grid;
   gap: 5px;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(185, 161, 255, 0.18);
 }
 
 .institutional-card__meta-grid span,
 .institutional-card span {
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
+.institutional-cover .institutional-card strong {
+  font-size: 20px;
+}
+
+.institutional-cover .institutional-card p {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.institutional-card--dual {
+  gap: 10px;
+}
+
+.institutional-subblock {
+  display: grid;
+  gap: 4px;
+}
+
+.institutional-subblock + .institutional-subblock {
+  padding-top: 10px;
+  border-top: 1px solid rgba(185, 161, 255, 0.18);
+}
+
+.institutional-subblock--support .institutional-card__label {
+  font-size: 11px;
+}
+
+.institutional-subblock--support strong {
+  font-size: 17px;
+}
+
+.institutional-subblock--support p {
+  font-size: 14px;
+  line-height: 1.24;
+}
+
 .institutional-card__meta-grid strong {
-  font-size: 18px;
+  font-size: 17px;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .institutional-cover__note {
   position: relative;
   z-index: 1;
-  max-width: 1120px;
-  padding-top: 8px;
-  font-size: 15px;
+  max-width: calc(100% - 454px);
+  padding-top: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: auto;
 }
 
 .master-cover {
@@ -1020,7 +1071,7 @@ body {
 }
 
 .benchmark-row__foot {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-muted);
 }
 
@@ -1464,7 +1515,7 @@ body {
   display: grid;
   gap: 8px;
   text-align: center;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.4;
   color: var(--text-muted);
 }

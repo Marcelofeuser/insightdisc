@@ -12,12 +12,14 @@ import {
 import {
   GLOBAL_ROLES,
   PERMISSIONS,
+  canAccessDossier,
   canAccessPremiumSaas,
   hasAnyGlobalRole,
   hasPermission,
 } from '@/modules/auth/access-control';
 import { FEATURE_KEYS, hasFeatureAccess } from '@/modules/billing/planGuard';
 import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
+import { DOSSIER_BASE_PATH } from '@/modules/dossier/routes';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
 
 function makeItem(icon, label, page, to, section = 'Principal') {
@@ -56,6 +58,7 @@ function resolveCapabilities(access) {
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.TEAM_MAP, { plan });
   const canUseOrganizationalReport =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ORGANIZATIONAL_REPORT, { plan });
+  const canUseDossier = canViewTenantData && canAccessDossier(access);
 
   return {
     plan,
@@ -71,6 +74,7 @@ function resolveCapabilities(access) {
     canUseJobMatching,
     canUseTeamMap,
     canUseOrganizationalReport,
+    canUseDossier,
   };
 }
 
@@ -79,6 +83,9 @@ function buildBusinessNavigation(capabilities) {
     makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação')
+      : null,
+    capabilities.canUseDossier
+      ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
       : null,
     capabilities.canViewTenantData && capabilities.canUseTeamMap
       ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
@@ -118,6 +125,9 @@ function buildProfessionalNavigation(capabilities) {
       : null,
     capabilities.canManageAssessments
       ? makeItem(Building2, 'Clientes', 'SendAssessment', '/SendAssessment', 'Operação')
+      : null,
+    capabilities.canUseDossier
+      ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
       : null,
     capabilities.canViewAssessments
       ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments', 'Operação')

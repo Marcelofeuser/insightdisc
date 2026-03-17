@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  BookOpen,
   Building2,
   ClipboardList,
   FileBarChart2,
@@ -17,6 +18,7 @@ import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import ActivityFeedPanel from '@/modules/dashboard/components/ActivityFeedPanel';
 import DashboardHero from '@/modules/dashboard/components/DashboardHero';
 import QuickActionsPanel from '@/modules/dashboard/components/QuickActionsPanel';
+import { buildDossierPath } from '@/modules/dossier/routes';
 import {
   BehaviorInsightsPanel,
   DiscDistributionChart,
@@ -33,6 +35,7 @@ export default function BusinessDashboardV2() {
   const navigate = useNavigate();
   const { access, user } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const dossierPath = buildDossierPath();
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -93,6 +96,12 @@ export default function BusinessDashboardV2() {
       to: '/MyAssessments',
       icon: ClipboardList,
       description: 'Gerencie envios, status e conclusão das avaliações.',
+    },
+    {
+      label: 'Dossiê',
+      to: dossierPath,
+      icon: BookOpen,
+      description: 'Abra o histórico comportamental, notas, insights, planos e lembretes.',
     },
     {
       label: 'Equipe',

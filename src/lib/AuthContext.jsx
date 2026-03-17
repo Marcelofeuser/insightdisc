@@ -8,7 +8,9 @@ import {
   apiRequest,
   clearApiSession,
   getApiBaseUrl,
+  getApiErrorMessage,
   getApiToken,
+  isRetryableApiError,
 } from '@/lib/apiClient';
 import { createPageUrl } from '@/utils';
 
@@ -113,6 +115,31 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
   const apiBaseUrl = getApiBaseUrl();
   const access = useMemo(() => createAccessContext(user), [user]);
+
+  const applyAuthenticatedUser = (nextUser) => {
+    if (!nextUser) {
+      setUser(null);
+      setIsAuthenticated(false);
+      resetAuthContextStore();
+      return;
+    }
+
+    setUser(nextUser);
+    setIsAuthenticated(true);
+    setAuthError(null);
+
+    const normalizedAccess = createAccessContext(nextUser);
+    setAuthContextStore({
+      user: nextUser,
+      plan: inferPlan(nextUser),
+      tenantId: normalizedAccess.tenantId,
+      globalRole: normalizedAccess.globalRole,
+      tenantRole: normalizedAccess.tenantRole,
+      entitlements: normalizedAccess.entitlements,
+      lifecycleStatus: normalizedAccess.lifecycleStatus,
+      creditsBalance: normalizedAccess.creditsBalance,
+    });
+  };
 
   useEffect(() => {
     checkAppState();
@@ -264,19 +291,7 @@ export const AuthProvider = ({ children }) => {
 
       const devShortcutUser = buildDevShortcutUser();
       if (devShortcutUser) {
-        setUser(devShortcutUser);
-        setIsAuthenticated(true);
-        const normalizedAccess = createAccessContext(devShortcutUser);
-        setAuthContextStore({
-          user: devShortcutUser,
-          plan: inferPlan(devShortcutUser),
-          tenantId: normalizedAccess.tenantId,
-          globalRole: normalizedAccess.globalRole,
-          tenantRole: normalizedAccess.tenantRole,
-          entitlements: normalizedAccess.entitlements,
-          lifecycleStatus: normalizedAccess.lifecycleStatus,
-          creditsBalance: normalizedAccess.creditsBalance,
-        });
+        applyAuthenticatedUser(devShortcutUser);
         setIsLoadingAuth(false);
         return;
       }
@@ -298,20 +313,8 @@ export const AuthProvider = ({ children }) => {
           throw new Error('Sessão inválida.');
         }
 
-        setUser(currentUser);
-        setIsAuthenticated(true);
+        applyAuthenticatedUser(currentUser);
         console.info('[AuthContext] auth session loaded for:', currentUser?.email || currentUser?.id || 'unknown-user');
-        const normalizedAccess = createAccessContext(currentUser);
-        setAuthContextStore({
-          user: currentUser,
-          plan: inferPlan(currentUser),
-          tenantId: normalizedAccess.tenantId,
-          globalRole: normalizedAccess.globalRole,
-          tenantRole: normalizedAccess.tenantRole,
-          entitlements: normalizedAccess.entitlements,
-          lifecycleStatus: normalizedAccess.lifecycleStatus,
-          creditsBalance: normalizedAccess.creditsBalance,
-        });
         setIsLoadingAuth(false);
         return;
       }
@@ -329,30 +332,34 @@ export const AuthProvider = ({ children }) => {
       }
 
       const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      const normalizedAccess = createAccessContext(currentUser);
-      setAuthContextStore({
-        user: currentUser,
-        plan: inferPlan(currentUser),
-        tenantId: normalizedAccess.tenantId,
-        globalRole: normalizedAccess.globalRole,
-        tenantRole: normalizedAccess.tenantRole,
-        entitlements: normalizedAccess.entitlements,
-        lifecycleStatus: normalizedAccess.lifecycleStatus,
-        creditsBalance: normalizedAccess.creditsBalance,
-      });
+      applyAuthenticatedUser(currentUser);
       setIsLoadingAuth(false);
   } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
+
+      // If user auth fails, it might be an expired token
+      const hasApiToken = Boolean(getApiToken());
+      const isTransientApiFailure = hasApiToken && isRetryableApiError(error, { method: 'GET' });
+      if (isTransientApiFailure && user) {
+        setAuthError({
+          type: 'backend_unavailable',
+          message: getApiErrorMessage(error, {
+            apiBaseUrl,
+            fallback: 'Backend API temporariamente indisponível.',
+          }),
+        });
+        setIsAuthenticated(true);
+        return;
+      }
+
       setIsAuthenticated(false);
       setUser(null);
       resetAuthContextStore();
-      
-      // If user auth fails, it might be an expired token
+
       const hasSessionToken =
         Boolean(appParams?.token) ||
+        hasApiToken ||
         (ENABLE_DEV_LOGIN_SHORTCUTS &&
           typeof window !== 'undefined' &&
           Boolean(window.localStorage.getItem('disc_mock_user_email')));
@@ -361,6 +368,14 @@ export const AuthProvider = ({ children }) => {
           type: 'auth_required',
           message: 'Authentication required'
         });
+      } else if (isTransientApiFailure) {
+        setAuthError({
+          type: 'backend_unavailable',
+          message: getApiErrorMessage(error, {
+            apiBaseUrl,
+            fallback: 'Backend API temporariamente indisponível.',
+          }),
+        });
       } else {
         setAuthError(null);
       }
@@ -368,9 +383,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
-    resetAuthContextStore();
+    applyAuthenticatedUser(null);
 
     if (apiBaseUrl) {
       clearApiSession();
@@ -408,7 +421,8 @@ export const AuthProvider = ({ children }) => {
       access,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
+      applyAuthenticatedUser,
     }}>
       {children}
     </AuthContext.Provider>

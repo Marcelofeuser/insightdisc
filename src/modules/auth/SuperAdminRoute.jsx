@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiErrorMessage, getApiToken } from '@/lib/apiClient';
 import { GLOBAL_ROLES, hasAnyGlobalRole } from '@/modules/auth/access-control';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -79,7 +79,13 @@ export default function SuperAdminRoute({ children }) {
       if (mounted) setValidation({ state: 'checking', message: '' });
 
       try {
-        await apiRequest('/auth/super-admin/me', { method: 'GET', requireAuth: true });
+        await apiRequest('/auth/super-admin/me', {
+          method: 'GET',
+          requireAuth: true,
+          timeoutMs: 6_000,
+          retry: 1,
+          retryDelayMs: 250,
+        });
         if (mounted) setValidation({ state: 'ready', message: '' });
       } catch (error) {
         if (!mounted) return;
@@ -96,7 +102,10 @@ export default function SuperAdminRoute({ children }) {
         }
         setValidation({
           state: 'error',
-          message: error?.payload?.error || error?.message || 'Falha ao validar acesso super admin.',
+          message: getApiErrorMessage(error, {
+            apiBaseUrl,
+            fallback: 'Falha ao validar acesso super admin.',
+          }),
         });
       }
     }

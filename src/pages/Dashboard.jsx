@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
+import { buildDossierPath } from '@/modules/dossier/routes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +91,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { access: authAccess, user: authUser } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const dossierPath = buildDossierPath();
   const [user, setUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [isStartingSelfAssessment, setIsStartingSelfAssessment] = useState(false);
@@ -389,11 +391,11 @@ export default function Dashboard() {
             Registre insights, observações e acompanhe a evolução comportamental dos avaliados.
           </p>
           <Link
-            to="/dossie-comportamental"
+            to={dossierPath}
             onClick={() =>
               trackEvent('dossier_cta_click', {
                 source: 'dashboard_card',
-                path: '/dossie-comportamental',
+                path: dossierPath,
               })
             }
           >
@@ -418,7 +420,7 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            <Link to={createPageUrl('Dossier')}>
+            <Link to={dossierPath}>
               <Button variant="outline">Abrir Dossiê</Button>
             </Link>
           </CardContent>
