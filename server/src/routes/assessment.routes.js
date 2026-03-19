@@ -111,8 +111,11 @@ function issuePublicReportAccess({
   const token = signPublicReportToken(
     {
       assessmentId: normalizedAssessmentId,
+      id: normalizedAssessmentId,
+      assessment_id: normalizedAssessmentId,
       accountId: normalizedAccountId,
       organizationId: normalizedAccountId,
+      account_id: normalizedAccountId,
       reportType: normalizedReportType,
     },
     ttlSeconds,
@@ -141,7 +144,9 @@ async function resolveAnyReportAccessToken(token) {
   if (looksLikePublicReportToken(rawToken)) {
     try {
       const payload = verifyPublicReportToken(rawToken);
-      const assessmentId = String(payload?.assessmentId || '').trim();
+      const assessmentId = String(
+        payload?.assessmentId || payload?.id || payload?.assessment_id || '',
+      ).trim();
       if (!assessmentId) {
         return { ok: false, reason: 'PUBLIC_REPORT_ASSESSMENT_REQUIRED' };
       }
@@ -150,7 +155,9 @@ async function resolveAnyReportAccessToken(token) {
         ok: true,
         kind: 'public',
         assessmentId,
-        accountId: String(payload?.accountId || payload?.organizationId || '').trim(),
+        accountId: String(
+          payload?.accountId || payload?.organizationId || payload?.account_id || '',
+        ).trim(),
         reportType: normalizeReportType(payload?.reportType),
         payload,
       };
@@ -962,8 +969,12 @@ router.get('/public-report-pdf', async (req, res) => {
   let reportType = REPORT_TYPE.BUSINESS;
   try {
     const payload = verifyPublicReportToken(token);
-    assessmentId = String(payload?.assessmentId || '').trim();
-    accountId = String(payload?.accountId || payload?.organizationId || '').trim();
+    assessmentId = String(
+      payload?.assessmentId || payload?.id || payload?.assessment_id || '',
+    ).trim();
+    accountId = String(
+      payload?.accountId || payload?.organizationId || payload?.account_id || '',
+    ).trim();
     reportType = normalizeReportType(payload?.reportType || req.query.type || req.query.reportType);
   } catch (error) {
     return res.status(401).json({
@@ -977,15 +988,15 @@ router.get('/public-report-pdf', async (req, res) => {
     return res.status(400).json({
       ok: false,
       reason: 'PUBLIC_REPORT_ASSESSMENT_REQUIRED',
-      message: 'Token sem assessmentId.',
+      message: 'Token sem assessmentId',
     });
   }
 
   if (!accountId) {
-    return res.status(401).json({
+    return res.status(400).json({
       ok: false,
       reason: 'PUBLIC_REPORT_ACCOUNT_REQUIRED',
-      message: 'Token sem accountId.',
+      message: 'Token sem accountId',
     });
   }
 

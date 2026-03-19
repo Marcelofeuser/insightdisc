@@ -44,8 +44,11 @@ function issuePublicReportAccess({
   const token = signPublicReportToken(
     {
       assessmentId: normalizedAssessmentId,
+      id: normalizedAssessmentId,
+      assessment_id: normalizedAssessmentId,
       accountId: normalizedAccountId,
       organizationId: normalizedAccountId,
+      account_id: normalizedAccountId,
       reportType: normalizedReportType,
     },
     ttlSeconds,
