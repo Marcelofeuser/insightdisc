@@ -39,41 +39,47 @@ function normalizeAssessmentFromApi(assessment, discProfile, report) {
       dominant_factor: dominant,
       secondary_factor: secondary,
     },
-    disc_results: {
-      natural: normalized,
-      adapted: normalized,
-      summary: normalized,
-      dominant_factor: dominant,
-      secondary_factor: secondary,
-    },
-    report_unlocked: true,
-    branding: assessment?.branding || null,
-    report_pdf_url: report?.pdfUrl || '',
-  };
-}
-
-async function exportLocalPdfFromHtml(html, fileName) {
-  const parser = new DOMParser();
-  const parsed = parser.parseFromString(html, 'text/html');
-
-  const host = document.createElement('div');
-  host.style.position = 'fixed';
-  host.style.left = '-100000px';
-  host.style.top = '0';
-  host.style.width = '210mm';
-
-  const style = document.createElement('style');
-  style.textContent = parsed.querySelector('style')?.textContent || '';
-
-  const content = document.createElement('div');
-  content.innerHTML = parsed.body?.innerHTML || '';
-
-  host.appendChild(style);
-  host.appendChild(content);
-  document.body.appendChild(host);
-
-  try {
-    const pages = Array.from(host.querySelectorAll('.page, .report-page'));
+    return (
+      <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto py-8">
+        {loadError ? (
+          <div className="text-red-600 text-center">{loadError}</div>
+        ) : loading ? (
+          <div className="text-center">Carregando relatório...</div>
+        ) : (
+          <>
+            <div className="rounded-xl border bg-white p-4 flex flex-col gap-2 items-start">
+              <div className="font-semibold text-slate-900">Relatório DISC</div>
+              <div className="text-xs text-slate-500 mb-2">
+                Respondente: {assessment?.respondent_name || assessment?.candidateName || 'Participante'}
+              </div>
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 mb-2">
+                <span className="text-xs text-green-800">
+                  Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.<br/>
+                  <b>Faça login ou crie sua conta se quiser adicionar uma cópia ao seu portal.</b>
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={downloadPdf}
+                  className="rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+                  disabled={isPreparingPdf || isSavingToPortal}
+                  data-testid="candidate-report-download-pdf"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {isPreparingPdf ? 'Preparando...' : 'Baixar PDF oficial'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={saveToPortal}
+                  disabled={isPreparingPdf || isSavingToPortal}
+                  className="rounded-lg"
+                  data-testid="candidate-report-save-portal"
+                >
+                  {isSavingToPortal ? 'Salvando...' : 'Salvar no meu portal'}
+                </Button>
+              </div>
+            </div>
     if (!pages.length) {
       throw new Error('Nenhuma página encontrada para exportação.');
     }
@@ -559,9 +565,7 @@ export default function CandidateReport() {
     try {
       if (apiBaseUrl && token) {
         const fileName = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
-        const directDownloadUrl = `${apiBaseUrl}/assessment/report-pdf-by-token?token=${encodeURIComponent(
-          token,
-        )}&download=1`;
+        const directDownloadUrl = `/api/report/public-pdf?token=${encodeURIComponent(token)}`;
         try {
           console.info('[CandidateReport] trying direct token PDF endpoint', {
             endpoint: directDownloadUrl,
@@ -730,12 +734,16 @@ export default function CandidateReport() {
 
   return (
     <div className="space-y-4" data-testid="candidate-report-container">
-      <div className="rounded-xl border bg-white p-4 flex flex-wrap gap-2 items-center justify-between">
-        <div>
-          <div className="font-semibold text-slate-900">Relatório DISC</div>
-          <div className="text-xs text-slate-500">
-            Respondente: {assessment?.respondent_name || assessment?.candidateName || 'Participante'}
-          </div>
+      <div className="rounded-xl border bg-white p-4 flex flex-col gap-2 items-start">
+        <div className="font-semibold text-slate-900">Relatório DISC</div>
+        <div className="text-xs text-slate-500 mb-2">
+          Respondente: {assessment?.respondent_name || assessment?.candidateName || 'Participante'}
+        </div>
+        <div className="rounded-xl border border-green-200 bg-green-50 p-3 mb-2">
+          <span className="text-xs text-green-800">
+            Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.<br/>
+            <b>Faça login ou crie sua conta se quiser adicionar uma cópia ao seu portal.</b>
+          </span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -745,7 +753,7 @@ export default function CandidateReport() {
             data-testid="candidate-report-download-pdf"
           >
             <Download className="w-4 h-4 mr-2" />
-            {isPreparingPdf ? 'Preparando...' : 'Baixar PDF'}
+            {isPreparingPdf ? 'Preparando...' : 'Baixar PDF oficial'}
           </Button>
           <Button
             type="button"
