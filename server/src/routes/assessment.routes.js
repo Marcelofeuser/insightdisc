@@ -98,16 +98,21 @@ function resolveAssessmentReportType(assessment = {}, fallback = REPORT_TYPE.BUS
 
 function issuePublicReportAccess({
   assessmentId,
+  accountId = '',
+  organizationId = '',
   reportType = REPORT_TYPE.BUSINESS,
   baseUrl = '',
   ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
 } = {}) {
   const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedAccountId = String(accountId || organizationId || '').trim();
   const normalizedReportType = normalizeReportType(reportType);
   const normalizedBaseUrl = String(baseUrl || '').trim().replace(/\/+$/, '');
   const token = signPublicReportToken(
     {
       assessmentId: normalizedAssessmentId,
+      accountId: normalizedAccountId,
+      organizationId: normalizedAccountId,
       reportType: normalizedReportType,
     },
     ttlSeconds,
@@ -145,6 +150,7 @@ async function resolveAnyReportAccessToken(token) {
         ok: true,
         kind: 'public',
         assessmentId,
+        accountId: String(payload?.accountId || payload?.organizationId || '').trim(),
         reportType: normalizeReportType(payload?.reportType),
         payload,
       };
@@ -508,8 +514,14 @@ router.get('/report-by-token', async (req, res) => {
       });
     }
 
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: access.assessmentId },
+    const assessment = await prisma.assessment.findFirst({
+      where:
+        access.kind === 'public' && access.accountId
+          ? {
+              id: access.assessmentId,
+              organizationId: access.accountId,
+            }
+          : { id: access.assessmentId },
       include: { report: true, response: true, organization: true, quickContext: true },
     });
 
@@ -548,6 +560,7 @@ router.get('/report-by-token', async (req, res) => {
     );
     const publicAccess = issuePublicReportAccess({
       assessmentId: assessment.id,
+      accountId: assessment.organizationId,
       reportType: requestedReportType,
       baseUrl: getRequestBaseUrl(req),
     });
@@ -621,7 +634,11 @@ router.get('/public-token/:id', optionalAuth, attachUser, async (req, res) => {
       const sourceToken = String(req.query.token || req.query.t || '').trim();
       if (sourceToken) {
         const access = await resolveAnyReportAccessToken(sourceToken);
-        allowed = Boolean(access.ok && access.assessmentId === assessment.id);
+        allowed = Boolean(
+          access.ok &&
+            access.assessmentId === assessment.id &&
+            (!access.accountId || access.accountId === assessment.organizationId),
+        );
       }
     }
 
@@ -635,6 +652,7 @@ router.get('/public-token/:id', optionalAuth, attachUser, async (req, res) => {
 
     const publicAccess = issuePublicReportAccess({
       assessmentId: assessment.id,
+      accountId: assessment.organizationId,
       reportType: normalizeReportType(
         req.query.type ||
           req.query.reportType ||
@@ -862,6 +880,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
 
     const publicAccess = issuePublicReportAccess({
       assessmentId: assessment.id,
+      accountId: assessment.organizationId,
       reportType,
       baseUrl: assetBaseUrl,
     });
@@ -939,10 +958,12 @@ router.get('/public-report-pdf', async (req, res) => {
   const token = String(req.query.token || req.query.t || '').trim();
 
   let assessmentId = '';
+  let accountId = '';
   let reportType = REPORT_TYPE.BUSINESS;
   try {
     const payload = verifyPublicReportToken(token);
     assessmentId = String(payload?.assessmentId || '').trim();
+    accountId = String(payload?.accountId || payload?.organizationId || '').trim();
     reportType = normalizeReportType(payload?.reportType || req.query.type || req.query.reportType);
   } catch (error) {
     return res.status(401).json({
@@ -960,10 +981,21 @@ router.get('/public-report-pdf', async (req, res) => {
     });
   }
 
+  if (!accountId) {
+    return res.status(401).json({
+      ok: false,
+      reason: 'PUBLIC_REPORT_ACCOUNT_REQUIRED',
+      message: 'Token sem accountId.',
+    });
+  }
+
   try {
     const assetBaseUrl = getRequestBaseUrl(req);
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: assessmentId },
+    const assessment = await prisma.assessment.findFirst({
+      where: {
+        id: assessmentId,
+        organizationId: accountId,
+      },
       include: {
         report: true,
         creator: true,
@@ -973,7 +1005,11 @@ router.get('/public-report-pdf', async (req, res) => {
     });
 
     if (!assessment) {
-      return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+      return res.status(404).json({
+        ok: false,
+        reason: 'NOT_FOUND',
+        message: 'Não localizamos a avaliação para gerar o PDF oficial.',
+      });
     }
 
     const reportModel = await buildPremiumReportModel({
@@ -1085,6 +1121,7 @@ router.post(
 
       const publicAccess = issuePublicReportAccess({
         assessmentId: assessment.id,
+        accountId: assessment.organizationId,
         reportType,
         baseUrl: assetBaseUrl,
       });
@@ -1329,6 +1366,7 @@ router.post('/submit', async (req, res) => {
 
     const publicAccess = issuePublicReportAccess({
       assessmentId: response.assessment.id,
+      accountId: response.assessment.organizationId,
       reportType: resolveStoredReportType(response.assessment, REPORT_TYPE.BUSINESS),
       baseUrl: getRequestBaseUrl(req),
     });

@@ -31,16 +31,21 @@ function statusCodeByReason(reason) {
 
 function issuePublicReportAccess({
   assessmentId,
+  accountId = '',
+  organizationId = '',
   reportType,
   appBaseUrl = '',
   ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
 } = {}) {
   const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedAccountId = String(accountId || organizationId || '').trim();
   const normalizedReportType = normalizeReportType(reportType);
   const normalizedBaseUrl = String(appBaseUrl || '').trim().replace(/\/+$/, '');
   const token = signPublicReportToken(
     {
       assessmentId: normalizedAssessmentId,
+      accountId: normalizedAccountId,
+      organizationId: normalizedAccountId,
       reportType: normalizedReportType,
     },
     ttlSeconds,
@@ -424,6 +429,7 @@ async function listCandidateReports(req, res) {
         .map((assessment) => {
           const publicAccess = issuePublicReportAccess({
             assessmentId: assessment.id,
+            accountId: assessment.organizationId,
             reportType: resolveStoredReportType(assessment, 'business'),
             appBaseUrl,
           });

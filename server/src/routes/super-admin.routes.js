@@ -24,16 +24,21 @@ async function safeQuery(label, queryFn, fallbackValue) {
 
 function issuePublicReportAccess({
   assessmentId,
+  accountId = '',
+  organizationId = '',
   reportType,
   appBaseUrl = '',
   ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
 } = {}) {
   const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedAccountId = String(accountId || organizationId || '').trim();
   const normalizedReportType = normalizeReportType(reportType);
   const normalizedBaseUrl = String(appBaseUrl || '').trim().replace(/\/+$/, '');
   const token = signPublicReportToken(
     {
       assessmentId: normalizedAssessmentId,
+      accountId: normalizedAccountId,
+      organizationId: normalizedAccountId,
       reportType: normalizedReportType,
     },
     ttlSeconds,
@@ -221,6 +226,7 @@ router.get('/overview', async (req, res) => {
     const assessmentId = String(report.assessmentId || '').trim();
     const publicAccess = issuePublicReportAccess({
       assessmentId,
+      accountId: report.assessment?.organizationId,
       reportType: resolveStoredReportType(report, 'business'),
       appBaseUrl,
     });
@@ -303,6 +309,7 @@ router.get('/overview', async (req, res) => {
       '-',
     pdfUrl: issuePublicReportAccess({
       assessmentId: assessment.id,
+      accountId: assessment.organizationId,
       reportType: resolveStoredReportType(assessment, 'business'),
       appBaseUrl,
     }).pdfUrl,
