@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { sendSafeJsonError } from '../lib/http-security.js';
 import { prisma } from '../lib/prisma.js';
+import { verifyPublicReportToken } from '../lib/public-report-token.js';
 import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
@@ -733,6 +734,83 @@ router.get('/report-pdf-by-token', async (req, res) => {
     // eslint-disable-next-line no-console
     console.error('[assessment/report-pdf-by-token] failed:', error?.stack || error?.message || error);
     const failure = buildPdfFailure(error, 'PDF_BY_TOKEN_FAILED');
+    return res.status(failure.status).json({
+      ok: false,
+      reason: failure.reason,
+      message: failure.message,
+      ...(failure.detail ? { detail: failure.detail } : {}),
+    });
+  }
+});
+
+router.get('/public-report-pdf', async (req, res) => {
+  const token = String(req.query.token || req.query.t || '').trim();
+
+  let assessmentId = '';
+  try {
+    const payload = verifyPublicReportToken(token);
+    assessmentId = String(payload?.assessmentId || '').trim();
+  } catch (error) {
+    return res.status(401).json({
+      ok: false,
+      reason: 'PUBLIC_REPORT_TOKEN_INVALID',
+      message: error?.message || 'Token inválido.',
+    });
+  }
+
+  if (!assessmentId) {
+    return res.status(400).json({
+      ok: false,
+      reason: 'PUBLIC_REPORT_ASSESSMENT_REQUIRED',
+      message: 'Token sem assessmentId.',
+    });
+  }
+
+  try {
+    const assetBaseUrl = getRequestBaseUrl(req);
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      include: {
+        report: true,
+        creator: true,
+        organization: { include: { owner: true } },
+        quickContext: true,
+      },
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+    }
+
+    const reportModel = await buildPremiumReportModel({
+      assessment,
+      discResult: assessment.report?.discProfile || assessment.results || {},
+      assetBaseUrl,
+      currentUser: assessment.creator || assessment.organization?.owner || null,
+      reportType: 'premium',
+    });
+
+    const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
+      inMemory: true,
+    });
+    const buffer = generated.pdfBuffer;
+
+    if (!hasBinaryPdfPayload(buffer)) {
+      return res.status(503).json({
+        ok: false,
+        reason: 'PDF_UNAVAILABLE',
+        message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
+      });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="relatorio_DISC_${assessment.id}.pdf"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(buffer);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[assessment/public-report-pdf] failed:', error?.stack || error?.message || error);
+    const failure = buildPdfFailure(error, 'PUBLIC_REPORT_PDF_FAILED');
     return res.status(failure.status).json({
       ok: false,
       reason: failure.reason,

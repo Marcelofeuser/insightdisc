@@ -105,22 +105,45 @@ export default function PublicReport() {
             <div className="flex justify-center">
               <DISCRadarChart naturalProfile={natural} showAdapted={false} size={300} />
             </div>
-            {isPremiumUnlocked ? (
-              <p className="text-sm text-slate-700">
-                Relatório completo desbloqueado para este assessment.
-              </p>
-            ) : (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-                <p className="text-sm text-amber-800">
-                  Você está vendo o resumo gratuito. Desbloqueie o Premium para acessar o conteúdo completo.
+            <div className="flex flex-col gap-4">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-2">
+                <p className="text-sm text-green-800">
+                  Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.
                 </p>
-                <Link to={`${createPageUrl('Pricing')}?assessmentId=${encodeURIComponent(assessment?.id || '')}`}>
+                <a
+                  href={`/api/report/pdf?token=${encodeURIComponent(pathToken || searchParams.get('t') || searchParams.get('token') || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                    Desbloquear Premium
+                    Baixar PDF oficial
                   </Button>
-                </Link>
+                </a>
               </div>
-            )}
+              {isPremiumUnlocked ? (
+                <p className="text-sm text-slate-700">
+                  Relatório completo desbloqueado para este assessment.
+                </p>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+                  <p className="text-sm text-amber-800">
+                    Você está vendo o resumo gratuito. Desbloqueie o Premium para acessar o conteúdo completo.
+                  </p>
+                  <Link to={`${createPageUrl('Pricing')}?assessmentId=${encodeURIComponent(assessment?.id || '')}`}>
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                      Desbloquear Premium
+                    </Button>
+                  </Link>
+                </div>
+              )}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <p className="text-xs text-slate-600">
+                  Quer adicionar este relatório ao seu próprio portal?
+                  <br />
+                  <b>Crie sua conta ou faça login para adicionar uma cópia ao seu portal pessoal.</b>
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

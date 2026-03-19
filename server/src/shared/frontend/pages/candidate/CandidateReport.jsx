@@ -559,7 +559,7 @@ export default function CandidateReport() {
     try {
       if (apiBaseUrl && token) {
         const fileName = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
-        const directDownloadUrl = `/api/report/public-pdf?token=${encodeURIComponent(token)}`;
+        const directDownloadUrl = `/api/report/pdf?token=${encodeURIComponent(token)}`;
         try {
           console.info('[CandidateReport] trying direct token PDF endpoint', {
             endpoint: directDownloadUrl,
