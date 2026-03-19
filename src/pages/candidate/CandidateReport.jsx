@@ -116,7 +116,7 @@ export default function CandidateReport() {
   const { toast } = useToast();
 
   const assessmentId = params.get('id') || '';
-  const token = params.get('token') || '';
+  const token = params.get('token') || params.get('t') || '';
   const apiBaseUrl = getApiBaseUrl();
 
   const [assessment, setAssessment] = useState(null);
