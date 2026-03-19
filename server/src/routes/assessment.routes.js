@@ -16,7 +16,7 @@ import {
 } from '../modules/report/report-type.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
-import { requireAuth } from '../middleware/auth.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import {
   attachUser,
   canAccessOrganization,
@@ -587,7 +587,7 @@ router.get('/report-by-token', async (req, res) => {
   }
 });
 
-router.get('/public-token/:id', async (req, res) => {
+router.get('/public-token/:id', optionalAuth, attachUser, async (req, res) => {
   try {
     const assessmentId = String(req.params.id || '').trim();
     if (!assessmentId) {
@@ -615,7 +615,9 @@ router.get('/public-token/:id', async (req, res) => {
     const authUserId = String(req.auth?.userId || '').trim();
     if (authUserId) {
       allowed = await canAccessAssessmentRecord(req.user || {}, authUserId, assessment);
-    } else {
+    }
+
+    if (!allowed) {
       const sourceToken = String(req.query.token || req.query.t || '').trim();
       if (sourceToken) {
         const access = await resolveAnyReportAccessToken(sourceToken);

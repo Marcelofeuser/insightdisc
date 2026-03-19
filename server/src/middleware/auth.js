@@ -10,32 +10,51 @@ function extractBearerToken(header = '') {
   return token || '';
 }
 
-export async function requireAuth(req, res, next) {
-  try {
-    const token = extractBearerToken(req.headers.authorization);
-    if (!token && env.nodeEnv !== 'production' && env.allowDevEmailAuth) {
-      const email = String(req.headers['x-insight-user-email'] || '').trim().toLowerCase();
-      if (email) {
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-          return sendSafeJsonError(res, {
-            status: 401,
-            error: 'UNAUTHORIZED',
-            message: 'Autenticação necessária.',
-          });
-        }
-        req.auth = {
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-          scope: 'dev-email-header',
-          source: 'dev-email-header',
-        };
-        return next();
-      }
+async function resolveAuthContext(req) {
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token && env.nodeEnv !== 'production' && env.allowDevEmailAuth) {
+    const email = String(req.headers['x-insight-user-email'] || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const error = new Error('UNAUTHORIZED');
+      error.statusCode = 401;
+      throw error;
     }
 
-    if (!token) {
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      scope: 'dev-email-header',
+      source: 'dev-email-header',
+    };
+  }
+
+  if (!token) return null;
+
+  const payload = verifyJwt(token);
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user) {
+    const error = new Error('INVALID_TOKEN');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    scope: String(payload?.scope || 'app'),
+    source: 'jwt',
+  };
+}
+
+export async function requireAuth(req, res, next) {
+  try {
+    const auth = await resolveAuthContext(req);
+    if (!auth) {
       return sendSafeJsonError(res, {
         status: 401,
         error: 'UNAUTHORIZED',
@@ -43,23 +62,25 @@ export async function requireAuth(req, res, next) {
       });
     }
 
-    const payload = verifyJwt(token);
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) {
-      return sendSafeJsonError(res, {
-        status: 401,
-        error: 'INVALID_TOKEN',
-        message: 'Token inválido ou expirado.',
-      });
-    }
+    req.auth = auth;
+    return next();
+  } catch (error) {
+    const errorCode = getSafeErrorCode(error, 'INVALID_TOKEN');
+    const message = errorCode === 'TOKEN_EXPIRED' ? 'Token expirado.' : 'Token inválido ou expirado.';
+    return sendSafeJsonError(res, {
+      status: 401,
+      error: errorCode,
+      message,
+    });
+  }
+}
 
-    req.auth = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      scope: String(payload?.scope || 'app'),
-      source: 'jwt',
-    };
+export async function optionalAuth(req, res, next) {
+  try {
+    const auth = await resolveAuthContext(req);
+    if (auth) {
+      req.auth = auth;
+    }
     return next();
   } catch (error) {
     const errorCode = getSafeErrorCode(error, 'INVALID_TOKEN');

@@ -12,6 +12,7 @@ export const REPORT_LOAD_STATE = Object.freeze({
 });
 
 function mapReportDataPayload(payload = {}, assessmentId = '') {
+  const publicAccess = payload?.publicAccess || null;
   const reportItem =
     payload?.reportItem ||
     (payload?.assessment?.id
@@ -23,7 +24,11 @@ function mapReportDataPayload(payload = {}, assessmentId = '') {
           candidateEmail: payload?.assessment?.candidateEmail || '',
           createdAt: payload?.assessment?.createdAt || null,
           completedAt: payload?.assessment?.completedAt || null,
-          pdfUrl: payload?.report?.pdfUrl || '',
+          pdfUrl: publicAccess?.publicPdfUrl || payload?.report?.pdfUrl || '',
+          reportType: publicAccess?.reportType || payload?.report?.reportType || 'business',
+          publicToken: publicAccess?.token || '',
+          publicReportUrl: publicAccess?.publicReportUrl || '',
+          publicPdfUrl: publicAccess?.publicPdfUrl || '',
           discProfile: payload?.report?.discProfile || null,
         }
       : null);
@@ -31,7 +36,21 @@ function mapReportDataPayload(payload = {}, assessmentId = '') {
   if (!reportItem) return null;
 
   const mappedReports = mapCandidateReports([reportItem]);
-  return findCandidateReportByIdentifier(mappedReports, assessmentId) || mappedReports[0] || null;
+  const mapped =
+    findCandidateReportByIdentifier(mappedReports, assessmentId) || mappedReports[0] || null;
+
+  if (!mapped || !publicAccess) return mapped;
+
+  return {
+    ...mapped,
+    publicAccess,
+    reportType: publicAccess.reportType || mapped.reportType || mapped.report_type || 'business',
+    publicToken: publicAccess.token || mapped.publicToken || mapped.public_token || '',
+    publicReportUrl:
+      publicAccess.publicReportUrl || mapped.publicReportUrl || mapped.public_report_url || '',
+    publicPdfUrl:
+      publicAccess.publicPdfUrl || mapped.publicPdfUrl || mapped.public_pdf_url || mapped.pdfUrl || '',
+  };
 }
 
 export async function loadAssessmentReportData({
@@ -53,7 +72,25 @@ export async function loadAssessmentReportData({
           method: 'GET',
           requireAuth: true,
         });
-        const assessment = mapReportDataPayload(payload, trimmedId);
+        let enrichedPayload = payload;
+
+        try {
+          const publicAccess = await apiRequest(
+            `/assessment/public-token/${encodeURIComponent(trimmedId)}`,
+            {
+              method: 'GET',
+              requireAuth: true,
+            },
+          );
+          enrichedPayload = {
+            ...payload,
+            publicAccess,
+          };
+        } catch {
+          enrichedPayload = payload;
+        }
+
+        const assessment = mapReportDataPayload(enrichedPayload, trimmedId);
         if (assessment) {
           return { status: REPORT_LOAD_STATE.READY, assessment };
         }
