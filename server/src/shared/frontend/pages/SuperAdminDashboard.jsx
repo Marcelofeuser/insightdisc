@@ -113,13 +113,9 @@ function inferReportAssessmentId(report = {}) {
 function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
   const assessmentId = inferReportAssessmentId(report);
   const previewPath =
-    firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl) ||
-    (assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '');
+    firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl, report?.publicUrl);
   const rawPdfPath =
-    firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl) ||
-    (assessmentId
-      ? `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`
-      : '');
+    firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl);
 
   return {
     ...report,
@@ -128,6 +124,7 @@ function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
     assessmentId,
     previewPath,
     publicLink: previewPath,
+    reportType: firstNonEmpty(report?.reportType, report?.type) || 'business',
     pdfUrl: resolveAbsoluteApiUrl(rawPdfPath),
     pdfPath: rawPdfPath,
     hasStoredPdf: Boolean(firstNonEmpty(report?.pdfUrl, report?.pdfPath, report?.pdf_url)),
@@ -348,7 +345,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const resolveReportPreviewPath = useCallback((report = {}) => {
-    const fromPayload = firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl);
+    const fromPayload = firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl, report?.publicUrl);
     if (fromPayload) {
       if (/^https?:\/\//i.test(fromPayload)) {
         try {
@@ -360,8 +357,7 @@ export default function SuperAdminDashboard() {
       }
       return fromPayload;
     }
-    const assessmentId = inferReportAssessmentId(report);
-    return assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '';
+    return '';
   }, []);
 
   const resolveReportPdfEndpoint = useCallback(
@@ -370,12 +366,7 @@ export default function SuperAdminDashboard() {
       if (fromPayload) {
         return resolveAbsoluteApiUrl(fromPayload);
       }
-
-      const assessmentId = inferReportAssessmentId(report);
-      if (!assessmentId) return '';
-      return resolveAbsoluteApiUrl(
-        `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`,
-      );
+      return '';
     },
     [resolveAbsoluteApiUrl],
   );

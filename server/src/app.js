@@ -172,7 +172,7 @@ export function createApp() {
         generateLink: 'POST /assessments/generate-link',
         validateToken: 'GET /assessment/validate-token?token=...',
         publicToken: 'GET /assessment/public-token/:id',
-        reportPdfByToken: 'GET /assessment/report-pdf-by-token?token=...',
+        reportPdfByToken: 'GET /api/report/pdf?token=...',
         publicReportPdf: 'GET /assessment/public-report-pdf?token=...',
         consumeInvite: 'POST /assessment/consume',
         submitAssessment: 'POST /assessment/submit',

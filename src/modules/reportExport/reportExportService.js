@@ -50,7 +50,27 @@ export function downloadPdfBlob(blob, fileName = 'insightdisc-relatorio-oficial.
   }
 }
 
-export async function exportAssessmentReportPdf({ assessmentId, apiBaseUrl: apiBaseUrlOverride } = {}) {
+function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '') {
+  const directUrl = resolveApiRequestUrl(
+    publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || '',
+    { baseUrl: apiBaseUrl },
+  );
+  if (directUrl) return directUrl;
+
+  const token = String(publicAccess?.token || '').trim();
+  if (!token) return '';
+
+  return resolveApiRequestUrl(
+    `/api/report/pdf?token=${encodeURIComponent(token)}`,
+    { baseUrl: apiBaseUrl },
+  );
+}
+
+export async function exportAssessmentReportPdf({
+  assessmentId,
+  apiBaseUrl: apiBaseUrlOverride,
+  publicAccess: publicAccessFromState = null,
+} = {}) {
   const normalizedAssessmentId = String(assessmentId || '').trim();
   if (!normalizedAssessmentId) {
     const error = new Error('ASSESSMENT_ID_REQUIRED');
@@ -65,15 +85,18 @@ export async function exportAssessmentReportPdf({ assessmentId, apiBaseUrl: apiB
     throw error;
   }
 
-  const publicAccess = await apiRequest(`/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}`, {
-    method: 'GET',
-    requireAuth: true,
-    baseUrl: apiBaseUrl,
-  });
-  const endpoint = resolveApiRequestUrl(
-    publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || '',
-    { baseUrl: apiBaseUrl },
-  );
+  let publicAccess = publicAccessFromState;
+  let endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl);
+
+  if (!endpoint) {
+    publicAccess = await apiRequest(`/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}`, {
+      method: 'GET',
+      requireAuth: true,
+      baseUrl: apiBaseUrl,
+    });
+    endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl);
+  }
+
   if (!endpoint) {
     const error = new Error('PUBLIC_PDF_URL_REQUIRED');
     error.status = 503;

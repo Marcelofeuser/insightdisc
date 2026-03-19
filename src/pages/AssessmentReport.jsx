@@ -121,6 +121,7 @@ export default function AssessmentReport() {
       const payload = await exportAssessmentReportPdf({
         assessmentId,
         apiBaseUrl,
+        publicAccess: loadState.assessment?.publicAccess || null,
       });
       downloadPdfBlob(payload.blob, payload.fileName);
       toast({

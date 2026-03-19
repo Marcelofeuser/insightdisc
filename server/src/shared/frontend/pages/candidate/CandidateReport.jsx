@@ -126,6 +126,7 @@ export default function CandidateReport() {
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [isSavingToPortal, setIsSavingToPortal] = useState(false);
   const [availablePdfUrl, setAvailablePdfUrl] = useState('');
+  const [publicAccess, setPublicAccess] = useState(null);
   const lastPdfErrorToastRef = useRef({ message: '', ts: 0 });
 
   const [showClaim, setShowClaim] = useState(false);
@@ -315,7 +316,8 @@ export default function CandidateReport() {
             ) {
               normalizedAssessment.branding.logo_url = `${apiBaseUrl}${normalizedAssessment.branding.logo_url}`;
             }
-            setAvailablePdfUrl(resolvePdfUrl(payload?.report?.pdfUrl));
+            setPublicAccess(payload?.publicAccess || null);
+            setAvailablePdfUrl(resolvePdfUrl(payload?.publicAccess?.publicPdfUrl || payload?.report?.pdfUrl));
             if (isPremiumReportModel(payload?.report?.discProfile)) {
               setRemoteReportModel(payload.report.discProfile);
             }
@@ -350,7 +352,16 @@ export default function CandidateReport() {
                   { pdfUrl: matched.pdfUrl }
                 );
 
-                setAvailablePdfUrl(resolvePdfUrl(matched?.pdfUrl));
+                setPublicAccess(
+                  matched?.publicPdfUrl || matched?.pdfUrl
+                    ? {
+                        token: token || '',
+                        publicPdfUrl: matched.publicPdfUrl || matched.pdfUrl || '',
+                        reportType: matched.reportType || 'business',
+                      }
+                    : null,
+                );
+                setAvailablePdfUrl(resolvePdfUrl(matched?.publicPdfUrl || matched?.pdfUrl));
                 if (isPremiumReportModel(matched?.discProfile)) {
                   setRemoteReportModel(matched.discProfile);
                 }
@@ -396,6 +407,7 @@ export default function CandidateReport() {
           }
         }
 
+        setPublicAccess(null);
         setAvailablePdfUrl(resolvePdfUrl(localAssessment?.report_pdf_url || localAssessment?.pdf_url));
         setAssessment(localAssessment);
         setClaimName(localAssessment?.respondent_name || '');
@@ -425,28 +437,38 @@ export default function CandidateReport() {
       return availablePdfUrl;
     }
 
-    if (!apiBaseUrl || !token) {
+    const resolvedAssessmentId = assessment?.id || assessmentId;
+    if (publicAccess?.publicPdfUrl) {
+      const resolved = resolvePdfUrl(publicAccess.publicPdfUrl);
+      setAvailablePdfUrl(resolved);
+      return resolved;
+    }
+
+    if (!apiBaseUrl || !resolvedAssessmentId) {
       return '';
     }
 
     console.log('[CandidateReport] ensurePublicPdfUrl:start', {
-      assessmentId: assessment?.id || assessmentId,
+      assessmentId: resolvedAssessmentId,
       hasToken: Boolean(token),
     });
 
     const payload = await apiRequest(
-      `/assessment/report-pdf-by-token?token=${encodeURIComponent(token)}`,
+      `/assessment/public-token/${encodeURIComponent(resolvedAssessmentId)}?token=${encodeURIComponent(token || '')}&reportType=${encodeURIComponent(
+        assessment?.report_type || publicAccess?.reportType || 'business',
+      )}`,
       { method: 'GET' }
     );
 
-    const resolvedPdfUrl = extractPdfFollowUpUrl(payload);
+    const resolvedPdfUrl = resolvePdfUrl(payload?.publicPdfUrl || payload?.pdfUrl);
     if (!resolvedPdfUrl) {
       throw new Error('PDF indisponível no momento.');
     }
 
+    setPublicAccess(payload);
     setAvailablePdfUrl(resolvedPdfUrl);
     console.log('[CandidateReport] ensurePublicPdfUrl:done', {
-      assessmentId: payload?.assessmentId || assessment?.id || assessmentId,
+      assessmentId: payload?.assessmentId || resolvedAssessmentId,
       pdfUrl: resolvedPdfUrl,
     });
 
