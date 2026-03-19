@@ -1,4 +1,4 @@
-import { getApiAuthHeaders, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 
 function parseFileNameFromContentDisposition(header = '') {
   const value = String(header || '');
@@ -65,16 +65,23 @@ export async function exportAssessmentReportPdf({ assessmentId, apiBaseUrl: apiB
     throw error;
   }
 
+  const publicAccess = await apiRequest(`/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}`, {
+    method: 'GET',
+    requireAuth: true,
+    baseUrl: apiBaseUrl,
+  });
   const endpoint = resolveApiRequestUrl(
-    `/report/${encodeURIComponent(normalizedAssessmentId)}/pdf`,
+    publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || '',
     { baseUrl: apiBaseUrl },
   );
+  if (!endpoint) {
+    const error = new Error('PUBLIC_PDF_URL_REQUIRED');
+    error.status = 503;
+    throw error;
+  }
 
   const response = await fetch(endpoint, {
     method: 'GET',
-    headers: {
-      ...getApiAuthHeaders(),
-    },
   });
 
   const contentType = String(response.headers.get('content-type') || '').toLowerCase();

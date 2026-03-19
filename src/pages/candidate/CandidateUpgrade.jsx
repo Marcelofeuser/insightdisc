@@ -75,7 +75,11 @@ export default function CandidateUpgrade() {
 
           const reportQuery = new URLSearchParams();
           reportQuery.set('token', token);
-          if (apiAssessmentId) reportQuery.set('id', apiAssessmentId);
+          const publicReportPath = String(payload?.publicAccess?.publicReportPath || '').trim();
+          if (publicReportPath) {
+            navigate(publicReportPath, { replace: true });
+            return;
+          }
           navigate(`/c/report?${reportQuery.toString()}`, { replace: true });
           return;
         } catch (requestError) {
@@ -124,7 +128,6 @@ export default function CandidateUpgrade() {
 
         const reportQuery = new URLSearchParams();
         if (token) reportQuery.set('token', token);
-        if (assessmentId) reportQuery.set('id', assessmentId);
         navigate(`/c/report?${reportQuery.toString()}`, { replace: true });
       } catch {
         if (mounted) {

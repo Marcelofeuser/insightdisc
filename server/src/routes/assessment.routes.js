@@ -2,13 +2,18 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { sendSafeJsonError } from '../lib/http-security.js';
 import { prisma } from '../lib/prisma.js';
-import { verifyPublicReportToken } from '../lib/public-report-token.js';
+import { signPublicReportToken, verifyPublicReportToken } from '../lib/public-report-token.js';
 import { getRequestBaseUrl } from '../lib/request-base-url.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
+import {
+  REPORT_TYPE,
+  normalizeReportType as normalizeCanonicalReportType,
+  resolveStoredReportType,
+} from '../modules/report/report-type.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -21,6 +26,7 @@ import {
 import { requireReportExport } from '../middleware/require-report-export.js';
 
 const router = Router();
+const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 function normalizeReason(reason) {
   const key = String(reason || '').toUpperCase();
@@ -40,10 +46,7 @@ function statusCodeByReason(reason) {
 }
 
 function normalizeReportType(value) {
-  const normalized = String(value || '').toLowerCase().trim();
-  if (normalized === 'professional') return 'professional';
-  if (normalized === 'premium') return 'premium';
-  return 'standard';
+  return normalizeCanonicalReportType(value, REPORT_TYPE.BUSINESS);
 }
 
 function resolveAssessmentProfile(report = {}) {
@@ -79,6 +82,92 @@ function resolveAssessmentParticipantName(assessment = {}) {
 
 function hasBinaryPdfPayload(buffer) {
   return Boolean(buffer) && Number(buffer?.length || 0) > 0;
+}
+
+function looksLikePublicReportToken(token = '') {
+  return String(token || '').trim().split('.').length === 3;
+}
+
+function resolveAssessmentDiscResult(assessment = {}) {
+  return assessment?.report?.discProfile || assessment?.results || assessment?.disc_results || {};
+}
+
+function resolveAssessmentReportType(assessment = {}, fallback = REPORT_TYPE.BUSINESS) {
+  return resolveStoredReportType(assessment, fallback);
+}
+
+function issuePublicReportAccess({
+  assessmentId,
+  reportType = REPORT_TYPE.BUSINESS,
+  baseUrl = '',
+  ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
+} = {}) {
+  const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedReportType = normalizeReportType(reportType);
+  const normalizedBaseUrl = String(baseUrl || '').trim().replace(/\/+$/, '');
+  const token = signPublicReportToken(
+    {
+      assessmentId: normalizedAssessmentId,
+      reportType: normalizedReportType,
+    },
+    ttlSeconds,
+  );
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}`;
+  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+
+  return {
+    token,
+    reportType: normalizedReportType,
+    expiresAt,
+    publicReportPath,
+    publicPdfPath,
+    publicReportUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${publicReportPath}` : publicReportPath,
+    publicPdfUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${publicPdfPath}` : publicPdfPath,
+  };
+}
+
+async function resolveAnyReportAccessToken(token) {
+  const rawToken = String(token || '').trim();
+  if (!rawToken) {
+    return { ok: false, reason: 'TOKEN_REQUIRED' };
+  }
+
+  if (looksLikePublicReportToken(rawToken)) {
+    try {
+      const payload = verifyPublicReportToken(rawToken);
+      const assessmentId = String(payload?.assessmentId || '').trim();
+      if (!assessmentId) {
+        return { ok: false, reason: 'PUBLIC_REPORT_ASSESSMENT_REQUIRED' };
+      }
+
+      return {
+        ok: true,
+        kind: 'public',
+        assessmentId,
+        reportType: normalizeReportType(payload?.reportType),
+        payload,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        reason: 'PUBLIC_REPORT_TOKEN_INVALID',
+        message: error?.message || 'Token inválido.',
+      };
+    }
+  }
+
+  const inviteResult = await getValidInviteByToken(rawToken, { allowUsed: true });
+  if (!inviteResult.valid) {
+    return { ok: false, reason: normalizeReason(inviteResult.reason) };
+  }
+
+  return {
+    ok: true,
+    kind: 'invite',
+    assessmentId: inviteResult.invite.assessmentId,
+    inviteResult,
+  };
 }
 
 function buildPdfFailure(error, fallbackReason = 'REPORT_PDF_FAILED') {
@@ -404,15 +493,23 @@ router.get('/validate-token', async (req, res) => {
 router.get('/report-by-token', async (req, res) => {
   try {
     const token = String(req.query.token || '').trim();
-    const result = await getValidInviteByToken(token, { allowUsed: true });
+    const access = await resolveAnyReportAccessToken(token);
 
-    if (!result.valid) {
-      const reason = normalizeReason(result.reason);
-      return res.status(statusCodeByReason(reason)).json({ ok: false, reason });
+    if (!access.ok) {
+      const reason = normalizeReason(access.reason);
+      const status =
+        access.reason === 'PUBLIC_REPORT_TOKEN_INVALID'
+          ? 401
+          : statusCodeByReason(reason);
+      return res.status(status).json({
+        ok: false,
+        reason: access.reason,
+        ...(access.message ? { message: access.message } : {}),
+      });
     }
 
     const assessment = await prisma.assessment.findUnique({
-      where: { id: result.invite.assessmentId },
+      where: { id: access.assessmentId },
       include: { report: true, response: true, organization: true, quickContext: true },
     });
 
@@ -443,9 +540,22 @@ router.get('/report-by-token', async (req, res) => {
       });
     }
 
+    const requestedReportType = normalizeReportType(
+      req.query.type ||
+        req.query.reportType ||
+        access.reportType ||
+        resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
+    );
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: assessment.id,
+      reportType: requestedReportType,
+      baseUrl: getRequestBaseUrl(req),
+    });
+
     return res.status(200).json({
       ok: true,
       reason: 'VALID',
+      reportType: requestedReportType,
       assessment: {
         id: assessment.id,
         status: assessment.status,
@@ -458,9 +568,11 @@ router.get('/report-by-token', async (req, res) => {
       },
       report: {
         id: assessment.report?.id || null,
-        pdfUrl: assessment.report?.pdfUrl || null,
+        pdfUrl: publicAccess.publicPdfUrl,
         discProfile: assessment.report?.discProfile || null,
+        reportType: requestedReportType,
       },
+      publicAccess,
       answeredCount: responseAnswers.length,
       answers: responseAnswers,
     });
@@ -471,6 +583,74 @@ router.get('/report-by-token', async (req, res) => {
       error: reason || 'REPORT_BY_TOKEN_ERROR',
       message: 'Falha ao carregar relatório por token.',
       details: { reason: reason || 'REPORT_BY_TOKEN_ERROR' },
+    });
+  }
+});
+
+router.get('/public-token/:id', async (req, res) => {
+  try {
+    const assessmentId = String(req.params.id || '').trim();
+    if (!assessmentId) {
+      return res.status(400).json({
+        ok: false,
+        reason: 'ASSESSMENT_ID_REQUIRED',
+        message: 'assessmentId é obrigatório.',
+      });
+    }
+
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      include: {
+        report: true,
+        creator: true,
+        organization: { include: { owner: true } },
+      },
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+    }
+
+    let allowed = false;
+    const authUserId = String(req.auth?.userId || '').trim();
+    if (authUserId) {
+      allowed = await canAccessAssessmentRecord(req.user || {}, authUserId, assessment);
+    } else {
+      const sourceToken = String(req.query.token || req.query.t || '').trim();
+      if (sourceToken) {
+        const access = await resolveAnyReportAccessToken(sourceToken);
+        allowed = Boolean(access.ok && access.assessmentId === assessment.id);
+      }
+    }
+
+    if (!allowed) {
+      return res.status(403).json({
+        ok: false,
+        reason: 'FORBIDDEN',
+        message: 'Sem permissão para emitir token público deste relatório.',
+      });
+    }
+
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: assessment.id,
+      reportType: normalizeReportType(
+        req.query.type ||
+          req.query.reportType ||
+          resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
+      ),
+      baseUrl: getRequestBaseUrl(req),
+    });
+
+    return res.status(200).json({
+      ok: true,
+      assessmentId: assessment.id,
+      ...publicAccess,
+    });
+  } catch (error) {
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: 'PUBLIC_REPORT_TOKEN_CREATE_FAILED',
+      message: 'Não foi possível emitir o token público do relatório.',
     });
   }
 });
@@ -643,7 +823,6 @@ router.get(
 router.get('/report-pdf-by-token', async (req, res) => {
   try {
     const token = String(req.query.token || '').trim();
-    const reportType = normalizeReportType(req.query.type || req.query.reportType);
     const shouldDownload = String(req.query.download || '').toLowerCase() === '1';
     const result = await getValidInviteByToken(token, { allowUsed: true });
 
@@ -667,27 +846,38 @@ router.get('/report-pdf-by-token', async (req, res) => {
       return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
     }
 
+    const reportType = normalizeReportType(
+      req.query.type ||
+        req.query.reportType ||
+        resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
+    );
+
     console.info('[assessment/report-pdf-by-token] generating PDF', {
       assessmentId: assessment.id,
       reportType,
       shouldDownload,
     });
 
-    const downloadPath = `/assessment/report-pdf-by-token?token=${encodeURIComponent(token)}&download=1`;
-    const absoluteDownloadUrl = `${assetBaseUrl}${downloadPath}`;
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: assessment.id,
+      reportType,
+      baseUrl: assetBaseUrl,
+    });
     if (!shouldDownload) {
       return res.status(200).json({
         ok: true,
         reportId: assessment.report?.id || null,
         assessmentId: assessment.id,
-        pdfUrl: absoluteDownloadUrl,
-        pdfPath: downloadPath,
+        reportType,
+        pdfUrl: publicAccess.publicPdfUrl,
+        pdfPath: publicAccess.publicPdfPath,
+        publicAccess,
       });
     }
 
     const reportModel = await buildPremiumReportModel({
       assessment,
-      discResult: assessment.report?.discProfile || {},
+      discResult: resolveAssessmentDiscResult(assessment),
       assetBaseUrl,
       currentUser: assessment.creator || assessment.organization?.owner || null,
       reportType,
@@ -695,18 +885,18 @@ router.get('/report-pdf-by-token', async (req, res) => {
 
     const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
       inMemory: true,
+      reportType,
     });
-
     await prisma.report.upsert({
       where: { assessmentId: assessment.id },
       create: {
         assessmentId: assessment.id,
         discProfile: reportModel,
-        pdfUrl: downloadPath,
+        pdfUrl: publicAccess.publicPdfUrl,
       },
       update: {
         discProfile: reportModel,
-        pdfUrl: downloadPath,
+        pdfUrl: publicAccess.publicPdfUrl,
       },
     });
 
@@ -747,9 +937,11 @@ router.get('/public-report-pdf', async (req, res) => {
   const token = String(req.query.token || req.query.t || '').trim();
 
   let assessmentId = '';
+  let reportType = REPORT_TYPE.BUSINESS;
   try {
     const payload = verifyPublicReportToken(token);
     assessmentId = String(payload?.assessmentId || '').trim();
+    reportType = normalizeReportType(payload?.reportType || req.query.type || req.query.reportType);
   } catch (error) {
     return res.status(401).json({
       ok: false,
@@ -784,14 +976,15 @@ router.get('/public-report-pdf', async (req, res) => {
 
     const reportModel = await buildPremiumReportModel({
       assessment,
-      discResult: assessment.report?.discProfile || assessment.results || {},
+      discResult: resolveAssessmentDiscResult(assessment),
       assetBaseUrl,
       currentUser: assessment.creator || assessment.organization?.owner || null,
-      reportType: 'premium',
+      reportType,
     });
 
     const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
       inMemory: true,
+      reportType,
     });
     const buffer = generated.pdfBuffer;
 
@@ -804,7 +997,10 @@ router.get('/public-report-pdf', async (req, res) => {
     }
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="relatorio_DISC_${assessment.id}.pdf"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="relatorio-disc-${reportType}-${assessment.id}.pdf"`,
+    );
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).send(buffer);
   } catch (error) {
@@ -830,8 +1026,8 @@ router.post(
     try {
       const schema = z.object({
         assessmentId: z.string().min(1),
-        type: z.enum(['standard', 'premium', 'professional']).optional(),
-        reportType: z.enum(['standard', 'premium', 'professional']).optional(),
+        type: z.string().optional(),
+        reportType: z.string().optional(),
       });
       const input = schema.parse(req.body || {});
       const reportType = normalizeReportType(input.type || input.reportType);
@@ -865,7 +1061,7 @@ router.post(
 
       const reportModel = await buildPremiumReportModel({
         assessment,
-        discResult: assessment.report?.discProfile || {},
+        discResult: resolveAssessmentDiscResult(assessment),
         assetBaseUrl,
         currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
         reportType,
@@ -873,6 +1069,7 @@ router.post(
 
       const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
         inMemory: true,
+        reportType,
       });
 
       const buffer = generated.pdfBuffer;
@@ -884,20 +1081,22 @@ router.post(
         });
       }
 
-      const pdfPath = `/assessment/report-pdf?assessmentId=${encodeURIComponent(
-        assessment.id,
-      )}&type=${encodeURIComponent(reportType)}`;
+      const publicAccess = issuePublicReportAccess({
+        assessmentId: assessment.id,
+        reportType,
+        baseUrl: assetBaseUrl,
+      });
 
       const report = await prisma.report.upsert({
         where: { assessmentId: assessment.id },
         create: {
           assessmentId: assessment.id,
           discProfile: reportModel,
-          pdfUrl: pdfPath,
+          pdfUrl: publicAccess.publicPdfUrl,
         },
         update: {
           discProfile: reportModel,
-          pdfUrl: pdfPath,
+          pdfUrl: publicAccess.publicPdfUrl,
         },
       });
 
@@ -914,9 +1113,10 @@ router.post(
         report: {
           id: report.id,
           assessmentId: report.assessmentId,
-          pdfUrl: report.pdfUrl || pdfPath,
+          pdfUrl: publicAccess.publicPdfUrl,
         },
-        pdfUrl: report.pdfUrl || pdfPath,
+        pdfUrl: publicAccess.publicPdfUrl,
+        publicAccess,
       });
     } catch (error) {
       const failure = buildPdfFailure(error, 'GENERATE_REPORT_FAILED');
@@ -939,99 +1139,13 @@ router.get(
   attachUser,
   requireActiveCustomer,
   requireReportExport,
-  async (req, res) => {
-    try {
-      const assessmentId = String(req.query.assessmentId || req.query.id || '').trim();
-      const reportType = normalizeReportType(req.query.type || req.query.reportType);
-      if (!assessmentId) {
-        return res.status(400).json({ ok: false, reason: 'ASSESSMENT_ID_REQUIRED' });
-      }
-
-      const assetBaseUrl = getRequestBaseUrl(req);
-      const assessment = await prisma.assessment.findUnique({
-        where: { id: assessmentId },
-        include: {
-          report: true,
-          creator: true,
-          organization: { include: { owner: true } },
-          quickContext: true,
-        },
-      });
-
-      if (!assessment) {
-        return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
-      }
-
-      const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
-      if (!allowed) {
-        return res.status(403).json({ ok: false, reason: 'FORBIDDEN' });
-      }
-
-      console.info('[assessment/report-pdf] generating PDF', {
-        assessmentId: assessment.id,
-        reportType,
-        userId: req.auth.userId,
-      });
-
-      const reportModel = await buildPremiumReportModel({
-        assessment,
-        discResult: assessment.report?.discProfile || {},
-        assetBaseUrl,
-        currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
-        reportType,
-      });
-
-      const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
-        inMemory: true,
-      });
-
-      const buffer = generated.pdfBuffer;
-      if (!hasBinaryPdfPayload(buffer)) {
-        return res.status(503).json({
-          ok: false,
-          reason: 'PDF_UNAVAILABLE',
-          message: 'Não foi possível gerar o PDF agora. Tente novamente em instantes.',
-        });
-      }
-
-      const downloadPath = `/assessment/report-pdf?assessmentId=${encodeURIComponent(
-        assessment.id,
-      )}&type=${encodeURIComponent(reportType)}`;
-      await prisma.report.upsert({
-        where: { assessmentId: assessment.id },
-        create: {
-          assessmentId: assessment.id,
-          discProfile: reportModel,
-          pdfUrl: downloadPath,
-        },
-        update: {
-          discProfile: reportModel,
-          pdfUrl: downloadPath,
-        },
-      });
-
-      const fileName = `insightdisc-relatorio-${reportType}-${assessment.id}.pdf`;
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.setHeader('Cache-Control', 'no-store');
-
-      console.info('[assessment/report-pdf] PDF generated', {
-        assessmentId: assessment.id,
-        bytes: buffer.length,
-      });
-
-      return res.status(200).send(buffer);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[assessment/report-pdf] failed:', error?.stack || error?.message || error);
-      const failure = buildPdfFailure(error, 'REPORT_PDF_FAILED');
-      return res.status(failure.status).json({
-        ok: false,
-        reason: failure.reason,
-        message: failure.message,
-        ...(failure.detail ? { detail: failure.detail } : {}),
-      });
-    }
+  async (_req, res) => {
+    return res.status(410).json({
+      ok: false,
+      reason: 'LEGACY_ID_BASED_PDF_DISABLED',
+      message:
+        'O download por assessmentId foi desativado. Gere um token em /assessment/public-token/:id e baixe via /api/report/pdf?token=....',
+    });
   },
 );
 
@@ -1211,12 +1325,20 @@ router.post('/submit', async (req, res) => {
       return { assessment, report, creditsConsumed: isSelfAssessment && !isSuperAdminSelfAssessment ? 1 : 0 };
     });
 
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: response.assessment.id,
+      reportType: resolveStoredReportType(response.assessment, REPORT_TYPE.BUSINESS),
+      baseUrl: getRequestBaseUrl(req),
+    });
+
     return res.status(200).json({
       ok: true,
       assessmentId: response.assessment.id,
       reportId: response.report.id,
+      reportType: publicAccess.reportType,
       creditsConsumed: Number(response.creditsConsumed || 0),
       disc: discResult,
+      publicAccess,
     });
   } catch (error) {
     if (Number(error?.statusCode) === 402 || String(error?.message || '').includes('INSUFFICIENT_CREDITS')) {

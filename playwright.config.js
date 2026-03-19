@@ -62,7 +62,7 @@ export default defineConfig({
           url: `${e2eApiBaseUrl.replace(/\/+$/, '')}/health`,
         },
         {
-          command: `VITE_API_URL=${e2eApiBaseUrl} VITE_API_BASE_URL=${e2eApiBaseUrl} npm run dev -- --mode e2e-api --host 127.0.0.1 --port 5173`,
+          command: `VITE_API_URL=${e2eApiBaseUrl} VITE_API_BASE_URL=${e2eApiBaseUrl} npm run dev -- --mod e e2e-api --host 127.0.0.1 --port 5173`,
           timeout: 120_000,
           reuseExistingServer: false,
           url: 'http://127.0.0.1:5173',

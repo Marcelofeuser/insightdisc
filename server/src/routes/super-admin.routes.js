@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { getRequestBaseUrl } from '../lib/request-base-url.js';
+import { signPublicReportToken } from '../lib/public-report-token.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
+import { normalizeReportType, resolveStoredReportType } from '../modules/report/report-type.js';
 
 const router = Router();
+const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 router.use(requireAuth, attachUser, requireSuperAdmin);
 
@@ -17,6 +20,35 @@ async function safeQuery(label, queryFn, fallbackValue) {
     console.warn(`[super-admin/overview] ${label} unavailable: ${error?.message || error}`);
     return fallbackValue;
   }
+}
+
+function issuePublicReportAccess({
+  assessmentId,
+  reportType,
+  appBaseUrl = '',
+  ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
+} = {}) {
+  const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedReportType = normalizeReportType(reportType);
+  const normalizedBaseUrl = String(appBaseUrl || '').trim().replace(/\/+$/, '');
+  const token = signPublicReportToken(
+    {
+      assessmentId: normalizedAssessmentId,
+      reportType: normalizedReportType,
+    },
+    ttlSeconds,
+  );
+  const previewPath = `/c/report?token=${encodeURIComponent(token)}`;
+  const pdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+
+  return {
+    token,
+    reportType: normalizedReportType,
+    previewPath,
+    pdfPath,
+    previewUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${previewPath}` : previewPath,
+    pdfUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${pdfPath}` : pdfPath,
+  };
 }
 
 function mapPaymentPlan(creditsAdded = 0) {
@@ -187,12 +219,11 @@ router.get('/overview', async (req, res) => {
 
   const latestReports = latestReportsRaw.map((report) => {
     const assessmentId = String(report.assessmentId || '').trim();
-    const previewPath = assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '';
-    const generatedPdfPath = assessmentId
-      ? `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`
-      : '';
-    const storedPdfPath = String(report.pdfUrl || '').trim();
-    const resolvedPdfPath = storedPdfPath || generatedPdfPath;
+    const publicAccess = issuePublicReportAccess({
+      assessmentId,
+      reportType: resolveStoredReportType(report, 'business'),
+      appBaseUrl,
+    });
 
     return {
       id: report.id,
@@ -210,14 +241,15 @@ router.get('/overview', async (req, res) => {
         '-',
       createdAt: report.createdAt,
       organization: report.assessment?.organization?.name || '-',
-      previewPath,
-      previewUrl: toAbsoluteUrl(previewPath),
-      publicLink: previewPath,
-      publicUrl: toAbsoluteUrl(previewPath),
-      pdfUrl: resolvedPdfPath,
-      pdfPath: resolvedPdfPath,
-      pdfAbsoluteUrl: toAbsoluteUrl(resolvedPdfPath),
-      hasStoredPdf: Boolean(storedPdfPath),
+      reportType: publicAccess.reportType,
+      previewPath: publicAccess.previewPath,
+      previewUrl: publicAccess.previewUrl,
+      publicLink: publicAccess.previewPath,
+      publicUrl: publicAccess.previewUrl,
+      pdfUrl: publicAccess.pdfUrl,
+      pdfPath: publicAccess.pdfPath,
+      pdfAbsoluteUrl: publicAccess.pdfUrl,
+      hasStoredPdf: true,
     };
   });
 
@@ -257,6 +289,7 @@ router.get('/overview', async (req, res) => {
   }));
 
   const latestAssessments = latestAssessmentsRaw.map((assessment) => ({
+    ...assessment,
     id: assessment.id,
     participant:
       assessment.candidateName || assessment.candidateEmail || 'Participante sem nome',
@@ -268,7 +301,11 @@ router.get('/overview', async (req, res) => {
       assessment.report?.discProfile?.profileKey ||
       assessment.report?.discProfile?.profile?.title ||
       '-',
-    pdfUrl: assessment.report?.pdfUrl || '',
+    pdfUrl: issuePublicReportAccess({
+      assessmentId: assessment.id,
+      reportType: resolveStoredReportType(assessment, 'business'),
+      appBaseUrl,
+    }).pdfUrl,
     reportId: assessment.report?.id || '',
   }));
 

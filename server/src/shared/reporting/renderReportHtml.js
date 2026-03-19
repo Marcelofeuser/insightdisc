@@ -6,7 +6,7 @@ const FACTOR_META = {
   C: { label: 'Conformidade', color: '#1E88E5' },
 };
 
-const STANDARD_SUMMARY_ITEMS = Object.freeze([
+const PERSONAL_SUMMARY_ITEMS = Object.freeze([
   'Apresentação Executiva',
   'O que é DISC',
   'Perfil Comportamental',
@@ -23,8 +23,20 @@ const STANDARD_SUMMARY_ITEMS = Object.freeze([
   'Conclusão',
 ]);
 
-const PREMIUM_SUMMARY_ITEMS = Object.freeze([
-  ...STANDARD_SUMMARY_ITEMS,
+const PROFESSIONAL_SUMMARY_ITEMS = Object.freeze([
+  ...PERSONAL_SUMMARY_ITEMS,
+  'Dinâmica Geral do Perfil',
+  'Motivadores',
+  'Comportamento no Trabalho',
+  'Conflitos',
+  'Relacionamento com a Equipe',
+  'Sinergia com Perfis DISC',
+  'Aderência a Funções e Carreira',
+  'Como Liderar Este Perfil',
+]);
+
+const BUSINESS_SUMMARY_ITEMS = Object.freeze([
+  ...PROFESSIONAL_SUMMARY_ITEMS,
   'Natural vs Adaptado',
   'Mudança Comportamental',
   'Índice de Adaptação',
@@ -35,25 +47,15 @@ const PREMIUM_SUMMARY_ITEMS = Object.freeze([
   'Heatmap de Compatibilidade',
 ]);
 
-const PROFESSIONAL_SUMMARY_ITEMS = Object.freeze([
-  ...PREMIUM_SUMMARY_ITEMS,
-  'Arquétipo DISC Profissional',
-  'Análise Estratégica do Perfil',
-  'Tomada de Decisão Avançada',
-  'Liderança Avançada',
-  'Influência em Equipes',
-  'Recomendações Estratégicas',
-]);
-
-const SUMMARY_ITEMS = PROFESSIONAL_SUMMARY_ITEMS;
+const SUMMARY_ITEMS = BUSINESS_SUMMARY_ITEMS;
 
 const REPORT_TIER = Object.freeze({
-  STANDARD: 'standard',
-  PREMIUM: 'premium',
+  PERSONAL: 'personal',
   PROFESSIONAL: 'professional',
+  BUSINESS: 'business',
 });
 
-const STANDARD_PAGE_SEQUENCE = Object.freeze([
+const PERSONAL_PAGE_SEQUENCE = Object.freeze([
   1,  // Capa
   2,  // Sumário
   3,  // O que é DISC
@@ -74,7 +76,34 @@ const STANDARD_PAGE_SEQUENCE = Object.freeze([
   30, // Conclusão
 ]);
 
-const PREMIUM_PAGE_SEQUENCE = Object.freeze([
+const PROFESSIONAL_PAGE_SEQUENCE = Object.freeze([
+  1,  // Capa
+  2,  // Sumário
+  3,  // O que é DISC
+  4,  // Visão geral dos fatores
+  5,  // Síntese executiva
+  6,  // Gráficos DISC
+  7,  // Radar
+  8,  // Benchmark
+  9,  // Dinâmica geral
+  10, // Processo de decisão
+  11, // Motivadores
+  13, // Comportamento no trabalho
+  14, // Comunicação
+  15, // Liderança
+  17, // Estresse
+  18, // Conflitos
+  19, // Relacionamento em equipe
+  20, // Sinergia com perfis
+  21, // Ambiente ideal
+  22, // Carreira
+  23, // Forças
+  24, // Pontos de desenvolvimento
+  28, // Plano de desenvolvimento
+  30, // Conclusão
+]);
+
+const BUSINESS_PAGE_SEQUENCE = Object.freeze([
   1,  // Capa
   2,  // Sumário
   3,  // O que é DISC
@@ -104,7 +133,7 @@ const PREMIUM_PAGE_SEQUENCE = Object.freeze([
   27, // Como este perfil deve liderar
   28, // Plano de desenvolvimento
   29, // Glossário
-  38, // Conclusão
+  30, // Conclusão
 ]);
 
 const SECTION_ICON_SVGS = Object.freeze({
@@ -185,14 +214,15 @@ const DEFAULT_BRANDING = Object.freeze({
 const PLATFORM_BRAND_LINE = 'InsightDISC – Plataforma de Análise Comportamental';
 
 const COVER_BACKGROUND_BY_TIER = Object.freeze({
-  premium: '',
-  standard: '',
+  business: '',
+  professional: '',
+  personal: '',
 });
 
-function resolveCoverBackgroundByTier(reportType = 'standard') {
-  return reportType !== REPORT_TIER.STANDARD
-    ? COVER_BACKGROUND_BY_TIER.premium
-    : COVER_BACKGROUND_BY_TIER.standard;
+function resolveCoverBackgroundByTier(reportType = REPORT_TIER.BUSINESS) {
+  if (reportType === REPORT_TIER.PERSONAL) return COVER_BACKGROUND_BY_TIER.personal;
+  if (reportType === REPORT_TIER.PROFESSIONAL) return COVER_BACKGROUND_BY_TIER.professional;
+  return COVER_BACKGROUND_BY_TIER.business;
 }
 
 function toAbsoluteAssetUrl(assetPath = '', assetBaseUrl = '') {
@@ -256,10 +286,12 @@ function safeText(value, fallback = '') {
 }
 
 function normalizeReportType(value) {
-  const normalized = safeText(value, REPORT_TIER.STANDARD).toLowerCase();
+  const normalized = safeText(value, REPORT_TIER.BUSINESS).toLowerCase();
+  if (normalized === 'standard') return REPORT_TIER.PERSONAL;
+  if (normalized === 'premium') return REPORT_TIER.BUSINESS;
+  if (normalized === REPORT_TIER.PERSONAL) return REPORT_TIER.PERSONAL;
   if (normalized === REPORT_TIER.PROFESSIONAL) return REPORT_TIER.PROFESSIONAL;
-  if (normalized === REPORT_TIER.PREMIUM) return REPORT_TIER.PREMIUM;
-  return REPORT_TIER.STANDARD;
+  return REPORT_TIER.BUSINESS;
 }
 
 function firstNonEmptyText(...values) {
@@ -1875,16 +1907,17 @@ export function renderReportHtml(input = {}) {
 
   ensureCriticalData(report);
   const reportType = normalizeReportType(
-    safeText(report?.meta?.reportType, safeText(report?.reportType, REPORT_TIER.STANDARD))
+    safeText(report?.meta?.reportType, safeText(report?.reportType, REPORT_TIER.BUSINESS))
   );
+  const isBusinessTier = reportType === REPORT_TIER.BUSINESS;
   const isProfessionalTier = reportType === REPORT_TIER.PROFESSIONAL;
-  const isPremiumTier = reportType !== REPORT_TIER.STANDARD;
+  const isPremiumTier = reportType !== REPORT_TIER.PERSONAL;
   const logicalPageTarget =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? 42
-      : reportType === REPORT_TIER.PREMIUM
-        ? 30
-        : 18;
+    reportType === REPORT_TIER.PERSONAL
+      ? PERSONAL_PAGE_SEQUENCE.length
+      : reportType === REPORT_TIER.PROFESSIONAL
+        ? PROFESSIONAL_PAGE_SEQUENCE.length
+        : BUSINESS_PAGE_SEQUENCE.length;
 
   const meta = {
     reportTitle: safeText(report?.meta?.reportTitle, 'Relatório de Análise Comportamental DISC'),
@@ -1997,11 +2030,17 @@ export function renderReportHtml(input = {}) {
     'InsightDISC'
   );
   const coverModeLabel =
-    reportType === REPORT_TIER.PROFESSIONAL
+    reportType === REPORT_TIER.BUSINESS
       ? 'Business'
-      : reportType === REPORT_TIER.PREMIUM
+      : reportType === REPORT_TIER.PROFESSIONAL
         ? 'Professional'
         : 'Personal';
+  const coverReportKicker =
+    reportType === REPORT_TIER.BUSINESS
+      ? 'INSIGHTDISC · RELATÓRIO PREMIUM'
+      : reportType === REPORT_TIER.PROFESSIONAL
+        ? 'INSIGHTDISC · RELATÓRIO PROFESSIONAL'
+        : 'INSIGHTDISC · RELATÓRIO PERSONAL';
   const coverInstitutionTitle = PLATFORM_BRAND_LINE;
   const coverInstitutionUrl = platformWebsite;
   const coverInstitutionEmail = platformEmail;
@@ -2077,11 +2116,11 @@ export function renderReportHtml(input = {}) {
   ]);
 
   const summaryItemsForTier =
-    reportType === REPORT_TIER.PROFESSIONAL
-      ? PROFESSIONAL_SUMMARY_ITEMS
-      : reportType === REPORT_TIER.PREMIUM
-        ? PREMIUM_SUMMARY_ITEMS
-        : STANDARD_SUMMARY_ITEMS;
+    reportType === REPORT_TIER.PERSONAL
+      ? PERSONAL_SUMMARY_ITEMS
+      : reportType === REPORT_TIER.PROFESSIONAL
+        ? PROFESSIONAL_SUMMARY_ITEMS
+        : BUSINESS_SUMMARY_ITEMS;
 
   const isBalancedProfile = profile.mode === 'balanced' || profile.key === 'DISC';
   const profilePrimaryLabel = safeText(profile?.displayPrimary, profile.primary);
@@ -2138,7 +2177,7 @@ export function renderReportHtml(input = {}) {
           </div>
           <div class="cover-body">
             <div class="cover-central-block">
-              <div class="cover-report-kicker">Relatório de Análise Comportamental DISC</div>
+              <div class="cover-report-kicker">${esc(coverReportKicker)}</div>
               <div class="cover-mode-line">Modo: ${esc(coverModeLabel)}</div>
               <div class="cover-name-highlight">${esc(coverParticipantName)}</div>
               <div class="cover-meta-pair">
@@ -3781,12 +3820,12 @@ export function renderReportHtml(input = {}) {
   );
 
   let selectedPagesRaw;
-  if (reportType === REPORT_TIER.STANDARD) {
-    selectedPagesRaw = STANDARD_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
-  } else if (reportType === REPORT_TIER.PREMIUM) {
-    selectedPagesRaw = PREMIUM_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  if (reportType === REPORT_TIER.PERSONAL) {
+    selectedPagesRaw = PERSONAL_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
+  } else if (reportType === REPORT_TIER.PROFESSIONAL) {
+    selectedPagesRaw = PROFESSIONAL_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
   } else {
-    selectedPagesRaw = pages;
+    selectedPagesRaw = BUSINESS_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
   }
 
   const visibleTotalPages = selectedPagesRaw.length || meta.totalPages;

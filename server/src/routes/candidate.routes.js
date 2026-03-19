@@ -2,12 +2,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { hashPassword, sha256, signJwt, verifyJwt, verifyPassword } from '../lib/security.js';
+import { signPublicReportToken } from '../lib/public-report-token.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireRole } from '../middleware/rbac.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
+import { normalizeReportType, resolveStoredReportType } from '../modules/report/report-type.js';
 
 const router = Router();
+const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
 
 function normalizeReason(reason) {
   const key = String(reason || '').toUpperCase();
@@ -24,6 +27,35 @@ function statusCodeByReason(reason) {
   if (reason === 'USED') return 409;
   if (reason === 'NOT_FOUND') return 404;
   return 400;
+}
+
+function issuePublicReportAccess({
+  assessmentId,
+  reportType,
+  appBaseUrl = '',
+  ttlSeconds = PUBLIC_REPORT_TOKEN_TTL_SECONDS,
+} = {}) {
+  const normalizedAssessmentId = String(assessmentId || '').trim();
+  const normalizedReportType = normalizeReportType(reportType);
+  const normalizedBaseUrl = String(appBaseUrl || '').trim().replace(/\/+$/, '');
+  const token = signPublicReportToken(
+    {
+      assessmentId: normalizedAssessmentId,
+      reportType: normalizedReportType,
+    },
+    ttlSeconds,
+  );
+  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}`;
+  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+
+  return {
+    token,
+    reportType: normalizedReportType,
+    publicReportPath,
+    publicPdfPath,
+    publicReportUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${publicReportPath}` : publicReportPath,
+    publicPdfUrl: normalizedBaseUrl ? `${normalizedBaseUrl}${publicPdfPath}` : publicPdfPath,
+  };
 }
 
 async function getInviteByToken(token, options = {}) {
@@ -383,21 +415,34 @@ async function listCandidateReports(req, res) {
       include: { report: true },
       take: 100,
     });
+    const appBaseUrl = `${req.protocol}://${req.get('host')}`;
 
     return res.status(200).json({
       ok: true,
       reports: assessments
         .filter((assessment) => Boolean(assessment.report))
-        .map((assessment) => ({
-          assessmentId: assessment.id,
-          candidateName: assessment.candidateName,
-          candidateEmail: assessment.candidateEmail,
-          createdAt: assessment.createdAt,
-          completedAt: assessment.completedAt,
-          reportId: assessment.report?.id || null,
-          pdfUrl: assessment.report?.pdfUrl || null,
-          discProfile: assessment.report?.discProfile || null,
-        })),
+        .map((assessment) => {
+          const publicAccess = issuePublicReportAccess({
+            assessmentId: assessment.id,
+            reportType: resolveStoredReportType(assessment, 'business'),
+            appBaseUrl,
+          });
+
+          return {
+            assessmentId: assessment.id,
+            candidateName: assessment.candidateName,
+            candidateEmail: assessment.candidateEmail,
+            createdAt: assessment.createdAt,
+            completedAt: assessment.completedAt,
+            reportId: assessment.report?.id || null,
+            pdfUrl: publicAccess.publicPdfUrl,
+            reportType: publicAccess.reportType,
+            publicToken: publicAccess.token,
+            publicReportUrl: publicAccess.publicReportUrl,
+            publicPdfUrl: publicAccess.publicPdfUrl,
+            discProfile: assessment.report?.discProfile || null,
+          };
+        }),
     });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error?.message || 'CANDIDATE_REPORTS_FAILED' });

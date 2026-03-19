@@ -37,3 +37,36 @@ test('buildAssessmentReportViewModel mantém fallback seguro quando não há sco
   assert.equal(typeof viewModel.leadershipInsights?.summaryShort, 'string');
   assert.match(viewModel.technical.balanceNote, /consolidação/i);
 });
+
+test('buildAssessmentReportViewModel prioriza modelo premium (report.discProfile) quando disponível', () => {
+  // Simula estrutura do reportModel gerado pelo backend (buildPremiumReportModel)
+  const premiumProfile = {
+    discSnapshot: { summary: { D: 40, I: 30, S: 15, C: 15 }, hasValidScores: true },
+    interpretation: {
+      profileCode: 'DI',
+      styleLabel: 'Dominante Influente',
+      summaryShort: 'Síntese do modelo premium persistido.',
+    },
+    leadershipInsights: {
+      leadershipStyle: 'Estilo de liderança premium',
+    },
+    executiveSummary: 'Resumo executivo premium',
+  };
+
+  const viewModel = buildAssessmentReportViewModel({
+    id: 'assessment-premium-flow',
+    candidateName: 'Premium User',
+    completedAt: '2026-03-12T10:00:00.000Z',
+    results: {
+      summary_profile: { D: 10, I: 10, S: 70, C: 10 }, // Legado (deve ser ignorado)
+    },
+    report: {
+      id: 'rep-123',
+      discProfile: premiumProfile,
+    },
+  });
+
+  assert.equal(viewModel.discSnapshot.summary.D, 40);
+  assert.equal(viewModel.interpretation.summaryShort, 'Síntese do modelo premium persistido.');
+  assert.equal(viewModel.leadershipInsights.leadershipStyle, 'Estilo de liderança premium');
+});

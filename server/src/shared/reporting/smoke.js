@@ -57,7 +57,7 @@ const REQUIRED_PROFILE_FIELDS = [
 function baseData() {
   return {
     strict: true,
-    reportType: 'premium',
+    reportType: 'business',
     meta: {
       brand: 'InsightDISC',
       reportTitle: 'Relatorio de Analise Comportamental DISC',

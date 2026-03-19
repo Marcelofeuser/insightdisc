@@ -4,6 +4,7 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 import puppeteerCore from 'puppeteer-core';
 import { generatePdfFromData } from '../../shared/reporting/generatePdf.js';
+import { normalizeReportType } from './report-type.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,13 +87,15 @@ function normalizePdfBuffer(pdfBuffer) {
 }
 
 export async function generatePremiumPdf(reportModel, assessmentId, assessment = null, options = {}) {
+  const reportType = normalizeReportType(options.reportType || reportModel?.reportType);
   const safeId = String(assessmentId || reportModel?.meta?.reportId || 'export')
     .replace(/[^a-zA-Z0-9_-]/g, '-');
-  const fileName = `insightdisc-relatorio-${safeId}.pdf`;
+  const fileName = `insightdisc-relatorio-${reportType}-${safeId}.pdf`;
   const inMemory = Boolean(options.inMemory);
 
   const data = {
     ...reportModel,
+    reportType,
     ...(assessment ? { participant: { ...reportModel?.participant, assessmentId: assessment?.id || safeId } } : {}),
   };
   const browserLauncher = await loadServerBrowserLauncher();

@@ -15,9 +15,9 @@ Opcoes:
   --base-url <url>           API base URL. Padrao: ${DEFAULT_BASE_URL}
   --assessment-id <id>       Assessment especifico. Se omitido, tenta descobrir um acessivel.
   --plan <personal|professional|business>
-                             Atalho de plano para tipo interno do relatorio.
-  --report-type <standard|premium|professional|personal|business>
-                             Tipo direto ou alias conveniente para teste local.
+                             Alias do tipo canonico do relatorio.
+  --report-type <personal|professional|business>
+                             Tipo canonico do relatorio para teste local.
   --output <arquivo>         Salva o PDF baixado no caminho informado.
   --email <email>            Faz login via /auth/login ou /auth/super-admin-login.
   --password <senha>         Senha do usuario.
@@ -26,10 +26,10 @@ Opcoes:
   --dev-email <email>        Usa header x-insight-user-email em vez de bearer token.
   --help                     Mostra esta ajuda.
 
-Mapeamento de plano:
-  personal -> standard
-  professional -> premium
-  business -> professional
+Tipos disponiveis:
+  personal
+  professional
+  business
 `.trim());
 }
 
@@ -149,34 +149,22 @@ function normalizeInput(value = '') {
 function resolveRequestedReportType({ plan = '', reportType = '' } = {}) {
   const normalizedPlan = normalizeInput(plan);
   if (normalizedPlan) {
-    if (normalizedPlan === 'personal') {
-      return { requested: normalizedPlan, internal: 'standard', source: 'plan' };
-    }
-    if (normalizedPlan === 'professional') {
-      return { requested: normalizedPlan, internal: 'premium', source: 'plan' };
-    }
-    if (normalizedPlan === 'business') {
-      return { requested: normalizedPlan, internal: 'professional', source: 'plan' };
+    if (['personal', 'professional', 'business'].includes(normalizedPlan)) {
+      return { requested: normalizedPlan, internal: normalizedPlan, source: 'plan' };
     }
     throw new Error(`Plano invalido: ${plan}. Use personal, professional ou business.`);
   }
 
   const normalizedType = normalizeInput(reportType);
   if (!normalizedType) {
-    return { requested: 'standard', internal: 'standard', source: 'default' };
+    return { requested: 'business', internal: 'business', source: 'default' };
   }
-  if (normalizedType === 'personal') {
-    return { requested: normalizedType, internal: 'standard', source: 'report-type' };
-  }
-  if (normalizedType === 'business') {
-    return { requested: normalizedType, internal: 'professional', source: 'report-type' };
-  }
-  if (['standard', 'premium', 'professional'].includes(normalizedType)) {
+  if (['personal', 'professional', 'business'].includes(normalizedType)) {
     return { requested: normalizedType, internal: normalizedType, source: 'report-type' };
   }
 
   throw new Error(
-    `Tipo de relatorio invalido: ${reportType}. Use standard, premium, professional, personal ou business.`,
+    `Tipo de relatorio invalido: ${reportType}. Use personal, professional ou business.`,
   );
 }
 
@@ -353,7 +341,7 @@ async function main() {
     headers,
   });
 
-  const generated = await apiRequestJson(`${baseUrl}/report/generate`, {
+  const generated = await apiRequestJson(`${baseUrl}/assessment/generate-report`, {
     method: 'POST',
     headers: {
       ...headers,
@@ -365,9 +353,15 @@ async function main() {
     },
   });
 
-  const pdfUrl = String(generated?.pdfUrl || generated?.report?.pdfUrl || '').trim();
+  const pdfUrl = String(
+    generated?.publicAccess?.publicPdfUrl ||
+      generated?.publicAccess?.publicPdfPath ||
+      generated?.pdfUrl ||
+      generated?.report?.pdfUrl ||
+      '',
+  ).trim();
   if (!pdfUrl) {
-    throw new Error('A resposta de /report/generate nao retornou pdfUrl.');
+    throw new Error('A resposta de /assessment/generate-report nao retornou publicPdfUrl.');
   }
 
   const absolutePdfUrl = resolveAbsoluteUrl(baseUrl, pdfUrl);
@@ -389,6 +383,7 @@ async function main() {
         reportType: requestedType.internal,
         source: requestedType.source,
         reportId: generated?.report?.id || '',
+        publicToken: generated?.publicAccess?.token || '',
         pdfUrl,
         pdfStatus: pdfResponse.status,
         contentType: pdfResponse.headers.get('content-type') || '',

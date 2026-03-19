@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { apiRequest, getApiAuthHeaders, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -113,13 +113,9 @@ function inferReportAssessmentId(report = {}) {
 function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
   const assessmentId = inferReportAssessmentId(report);
   const previewPath =
-    firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl) ||
-    (assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '');
+    firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl, report?.publicUrl);
   const rawPdfPath =
-    firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl) ||
-    (assessmentId
-      ? `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`
-      : '');
+    firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl);
 
   return {
     ...report,
@@ -128,6 +124,7 @@ function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
     assessmentId,
     previewPath,
     publicLink: previewPath,
+    reportType: firstNonEmpty(report?.reportType, report?.type) || 'business',
     pdfUrl: resolveAbsoluteApiUrl(rawPdfPath),
     pdfPath: rawPdfPath,
     hasStoredPdf: Boolean(firstNonEmpty(report?.pdfUrl, report?.pdfPath, report?.pdf_url)),
@@ -251,7 +248,11 @@ export default function SuperAdminDashboard() {
             const mergedAssessmentId = normalized.assessmentId || fallbackAssessmentId;
             const mergedPreviewPath =
               normalized.previewPath ||
-              (mergedAssessmentId ? `/Report?id=${encodeURIComponent(mergedAssessmentId)}` : '');
+              firstNonEmpty(
+                assessmentFallback?.publicReportUrl,
+                assessmentFallback?.previewUrl,
+                assessmentFallback?.previewPath,
+              );
             const mergedPdfUrl = normalized.pdfUrl || fallbackPdfUrl;
             return {
               ...normalized,
@@ -349,19 +350,18 @@ export default function SuperAdminDashboard() {
 
   const resolveReportPreviewPath = useCallback((report = {}) => {
     const fromPayload = firstNonEmpty(report?.previewPath, report?.publicLink, report?.previewUrl);
-    if (fromPayload) {
-      if (/^https?:\/\//i.test(fromPayload)) {
-        try {
-          const parsed = new URL(fromPayload);
-          return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      if (fromPayload) {
+        if (/^https?:\/\//i.test(fromPayload)) {
+          try {
+            const parsed = new URL(fromPayload);
+            return `${parsed.pathname}${parsed.search}${parsed.hash}`;
         } catch {
           return '';
         }
       }
       return fromPayload;
     }
-    const assessmentId = inferReportAssessmentId(report);
-    return assessmentId ? `/Report?id=${encodeURIComponent(assessmentId)}` : '';
+    return '';
   }, []);
 
   const resolveReportPdfEndpoint = useCallback(
@@ -370,12 +370,7 @@ export default function SuperAdminDashboard() {
       if (fromPayload) {
         return resolveAbsoluteApiUrl(fromPayload);
       }
-
-      const assessmentId = inferReportAssessmentId(report);
-      if (!assessmentId) return '';
-      return resolveAbsoluteApiUrl(
-        `/assessment/report-pdf?assessmentId=${encodeURIComponent(assessmentId)}&type=premium`,
-      );
+      return '';
     },
     [resolveAbsoluteApiUrl],
   );
@@ -428,9 +423,6 @@ export default function SuperAdminDashboard() {
       try {
         const response = await fetch(endpoint, {
           method: 'GET',
-          headers: {
-            ...getApiAuthHeaders(),
-          },
         });
 
         if (!response.ok) {
@@ -571,15 +563,32 @@ export default function SuperAdminDashboard() {
       const payload = await apiRequest('/assessment/generate-report', {
         method: 'POST',
         requireAuth: true,
-        body: { assessmentId, type: 'premium' },
+        body: { assessmentId, reportType: 'business' },
       });
 
-      const pdfUrl = resolveAbsoluteApiUrl(payload?.pdfUrl || payload?.report?.pdfUrl || '');
+      const previewPath = firstNonEmpty(
+        payload?.publicAccess?.publicReportUrl,
+        payload?.publicAccess?.publicReportPath,
+      );
+      const pdfPath = firstNonEmpty(
+        payload?.publicAccess?.publicPdfUrl,
+        payload?.publicAccess?.publicPdfPath,
+        payload?.pdfUrl,
+        payload?.report?.pdfUrl,
+      );
+      const pdfUrl = resolveAbsoluteApiUrl(pdfPath);
       setOverview((prev) => ({
         ...prev,
         latestReports: prev.latestReports.map((report) =>
           inferReportAssessmentId(report) === assessmentId
-            ? { ...report, pdfUrl: pdfUrl || report.pdfUrl }
+            ? {
+                ...report,
+                reportType: payload?.reportType || report.reportType || 'business',
+                previewPath: previewPath || report.previewPath,
+                publicLink: previewPath || report.publicLink,
+                pdfUrl: pdfUrl || report.pdfUrl,
+                pdfPath: pdfPath || report.pdfPath,
+              }
             : report,
         ),
       }));
@@ -588,7 +597,7 @@ export default function SuperAdminDashboard() {
 
       toast({
         title: 'Relatório gerado',
-        description: 'A geração premium foi concluída com sucesso.',
+        description: 'A geração business foi concluída com sucesso.',
       });
     } catch (_error) {
       toast({
@@ -1031,8 +1040,8 @@ export default function SuperAdminDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => latestDemoAssessment?.id && navigate(`/Report?id=${latestDemoAssessment.id}`)}
-                  disabled={!latestDemoAssessment?.id}
+                  onClick={() => handleOpenReportPreview(latestDemoReport || {})}
+                  disabled={!resolveReportPreviewPath(latestDemoReport || {})}
                 >
                   Abrir preview
                 </Button>

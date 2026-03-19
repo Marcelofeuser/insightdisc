@@ -396,7 +396,7 @@ export default function PremiumAssessment() {
 
       const assessment = await base44.entities.Assessment.create({
         user_id: resolvedUserId,
-        type: 'premium',
+        type: 'business',
         status: 'in_progress',
         access_token: token || null,
         started_at: new Date().toISOString(),
@@ -448,7 +448,7 @@ export default function PremiumAssessment() {
         const resolvedAssessmentId = payload.assessmentId || assessmentId;
         const reportPath =
           token && location.pathname.startsWith('/c')
-            ? `/c/report?id=${encodeURIComponent(resolvedAssessmentId)}&token=${encodeURIComponent(token)}`
+            ? payload?.publicAccess?.publicReportPath || `/c/report?token=${encodeURIComponent(token)}`
             : `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`;
         navigate(reportPath);
         return;
@@ -473,7 +473,7 @@ export default function PremiumAssessment() {
 
       const reportPath =
         token && location.pathname.startsWith('/c')
-          ? `/c/report?id=${encodeURIComponent(assessmentId)}&token=${encodeURIComponent(token)}`
+          ? `/c/report?token=${encodeURIComponent(token)}`
           : `${createPageUrl('Report')}?id=${encodeURIComponent(assessmentId)}`;
       navigate(reportPath);
     } catch (error) {

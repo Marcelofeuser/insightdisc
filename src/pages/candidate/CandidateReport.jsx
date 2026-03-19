@@ -49,7 +49,12 @@ function normalizeAssessmentFromApi(assessment, discProfile, report) {
     report_unlocked: true,
     branding: assessment?.branding || null,
     report_pdf_url: report?.pdfUrl || '',
+    report_type: report?.reportType || assessment?.reportType || 'business',
   };
+}
+
+function looksLikePublicReportToken(token = '') {
+  return String(token || '').trim().split('.').length === 3;
 }
 
 async function exportLocalPdfFromHtml(html, fileName) {
@@ -126,6 +131,7 @@ export default function CandidateReport() {
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [isSavingToPortal, setIsSavingToPortal] = useState(false);
   const [availablePdfUrl, setAvailablePdfUrl] = useState('');
+  const [publicAccess, setPublicAccess] = useState(null);
   const lastPdfErrorToastRef = useRef({ message: '', ts: 0 });
 
   const [showClaim, setShowClaim] = useState(false);
@@ -301,6 +307,7 @@ export default function CandidateReport() {
 
       try {
         setRemoteReportModel(null);
+        setPublicAccess(null);
         if (apiBaseUrl && token) {
           try {
             const payload = await apiRequest(`/assessment/report-by-token?token=${encodeURIComponent(token)}`);
@@ -313,9 +320,10 @@ export default function CandidateReport() {
               normalizedAssessment?.branding?.logo_url &&
               normalizedAssessment.branding.logo_url.startsWith('/')
             ) {
-              normalizedAssessment.branding.logo_url = `${apiBaseUrl}${normalizedAssessment.branding.logo_url}`;
+                normalizedAssessment.branding.logo_url = `${apiBaseUrl}${normalizedAssessment.branding.logo_url}`;
             }
-            setAvailablePdfUrl(resolvePdfUrl(payload?.report?.pdfUrl));
+            setAvailablePdfUrl(resolvePdfUrl(payload?.publicAccess?.publicPdfUrl || payload?.report?.pdfUrl));
+            setPublicAccess(payload?.publicAccess || null);
             if (isPremiumReportModel(payload?.report?.discProfile)) {
               setRemoteReportModel(payload.report.discProfile);
             }
@@ -347,10 +355,20 @@ export default function CandidateReport() {
                     completedAt: matched.completedAt,
                   },
                   matched.discProfile,
-                  { pdfUrl: matched.pdfUrl }
+                  { pdfUrl: matched.publicPdfUrl || matched.pdfUrl, reportType: matched.reportType }
                 );
 
-                setAvailablePdfUrl(resolvePdfUrl(matched?.pdfUrl));
+                setAvailablePdfUrl(resolvePdfUrl(matched?.publicPdfUrl || matched?.pdfUrl));
+                setPublicAccess(
+                  matched?.publicToken
+                    ? {
+                        token: matched.publicToken,
+                        reportType: matched.reportType || 'business',
+                        publicReportUrl: matched.publicReportUrl || '',
+                        publicPdfUrl: matched.publicPdfUrl || matched.pdfUrl || '',
+                      }
+                    : null,
+                );
                 if (isPremiumReportModel(matched?.discProfile)) {
                   setRemoteReportModel(matched.discProfile);
                 }
@@ -425,7 +443,14 @@ export default function CandidateReport() {
       return availablePdfUrl;
     }
 
-    if (!apiBaseUrl || !token) {
+    const resolvedAssessmentId = assessment?.id || assessmentId;
+    if (publicAccess?.publicPdfUrl) {
+      const resolved = resolvePdfUrl(publicAccess.publicPdfUrl);
+      setAvailablePdfUrl(resolved);
+      return resolved;
+    }
+
+    if (!apiBaseUrl || !resolvedAssessmentId) {
       return '';
     }
 
@@ -435,18 +460,21 @@ export default function CandidateReport() {
     });
 
     const payload = await apiRequest(
-      `/assessment/report-pdf-by-token?token=${encodeURIComponent(token)}`,
+      `/assessment/public-token/${encodeURIComponent(resolvedAssessmentId)}?token=${encodeURIComponent(token || '')}&reportType=${encodeURIComponent(
+        assessment?.report_type || publicAccess?.reportType || 'business',
+      )}`,
       { method: 'GET' }
     );
 
-    const resolvedPdfUrl = extractPdfFollowUpUrl(payload);
+    const resolvedPdfUrl = resolvePdfUrl(payload?.publicPdfUrl || payload?.pdfUrl);
     if (!resolvedPdfUrl) {
       throw new Error('PDF indisponível no momento.');
     }
 
+    setPublicAccess(payload);
     setAvailablePdfUrl(resolvedPdfUrl);
     console.log('[CandidateReport] ensurePublicPdfUrl:done', {
-      assessmentId: payload?.assessmentId || assessment?.id || assessmentId,
+      assessmentId: payload?.assessmentId || resolvedAssessmentId,
       pdfUrl: resolvedPdfUrl,
     });
 
@@ -559,18 +587,24 @@ export default function CandidateReport() {
     try {
       if (apiBaseUrl && token) {
         const fileName = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
-        const directDownloadUrl = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+        const directPdfToken =
+          publicAccess?.token || (looksLikePublicReportToken(token) ? token : '');
+        const directDownloadUrl = directPdfToken
+          ? `/api/report/pdf?token=${encodeURIComponent(directPdfToken)}`
+          : '';
         try {
-          console.info('[CandidateReport] trying direct token PDF endpoint', {
-            endpoint: directDownloadUrl,
-            assessmentId: assessment?.id || assessmentId,
-          });
-          await downloadPdfFromUrl(directDownloadUrl, fileName);
-          toast({
-            title: 'Download concluído',
-            description: 'Relatório salvo em PDF no seu dispositivo.',
-          });
-          return;
+          if (directDownloadUrl) {
+            console.info('[CandidateReport] trying direct token PDF endpoint', {
+              endpoint: directDownloadUrl,
+              assessmentId: assessment?.id || assessmentId,
+            });
+            await downloadPdfFromUrl(directDownloadUrl, fileName);
+            toast({
+              title: 'Download concluído',
+              description: 'Relatório salvo em PDF no seu dispositivo.',
+            });
+            return;
+          }
         } catch (resolveError) {
           console.warn(
             '[CandidateReport] direct token PDF failed, resolving URL fallback',

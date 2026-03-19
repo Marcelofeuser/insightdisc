@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { buildReportModel } from './buildReportModel.js';
 import { renderReportHtml } from './renderReportHtml.js';
+import { normalizeReportType } from '../../modules/report/report-type.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -139,17 +140,10 @@ async function loadBrowserLauncher() {
 }
 
 export async function generatePdfFromData(rawData, options = {}) {
-  const normalizedTypeRaw = String(
-    options?.reportType || rawData?.reportType || rawData?.meta?.reportType || 'standard'
-  )
-    .toLowerCase()
-    .trim();
-  const normalizedType =
-    normalizedTypeRaw === 'professional'
-      ? 'professional'
-      : normalizedTypeRaw === 'premium'
-        ? 'premium'
-        : 'standard';
+  const normalizedType = normalizeReportType(
+    options?.reportType || rawData?.reportType || rawData?.meta?.reportType || 'business',
+    'business',
+  );
   const input = {
     ...(rawData || {}),
     reportType: normalizedType,

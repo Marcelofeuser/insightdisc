@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { REPORT_TYPE, normalizeReportType } from '../../modules/report/report-type.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1287,7 +1288,7 @@ function resolvePagesStructure(sharedPages = {}) {
   ];
 }
 
-function resolveStandardPagesStructure() {
+function resolvePersonalPagesStructure() {
   return [
     'Capa',
     'O que e DISC',
@@ -1308,29 +1309,42 @@ function resolveStandardPagesStructure() {
 }
 
 function resolveProfessionalPagesStructure(sharedPages = {}) {
-  const premium = resolvePagesStructure(sharedPages);
+  const professional = safeArray(sharedPages?.professionalStructure, []);
+  if (professional.length) return professional;
+
   return [
-    ...premium,
-    'Roda comportamental DISC',
-    'Índice de adaptação global',
-    'Índice de estresse comportamental',
-    'Zona de conforto vs esforço',
-    'Mapa de comunicação',
-    'Mapa de competências',
-    'Heatmap de compatibilidade',
-    'Painel executivo de forças e riscos',
-    'Arquétipo DISC profissional',
-    'Análise estratégica do perfil',
-    'Influência em equipes',
-    'Recomendações estratégicas',
+    'Capa',
+    'Sumario executivo',
+    'O que e DISC',
+    'Visao geral dos fatores',
+    'Sintese executiva',
+    'Graficos DISC',
+    'Radar comportamental',
+    'Benchmark do perfil',
+    'Dinamica geral do perfil',
+    'Processo de decisao',
+    'Motivadores',
+    'Comportamento no ambiente de trabalho',
+    'Comunicacao',
+    'Estilo de lideranca',
+    'Resposta ao estresse',
+    'Conflitos',
+    'Relacionamento com equipe',
+    'Sinergia com outros perfis DISC',
+    'Ambiente ideal de trabalho',
+    'Aderencia a funcoes e carreira',
+    'Forcas naturais',
+    'Pontos de desenvolvimento',
+    'Plano de acao 30/60/90 dias',
+    'Conclusao do perfil comportamental',
   ];
 }
 
 function resolveReportType(input = {}) {
-  const value = safeText(input?.reportType, safeText(input?.meta?.reportType, 'standard')).toLowerCase();
-  if (value === 'professional') return 'professional';
-  if (value === 'premium') return 'premium';
-  return 'standard';
+  return normalizeReportType(
+    safeText(input?.reportType, safeText(input?.meta?.reportType, REPORT_TYPE.BUSINESS)),
+    REPORT_TYPE.BUSINESS,
+  );
 }
 
 export async function buildReportModel(input = {}) {
@@ -1449,13 +1463,18 @@ export async function buildReportModel(input = {}) {
 
   const pagesMeta = content?.shared?.pages || {};
   const pageTitles =
-    reportType === 'professional'
-      ? resolveProfessionalPagesStructure(pagesMeta)
-      : reportType === 'premium'
-        ? resolvePagesStructure(pagesMeta)
-        : resolveStandardPagesStructure();
+    reportType === REPORT_TYPE.PERSONAL
+      ? resolvePersonalPagesStructure()
+      : reportType === REPORT_TYPE.PROFESSIONAL
+        ? resolveProfessionalPagesStructure(pagesMeta)
+        : resolvePagesStructure(pagesMeta);
   const enrichmentBlocks = pagesMeta?.enrichmentBlocks || {};
-  const totalPages = reportType === 'professional' ? 42 : reportType === 'premium' ? 30 : 18;
+  const totalPages =
+    reportType === REPORT_TYPE.PERSONAL
+      ? 18
+      : reportType === REPORT_TYPE.PROFESSIONAL
+        ? 24
+        : 30;
 
   return {
     meta: {
@@ -1556,8 +1575,8 @@ export async function buildReportModel(input = {}) {
       contact: safeText(input?.lgpd?.contact, 'suporte@insightdisc.app'),
     },
     quality: {
-      noAi: true,
-      deterministic: true,
+      noAi: false,
+      deterministic: false,
       densityTarget: Number(content?.shared?.rules?.density?.minParagraphsPerPage || 2),
       bulletTarget: Number(content?.shared?.rules?.density?.minBulletsPerSection || 5),
     },

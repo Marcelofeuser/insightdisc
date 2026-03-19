@@ -49,6 +49,7 @@ test.describe('Exportação PDF do relatório oficial', () => {
     test.skip(!IS_API_MODE, 'Fluxo de exportação PDF depende do modo API.');
 
     const assessmentId = 'e2e-export-report';
+    const publicToken = 'public-token-e2e-export-report';
     await loginAsProfessional(page);
 
     await page.route(`**/assessment/report-data?id=${assessmentId}`, async (route) => {
@@ -59,7 +60,22 @@ test.describe('Exportação PDF do relatório oficial', () => {
       });
     });
 
-    await page.route(`**/report/${assessmentId}/pdf`, async (route) => {
+    await page.route(`**/assessment/public-token/${assessmentId}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          assessmentId,
+          token: publicToken,
+          reportType: 'business',
+          publicReportUrl: `/c/report?token=${publicToken}`,
+          publicPdfUrl: `/api/report/pdf?token=${publicToken}`,
+        }),
+      });
+    });
+
+    await page.route(`**/api/report/pdf?token=${publicToken}`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/pdf',
