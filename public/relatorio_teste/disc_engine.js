@@ -32,6 +32,18 @@ const DEFAULT_INPUT = {
   },
 };
 
+const PLACEHOLDER_TOKENS = Object.freeze({
+  name: '{{name}}',
+  profile: '{{profile}}',
+  disc_d: '{{disc_d}}',
+  disc_i: '{{disc_i}}',
+  disc_s: '{{disc_s}}',
+  disc_c: '{{disc_c}}',
+});
+const REPORT_PLACEHOLDER_KEYS = Object.freeze(Object.keys(PLACEHOLDER_TOKENS));
+const REPORT_REQUIRED_PLACEHOLDERS = REPORT_PLACEHOLDER_KEYS;
+const PLACEHOLDER_MATCHER = /\{\{\s*([a-z_]+)\s*\}\}/g;
+
 const FACTOR_META = {
   D: {
     name: 'Dominância',
@@ -195,6 +207,24 @@ function parseBooleanFlag(value) {
   return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
+function toPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function clonePlainObject(value) {
+  return { ...toPlainObject(value) };
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -205,6 +235,95 @@ function escapeHtml(value = '') {
 
 function escapeRegex(value = '') {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function createTemplateError(code, message, details = {}) {
+  const error = new Error(message);
+  error.code = code;
+
+  if (details && Object.keys(details).length > 0) {
+    error.details = details;
+  }
+
+  return error;
+}
+
+function listTemplatePlaceholderKeys(template = '') {
+  const keys = [];
+
+  for (const match of String(template || '').matchAll(PLACEHOLDER_MATCHER)) {
+    const key = String(match[1] || '').trim();
+    if (key) {
+      keys.push(key);
+    }
+  }
+
+  return [...new Set(keys)];
+}
+
+function assertKnownTemplatePlaceholders(template = '') {
+  const unknown = listTemplatePlaceholderKeys(template)
+    .filter((key) => !REPORT_PLACEHOLDER_KEYS.includes(key))
+    .map((key) => `{{${key}}}`);
+
+  if (unknown.length > 0) {
+    throw createTemplateError(
+      'UNKNOWN_PLACEHOLDER',
+      'Unknown placeholder found in template.',
+      { placeholders: unknown },
+    );
+  }
+}
+
+function assertRequiredTemplatePlaceholders(
+  template = '',
+  requiredPlaceholders = REPORT_REQUIRED_PLACEHOLDERS,
+) {
+  const available = new Set(listTemplatePlaceholderKeys(template));
+  const missing = requiredPlaceholders.filter((key) => !available.has(key));
+
+  if (missing.length > 0) {
+    throw createTemplateError(
+      'MISSING_REQUIRED_PLACEHOLDER',
+      'Missing required placeholder in template.',
+      { placeholders: missing },
+    );
+  }
+}
+
+function assertRequiredTemplateValues(
+  values = {},
+  requiredPlaceholders = REPORT_REQUIRED_PLACEHOLDERS,
+) {
+  const missing = requiredPlaceholders.filter((key) => {
+    const value = values?.[key];
+    return value === undefined || value === null || String(value).trim() === '';
+  });
+
+  if (missing.length > 0) {
+    throw createTemplateError(
+      'MISSING_REQUIRED_VALUE',
+      'Missing required placeholder value.',
+      { placeholders: missing },
+    );
+  }
+}
+
+function renderTemplate(template = '', values = {}) {
+  const normalizedTemplate = String(template || '');
+
+  assertKnownTemplatePlaceholders(normalizedTemplate);
+  assertRequiredTemplatePlaceholders(normalizedTemplate);
+  assertRequiredTemplateValues(values);
+
+  return normalizedTemplate.replace(PLACEHOLDER_MATCHER, (match, key) => {
+    const normalizedKey = String(key || '').trim();
+    if (!REPORT_PLACEHOLDER_KEYS.includes(normalizedKey)) {
+      return match;
+    }
+
+    return escapeHtml(values?.[normalizedKey] ?? '');
+  });
 }
 
 function normalizeWhitespace(value = '') {
@@ -394,15 +513,190 @@ function normalizeAiPayloadObject(input = {}) {
   return normalized;
 }
 
+function normalizeInputSnapshot(input = {}) {
+  const candidate = toPlainObject(input);
+  const normalized = {};
+
+  const name = truncateText(
+    firstDefined(candidate.name, candidate.nome, candidate.participant_name, candidate.participantName),
+    160,
+  );
+  const profile = truncateText(
+    firstDefined(
+      candidate.profile,
+      candidate.profile_name,
+      candidate.profileName,
+      candidate.profile_code,
+      candidate.profileCode,
+    ),
+    160,
+  );
+  const cargo = truncateText(
+    firstDefined(candidate.cargo, candidate.role, candidate.job_title, candidate.jobTitle),
+    160,
+  );
+  const empresa = truncateText(
+    firstDefined(candidate.empresa, candidate.company, candidate.company_name, candidate.companyName),
+    160,
+  );
+  const data = truncateText(
+    firstDefined(candidate.data, candidate.date, candidate.assessment_date, candidate.assessmentDate),
+    64,
+  );
+
+  if (name) normalized.name = name;
+  if (profile) normalized.profile = profile;
+  if (cargo) normalized.cargo = cargo;
+  if (empresa) normalized.empresa = empresa;
+  if (data) normalized.data = data;
+
+  return normalized;
+}
+
+function readSnapshotScore(input = {}, candidates = []) {
+  const source = toPlainObject(input);
+  for (const key of candidates) {
+    if (source[key] !== undefined && source[key] !== null && source[key] !== '') {
+      return source[key];
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeScoringSnapshot(input = {}) {
+  const candidate = toPlainObject(input);
+  const nestedScores = toPlainObject(
+    firstDefined(candidate.scores, candidate.disc, candidate.disc_scores, candidate.score_map, candidate.scoreMap),
+  );
+
+  const rawScores = {
+    D: firstDefined(
+      readSnapshotScore(candidate, ['D', 'd', 'disc_d', 'discD']),
+      readSnapshotScore(nestedScores, ['D', 'd', 'disc_d', 'discD']),
+    ),
+    I: firstDefined(
+      readSnapshotScore(candidate, ['I', 'i', 'disc_i', 'discI']),
+      readSnapshotScore(nestedScores, ['I', 'i', 'disc_i', 'discI']),
+    ),
+    S: firstDefined(
+      readSnapshotScore(candidate, ['S', 's', 'disc_s', 'discS']),
+      readSnapshotScore(nestedScores, ['S', 's', 'disc_s', 'discS']),
+    ),
+    C: firstDefined(
+      readSnapshotScore(candidate, ['C', 'c', 'disc_c', 'discC']),
+      readSnapshotScore(nestedScores, ['C', 'c', 'disc_c', 'discC']),
+    ),
+  };
+
+  const hasScores = Object.values(rawScores).some(
+    (value) => value !== undefined && value !== null && value !== '',
+  );
+
+  if (!hasScores) {
+    return {};
+  }
+
+  const normalizedScores = normalizeScores(rawScores);
+  return {
+    disc_d: normalizedScores.D,
+    disc_i: normalizedScores.I,
+    disc_s: normalizedScores.S,
+    disc_c: normalizedScores.C,
+  };
+}
+
+function normalizeTemplateSnapshot(input = {}) {
+  const candidate = toPlainObject(input);
+  const html = String(
+    firstDefined(candidate.html, candidate.template_html, candidate.templateHtml) || '',
+  ).trim();
+  const language = String(firstDefined(candidate.language, candidate.lang) || '')
+    .trim()
+    .slice(0, 32);
+  const version = String(candidate.version || '').trim().slice(0, 64);
+  const placeholders = Array.isArray(
+    firstDefined(candidate.placeholders, candidate.required_placeholders, candidate.requiredPlaceholders),
+  )
+    ? firstDefined(candidate.placeholders, candidate.required_placeholders, candidate.requiredPlaceholders)
+        .filter((value) => REPORT_PLACEHOLDER_KEYS.includes(value))
+    : [];
+
+  return {
+    ...(html ? { html } : {}),
+    ...(language ? { language } : {}),
+    ...(version ? { version } : {}),
+    ...(placeholders.length > 0 ? { placeholders } : {}),
+  };
+}
+
 function normalizeAiPayloadFile(payload = null) {
-  const container = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  const container = toPlainObject(payload);
   const wrapped = Object.hasOwn(container, 'content') || Object.hasOwn(container, 'rawContent');
-  const content = normalizeAiPayloadObject(wrapped ? container.content : container);
-  const rawContent = normalizeAiPayloadObject(wrapped ? container.rawContent : container);
+  const contentSource = wrapped ? toPlainObject(container.content) : {};
+  const rawContentSource = wrapped ? toPlainObject(container.rawContent) : container;
+  const content = normalizeAiPayloadObject(contentSource);
+  const rawContent = normalizeAiPayloadObject(rawContentSource);
+  const inputSnapshot = normalizeInputSnapshot(
+    firstDefined(
+      container.input_snapshot,
+      container.inputSnapshot,
+      contentSource.input_snapshot,
+      contentSource.inputSnapshot,
+      rawContentSource.input_snapshot,
+      rawContentSource.inputSnapshot,
+    ),
+  );
+  const scoringSnapshot = normalizeScoringSnapshot(
+    firstDefined(
+      container.scoring_snapshot,
+      container.scoringSnapshot,
+      contentSource.scoring_snapshot,
+      contentSource.scoringSnapshot,
+      rawContentSource.scoring_snapshot,
+      rawContentSource.scoringSnapshot,
+    ),
+  );
+  const version = String(
+    firstDefined(container.version, container.meta?.version, rawContentSource.version, contentSource.version) || '',
+  )
+    .trim()
+    .slice(0, 64);
+  const language = String(
+    firstDefined(
+      container.language,
+      container.lang,
+      container.locale,
+      container.meta?.language,
+      rawContentSource.language,
+      contentSource.language,
+    ) || '',
+  )
+    .trim()
+    .slice(0, 32);
+  const cache = clonePlainObject(
+    firstDefined(container.cache, container.meta?.cache, rawContentSource.cache, contentSource.cache),
+  );
+  const templateSnapshot = normalizeTemplateSnapshot(
+    firstDefined(
+      container.template_snapshot,
+      container.templateSnapshot,
+      contentSource.template_snapshot,
+      contentSource.templateSnapshot,
+      rawContentSource.template_snapshot,
+      rawContentSource.templateSnapshot,
+    ),
+  );
 
   return {
     content,
     rawContent,
+    input_snapshot: inputSnapshot,
+    scoring_snapshot: scoringSnapshot,
+    template_snapshot: templateSnapshot,
+    cache,
+    version,
+    language,
   };
 }
 
@@ -414,6 +708,12 @@ function readAiPayload(args = {}) {
       enabled: false,
       content: {},
       rawContent: {},
+      input_snapshot: {},
+      scoring_snapshot: {},
+      template_snapshot: {},
+      cache: {},
+      version: '',
+      language: '',
     };
   }
 
@@ -424,8 +724,12 @@ function readAiPayload(args = {}) {
     if (Array.isArray(value)) return value.length > 0;
     return false;
   });
+  const hasRuntimeContext =
+    Object.keys(payload.input_snapshot || {}).length > 0 ||
+    Object.keys(payload.scoring_snapshot || {}).length > 0 ||
+    Object.keys(payload.template_snapshot || {}).length > 0;
 
-  if (!enabled) {
+  if (!enabled && !hasRuntimeContext) {
     console.warn('[disc-engine] payload AI presente, mas sem campos textuais utilizáveis; mantendo template padrão');
   }
 
@@ -434,31 +738,57 @@ function readAiPayload(args = {}) {
     enabled,
     content: payload.content,
     rawContent: payload.rawContent,
+    input_snapshot: payload.input_snapshot,
+    scoring_snapshot: payload.scoring_snapshot,
+    template_snapshot: payload.template_snapshot,
+    cache: payload.cache,
+    version: payload.version,
+    language: payload.language,
   };
 }
 
 function buildContext(args) {
+  const ai = readAiPayload(args);
+  const inputSnapshot = normalizeInputSnapshot(
+    firstDefined(args.input_snapshot, args.inputSnapshot, ai.input_snapshot),
+  );
+  const scoringSnapshot = normalizeScoringSnapshot(
+    firstDefined(args.scoring_snapshot, args.scoringSnapshot, ai.scoring_snapshot),
+  );
   const mode = normalizeMode(args.mode);
   const scores = normalizeScores({
-    D: args.d ?? args.D,
-    I: args.i ?? args.I,
-    S: args.s ?? args.S,
-    C: args.c ?? args.C,
+    D: firstDefined(args.d, args.D, scoringSnapshot.disc_d),
+    I: firstDefined(args.i, args.I, scoringSnapshot.disc_i),
+    S: firstDefined(args.s, args.S, scoringSnapshot.disc_s),
+    C: firstDefined(args.c, args.C, scoringSnapshot.disc_c),
   });
   const profile = computeProfile(scores);
   const ranks = getRankLabels(profile);
+  const language = String(firstDefined(args.language, ai.language, 'pt-BR') || 'pt-BR').trim() || 'pt-BR';
+  const version = String(firstDefined(args.version, ai.version) || '').trim();
+  const cache = clonePlainObject(firstDefined(args.cache, ai.cache));
+  const profileLabel = escapeHtml(
+    firstDefined(inputSnapshot.profile, `${profile.compactCode} (${profile.name})`) || `${profile.compactCode} (${profile.name})`,
+  );
 
   return {
     mode,
     output: args.output || DEFAULT_OUTPUTS[mode],
-    nome: escapeHtml(args.nome ?? DEFAULT_INPUT.nome),
-    cargo: escapeHtml(args.cargo ?? DEFAULT_INPUT.cargo),
-    empresa: escapeHtml(args.empresa ?? DEFAULT_INPUT.empresa),
-    data: escapeHtml(args.data ?? DEFAULT_INPUT.data),
+    nome: escapeHtml(firstDefined(args.nome, inputSnapshot.name, DEFAULT_INPUT.nome) || DEFAULT_INPUT.nome),
+    cargo: escapeHtml(firstDefined(args.cargo, inputSnapshot.cargo, DEFAULT_INPUT.cargo) || DEFAULT_INPUT.cargo),
+    empresa: escapeHtml(firstDefined(args.empresa, inputSnapshot.empresa, DEFAULT_INPUT.empresa) || DEFAULT_INPUT.empresa),
+    data: escapeHtml(firstDefined(args.data, inputSnapshot.data, DEFAULT_INPUT.data) || DEFAULT_INPUT.data),
     scores,
     profile,
+    profileLabel,
     ranks,
-    ai: readAiPayload(args),
+    ai,
+    input_snapshot: inputSnapshot,
+    scoring_snapshot: scoringSnapshot,
+    template_snapshot: normalizeTemplateSnapshot(ai.template_snapshot),
+    cache,
+    version,
+    language,
   };
 }
 
@@ -470,9 +800,9 @@ function normalizeMode(value = 'business') {
   return DEFAULT_OUTPUTS[normalized] ? normalized : 'business';
 }
 
-function readMasterTemplate() {
-  const templatePath = resolve(__dirname, MASTER_TEMPLATE);
-  const raw = readFileSync(templatePath, 'utf8');
+function readMasterTemplate(context = {}) {
+  const inlineTemplate = String(context?.template_snapshot?.html || '').trim();
+  const raw = inlineTemplate || readFileSync(resolve(__dirname, MASTER_TEMPLATE), 'utf8');
 
   if (raw.includes('</body>') && raw.includes('</html>')) {
     return raw;
@@ -497,8 +827,18 @@ function injectScoreValues(html, context) {
     .replaceAll('__DISC_SCORE_C__', `${context.scores.C}%`);
 }
 
+function injectPlaceholderValues(html, context) {
+  return html
+    .replaceAll(PLACEHOLDER_TOKENS.name, context.nome)
+    .replaceAll(PLACEHOLDER_TOKENS.profile, context.profileLabel)
+    .replaceAll(PLACEHOLDER_TOKENS.disc_d, String(context.scores.D))
+    .replaceAll(PLACEHOLDER_TOKENS.disc_i, String(context.scores.I))
+    .replaceAll(PLACEHOLDER_TOKENS.disc_s, String(context.scores.S))
+    .replaceAll(PLACEHOLDER_TOKENS.disc_c, String(context.scores.C));
+}
+
 function applyBaseReplacements(html, context) {
-  let result = tokenizeScoreValues(html);
+  let result = injectPlaceholderValues(tokenizeScoreValues(html), context);
 
   result = result
     .replaceAll('João Silva', context.nome)
@@ -509,8 +849,8 @@ function applyBaseReplacements(html, context) {
   result = injectScoreValues(result, context);
 
   result = result
-    .replaceAll('DI (Dominante Influente)', `${context.profile.compactCode} (${context.profile.name})`)
-    .replaceAll('DOMINANTE INFLUENTE', context.profile.name.toLocaleUpperCase('pt-BR'))
+    .replaceAll('DI (Dominante Influente)', context.profileLabel)
+    .replaceAll('DOMINANTE INFLUENTE', context.profile.name.toLocaleUpperCase(context.language))
     .replaceAll('Dominante Influente', context.profile.name)
     .replaceAll('D+I', `${context.profile.primary}+${context.profile.secondary}`)
     .replaceAll('D/I', context.profile.slashCode);
@@ -1176,7 +1516,7 @@ function renumberPages(html) {
 }
 
 function generateFinalHtml(context) {
-  const masterHtml = readMasterTemplate();
+  const masterHtml = readMasterTemplate(context);
   const withValues = applyProfileHeadingReplacements(
     applyRankReplacements(applyBaseReplacements(masterHtml, context), context),
     context,
@@ -1206,4 +1546,5 @@ export {
   generateFinalHtml,
   normalizeAiPayloadFile,
   readAiPayload,
+  renderTemplate,
 };
