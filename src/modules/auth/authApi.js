@@ -8,8 +8,21 @@ import {
 const AUTH_HEALTHCHECK_TIMEOUT_MS = 2_500;
 const AUTH_REQUEST_TIMEOUT_MS = 8_000;
 
+function getAuthRuntimeOptions() {
+  return {
+    runtimeOrigin: typeof window !== 'undefined' ? window.location?.origin || '' : '',
+    prod:
+      typeof import.meta !== 'undefined' && import.meta?.env
+        ? Boolean(import.meta.env.PROD)
+        : undefined,
+  };
+}
+
 export function resolveAuthRequestUrl(path, apiBaseUrl = '') {
-  return resolveApiRequestUrl(path, { baseUrl: apiBaseUrl });
+  return resolveApiRequestUrl(path, {
+    baseUrl: apiBaseUrl,
+    ...getAuthRuntimeOptions(),
+  });
 }
 
 export function mapAuthRequestError(error, { apiBaseUrl = '', path = '' } = {}) {
@@ -23,7 +36,7 @@ export function mapAuthRequestError(error, { apiBaseUrl = '', path = '' } = {}) 
 
   if (code === 'API_HEALTHCHECK_FAILED') {
     return targetUrl
-      ? `Servidor backend não está acessível no momento em ${apiBaseUrl || targetUrl}.`
+      ? `Servidor backend não está acessível no momento em ${targetUrl}.`
       : 'Servidor backend não está acessível no momento.';
   }
 
@@ -85,6 +98,7 @@ export async function ensureAuthApiAvailable({
     timeoutMs,
     retry,
     retryDelayMs: 200,
+    ...getAuthRuntimeOptions(),
   });
 }
 
@@ -106,5 +120,6 @@ export async function submitAuthRequest({
     retryDelayMs: 300,
     retryOnStatuses: [502, 503, 504],
     includeAuthHeaders: false,
+    ...getAuthRuntimeOptions(),
   });
 }

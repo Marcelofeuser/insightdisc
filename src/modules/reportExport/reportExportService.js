@@ -52,12 +52,14 @@ export function downloadPdfBlob(blob, fileName = 'insightdisc-relatorio-oficial.
 
 function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '') {
   const directUrl = resolveApiRequestUrl(
-    publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || '',
+    publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || publicAccess?.pdfUrl || '',
     { baseUrl: apiBaseUrl },
   );
   if (directUrl) return directUrl;
 
-  const token = String(publicAccess?.token || '').trim();
+  const token = String(
+    publicAccess?.token || publicAccess?.publicToken || publicAccess?.public_token || '',
+  ).trim();
   if (!token) return '';
 
   return resolveApiRequestUrl(
