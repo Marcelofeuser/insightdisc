@@ -66,6 +66,39 @@ const DEFAULT_PROMO_FORM = Object.freeze({
   userRole: 'PRO',
 });
 
+function buildDirectBackendRequestOptions(baseUrl = '') {
+  const normalized = String(baseUrl || '').trim();
+  return normalized ? { baseUrl: normalized, runtimeOrigin: normalized } : {};
+}
+
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
+function normalizeSuperAdminUiError(error, fallback = 'Não foi possível concluir esta ação.') {
+  const rawMessage = String(error?.payload?.message || error?.message || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const code = String(error?.code || error?.payload?.error || error?.payload?.reason || rawMessage)
+    .trim()
+    .toUpperCase();
+
+  if (!rawMessage) return fallback;
+  if (code.includes('NOT_FOUND') || code === 'BACKEND_ROUTE_NOT_FOUND' || /^HTTP_404$/i.test(code)) {
+    return fallback;
+  }
+  if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+    return fallback;
+  }
+  if (isOpaqueUiErrorMessage(rawMessage)) {
+    return fallback;
+  }
+
+  return rawMessage;
+}
+
 function formatDateTime(value) {
   if (!value) return '-';
   const date = new Date(value);
@@ -153,6 +186,10 @@ export default function CampaignsPanel() {
   const { toast } = useToast();
   const apiBaseUrl = getApiBaseUrl();
   const requestBaseUrl = apiBaseUrl;
+  const directBackendRequestOptions = useMemo(
+    () => buildDirectBackendRequestOptions(requestBaseUrl),
+    [requestBaseUrl],
+  );
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [campaigns, setCampaigns] = useState([]);
   const [coupons, setCoupons] = useState([]);
@@ -201,22 +238,22 @@ export default function CampaignsPanel() {
         apiRequest('/api/campaigns/overview', {
           method: 'GET',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
+          ...directBackendRequestOptions,
         }),
         apiRequest('/api/campaigns', {
           method: 'GET',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
+          ...directBackendRequestOptions,
         }),
         apiRequest('/api/campaigns/coupons', {
           method: 'GET',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
+          ...directBackendRequestOptions,
         }),
         apiRequest('/api/campaigns/promo-accounts', {
           method: 'GET',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
+          ...directBackendRequestOptions,
         }),
       ]);
 
@@ -225,12 +262,12 @@ export default function CampaignsPanel() {
       setCoupons(Array.isArray(couponsPayload?.coupons) ? couponsPayload.coupons : []);
       setPromoAccounts(Array.isArray(promoPayload?.promoAccounts) ? promoPayload.promoAccounts : []);
     } catch (loadError) {
-      setError(loadError?.payload?.message || loadError?.message || 'Não foi possível carregar campanhas.');
+      setError(normalizeSuperAdminUiError(loadError, 'Não foi possível carregar campanhas.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [requestBaseUrl]);
+  }, [directBackendRequestOptions, requestBaseUrl]);
 
   useEffect(() => {
     void loadData({ showRefreshState: false });
@@ -319,15 +356,15 @@ export default function CampaignsPanel() {
         await apiRequest(`/api/campaigns/${editingCampaign.id}`, {
           method: 'PATCH',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
           body: payload,
+          ...directBackendRequestOptions,
         });
       } else {
         await apiRequest('/api/campaigns', {
           method: 'POST',
           requireAuth: true,
-          baseUrl: requestBaseUrl,
           body: payload,
+          ...directBackendRequestOptions,
         });
       }
 
@@ -341,7 +378,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao salvar campanha',
-        description: saveError?.payload?.message || saveError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(saveError, 'Tente novamente.'),
       });
     } finally {
       setSavingCampaign(false);
@@ -355,7 +392,7 @@ export default function CampaignsPanel() {
       await apiRequest(`/api/campaigns/${campaign.id}/${nextAction}`, {
         method: 'POST',
         requireAuth: true,
-        baseUrl: requestBaseUrl,
+        ...directBackendRequestOptions,
       });
       toast({
         title: nextAction === 'activate' ? 'Campanha ativada' : 'Campanha pausada',
@@ -366,7 +403,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar campanha',
-        description: actionError?.payload?.message || actionError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(actionError, 'Tente novamente.'),
       });
     } finally {
       setRunningCampaignAction('');
@@ -398,12 +435,12 @@ export default function CampaignsPanel() {
       const payload = await apiRequest(`/api/campaigns/${couponDialog.campaign.id}/coupons/generate`, {
         method: 'POST',
         requireAuth: true,
-        baseUrl: requestBaseUrl,
         body: {
           quantity,
           prefix: couponDialog.form.prefix,
           allowOverflow: Boolean(couponDialog.form.allowOverflow),
         },
+        ...directBackendRequestOptions,
       });
       setCouponDialog({ open: false, campaign: null, form: DEFAULT_COUPON_FORM });
       toast({
@@ -417,7 +454,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao gerar cupons',
-        description: actionError?.payload?.message || actionError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(actionError, 'Tente novamente.'),
       });
     } finally {
       setRunningCampaignAction('');
@@ -436,7 +473,7 @@ export default function CampaignsPanel() {
   };
 
   const downloadCsv = useCallback(async (path, fallbackName) => {
-    const endpoint = resolveApiRequestUrl(path, { baseUrl: requestBaseUrl });
+    const endpoint = resolveApiRequestUrl(path, directBackendRequestOptions);
     if (!endpoint) {
       throw new Error('CSV_ENDPOINT_MISSING');
     }
@@ -474,7 +511,6 @@ export default function CampaignsPanel() {
       const payload = await apiRequest(`/api/campaigns/${promoDialog.campaign.id}/promo-accounts/generate`, {
         method: 'POST',
         requireAuth: true,
-        baseUrl: requestBaseUrl,
         body: {
           quantity,
           emailPrefix: promoDialog.form.emailPrefix,
@@ -482,6 +518,7 @@ export default function CampaignsPanel() {
           allowOverflow: Boolean(promoDialog.form.allowOverflow),
           userRole: promoDialog.form.userRole,
         },
+        ...directBackendRequestOptions,
       });
       setPromoDialog({ open: false, campaign: null, form: DEFAULT_PROMO_FORM });
       toast({
@@ -498,7 +535,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao gerar contas promocionais',
-        description: actionError?.payload?.message || actionError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(actionError, 'Tente novamente.'),
       });
     } finally {
       setRunningCampaignAction('');
@@ -515,7 +552,7 @@ export default function CampaignsPanel() {
       await apiRequest(`/api/campaigns/coupons/${coupon.id}/disable`, {
         method: 'POST',
         requireAuth: true,
-        baseUrl: requestBaseUrl,
+        ...directBackendRequestOptions,
       });
       toast({
         title: 'Cupom desabilitado',
@@ -526,7 +563,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao desabilitar cupom',
-        description: actionError?.payload?.message || actionError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(actionError, 'Tente novamente.'),
       });
     } finally {
       setRunningCampaignAction('');
@@ -542,14 +579,14 @@ export default function CampaignsPanel() {
       const payload = await apiRequest(`/api/campaigns/${campaign.id}/audit`, {
         method: 'GET',
         requireAuth: true,
-        baseUrl: requestBaseUrl,
+        ...directBackendRequestOptions,
       });
       setAuditLogs(Array.isArray(payload?.logs) ? payload.logs : []);
     } catch (auditError) {
       toast({
         variant: 'destructive',
         title: 'Falha ao carregar auditoria',
-        description: auditError?.payload?.message || auditError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(auditError, 'Tente novamente.'),
       });
     } finally {
       setLoadingAudit(false);
@@ -564,7 +601,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao exportar campanhas',
-        description: exportError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(exportError, 'Tente novamente.'),
       });
     }
   };
@@ -580,7 +617,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao exportar cupons',
-        description: exportError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(exportError, 'Tente novamente.'),
       });
     }
   };
@@ -603,7 +640,7 @@ export default function CampaignsPanel() {
       toast({
         variant: 'destructive',
         title: 'Falha ao exportar contas promocionais',
-        description: exportError?.message || 'Tente novamente.',
+        description: normalizeSuperAdminUiError(exportError, 'Tente novamente.'),
       });
     }
   };

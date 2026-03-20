@@ -55,6 +55,39 @@ const EMPTY_OVERVIEW = Object.freeze({
 
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
 
+function buildDirectBackendRequestOptions(baseUrl = '') {
+  const normalized = String(baseUrl || '').trim();
+  return normalized ? { baseUrl: normalized, runtimeOrigin: normalized } : {};
+}
+
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
+function normalizeSuperAdminUiError(error, fallback = 'Não foi possível carregar o painel no momento.') {
+  const rawMessage = String(error?.payload?.message || error?.message || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const code = String(error?.code || error?.payload?.error || error?.payload?.reason || rawMessage)
+    .trim()
+    .toUpperCase();
+
+  if (!rawMessage) return fallback;
+  if (code.includes('NOT_FOUND') || code === 'BACKEND_ROUTE_NOT_FOUND' || /^HTTP_404$/i.test(code)) {
+    return fallback;
+  }
+  if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+    return fallback;
+  }
+  if (isOpaqueUiErrorMessage(rawMessage)) {
+    return fallback;
+  }
+
+  return rawMessage;
+}
+
 function formatDate(value) {
   const date = new Date(value || Date.now());
   if (Number.isNaN(date.getTime())) return '-';
@@ -201,6 +234,10 @@ export default function SuperAdminDashboard() {
 
   const apiBaseUrl = getApiBaseUrl();
   const token = getApiToken();
+  const directBackendRequestOptions = useMemo(
+    () => buildDirectBackendRequestOptions(apiBaseUrl),
+    [apiBaseUrl],
+  );
 
   const resolveAbsoluteApiUrl = useCallback(
     (rawUrl = '') => {
@@ -219,6 +256,7 @@ export default function SuperAdminDashboard() {
       const payload = await apiRequest('/super-admin/overview', {
         method: 'GET',
         requireAuth: true,
+        ...directBackendRequestOptions,
       });
       const normalizedAssessments = Array.isArray(payload?.latestAssessments)
         ? payload.latestAssessments.map((assessment) => ({
@@ -277,12 +315,12 @@ export default function SuperAdminDashboard() {
         latestAssessments: normalizedAssessments,
       });
     } catch (loadError) {
-      setError(loadError?.payload?.error || loadError?.message || 'Falha ao carregar dashboard.');
+      setError(normalizeSuperAdminUiError(loadError, 'Falha ao carregar dashboard.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [resolveAbsoluteApiUrl]);
+  }, [directBackendRequestOptions, resolveAbsoluteApiUrl]);
 
   useEffect(() => {
     void loadOverview(false);
@@ -487,7 +525,7 @@ export default function SuperAdminDashboard() {
     }
 
     try {
-      const response = await fetch(resolveApiRequestUrl('/api/leads/export/csv', { baseUrl: apiBaseUrl }), {
+      const response = await fetch(resolveApiRequestUrl('/api/leads/export/csv', directBackendRequestOptions), {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -528,6 +566,7 @@ export default function SuperAdminDashboard() {
         method: 'PATCH',
         requireAuth: true,
         body: { status },
+        ...directBackendRequestOptions,
       });
 
       setOverview((prev) => ({
@@ -564,6 +603,7 @@ export default function SuperAdminDashboard() {
         method: 'POST',
         requireAuth: true,
         body: { assessmentId, reportType: 'business' },
+        ...directBackendRequestOptions,
       });
 
       const previewPath = firstNonEmpty(
