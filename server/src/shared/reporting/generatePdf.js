@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { buildReportModel } from './buildReportModel.js';
-import { renderReportHtml } from './renderReportHtml.js';
+import { assertOfficialReportHtml, renderReportHtml } from '../../modules/report/render-report-html.js';
 import { normalizeReportType } from '../../modules/report/report-type.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,6 +83,20 @@ async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true });
 }
 
+function assertNoRawPlaceholders(html = '') {
+  const placeholders = String(html || '').match(/\{\{\s*[a-z_]+\s*\}\}/g) || [];
+  if (placeholders.length === 0) {
+    return;
+  }
+
+  const error = new Error('Raw placeholders found in rendered report HTML.');
+  error.code = 'MISSING_REQUIRED_PLACEHOLDER';
+  error.details = {
+    placeholders: [...new Set(placeholders)],
+  };
+  throw error;
+}
+
 function outputFileName(reportModel) {
   const reportId =
     reportModel?.meta?.reportId ||
@@ -154,7 +168,12 @@ export async function generatePdfFromData(rawData, options = {}) {
   };
 
   const reportModel = await buildReportModel(input);
+  await assertOfficialReportHtml({
+    assessment: rawData?.assessment || {},
+    reportModel,
+  });
   const html = renderReportHtml({ reportModel });
+  assertNoRawPlaceholders(html);
   const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
   const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);
 

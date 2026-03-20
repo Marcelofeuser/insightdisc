@@ -11,7 +11,7 @@ import { requireReportExport } from '../middleware/require-report-export.js';
 import { buildPremiumReportModel } from '../modules/report/build-report.js';
 import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { normalizeReportType as normalizeCanonicalReportType } from '../modules/report/report-type.js';
-import { renderReportHtml } from '../modules/report/render-report-html.js';
+import { assertOfficialReportHtml, renderReportHtml } from '../modules/report/render-report-html.js';
 import { gerarRelatorio, normalizeMode as normalizeDiscMode } from '../services/reportGenerator.js';
 
 const router = Router();
@@ -392,6 +392,7 @@ router.get(
         currentUser: req.user || null,
         reportType: normalizeReportType(req.query?.type || req.query?.reportType),
       });
+      await assertOfficialReportHtml({ assessment, reportModel });
       const html = renderReportHtml({ assessment, reportModel });
 
       return res.status(200).json({ ok: true, html });

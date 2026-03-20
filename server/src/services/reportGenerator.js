@@ -55,6 +55,13 @@ const REPORT_OUTPUTS = {
     pdf: 'relatorio_disc_business.pdf',
   },
 };
+const OFFICIAL_TEMPLATE_PATHS = Object.freeze({
+  personal: 'templates/reports/relatorio_disc_personal.html',
+  professional: 'templates/reports/relatorio_disc_professional.html',
+  business: 'templates/reports/relatorio_disc_business.html',
+});
+const OFFICIAL_TEMPLATE_VALIDATION_HTML =
+  '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8" /></head><body>{{name}} {{profile}} {{disc_d}} {{disc_i}} {{disc_s}} {{disc_c}}</body></html>';
 const modeLocks = new Map();
 const templateCache = new Map();
 const templateInflight = new Map();
@@ -560,6 +567,11 @@ function invalidateTemplateCache() {
   templateInflight.clear();
 }
 
+function resolveOfficialTemplatePath(reportType = 'business') {
+  const normalizedReportType = normalizeMode(reportType);
+  return OFFICIAL_TEMPLATE_PATHS[normalizedReportType] || OFFICIAL_TEMPLATE_PATHS.business;
+}
+
 async function buildReportHtmlPreview({
   reportType = 'business',
   scores,
@@ -726,6 +738,99 @@ async function generateHtmlPreview({
   });
 
   return discRuntime.generateFinalHtml(context);
+}
+
+function resolveOfficialValidationProfile(reportModel = {}, assessment = {}) {
+  const participant = toPlainObject(reportModel?.participant);
+  const profile = toPlainObject(reportModel?.profile);
+  const assessmentProfile = toPlainObject(assessment?.report?.discProfile?.profile);
+
+  return (
+    toText(
+      pickFirstDefined(
+        participant.profile,
+        participant.profileName,
+        reportModel?.profileLabel,
+        profile.title,
+        profile.label,
+        assessmentProfile.label,
+        assessmentProfile.title,
+        profile.key && profile.archetype ? `${profile.key} (${profile.archetype})` : '',
+        profile.key,
+      ),
+    ) || ''
+  );
+}
+
+function resolveOfficialValidationScores(reportModel = {}, assessment = {}) {
+  const reportScores = toPlainObject(reportModel?.scores);
+  const assessmentScores = toPlainObject(assessment?.results);
+  const discScores = toPlainObject(assessment?.disc_results);
+
+  return resolveScoreInputs({
+    scores: pickFirstDefined(
+      reportScores.natural,
+      reportScores.summary,
+      assessmentScores.natural_profile,
+      discScores.natural,
+      assessment?.report?.discProfile?.scores?.natural,
+      assessment?.report?.discProfile?.scores?.summary,
+    ) || {},
+    allowDefaultValues: false,
+  });
+}
+
+function buildOfficialTemplateValidationInput({ reportModel = {}, assessment = {} } = {}) {
+  const participant = toPlainObject(reportModel?.participant);
+  const normalizedScores = resolveOfficialValidationScores(reportModel, assessment);
+
+  return {
+    reportType: normalizeMode(reportModel?.meta?.reportType || reportModel?.reportType),
+    input_snapshot: {
+      assessment: {
+        name: toText(
+          pickFirstDefined(
+            participant.name,
+            participant.candidateName,
+            participant.respondent_name,
+            assessment?.candidateName,
+            assessment?.respondent_name,
+            participant.email,
+            assessment?.candidateEmail,
+          ),
+        ),
+        profile: resolveOfficialValidationProfile(reportModel, assessment),
+      },
+    },
+    scoring_snapshot: {
+      assessment_result: {
+        result: {
+          disc_d: normalizedScores.D,
+          disc_i: normalizedScores.I,
+          disc_s: normalizedScores.S,
+          disc_c: normalizedScores.C,
+        },
+      },
+    },
+  };
+}
+
+async function assertOfficialTemplateCompatibility(input = {}) {
+  const validationInput = buildOfficialTemplateValidationInput(input);
+
+  return buildReportHtmlPreview({
+    reportType: validationInput.reportType,
+    input_snapshot: validationInput.input_snapshot,
+    scoring_snapshot: validationInput.scoring_snapshot,
+    templateHtml: OFFICIAL_TEMPLATE_VALIDATION_HTML,
+    templatePath: resolveOfficialTemplatePath(validationInput.reportType),
+    template_snapshot: {
+      required_placeholders: REPORT_PLACEHOLDER_KEYS,
+      language: 'pt-BR',
+      version: 'report.v1',
+    },
+    allowDefaultValues: false,
+  });
 }
 
 function buildAiArtifactPayload(aiResult = {}) {
@@ -1092,6 +1197,7 @@ export function gerarRelatorio({
 export {
   REPORT_OUTPUTS,
   basePath as REPORT_BASE_PATH,
+  assertOfficialTemplateCompatibility,
   buildReportHtmlPreview,
   generateHtmlPreview,
   invalidateTemplateCache,
