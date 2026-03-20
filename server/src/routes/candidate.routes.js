@@ -29,6 +29,28 @@ function statusCodeByReason(reason) {
   return 400;
 }
 
+function hasEligiblePortalSaveAccess(user = {}) {
+  const plan = String(user.plan || user.workspace_plan || user.subscription_plan || '')
+    .trim()
+    .toLowerCase();
+  const hasPaidPlan = ['premium', 'pro', 'professional', 'business', 'enterprise'].includes(plan);
+  const hasPaidPurchase =
+    Boolean(user.has_paid_purchase) ||
+    Boolean(user.hasPaidPurchase) ||
+    Number(user.payments_count || user.paymentsCount || 0) > 0;
+  const entitlements = Array.isArray(user.entitlements)
+    ? user.entitlements
+    : Array.isArray(user.permissions)
+      ? user.permissions
+      : [];
+  const hasEligibleVoucher = entitlements.some((item) =>
+    ['report.pro', 'report.export.pdf'].includes(String(item || '').trim().toLowerCase()),
+  );
+  const role = String(user.role || '').trim().toUpperCase();
+
+  return role === 'SUPER_ADMIN' || hasPaidPlan || hasPaidPurchase || hasEligibleVoucher;
+}
+
 function issuePublicReportAccess({
   assessmentId,
   accountId = '',
@@ -268,38 +290,21 @@ async function claimReport(req, res) {
     let issuedToken = authContext.token;
 
     if (!user) {
-      if (!input.email || !input.password) {
-        return res.status(401).json({ ok: false, reason: 'AUTH_REQUIRED' });
-      }
+      return res.status(403).json({
+        ok: false,
+        reason: 'PORTAL_SAVE_NOT_ELIGIBLE',
+        message:
+          'Salvar uma cópia no portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.',
+      });
+    }
 
-      const normalizedEmail = input.email.toLowerCase();
-      user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email: normalizedEmail,
-            name: input.name || assessment.candidateName || 'Candidato',
-            role: 'CANDIDATE',
-            passwordHash: await hashPassword(input.password),
-            credits: { create: { balance: 0 } },
-          },
-        });
-      } else {
-        const validPassword = await verifyPassword(input.password, user.passwordHash);
-        if (!validPassword) {
-          return res.status(401).json({ ok: false, reason: 'INVALID_CREDENTIALS' });
-        }
-
-        if (user.role === 'CANDIDATE' && !user.name && input.name) {
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: { name: input.name },
-          });
-        }
-      }
-
-      issuedToken = signJwt({ sub: user.id, email: user.email, role: user.role });
+    if (!hasEligiblePortalSaveAccess(user)) {
+      return res.status(403).json({
+        ok: false,
+        reason: 'PORTAL_SAVE_NOT_ELIGIBLE',
+        message:
+          'Salvar uma cópia no portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.',
+      });
     }
 
     const expectedEmail = String(assessment.candidateEmail || '').trim().toLowerCase();

@@ -7,7 +7,9 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
+import { PLANS, isPlanAtLeast, resolvePlanFromAccess } from '@/modules/billing';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
 import { createPageUrl } from '@/utils';
@@ -114,6 +116,7 @@ export default function CandidateReport() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { toast } = useToast();
+  const { access } = useAuth();
 
   const assessmentId = params.get('id') || '';
   const token = params.get('token') || params.get('t') || '';
@@ -154,6 +157,9 @@ export default function CandidateReport() {
     }
     if (code.includes('REPORT_ALREADY_CLAIMED')) {
       return 'Este relatório já está vinculado a outro usuário.';
+    }
+    if (code.includes('PORTAL_SAVE_NOT_ELIGIBLE')) {
+      return 'Salvar uma cópia no portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.';
     }
     if (code.includes('AUTH_REQUIRED')) {
       return 'Faça login para salvar este relatório no portal.';
@@ -431,6 +437,12 @@ export default function CandidateReport() {
     () => (assessment && reportModel ? renderReportHtml({ assessment, reportModel }) : ''),
     [assessment, reportModel]
   );
+  const currentPlan = useMemo(() => resolvePlanFromAccess(access), [access]);
+  const isAuthenticated = Boolean(access?.userId);
+  const hasPaidPlan = isPlanAtLeast(currentPlan, PLANS.PROFESSIONAL);
+  const hasEligibleVoucher = Array.isArray(access?.entitlements)
+    && access.entitlements.some((item) => ['report.pro', 'report.export.pdf'].includes(String(item || '').trim().toLowerCase()));
+  const canSaveToOwnPortal = isAuthenticated && (hasPaidPlan || hasEligibleVoucher);
 
   const ensurePublicPdfUrl = async () => {
     if (availablePdfUrl) {
@@ -638,6 +650,16 @@ export default function CandidateReport() {
   };
 
   const saveToPortal = async () => {
+    if (!canSaveToOwnPortal) {
+      toast({
+        variant: 'destructive',
+        title: 'Ação indisponível',
+        description:
+          'Salvar uma cópia no seu portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.',
+      });
+      return;
+    }
+
     const resolvedAssessmentId = assessment?.id || assessmentId;
     if (!token || !resolvedAssessmentId) {
       toast({
@@ -656,12 +678,7 @@ export default function CandidateReport() {
           : false;
 
         if (!isAuthenticated) {
-          toast({
-            variant: 'destructive',
-            title: 'Faça login primeiro',
-            description: 'Entre na sua conta para salvar este relatório no portal.',
-          });
-          return;
+          throw new Error('PORTAL_SAVE_NOT_ELIGIBLE');
         }
 
         const currentUser = typeof base44?.auth?.me === 'function' ? await base44.auth.me() : null;
@@ -750,12 +767,17 @@ export default function CandidateReport() {
 
   return (
     <div className="space-y-4" data-testid="candidate-report-container">
-      <div className="rounded-xl border bg-white p-4 flex flex-wrap gap-2 items-center justify-between">
-        <div>
-          <div className="font-semibold text-slate-900">Relatório DISC</div>
-          <div className="text-xs text-slate-500">
-            Respondente: {assessment?.respondent_name || assessment?.candidateName || 'Participante'}
-          </div>
+      <div className="rounded-xl border bg-white p-4 flex flex-col gap-2 items-start">
+        <div className="font-semibold text-slate-900">Relatório DISC</div>
+        <div className="text-xs text-slate-500 mb-2">
+          Respondente: {assessment?.respondent_name || assessment?.candidateName || 'Participante'}
+        </div>
+        <div className="rounded-xl border border-green-200 bg-green-50 p-3 mb-2">
+          <span className="text-xs text-green-800">
+            Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.<br/>
+            <b>Use esta página para visualizar o conteúdo e baixar o PDF oficial.</b>
+            {canSaveToOwnPortal ? <><br />Sua conta atual também pode salvar uma cópia no próprio portal.</> : null}
+          </span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -765,18 +787,20 @@ export default function CandidateReport() {
             data-testid="candidate-report-download-pdf"
           >
             <Download className="w-4 h-4 mr-2" />
-            {isPreparingPdf ? 'Preparando...' : 'Baixar PDF'}
+            {isPreparingPdf ? 'Preparando...' : 'Baixar PDF oficial'}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={saveToPortal}
-            disabled={isPreparingPdf || isSavingToPortal}
-            className="rounded-lg"
-            data-testid="candidate-report-save-portal"
-          >
-            {isSavingToPortal ? 'Salvando...' : 'Salvar no meu portal'}
-          </Button>
+          {canSaveToOwnPortal ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={saveToPortal}
+              disabled={isPreparingPdf || isSavingToPortal}
+              className="rounded-lg"
+              data-testid="candidate-report-save-portal"
+            >
+              {isSavingToPortal ? 'Salvando...' : 'Salvar no meu portal'}
+            </Button>
+          ) : null}
         </div>
       </div>
 

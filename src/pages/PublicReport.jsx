@@ -109,6 +109,7 @@ export default function PublicReport() {
               <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-2">
                 <p className="text-sm text-green-800">
                   Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.
+                  Use este link para visualizar o conteúdo e baixar o PDF oficial.
                 </p>
                 <a
                   href={`/api/report/pdf?token=${encodeURIComponent(pathToken || searchParams.get('t') || searchParams.get('token') || '')}`}
@@ -136,13 +137,6 @@ export default function PublicReport() {
                   </Link>
                 </div>
               )}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-xs text-slate-600">
-                  Quer adicionar este relatório ao seu próprio portal?
-                  <br />
-                  <b>Crie sua conta ou faça login para adicionar uma cópia ao seu portal pessoal.</b>
-                </p>
-              </div>
             </div>
           </CardContent>
         </Card>
