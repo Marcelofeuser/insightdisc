@@ -114,7 +114,8 @@ function shouldProxyViaSameOrigin({
   runtimeOrigin = '',
   prod = false,
 } = {}) {
-  if (!isProductionRuntime(prod)) return false;
+  const hasExplicitProd = prod !== undefined && prod !== null && prod !== '';
+  if (!hasExplicitProd || !isProductionRuntime(prod)) return false;
 
   const normalizedRuntimeOrigin = getRuntimeOrigin(runtimeOrigin);
   const runtimeHost = getHostname(normalizedRuntimeOrigin);
@@ -733,7 +734,6 @@ export async function apiRequest(path, options = {}) {
   const url = resolveApiRequestUrl(path, {
     baseUrl,
     runtimeOrigin: options.runtimeOrigin,
-    prod: options.prod,
   });
 
   if (!url) {
@@ -797,7 +797,6 @@ export async function checkApiHealth(options = {}) {
   const url = resolveApiRequestUrl(API_HEALTHCHECK_PATH, {
     baseUrl,
     runtimeOrigin: options.runtimeOrigin,
-    prod: options.prod,
   });
 
   if (!url) {
