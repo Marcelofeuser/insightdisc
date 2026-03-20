@@ -5,6 +5,9 @@ const API_TOKEN_KEYS = [
   'server_api_token',
 ];
 
+const SUPER_ADMIN_TOKEN_KEY = 'insightdisc_super_admin_token';
+const SUPER_ADMIN_EMAIL_KEY = 'insightdisc_super_admin_email';
+
 const CANONICAL_PRODUCTION_API_URL = 'https://insightdisc-production.up.railway.app';
 const LOCAL_DEV_API_URL = 'http://localhost:4000';
 const DEFAULT_API_TIMEOUT_MS = 10_000;
@@ -157,7 +160,6 @@ function shouldUseVerboseLogs() {
 
 function logApiDebug(label, payload = {}) {
   if (!shouldUseVerboseLogs()) return;
-  // eslint-disable-next-line no-console
   console.info(`[apiClient] ${label}`, payload);
 }
 
@@ -199,9 +201,7 @@ function createApiError({
   error.requestUrl = String(requestUrl || '').trim();
   error.method = toMethod(method);
   error.responseText = String(responseText || '').slice(0, 512);
-  if (cause) {
-    error.cause = cause;
-  }
+  if (cause) error.cause = cause;
   return error;
 }
 
@@ -274,13 +274,6 @@ function isAbortError(error) {
   return error?.name === 'AbortError' || String(error?.message || '').toLowerCase().includes('abort');
 }
 
-function isTimeoutError(error) {
-  return (
-    String(error?.code || '').toUpperCase() === 'REQUEST_TIMEOUT' ||
-    String(error?.payload?.error || '').toUpperCase() === 'REQUEST_TIMEOUT'
-  );
-}
-
 function isNormalizedApiError(error) {
   return (
     Boolean(error?.payload) ||
@@ -289,7 +282,10 @@ function isNormalizedApiError(error) {
   );
 }
 
-function normalizeNetworkError(cause, { requestUrl = '', method = 'GET', timeoutMs = DEFAULT_API_TIMEOUT_MS } = {}) {
+function normalizeNetworkError(
+  cause,
+  { requestUrl = '', method = 'GET', timeoutMs = DEFAULT_API_TIMEOUT_MS } = {},
+) {
   if (isAbortError(cause)) {
     return createApiError({
       code: 'REQUEST_TIMEOUT',
@@ -331,13 +327,8 @@ export function isRetryableApiError(error, options = {}) {
   const status = Number(error?.status || 0);
   const code = String(error?.code || error?.payload?.error || error?.message || '').toUpperCase();
 
-  if (code === 'NETWORK_ERROR' || code === 'REQUEST_TIMEOUT') {
-    return true;
-  }
-
-  if (retryOnStatuses.has(status)) {
-    return true;
-  }
+  if (code === 'NETWORK_ERROR' || code === 'REQUEST_TIMEOUT') return true;
+  if (retryOnStatuses.has(status)) return true;
 
   return (
     code.includes('TEMPORARILY_UNAVAILABLE') ||
@@ -353,35 +344,17 @@ export function getApiErrorMessage(error, { apiBaseUrl = '', fallback = '' } = {
   const requestUrl = error?.requestUrl || apiBaseUrl || '';
   const serverMessage = String(error?.payload?.message || '').trim();
 
-  if (code === 'API_BASE_URL_NOT_CONFIGURED') {
-    return 'API não configurada para este ambiente.';
-  }
-
-  if (code === 'API_AUTH_MISSING') {
-    return 'Sessão ausente para esta requisição autenticada.';
-  }
-
-  if (code === 'REQUEST_TIMEOUT') {
-    return 'Tempo de resposta excedido.';
-  }
-
+  if (code === 'API_BASE_URL_NOT_CONFIGURED') return 'API não configurada para este ambiente.';
+  if (code === 'API_AUTH_MISSING') return 'Sessão ausente para esta requisição autenticada.';
+  if (code === 'REQUEST_TIMEOUT') return 'Tempo de resposta excedido.';
   if (code === 'NETWORK_ERROR') {
     return requestUrl
       ? `Não foi possível conectar com a API em ${requestUrl}.`
       : 'Não foi possível conectar com a API.';
   }
-
-  if (code === 'INVALID_JSON_RESPONSE') {
-    return 'A API respondeu com um payload inválido.';
-  }
-
-  if (code.includes('CORS')) {
-    return 'A API recusou a origem da requisição (CORS).';
-  }
-
-  if (status >= 500) {
-    return serverMessage || 'Servidor respondeu com erro interno.';
-  }
+  if (code === 'INVALID_JSON_RESPONSE') return 'A API respondeu com um payload inválido.';
+  if (code.includes('CORS')) return 'A API recusou a origem da requisição (CORS).';
+  if (status >= 500) return serverMessage || 'Servidor respondeu com erro interno.';
 
   return serverMessage || fallback || error?.message || 'Falha ao comunicar com a API.';
 }
@@ -403,27 +376,20 @@ export function resolveApiBaseUrl({
     return CANONICAL_PRODUCTION_API_URL;
   }
 
-  if (runtimeMode === 'e2e-core') {
-    return '';
-  }
+  if (runtimeMode === 'e2e-core') return '';
 
   const devShortcutsEnabled = Boolean(dev && enableDevLoginShortcuts);
-  if (devShortcutsEnabled && runtimeMode !== 'e2e-api') {
-    return '';
-  }
+  if (devShortcutsEnabled && runtimeMode !== 'e2e-api') return '';
 
   const configured = normalizeBaseUrl(configuredApiUrl || configuredApiBaseUrl || '');
   if (configured) {
     if (configured.startsWith('/') && normalizedRuntimeOrigin) {
       return normalizeBaseUrl(`${normalizedRuntimeOrigin}${configured}`);
     }
-
     return configured;
   }
 
-  if (isLocalRuntimeHost(runtimeHost)) {
-    return LOCAL_DEV_API_URL;
-  }
+  if (isLocalRuntimeHost(runtimeHost)) return LOCAL_DEV_API_URL;
 
   return '';
 }
@@ -444,6 +410,7 @@ export function getApiBaseUrl() {
 export function resolveApiRequestUrl(path, { baseUrl = '', runtimeOrigin = '', prod } = {}) {
   const raw = String(path || '').trim();
   if (!raw) return '';
+
   const normalizedRuntimeOrigin = getRuntimeOrigin(runtimeOrigin);
   const effectiveProd = isProductionRuntime(prod);
 
@@ -511,6 +478,16 @@ export function getApiToken() {
   return getFromStorage(API_TOKEN_KEYS);
 }
 
+export function getSuperAdminToken() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(SUPER_ADMIN_TOKEN_KEY) || '';
+}
+
+export function getSuperAdminEmail() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(SUPER_ADMIN_EMAIL_KEY) || '';
+}
+
 export function getApiUserEmail() {
   return getFromStorage(API_EMAIL_KEYS);
 }
@@ -529,6 +506,18 @@ export function setApiSession({ token = '', email = '' } = {}) {
   }
 }
 
+export function setSuperAdminSession({ token = '', email = '' } = {}) {
+  if (typeof window === 'undefined') return;
+
+  if (token) {
+    window.localStorage.setItem(SUPER_ADMIN_TOKEN_KEY, token);
+  }
+
+  if (email) {
+    window.localStorage.setItem(SUPER_ADMIN_EMAIL_KEY, String(email).toLowerCase());
+  }
+}
+
 export function clearApiSession() {
   if (typeof window === 'undefined') return;
 
@@ -538,12 +527,17 @@ export function clearApiSession() {
   });
 }
 
+export function clearSuperAdminSession() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
+  window.localStorage.removeItem(SUPER_ADMIN_EMAIL_KEY);
+}
+
 export function getApiAuthHeaders({
   token = getApiToken(),
   userEmail = getApiUserEmail(),
 } = {}) {
-  const headers = {
-    'ngrok-skip-browser-warning': '1',};
+  const headers = {};
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -556,15 +550,25 @@ export function getApiAuthHeaders({
   return headers;
 }
 
+function isSuperAdminProtectedRoute(url = '') {
+  return (
+    (url.includes('/super-admin/') || url.includes('/auth/super-admin/')) &&
+    !url.endsWith('/super-admin-login')
+  );
+}
+
 async function performFetchRequest(url, options = {}) {
   const method = toMethod(options.method || 'GET');
   const timeoutMs = normalizeTimeout(options.timeoutMs, DEFAULT_API_TIMEOUT_MS);
   const baseHeaders = {
     ...(options.headers || {}),
   };
+
+  const isSuperAdminContext = isSuperAdminProtectedRoute(url);
   const includeAuthHeaders = options.includeAuthHeaders !== false;
-  const token = options.token || getApiToken();
-  const userEmail = options.userEmail || getApiUserEmail();
+  const token = options.token || (isSuperAdminContext ? getSuperAdminToken() : getApiToken());
+  const userEmail =
+    options.userEmail || (isSuperAdminContext ? getSuperAdminEmail() : getApiUserEmail());
 
   if (options.requireAuth && !token && !userEmail) {
     throw createApiError({
@@ -595,6 +599,7 @@ async function performFetchRequest(url, options = {}) {
   const timeoutId = setTimeout(() => {
     timeoutController.abort('timeout');
   }, timeoutMs);
+
   const signal = mergeAbortSignals(options.signal, timeoutController.signal);
   const startedAt = Date.now();
 
@@ -629,6 +634,13 @@ async function performFetchRequest(url, options = {}) {
       ok: response.ok,
     });
 
+    if (response.ok && url.endsWith('/auth/super-admin-login') && method === 'POST') {
+      setSuperAdminSession({
+        token: payload?.token,
+        email: payload?.user?.email,
+      });
+    }
+
     if (!response.ok) {
       throw createApiError({
         code: payload?.error || payload?.reason || `HTTP_${response.status}`,
@@ -648,6 +660,10 @@ async function performFetchRequest(url, options = {}) {
 
     return payload;
   } catch (error) {
+    if (isSuperAdminContext && Number(error?.status) === 401) {
+      clearSuperAdminSession();
+    }
+
     const normalizedError = isNormalizedApiError(error)
       ? error
       : normalizeNetworkError(error, { requestUrl: url, method, timeoutMs });
@@ -655,6 +671,7 @@ async function performFetchRequest(url, options = {}) {
     if (!normalizedError.requestUrl) {
       normalizedError.requestUrl = url;
     }
+
     if (!normalizedError.method) {
       normalizedError.method = method;
     }
@@ -678,6 +695,7 @@ export async function apiRequest(path, options = {}) {
   const url = resolveApiRequestUrl(path, {
     baseUrl,
     runtimeOrigin: options.runtimeOrigin,
+    prod: options.prod,
   });
 
   if (!url) {
@@ -724,6 +742,7 @@ export async function apiRequest(path, options = {}) {
         code: error?.code || error?.payload?.error || 'UNKNOWN',
         status: error?.status || 0,
       });
+
       await sleep(retryDelayMs);
     }
   }
@@ -741,6 +760,7 @@ export async function checkApiHealth(options = {}) {
   const url = resolveApiRequestUrl(API_HEALTHCHECK_PATH, {
     baseUrl,
     runtimeOrigin: options.runtimeOrigin,
+    prod: options.prod,
   });
 
   if (!url) {
@@ -756,6 +776,8 @@ export async function checkApiHealth(options = {}) {
     const payload = await apiRequest(API_HEALTHCHECK_PATH, {
       method: 'GET',
       baseUrl,
+      runtimeOrigin: options.runtimeOrigin,
+      prod: options.prod,
       timeoutMs: options.timeoutMs || DEFAULT_HEALTHCHECK_TIMEOUT_MS,
       retry: normalizeRetryCount(options.retry, 1),
       retryDelayMs: options.retryDelayMs || 200,
@@ -780,7 +802,11 @@ export async function checkApiHealth(options = {}) {
             cause: error,
           });
 
-    if (!normalized.code || normalized.code === 'NETWORK_ERROR' || normalized.code === 'REQUEST_TIMEOUT') {
+    if (
+      !normalized.code ||
+      normalized.code === 'NETWORK_ERROR' ||
+      normalized.code === 'REQUEST_TIMEOUT'
+    ) {
       normalized.code = 'API_HEALTHCHECK_FAILED';
       normalized.message = 'Servidor backend não está acessível no momento.';
       normalized.payload = {
