@@ -8,27 +8,25 @@ import {
 const AUTH_HEALTHCHECK_TIMEOUT_MS = 2_500;
 const AUTH_REQUEST_TIMEOUT_MS = 8_000;
 
-function getAuthRuntimeOptions() {
-  return {
-    runtimeOrigin: typeof window !== 'undefined' ? window.location?.origin || '' : '',
-    prod:
-      typeof import.meta !== 'undefined' && import.meta?.env
-        ? Boolean(import.meta.env.PROD)
-        : undefined,
-  };
+function getDirectBackendRuntimeOptions(apiBaseUrl = '') {
+  const normalizedBaseUrl = String(apiBaseUrl || '').trim();
+  return normalizedBaseUrl ? { runtimeOrigin: normalizedBaseUrl } : {};
 }
 
 export function resolveAuthRequestUrl(path, apiBaseUrl = '') {
   return resolveApiRequestUrl(path, {
     baseUrl: apiBaseUrl,
-    ...getAuthRuntimeOptions(),
+    ...getDirectBackendRuntimeOptions(apiBaseUrl),
   });
 }
 
 export function mapAuthRequestError(error, { apiBaseUrl = '', path = '' } = {}) {
   const code = String(error?.code || error?.payload?.error || error?.message || '').toUpperCase();
   const status = Number(error?.status || 0);
-  const targetUrl = error?.requestUrl || resolveAuthRequestUrl(path, apiBaseUrl) || apiBaseUrl;
+  const targetUrl =
+    code === 'API_HEALTHCHECK_FAILED'
+      ? String(apiBaseUrl || '').trim()
+      : error?.requestUrl || resolveAuthRequestUrl(path, apiBaseUrl) || apiBaseUrl;
 
   if (code === 'API_BASE_URL_NOT_CONFIGURED') {
     return 'API não configurada para este ambiente.';
@@ -98,7 +96,7 @@ export async function ensureAuthApiAvailable({
     timeoutMs,
     retry,
     retryDelayMs: 200,
-    ...getAuthRuntimeOptions(),
+    ...getDirectBackendRuntimeOptions(apiBaseUrl),
   });
 }
 
@@ -120,6 +118,6 @@ export async function submitAuthRequest({
     retryDelayMs: 300,
     retryOnStatuses: [502, 503, 504],
     includeAuthHeaders: false,
-    ...getAuthRuntimeOptions(),
+    ...getDirectBackendRuntimeOptions(apiBaseUrl),
   });
 }

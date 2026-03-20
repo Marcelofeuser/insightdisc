@@ -1,5 +1,10 @@
 import { apiRequest, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 
+function getDirectBackendRuntimeOptions(apiBaseUrl = '') {
+  const normalizedBaseUrl = String(apiBaseUrl || '').trim();
+  return normalizedBaseUrl ? { runtimeOrigin: normalizedBaseUrl } : {};
+}
+
 function parseFileNameFromContentDisposition(header = '') {
   const value = String(header || '');
   const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i);
@@ -95,6 +100,7 @@ export async function exportAssessmentReportPdf({
       method: 'GET',
       requireAuth: true,
       baseUrl: apiBaseUrl,
+      ...getDirectBackendRuntimeOptions(apiBaseUrl),
     });
     endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl);
   }
