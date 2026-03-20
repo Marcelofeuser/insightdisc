@@ -307,7 +307,11 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        const payload = await apiRequest('/auth/me', { method: 'GET', requireAuth: true });
+        const payload = await apiRequest('/auth/me', {
+          method: 'GET',
+          requireAuth: true,
+          runtimeOrigin: apiBaseUrl,
+        });
         const currentUser = payload?.user || null;
         if (!currentUser) {
           throw new Error('Sessão inválida.');

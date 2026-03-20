@@ -85,6 +85,7 @@ export default function SuperAdminRoute({ children }) {
           timeoutMs: 6_000,
           retry: 1,
           retryDelayMs: 250,
+          runtimeOrigin: apiBaseUrl,
         });
         if (mounted) setValidation({ state: 'ready', message: '' });
       } catch (error) {
