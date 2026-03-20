@@ -1,3 +1,4 @@
+import { normalizeAiDiscResponse } from './schema.js';
 import { env } from '../../config/env.js';
 import { buildAiProviderChain } from './provider.js';
 import { isProviderJsonParseError } from './json-utils.js';
@@ -300,6 +301,13 @@ export function buildFallbackDiscContent(input = {}) {
         ? `A liderança tende a aparecer por meio do fator dominante, apoiada pelo fator secundário. O melhor resultado costuma vir quando há combinação entre direção, contexto e adaptabilidade.`
         : `Em gestão, o perfil tende a liderar com a lógica do fator dominante e escalar impacto por meio do fator secundário. O principal ajuste executivo está em calibrar ritmo, alinhamento e governança.`;
 
+  const decisionMaking =
+    normalized.mode === 'personal'
+      ? `A tomada de decisão tende a partir do fator dominante e ganha qualidade quando desacelera o impulso inicial para considerar impacto relacional, contexto e consequência prática.`
+      : normalized.mode === 'professional'
+        ? `No trabalho, a decisão tende a seguir o fator dominante com apoio do fator secundário. O ganho aparece quando o perfil combina velocidade, critério e validação proporcional ao risco.`
+        : `Em contexto executivo, a decisão tende a refletir o fator dominante na priorização, no nível de risco tolerado e no ritmo de execução. O melhor ajuste está em explicitar critério, contrapesos e governança.`;
+
   const workStyle =
     normalized.mode === 'personal'
       ? `No cotidiano, o perfil tende a funcionar melhor quando consegue respeitar sua energia dominante sem perder consistência em rotina, combinado e relação com o outro.`
@@ -309,6 +317,13 @@ export function buildFallbackDiscContent(input = {}) {
     normalized.mode === 'business'
       ? `Sob pressão, o fator dominante tende a se intensificar e reduzir margem para nuance. O ganho está em criar checkpoints de contexto, escuta e decisão para evitar excesso de viés comportamental.`
       : `Sob pressão, o fator dominante tende a ficar mais visível. O desenvolvimento mais útil está em perceber esse padrão cedo e adicionar um comportamento compensatório antes que o excesso se consolide.`;
+
+  const riskProfile =
+    normalized.mode === 'personal'
+      ? `O principal risco está em repetir o padrão dominante sem revisar contexto, impacto e limite pessoal. A mitigação mais útil é criar uma pausa curta de observação antes de agir.`
+      : normalized.mode === 'professional'
+        ? `O risco comportamental aparece quando o fator dominante se sobrepõe a escuta, método ou cadência do time. A mitigação mais útil é calibrar prioridade, critério e alinhamento antes da execução.`
+        : `O risco executivo aparece quando o estilo dominante concentra decisão, acelera demais o ritmo ou reduz o espaço para contraponto. O antídoto está em governança simples, leitura de stakeholders e checkpoints de qualidade.`;
 
   const relationshipStyle =
     normalized.mode === 'personal'
@@ -356,6 +371,11 @@ export function buildFallbackDiscContent(input = {}) {
         ? `Profissionalmente, o perfil tende a ser percebido pelo padrão dominante de atuação. O ganho está em tornar esse padrão mais consistente, legível e bem calibrado ao contexto.`
         : `Executivamente, o posicionamento do perfil tende a ganhar força quando há coerência entre estilo dominante, desenho de função, governança e composição de time.`;
 
+  const strategicProfile =
+    normalized.mode === 'business'
+      ? `Estratégicamente, o perfil gera mais valor quando o estilo dominante é usado com clareza de mandato, composição complementar de time e disciplina de acompanhamento.`
+      : `O perfil ganha força quando transforma sua energia dominante em posicionamento claro, previsível e ajustado ao contexto em que atua.`;
+
   return {
     summary: modeSummary,
     executiveSummary,
@@ -363,13 +383,16 @@ export function buildFallbackDiscContent(input = {}) {
     limitations,
     communicationStyle,
     leadershipStyle,
+    decisionMaking,
     workStyle,
     pressureBehavior,
+    riskProfile,
     relationshipStyle,
     developmentRecommendations,
     careerRecommendations,
     businessRecommendations,
     professionalPositioning,
+    strategicProfile,
     tone: normalized.mode,
   };
 }

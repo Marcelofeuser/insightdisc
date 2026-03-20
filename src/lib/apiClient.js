@@ -69,6 +69,61 @@ function isInsightDiscFrontendHost(hostname = '') {
   );
 }
 
+function isInsightDiscBackendHost(hostname = '') {
+  const normalized = String(hostname || '').toLowerCase();
+  return (
+    normalized === 'insightdisc-production.up.railway.app' ||
+    normalized === 'insightdisc-api.vercel.app'
+  );
+}
+
+function getRuntimeOrigin(value = '') {
+  const explicit = normalizeBaseUrl(value);
+  if (explicit) return explicit;
+  if (typeof window === 'undefined') return '';
+  return normalizeBaseUrl(window.location?.origin || '');
+}
+
+function isLocalServerlessApiPath(pathname = '') {
+  const normalized = normalizeRelativePath(pathname);
+  if (!normalized.startsWith('/api/')) return false;
+
+  return (
+    normalized === '/api/pdf' ||
+    normalized.startsWith('/api/credits/') ||
+    normalized.startsWith('/api/proxy') ||
+    normalized.startsWith('/api/report/') ||
+    normalized.startsWith('/api/stripe/')
+  );
+}
+
+function shouldProxyViaSameOrigin({
+  requestUrl = '',
+  pathname = '',
+  baseUrl = '',
+  runtimeOrigin = '',
+  prod = false,
+} = {}) {
+  if (!prod) return false;
+
+  const normalizedRuntimeOrigin = getRuntimeOrigin(runtimeOrigin);
+  const runtimeHost = getHostname(normalizedRuntimeOrigin);
+  if (!normalizedRuntimeOrigin || !isInsightDiscFrontendHost(runtimeHost)) {
+    return false;
+  }
+
+  const normalizedPath = normalizeRelativePath(pathname);
+  if (!normalizedPath || isLocalServerlessApiPath(normalizedPath)) {
+    return false;
+  }
+
+  if (/^https?:\/\//i.test(String(requestUrl || '').trim())) {
+    return isInsightDiscBackendHost(getHostname(requestUrl));
+  }
+
+  return isInsightDiscBackendHost(getHostname(baseUrl));
+}
+
 function normalizeTimeout(value, fallback = DEFAULT_API_TIMEOUT_MS) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
@@ -378,16 +433,53 @@ export function getApiBaseUrl() {
   });
 }
 
-export function resolveApiRequestUrl(path, { baseUrl = '' } = {}) {
+export function resolveApiRequestUrl(path, { baseUrl = '', runtimeOrigin = '', prod = false } = {}) {
   const raw = String(path || '').trim();
   if (!raw) return '';
+  const normalizedRuntimeOrigin = getRuntimeOrigin(runtimeOrigin);
 
   if (/^https?:\/\//i.test(raw)) {
+    const absoluteUrl = new URL(raw);
+    const proxiedPath = `${absoluteUrl.pathname}${absoluteUrl.search}`;
+
+    if (
+      shouldProxyViaSameOrigin({
+        requestUrl: raw,
+        pathname: absoluteUrl.pathname,
+        baseUrl,
+        runtimeOrigin,
+        prod,
+      })
+    ) {
+      return `${getRuntimeOrigin(runtimeOrigin)}/api/proxy${proxiedPath}`;
+    }
+
     return raw;
   }
 
   const relativePath = normalizeRelativePath(raw);
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+
+  if (
+    prod &&
+    normalizedRuntimeOrigin &&
+    isInsightDiscFrontendHost(getHostname(normalizedRuntimeOrigin)) &&
+    isLocalServerlessApiPath(relativePath)
+  ) {
+    return `${normalizedRuntimeOrigin}${relativePath}`;
+  }
+
+  if (
+    shouldProxyViaSameOrigin({
+      requestUrl: raw,
+      pathname: relativePath,
+      baseUrl: normalizedBaseUrl,
+      runtimeOrigin,
+      prod,
+    })
+  ) {
+    return `${normalizedRuntimeOrigin}/api/proxy${relativePath}`;
+  }
 
   if (normalizedBaseUrl) {
     return `${normalizedBaseUrl}${relativePath}`;

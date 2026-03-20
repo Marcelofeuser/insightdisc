@@ -30,6 +30,16 @@ test('buildDiscInsightsPrompt diferencia instruções por modo', () => {
   assert.notEqual(personal.userPrompt, business.userPrompt);
 });
 
+test('buildDiscInsightsPrompt reforça linguagem direta e campos estratégicos no modo business', () => {
+  const business = buildDiscInsightsPrompt({ ...basePayload, mode: 'business' });
+
+  assert.match(business.userPrompt, /linguagem profissional, direta e de valor prático/i);
+  assert.match(business.userPrompt, /decisionMaking/i);
+  assert.match(business.userPrompt, /riskProfile/i);
+  assert.match(business.userPrompt, /strategicProfile/i);
+  assert.match(business.userPrompt, /sem clichês/i);
+});
+
 test('buildDiscInsightsPrompt força modo válido ao montar o prompt', () => {
   const prompt = buildDiscInsightsPrompt({ ...basePayload, mode: 'unsupported-mode' });
 

@@ -6,13 +6,10 @@ export const AI_DISC_TEXT_FIELDS = {
   executiveSummary: { min: 40, max: 1200 },
   communicationStyle: { min: 40, max: 700 },
   leadershipStyle: { min: 40, max: 700 },
-  decisionMaking: { min: 40, max: 700 },
   workStyle: { min: 40, max: 700 },
   pressureBehavior: { min: 40, max: 700 },
-  riskProfile: { min: 40, max: 700 },
   relationshipStyle: { min: 40, max: 700 },
   professionalPositioning: { min: 40, max: 700 },
-  strategicProfile: { min: 40, max: 700 },
 };
 export const AI_DISC_LIST_FIELDS = {
   strengths: { min: 2, max: 8 },
@@ -47,16 +44,13 @@ export const aiDiscContentSchema = z.object({
   limitations: stringList,
   communicationStyle: boundedText(40, 700),
   leadershipStyle: boundedText(40, 700),
-  decisionMaking: boundedText(40, 700).optional(),
   workStyle: boundedText(40, 700),
   pressureBehavior: boundedText(40, 700),
-  riskProfile: boundedText(40, 700).optional(),
   relationshipStyle: boundedText(40, 700),
   developmentRecommendations: stringList,
   careerRecommendations: stringList,
   businessRecommendations: stringList,
   professionalPositioning: boundedText(40, 700),
-  strategicProfile: boundedText(40, 700).optional(),
   tone: z.enum(AI_DISC_TONES),
 });
 
@@ -123,22 +117,12 @@ export const aiDiscResponseJsonSchema = {
       minLength: 40,
       maxLength: 700,
     },
-    decisionMaking: {
-      type: 'string',
-      minLength: 40,
-      maxLength: 700,
-    },
     workStyle: {
       type: 'string',
       minLength: 40,
       maxLength: 700,
     },
     pressureBehavior: {
-      type: 'string',
-      minLength: 40,
-      maxLength: 700,
-    },
-    riskProfile: {
       type: 'string',
       minLength: 40,
       maxLength: 700,
@@ -179,11 +163,6 @@ export const aiDiscResponseJsonSchema = {
       },
     },
     professionalPositioning: {
-      type: 'string',
-      minLength: 40,
-      maxLength: 700,
-    },
-    strategicProfile: {
       type: 'string',
       minLength: 40,
       maxLength: 700,
@@ -241,100 +220,8 @@ function normalizeSourceListField(value, maxItems = 8) {
   ).slice(0, maxItems);
 }
 
-function toCandidateObject(input = {}) {
-  return input && typeof input === 'object' && !Array.isArray(input) ? input : {};
-}
-
-function pickTextValue(source = {}, keys = []) {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-  }
-
-  return '';
-}
-
-function pickListValue(source = {}, keys = []) {
-  for (const key of keys) {
-    const value = source[key];
-    if (Array.isArray(value) && value.length > 0) {
-      return value;
-    }
-  }
-
-  return [];
-}
-
-export function normalizeAiDiscResponse(input = {}) {
-  const source = toCandidateObject(input);
-
-  return {
-    summary: pickTextValue(source, ['summary', 'resume']),
-    executiveSummary: pickTextValue(source, ['executiveSummary', 'executive_summary']),
-    strengths: pickListValue(source, ['strengths', 'strong_points']),
-    limitations: pickListValue(source, ['limitations', 'weaknesses']),
-    communicationStyle: pickTextValue(source, [
-      'communicationStyle',
-      'communication_style',
-      'communication',
-      'communicationProfile',
-      'communication_profile',
-    ]),
-    leadershipStyle: pickTextValue(source, [
-      'leadershipStyle',
-      'leadership_style',
-      'leadership',
-    ]),
-    decisionMaking: pickTextValue(source, [
-      'decisionMaking',
-      'decision_making',
-      'decisionStyle',
-      'decision_style',
-    ]),
-    workStyle: pickTextValue(source, ['workStyle', 'work_style', 'workstyle']),
-    pressureBehavior: pickTextValue(source, [
-      'pressureBehavior',
-      'pressure_behavior',
-      'pressureStyle',
-      'pressure_style',
-    ]),
-    riskProfile: pickTextValue(source, ['riskProfile', 'risk_profile', 'risk']),
-    relationshipStyle: pickTextValue(source, [
-      'relationshipStyle',
-      'relationship_style',
-      'relationship',
-    ]),
-    developmentRecommendations: pickListValue(source, [
-      'developmentRecommendations',
-      'development_recommendations',
-    ]),
-    careerRecommendations: pickListValue(source, [
-      'careerRecommendations',
-      'career_recommendations',
-    ]),
-    businessRecommendations: pickListValue(source, [
-      'businessRecommendations',
-      'business_recommendations',
-    ]),
-    professionalPositioning: pickTextValue(source, [
-      'professionalPositioning',
-      'professional_positioning',
-      'positioning',
-    ]),
-    strategicProfile: pickTextValue(source, [
-      'strategicProfile',
-      'strategic_profile',
-      'strategyProfile',
-      'strategy_profile',
-    ]),
-    tone: AI_DISC_TONES.includes(source.tone) ? source.tone : 'business',
-  };
-}
-
 export function extractAiDiscProviderContent(input = {}, mode = 'business') {
-  const candidate = normalizeAiDiscResponse(input);
+  const candidate = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const normalized = {
     summary: normalizeSourceTextField(
       candidate.summary,
@@ -361,11 +248,6 @@ export function extractAiDiscProviderContent(input = {}, mode = 'business') {
       AI_DISC_TEXT_FIELDS.leadershipStyle.min,
       AI_DISC_TEXT_FIELDS.leadershipStyle.max,
     ),
-    decisionMaking: normalizeSourceTextField(
-      candidate.decisionMaking,
-      AI_DISC_TEXT_FIELDS.decisionMaking.min,
-      AI_DISC_TEXT_FIELDS.decisionMaking.max,
-    ),
     workStyle: normalizeSourceTextField(
       candidate.workStyle,
       AI_DISC_TEXT_FIELDS.workStyle.min,
@@ -375,11 +257,6 @@ export function extractAiDiscProviderContent(input = {}, mode = 'business') {
       candidate.pressureBehavior,
       AI_DISC_TEXT_FIELDS.pressureBehavior.min,
       AI_DISC_TEXT_FIELDS.pressureBehavior.max,
-    ),
-    riskProfile: normalizeSourceTextField(
-      candidate.riskProfile,
-      AI_DISC_TEXT_FIELDS.riskProfile.min,
-      AI_DISC_TEXT_FIELDS.riskProfile.max,
     ),
     relationshipStyle: normalizeSourceTextField(
       candidate.relationshipStyle,
@@ -403,11 +280,6 @@ export function extractAiDiscProviderContent(input = {}, mode = 'business') {
       AI_DISC_TEXT_FIELDS.professionalPositioning.min,
       AI_DISC_TEXT_FIELDS.professionalPositioning.max,
     ),
-    strategicProfile: normalizeSourceTextField(
-      candidate.strategicProfile,
-      AI_DISC_TEXT_FIELDS.strategicProfile.min,
-      AI_DISC_TEXT_FIELDS.strategicProfile.max,
-    ),
   };
 
   const content = Object.fromEntries(
@@ -429,18 +301,17 @@ export function countMeaningfulAiDiscFields(input = {}) {
     return 0;
   }
 
-  const candidate = normalizeAiDiscResponse(input);
   let count = 0;
 
   for (const [field, limits] of Object.entries(AI_DISC_TEXT_FIELDS)) {
-    const value = typeof candidate[field] === 'string' ? candidate[field].trim() : '';
+    const value = typeof input[field] === 'string' ? input[field].trim() : '';
     if (value.length >= limits.min) {
       count += 1;
     }
   }
 
   for (const [field] of Object.entries(AI_DISC_LIST_FIELDS)) {
-    const value = Array.isArray(candidate[field]) ? uniqueList(candidate[field]) : [];
+    const value = Array.isArray(input[field]) ? uniqueList(input[field]) : [];
     if (value.length > 0) {
       count += 1;
     }
@@ -450,11 +321,8 @@ export function countMeaningfulAiDiscFields(input = {}) {
 }
 
 export function normalizeAiDiscContentCandidate(input = {}, fallbackContent = {}, mode = 'business') {
-  const candidate = normalizeAiDiscResponse(input);
-  const fallback = normalizeAiDiscResponse({
-    ...toCandidateObject(fallbackContent),
-    tone: AI_DISC_TONES.includes(fallbackContent?.tone) ? fallbackContent.tone : mode,
-  });
+  const candidate = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const fallback = fallbackContent && typeof fallbackContent === 'object' ? fallbackContent : {};
 
   return {
     summary: normalizeTextField(candidate.summary, fallback.summary, AI_DISC_TEXT_FIELDS.summary.min),
@@ -483,11 +351,6 @@ export function normalizeAiDiscContentCandidate(input = {}, fallbackContent = {}
       fallback.leadershipStyle,
       AI_DISC_TEXT_FIELDS.leadershipStyle.min,
     ),
-    decisionMaking: normalizeTextField(
-      candidate.decisionMaking,
-      fallback.decisionMaking,
-      AI_DISC_TEXT_FIELDS.decisionMaking.min,
-    ),
     workStyle: normalizeTextField(
       candidate.workStyle,
       fallback.workStyle,
@@ -497,11 +360,6 @@ export function normalizeAiDiscContentCandidate(input = {}, fallbackContent = {}
       candidate.pressureBehavior,
       fallback.pressureBehavior,
       AI_DISC_TEXT_FIELDS.pressureBehavior.min,
-    ),
-    riskProfile: normalizeTextField(
-      candidate.riskProfile,
-      fallback.riskProfile,
-      AI_DISC_TEXT_FIELDS.riskProfile.min,
     ),
     relationshipStyle: normalizeTextField(
       candidate.relationshipStyle,
@@ -528,11 +386,291 @@ export function normalizeAiDiscContentCandidate(input = {}, fallbackContent = {}
       fallback.professionalPositioning,
       AI_DISC_TEXT_FIELDS.professionalPositioning.min,
     ),
-    strategicProfile: normalizeTextField(
-      candidate.strategicProfile,
-      fallback.strategicProfile,
-      AI_DISC_TEXT_FIELDS.strategicProfile.min,
-    ),
     tone: AI_DISC_TONES.includes(candidate.tone) ? candidate.tone : mode,
+  };
+}
+
+// ===== NORMALIZAÇÃO (ADICIONADO AUTOMATICAMENTE) =====
+export function normalizeAiDiscResponse(input = {}) {
+  const source = input || {};
+
+  const pick = (...values) => {
+    for (const value of values) {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return value;
+      }
+    }
+    return '';
+  };
+
+  const pickList = (...values) => {
+    for (const value of values) {
+      if (Array.isArray(value) && value.length > 0) {
+        return value;
+      }
+    }
+    return [];
+  };
+
+  return {
+    summary: pick(source.summary, source.resume),
+    executiveSummary: pick(source.executiveSummary, source.executive_summary),
+
+    strengths: pickList(source.strengths, source.strong_points),
+    limitations: pickList(source.limitations, source.weaknesses),
+
+    communicationStyle: pick(
+      source.communicationStyle,
+      source.communication_style,
+      source.communication,
+      source.communicationProfile,
+      source.communication_profile
+    ),
+
+    leadershipStyle: pick(
+      source.leadershipStyle,
+      source.leadership_style,
+      source.leadership
+    ),
+
+    decisionMaking: pick(
+      source.decisionMaking,
+      source.decision_making,
+      source.decisionStyle,
+      source.decision_style
+    ),
+
+    workStyle: pick(
+      source.workStyle,
+      source.work_style,
+      source.workstyle
+    ),
+
+    pressureBehavior: pick(
+      source.pressureBehavior,
+      source.pressure_behavior,
+      source.pressureStyle,
+      source.pressure_style
+    ),
+
+    riskProfile: pick(
+      source.riskProfile,
+      source.risk_profile,
+      source.risk
+    ),
+
+    relationshipStyle: pick(
+      source.relationshipStyle,
+      source.relationship_style,
+      source.relationship
+    ),
+
+    developmentRecommendations: pickList(
+      source.developmentRecommendations,
+      source.development_recommendations
+    ),
+
+    careerRecommendations: pickList(
+      source.careerRecommendations,
+      source.career_recommendations
+    ),
+
+    businessRecommendations: pickList(
+      source.businessRecommendations,
+      source.business_recommendations
+    ),
+
+    professionalPositioning: pick(
+      source.professionalPositioning,
+      source.professional_positioning,
+      source.positioning
+    ),
+
+    strategicProfile: pick(
+      source.strategicProfile,
+      source.strategic_profile,
+      source.strategyProfile,
+      source.strategy_profile
+    ),
+
+    tone: pick(source.tone, 'business'),
+  };
+}
+) {
+  const source = input || {};
+
+  const pick = (...values) => {
+    for (const value of values) {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return value;
+      }
+    }
+    return '';
+  };
+
+  const pickList = (...values) => {
+    for (const value of values) {
+      if (Array.isArray(value) && value.length > 0) {
+        return value;
+      }
+    }
+    return [];
+  };
+
+  return {
+    summary: pick(source.summary, source.resume),
+    executiveSummary: pick(source.executiveSummary, source.executive_summary),
+
+    strengths: pickList(source.strengths, source.strong_points),
+    limitations: pickList(source.limitations, source.weaknesses),
+
+    communicationStyle: pick(
+      source.communicationStyle,
+      source.communication_style,
+      source.communication,
+      source.communicationProfile,
+      source.communication_profile
+    ),
+
+    leadershipStyle: pick(
+      source.leadershipStyle,
+      source.leadership_style,
+      source.leadership
+    ),
+
+    decisionMaking: pick(
+      source.decisionMaking,
+      source.decision_making,
+      source.decisionStyle,
+      source.decision_style
+    ),
+
+    workStyle: pick(
+      source.workStyle,
+      source.work_style,
+      source.workstyle
+    ),
+
+    pressureBehavior: pick(
+      source.pressureBehavior,
+      source.pressure_behavior,
+      source.pressureStyle,
+      source.pressure_style
+    ),
+
+    riskProfile: pick(
+      source.riskProfile,
+      source.risk_profile,
+      source.risk
+    ),
+
+    relationshipStyle: pick(
+      source.relationshipStyle,
+      source.relationship_style,
+      source.relationship
+    ),
+
+    developmentRecommendations: pickList(
+      source.developmentRecommendations,
+      source.development_recommendations
+    ),
+
+    careerRecommendations: pickList(
+      source.careerRecommendations,
+      source.career_recommendations
+    ),
+
+    businessRecommendations: pickList(
+      source.businessRecommendations,
+      source.business_recommendations
+    ),
+
+    professionalPositioning: pick(
+      source.professionalPositioning,
+      source.professional_positioning,
+      source.positioning
+    ),
+
+    strategicProfile: pick(
+      source.strategicProfile,
+      source.strategic_profile,
+      source.strategyProfile,
+      source.strategy_profile
+    ),
+
+    tone: pick(source.tone, 'business'),
+  };
+}) {
+  const source = input || {};
+
+  return {
+    summary: source.summary || source.resume || '',
+    executiveSummary: source.executiveSummary || source.executive_summary || '',
+    
+    strengths: source.strengths || source.strong_points || [],
+    limitations: source.limitations || source.weaknesses || [],
+
+    communicationStyle:
+      source.communicationStyle ||
+      source.communication_style ||
+      source.communication ||
+      '',
+
+    leadershipStyle:
+      source.leadershipStyle ||
+      source.leadership ||
+      '',
+
+    decisionMaking:
+      source.decisionMaking ||
+      source.decision_making ||
+      '',
+
+    workStyle:
+      source.workStyle ||
+      source.work_style ||
+      '',
+
+    pressureBehavior:
+      source.pressureBehavior ||
+      source.pressure_behavior ||
+      '',
+
+    riskProfile:
+      source.riskProfile ||
+      source.risk_profile ||
+      '',
+
+    relationshipStyle:
+      source.relationshipStyle ||
+      source.relationship_style ||
+      '',
+
+    developmentRecommendations:
+      source.developmentRecommendations ||
+      source.development_recommendations ||
+      [],
+
+    careerRecommendations:
+      source.careerRecommendations ||
+      source.career_recommendations ||
+      [],
+
+    businessRecommendations:
+      source.businessRecommendations ||
+      source.business_recommendations ||
+      [],
+
+    professionalPositioning:
+      source.professionalPositioning ||
+      source.professional_positioning ||
+      '',
+
+    strategicProfile:
+      source.strategicProfile ||
+      source.strategic_profile ||
+      '',
+
+    tone: source.tone || 'business',
   };
 }

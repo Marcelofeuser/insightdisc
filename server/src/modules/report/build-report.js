@@ -222,14 +222,162 @@ function mergePreferredItems(preferredItems, fallbackItems, limit) {
   return uniqueItems(fallbackItems, limit);
 }
 
+const EMPTY_AI_COMPLEMENT = Object.freeze({
+  ai_summary: '',
+  ai_strengths: '',
+  ai_development: '',
+  ai_communication: '',
+  ai_workstyle: '',
+  ai_recommendations: '',
+  ai_leadership: '',
+  ai_decision_making: '',
+  ai_risk_profile: '',
+});
+
+const AI_COMPLEMENT_FIELD_LIMITS = Object.freeze({
+  ai_summary: 680,
+  ai_strengths: 520,
+  ai_development: 560,
+  ai_communication: 520,
+  ai_workstyle: 520,
+  ai_recommendations: 560,
+  ai_leadership: 480,
+  ai_decision_making: 480,
+  ai_risk_profile: 480,
+});
+
+function normalizeComplementText(value, maxLength = 480) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeComplementItems(items = [], options = {}) {
+  const normalized = uniqueItems(items, Number(options.maxItems) || 4)
+    .map((item) => normalizeComplementText(item, Number(options.maxLength) || 180))
+    .filter(Boolean);
+
+  return normalized.join('\n');
+}
+
+function buildAiComplement(aiResult = {}, reportType = REPORT_TYPE.BUSINESS, options = {}) {
+  const aiContent = aiResult?.content || {};
+  const includeAiComplement =
+    options.includeAiComplement !== false && options.disableAiComplement !== true;
+
+  if (!includeAiComplement) {
+    return { ...EMPTY_AI_COMPLEMENT };
+  }
+
+  if (aiResult?.source !== 'ai') {
+    console.info('[report/ai-complement] skipped', {
+      reportType,
+      reason: aiResult?.source === 'fallback' ? 'AI_FALLBACK_TRIGGERED' : 'AI_SOURCE_UNAVAILABLE',
+    });
+    return { ...EMPTY_AI_COMPLEMENT };
+  }
+
+  const normalized = {
+    ai_summary: normalizeComplementText(
+      firstNonEmpty([
+        aiContent.executiveSummary,
+        aiContent.strategicProfile,
+        aiContent.summary,
+      ]),
+      AI_COMPLEMENT_FIELD_LIMITS.ai_summary,
+    ),
+    ai_strengths: normalizeComplementItems(aiContent.strengths, {
+      maxItems: 4,
+      maxLength: 160,
+    }).slice(0, AI_COMPLEMENT_FIELD_LIMITS.ai_strengths),
+    ai_development: normalizeComplementItems(
+      [
+        ...(Array.isArray(aiContent.limitations) ? aiContent.limitations : []),
+        ...(Array.isArray(aiContent.developmentRecommendations)
+          ? aiContent.developmentRecommendations
+          : []),
+      ],
+      {
+        maxItems: 4,
+        maxLength: 170,
+      },
+    ).slice(0, AI_COMPLEMENT_FIELD_LIMITS.ai_development),
+    ai_communication: normalizeComplementText(
+      aiContent.communicationStyle,
+      AI_COMPLEMENT_FIELD_LIMITS.ai_communication,
+    ),
+    ai_workstyle: normalizeComplementText(
+      aiContent.workStyle,
+      AI_COMPLEMENT_FIELD_LIMITS.ai_workstyle,
+    ),
+    ai_recommendations: normalizeComplementItems(
+      [
+        ...(reportType === REPORT_TYPE.BUSINESS
+          ? Array.isArray(aiContent.businessRecommendations)
+            ? aiContent.businessRecommendations
+            : []
+          : []),
+        ...(Array.isArray(aiContent.careerRecommendations) ? aiContent.careerRecommendations : []),
+        ...(Array.isArray(aiContent.developmentRecommendations)
+          ? aiContent.developmentRecommendations
+          : []),
+      ],
+      {
+        maxItems: 4,
+        maxLength: 180,
+      },
+    ).slice(0, AI_COMPLEMENT_FIELD_LIMITS.ai_recommendations),
+    ai_leadership:
+      reportType === REPORT_TYPE.BUSINESS
+        ? normalizeComplementText(
+            aiContent.leadershipStyle,
+            AI_COMPLEMENT_FIELD_LIMITS.ai_leadership,
+          )
+        : '',
+    ai_decision_making:
+      reportType === REPORT_TYPE.BUSINESS
+        ? normalizeComplementText(
+            firstNonEmpty([aiContent.decisionMaking, aiContent.professionalPositioning]),
+            AI_COMPLEMENT_FIELD_LIMITS.ai_decision_making,
+          )
+        : '',
+    ai_risk_profile:
+      reportType === REPORT_TYPE.BUSINESS
+        ? normalizeComplementText(
+            firstNonEmpty([
+              aiContent.riskProfile,
+              aiContent.pressureBehavior,
+              Array.isArray(aiContent.limitations) ? aiContent.limitations[0] : '',
+            ]),
+            AI_COMPLEMENT_FIELD_LIMITS.ai_risk_profile,
+          )
+        : '',
+  };
+
+  const hasAnyContent = Object.values(normalized).some((value) => String(value || '').trim());
+  if (!hasAnyContent) {
+    console.info('[report/ai-complement] skipped', {
+      reportType,
+      reason: 'EMPTY_AI_COMPLEMENT',
+    });
+    return { ...EMPTY_AI_COMPLEMENT };
+  }
+
+  return normalized;
+}
+
 function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = REPORT_TYPE.BUSINESS) {
   const aiContent = aiResult?.content || {};
   const aiSummaryParagraphs = normalizeParagraphs(aiContent.summary, 3);
   const aiExecutiveParagraphs = normalizeParagraphs(aiContent.executiveSummary, 3);
   const aiPositioningParagraphs = normalizeParagraphs(aiContent.professionalPositioning, 3);
+  const aiStrategicParagraphs = normalizeParagraphs(aiContent.strategicProfile, 3);
   const aiCommunicationParagraphs = normalizeParagraphs(aiContent.communicationStyle, 4);
   const aiLeadershipParagraphs = normalizeParagraphs(aiContent.leadershipStyle, 4);
+  const aiDecisionParagraphs = normalizeParagraphs(aiContent.decisionMaking, 4);
   const aiWorkParagraphs = normalizeParagraphs(aiContent.workStyle, 4);
+  const aiRiskParagraphs = normalizeParagraphs(aiContent.riskProfile, 3);
 
   const strengths = uniqueItems(aiContent.strengths, 6);
   const limitations = uniqueItems(aiContent.limitations, 6);
@@ -241,6 +389,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
     ...(reportModel?.profileContent || {}),
     summary: firstNonEmpty([
       aiContent.summary,
+      aiContent.strategicProfile,
       aiContent.professionalPositioning,
       reportModel?.profileContent?.summary,
     ]),
@@ -253,6 +402,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       [
         ...aiSummaryParagraphs,
         ...aiWorkParagraphs,
+        ...aiStrategicParagraphs,
         ...aiPositioningParagraphs,
       ],
       reportModel?.profileContent?.identityDynamics,
@@ -262,6 +412,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       [
         ...aiSummaryParagraphs,
         ...aiWorkParagraphs,
+        ...aiStrategicParagraphs,
         ...aiPositioningParagraphs,
       ],
       reportModel?.profileContent?.deepDynamics,
@@ -269,6 +420,8 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
     ),
     decisionStyle: mergePreferredParagraphs(
       [
+        ...aiDecisionParagraphs,
+        ...aiStrategicParagraphs,
         ...normalizeParagraphs(aiContent.professionalPositioning, 2),
         ...aiWorkParagraphs,
         ...aiSummaryParagraphs,
@@ -282,7 +435,9 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       5,
     ),
     energyDrainers: mergePreferredItems(
-      [...limitations, aiContent.pressureBehavior],
+      reportType === REPORT_TYPE.BUSINESS
+        ? [...aiRiskParagraphs, ...limitations, aiContent.pressureBehavior]
+        : [...limitations, aiContent.pressureBehavior],
       reportModel?.profileContent?.energyDrainers,
       5,
     ),
@@ -318,12 +473,16 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       5,
     ),
     stressPattern: mergePreferredItems(
-      [aiContent.pressureBehavior, ...limitations],
+      reportType === REPORT_TYPE.BUSINESS
+        ? [aiContent.riskProfile, aiContent.pressureBehavior, ...limitations]
+        : [aiContent.pressureBehavior, ...limitations],
       reportModel?.profileContent?.stressPattern,
       4,
     ),
     stressSignals: mergePreferredItems(
-      [aiContent.pressureBehavior, ...limitations],
+      reportType === REPORT_TYPE.BUSINESS
+        ? [aiContent.riskProfile, aiContent.pressureBehavior, ...limitations]
+        : [aiContent.pressureBehavior, ...limitations],
       reportModel?.profileContent?.stressSignals,
       5,
     ),
@@ -393,11 +552,12 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       4,
     ),
     executiveClosing: mergePreferredParagraphs(
-      [...aiPositioningParagraphs, ...aiExecutiveParagraphs],
+      [...aiStrategicParagraphs, ...aiPositioningParagraphs, ...aiExecutiveParagraphs],
       reportModel?.profileContent?.executiveClosing,
       3,
     ),
     closingSummary: firstNonEmpty([
+      aiContent.strategicProfile,
       aiContent.professionalPositioning,
       aiContent.executiveSummary,
       reportModel?.profileContent?.closingSummary,
@@ -425,7 +585,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
     narratives: {
       ...(reportModel?.narratives || {}),
       summaryParagraphs: mergePreferredParagraphs(
-        [...aiSummaryParagraphs, ...aiExecutiveParagraphs, ...aiPositioningParagraphs],
+        [...aiSummaryParagraphs, ...aiExecutiveParagraphs, ...aiStrategicParagraphs, ...aiPositioningParagraphs],
         reportModel?.narratives?.summaryParagraphs,
         4,
       ),
@@ -460,6 +620,8 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
         ...(reportModel?.insights?.practicalByPage || {}),
         dynamics: firstNonEmpty([aiContent.summary, reportModel?.insights?.practicalByPage?.dynamics]),
         decision: firstNonEmpty([
+          aiContent.decisionMaking,
+          aiContent.strategicProfile,
           aiContent.professionalPositioning,
           aiContent.workStyle,
           reportModel?.insights?.practicalByPage?.decision,
@@ -478,9 +640,11 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
         ]),
         environment: firstNonEmpty([
           businessRecommendations[0],
+          aiContent.strategicProfile,
           reportModel?.insights?.practicalByPage?.environment,
         ]),
         career: firstNonEmpty([
+          aiContent.strategicProfile,
           aiContent.professionalPositioning,
           careerRecommendations[0],
           reportModel?.insights?.practicalByPage?.career,
@@ -488,15 +652,16 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       },
       executiveByPage: {
         ...(reportModel?.insights?.executiveByPage || {}),
-        dynamics: firstNonEmpty([aiContent.executiveSummary, executiveInsight]),
-        decision: firstNonEmpty([aiContent.professionalPositioning, executiveInsight]),
+        dynamics: firstNonEmpty([aiContent.executiveSummary, aiContent.strategicProfile, executiveInsight]),
+        decision: firstNonEmpty([aiContent.decisionMaking, aiContent.professionalPositioning, executiveInsight]),
         communication: firstNonEmpty([aiContent.communicationStyle, executiveInsight]),
         leadership: firstNonEmpty([aiContent.leadershipStyle, executiveInsight]),
-        stress: firstNonEmpty([aiContent.pressureBehavior, executiveInsight]),
-        environment: firstNonEmpty([businessRecommendations[0], executiveInsight]),
-        career: firstNonEmpty([careerRecommendations[0], executiveInsight]),
+        stress: firstNonEmpty([aiContent.riskProfile, aiContent.pressureBehavior, executiveInsight]),
+        environment: firstNonEmpty([aiContent.strategicProfile, businessRecommendations[0], executiveInsight]),
+        career: firstNonEmpty([aiContent.strategicProfile, careerRecommendations[0], executiveInsight]),
       },
       behavioralRisk: firstNonEmpty([
+        aiContent.riskProfile,
         limitations[0],
         aiContent.pressureBehavior,
         reportModel?.insights?.behavioralRisk,
@@ -507,10 +672,12 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
         reportModel?.insights?.managerCallout,
       ]),
       managerLens: firstNonEmpty([
+        aiContent.strategicProfile,
         businessRecommendations[0],
         reportModel?.insights?.managerLens,
       ]),
       riskOfExcess: firstNonEmpty([
+        aiContent.riskProfile,
         limitations[0],
         aiContent.pressureBehavior,
         reportModel?.insights?.riskOfExcess,
@@ -520,6 +687,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
         reportModel?.insights?.developmentLens,
       ]),
       careerCallout: firstNonEmpty([
+        aiContent.strategicProfile,
         careerRecommendations[0],
         aiContent.professionalPositioning,
         reportModel?.insights?.careerCallout,
@@ -536,6 +704,7 @@ function mergeReportModelWithAiContent(reportModel, aiResult = {}, reportType = 
       noAi: false,
       deterministic: aiResult?.source !== 'ai',
     },
+    aiComplement: reportModel?.aiComplement || { ...EMPTY_AI_COMPLEMENT },
     ai: {
       enabled: true,
       provider: aiResult?.provider || 'deterministic_engine',
@@ -553,6 +722,8 @@ export async function buildPremiumReportModel({
   assetBaseUrl = '',
   currentUser = null,
   reportType = REPORT_TYPE.BUSINESS,
+  includeAiComplement = true,
+  aiOptions = {},
 }) {
   const branding = resolveBranding(assessment, assetBaseUrl);
   const normalizedReportType = normalizeReportType(reportType, REPORT_TYPE.BUSINESS);
@@ -593,9 +764,20 @@ export async function buildPremiumReportModel({
     profileCode: reportModel?.profile?.key,
     profileName: reportModel?.profile?.title,
     scores: resolveAiScores(reportModel?.scores),
+  }, aiOptions);
+  const aiComplement = buildAiComplement(aiResult, normalizedReportType, {
+    includeAiComplement,
   });
+  const mergedReportModel = mergeReportModelWithAiContent(reportModel, aiResult, normalizedReportType);
 
-  return mergeReportModelWithAiContent(reportModel, aiResult, normalizedReportType);
+  return {
+    ...mergedReportModel,
+    meta: {
+      ...(mergedReportModel?.meta || {}),
+      aiComplementEnabled: includeAiComplement !== false,
+    },
+    aiComplement,
+  };
 }
 
 export default buildPremiumReportModel;

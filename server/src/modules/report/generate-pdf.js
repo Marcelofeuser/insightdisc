@@ -105,6 +105,7 @@ export async function generatePremiumPdf(reportModel, assessmentId, assessment =
     returnBuffer: inMemory,
     fileName,
     browserLauncher,
+    includeAiComplement: options.includeAiComplement !== false,
   });
   const normalizedPdfBuffer = normalizePdfBuffer(result?.pdfBuffer);
 

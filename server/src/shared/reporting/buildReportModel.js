@@ -1500,6 +1500,10 @@ export async function buildReportModel(input = {}) {
       responsibleEmail: safeText(responsible.email, ''),
       issuerOrganization: safeText(issuerOrganization, branding.company_name),
       issuerContact: safeText(issuerContact, branding.support_email),
+      aiComplementEnabled: input?.meta?.aiComplementEnabled !== false,
+      aiProvider: safeText(input?.meta?.aiProvider, ''),
+      aiModel: safeText(input?.meta?.aiModel, ''),
+      aiSource: safeText(input?.meta?.aiSource, ''),
       pageTitles,
       brand: branding.company_name,
     },
@@ -1574,6 +1578,14 @@ export async function buildReportModel(input = {}) {
       ),
       contact: safeText(input?.lgpd?.contact, 'suporte@insightdisc.app'),
     },
+    aiComplement:
+      input?.aiComplement && typeof input.aiComplement === 'object' && !Array.isArray(input.aiComplement)
+        ? { ...input.aiComplement }
+        : undefined,
+    ai:
+      input?.ai && typeof input.ai === 'object' && !Array.isArray(input.ai)
+        ? { ...input.ai }
+        : undefined,
     quality: {
       noAi: false,
       deterministic: false,

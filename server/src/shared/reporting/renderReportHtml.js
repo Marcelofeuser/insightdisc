@@ -1666,6 +1666,173 @@ function finalConclusionBlocks({ participant, profile, isPremiumTier = false }) 
   return base;
 }
 
+const EMPTY_AI_COMPLEMENT = Object.freeze({
+  ai_summary: '',
+  ai_strengths: '',
+  ai_development: '',
+  ai_communication: '',
+  ai_workstyle: '',
+  ai_recommendations: '',
+  ai_leadership: '',
+  ai_decision_making: '',
+  ai_risk_profile: '',
+});
+
+function normalizeAiComplementValue(value = '', maxLength = 680) {
+  return String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function splitAiComplementItems(value = '') {
+  return String(value || '')
+    .split(/\n+/)
+    .map((item) => item.replace(/^[•\-–]\s*/u, '').trim())
+    .filter(Boolean);
+}
+
+function resolveAiComplementBlocks(aiComplement = {}, reportType = REPORT_TIER.BUSINESS) {
+  const normalized = {
+    ...EMPTY_AI_COMPLEMENT,
+    ...(aiComplement || {}),
+  };
+
+  const baseBlocks = [
+    {
+      key: 'ai_summary',
+      title: 'Leitura Estratégica do Perfil',
+      value: normalizeAiComplementValue(normalized.ai_summary, 680),
+      kind: 'paragraph',
+    },
+    {
+      key: 'ai_strengths',
+      title: 'Pontos Fortes em Evidência',
+      value: normalizeAiComplementValue(normalized.ai_strengths, 540),
+      kind: 'list',
+    },
+    {
+      key: 'ai_development',
+      title: 'Pontos de Atenção e Desenvolvimento',
+      value: normalizeAiComplementValue(normalized.ai_development, 580),
+      kind: 'list',
+    },
+    {
+      key: 'ai_communication',
+      title: 'Estilo de Comunicação',
+      value: normalizeAiComplementValue(normalized.ai_communication, 520),
+      kind: 'paragraph',
+    },
+    {
+      key: 'ai_workstyle',
+      title: 'Forma de Atuação no Trabalho',
+      value: normalizeAiComplementValue(normalized.ai_workstyle, 520),
+      kind: 'paragraph',
+    },
+    {
+      key: 'ai_recommendations',
+      title: 'Recomendações Práticas',
+      value: normalizeAiComplementValue(normalized.ai_recommendations, 580),
+      kind: 'list',
+    },
+  ];
+
+  const businessBlocks =
+    reportType === REPORT_TIER.BUSINESS
+      ? [
+          {
+            key: 'ai_leadership',
+            title: 'Liderança',
+            value: normalizeAiComplementValue(normalized.ai_leadership, 480),
+            kind: 'paragraph',
+          },
+          {
+            key: 'ai_decision_making',
+            title: 'Tomada de Decisão',
+            value: normalizeAiComplementValue(normalized.ai_decision_making, 480),
+            kind: 'paragraph',
+          },
+          {
+            key: 'ai_risk_profile',
+            title: 'Perfil de Risco',
+            value: normalizeAiComplementValue(normalized.ai_risk_profile, 480),
+            kind: 'paragraph',
+          },
+        ]
+      : [];
+
+  return [...baseBlocks, ...businessBlocks].filter((block) => String(block.value || '').trim());
+}
+
+function renderAiComplementBlock(block) {
+  const items = splitAiComplementItems(block?.value);
+  const body =
+    block?.kind === 'list' || items.length > 1
+      ? listHtml(items)
+      : paragraphsHtml(items.length ? [items[0]] : []);
+
+  return `
+    <div class="card ai-block">
+      <h3>${esc(block?.title || '')}</h3>
+      ${body}
+    </div>
+  `;
+}
+
+function buildAiComplementPages({
+  aiComplement = {},
+  reportType = REPORT_TIER.BUSINESS,
+  branding = {},
+  startingPageNumber = 1,
+  includeAiComplement = true,
+}) {
+  if (!includeAiComplement) {
+    return [];
+  }
+
+  const blocks = resolveAiComplementBlocks(aiComplement, reportType);
+  if (blocks.length === 0) {
+    return [];
+  }
+
+  const chunks = [];
+  for (let index = 0; index < blocks.length; index += 4) {
+    chunks.push(blocks.slice(index, index + 4));
+  }
+
+  return chunks.map((chunk, index) =>
+    buildPage({
+      number: startingPageNumber + index,
+      totalPages: startingPageNumber + chunks.length - 1,
+      title: 'Análise Complementar por IA',
+      subtitle:
+        index === 0
+          ? 'Leitura opcional complementar, gerada por IA estruturada a partir do perfil DISC.'
+          : 'Continuação da leitura complementar por IA.',
+      branding,
+      enforceDensity: false,
+      content: `
+        <section class="ai-complementary-analysis">
+          ${
+            index === 0
+              ? `
+                <div class="card ai-complementary-intro">
+                  <p>Esta seção é complementar ao relatório oficial e foi gerada apenas para aprofundar leitura, aplicação prática e reflexão estratégica, sem substituir a interpretação base do relatório.</p>
+                </div>
+              `
+              : ''
+          }
+          <div class="grid two stack-on-print">
+            ${chunk.map((block) => renderAiComplementBlock(block)).join('')}
+          </div>
+        </section>
+      `,
+    }),
+  );
+}
+
 function automaticEnrichment(title, subtitle) {
   const scope = safeText(title, 'perfil');
   const detail = safeText(subtitle, 'contexto profissional');
@@ -3828,8 +3995,17 @@ export function renderReportHtml(input = {}) {
     selectedPagesRaw = BUSINESS_PAGE_SEQUENCE.map((pageNumber) => pages[pageNumber - 1]).filter(Boolean);
   }
 
-  const visibleTotalPages = selectedPagesRaw.length || meta.totalPages;
-  const selectedPages = selectedPagesRaw.map((pageHtml, index) =>
+  const aiComplementPages = buildAiComplementPages({
+    aiComplement: report?.aiComplement || EMPTY_AI_COMPLEMENT,
+    reportType,
+    branding,
+    startingPageNumber: (selectedPagesRaw.length || meta.totalPages) + 1,
+    includeAiComplement:
+      input?.includeAiComplement !== false && report?.meta?.aiComplementEnabled !== false,
+  });
+  const visiblePagesRaw = [...selectedPagesRaw, ...aiComplementPages];
+  const visibleTotalPages = visiblePagesRaw.length || meta.totalPages;
+  const selectedPages = visiblePagesRaw.map((pageHtml, index) =>
     remapPageForTier(pageHtml, index + 1, visibleTotalPages, ''),
   );
 
@@ -4518,6 +4694,21 @@ export function renderReportHtml(input = {}) {
       overflow: hidden;
       page-break-inside: avoid;
       break-inside: avoid;
+    }
+
+    .ai-complementary-analysis {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ai-complementary-intro p,
+    .ai-block p:last-child {
+      margin-bottom: 0;
+    }
+
+    .ai-block {
+      height: 100%;
     }
 
     .card::after {

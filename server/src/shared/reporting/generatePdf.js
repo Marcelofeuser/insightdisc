@@ -172,7 +172,10 @@ export async function generatePdfFromData(rawData, options = {}) {
     assessment: rawData?.assessment || {},
     reportModel,
   });
-  const html = renderReportHtml({ reportModel });
+  const html = renderReportHtml({
+    reportModel,
+    includeAiComplement: options.includeAiComplement !== false,
+  });
   assertNoRawPlaceholders(html);
   const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
   const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);

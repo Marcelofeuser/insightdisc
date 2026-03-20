@@ -33,7 +33,6 @@ const corsAllowedOrigins = buildAllowedOrigins({
 });
 
 if (!hasSuperAdminKey && process.env.NODE_ENV !== 'test') {
-  // eslint-disable-next-line no-console
   console.warn('[SUPER_ADMIN] SUPER_ADMIN_MASTER_KEY não configurada');
 }
 

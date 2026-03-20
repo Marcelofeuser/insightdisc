@@ -94,6 +94,66 @@ test('generateAiDiscContent preserva saída estruturada quando o provider retorn
   assert.ok(result.content.executiveSummary.length > 40);
 });
 
+test('generateAiDiscContent aceita aliases do contrato JSON externo e normaliza para o schema canônico', async () => {
+  const summary =
+    'Executa com ritmo alto, influência relacional e boa capacidade de mobilização, mas precisa sustentar método para preservar consistência na entrega.';
+  const communicationStyle =
+    'Comunica com energia, foco em adesão e resposta rápida, ganhando qualidade quando explicita critério e próximo passo.';
+  const workStyle =
+    'Atua melhor em contextos com autonomia, metas claras e espaço para ajustar rota sem perder ritmo operacional.';
+  const leadership =
+    'Lidera por presença, direção e mobilização, sendo mais efetivo quando combina pressão por resultado com escuta ativa.';
+  const decisionMaking =
+    'Decide com velocidade e impacto, mas precisa adicionar checagem de risco e contraditório proporcional ao tema.';
+  const riskProfile =
+    'O risco principal está em acelerar demais a decisão e reduzir o espaço para análise de consequência e alinhamento.';
+  const strategicProfile =
+    'Em nível business, gera mais valor quando converte energia comercial em prioridade clara, governança simples e cadência de acompanhamento.';
+
+  const result = await generateAiDiscContent(baseInput, {
+    providerOverride: {
+      name: 'stub-aliases',
+      model: 'stub-aliases-model',
+      async generateStructuredDiscInsights() {
+        return {
+          summary,
+          strengths: ['Mobiliza pessoas com rapidez.', 'Gera tração em frentes de mudança.'],
+          weaknesses: ['Pode subestimar detalhe operacional.', 'Pode atropelar escuta em ciclos curtos.'],
+          communication_style: communicationStyle,
+          work_style: workStyle,
+          leadership,
+          decision_making: decisionMaking,
+          risk_profile: riskProfile,
+          strategic_profile: strategicProfile,
+          tone: 'business',
+        };
+      },
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.source, 'ai');
+  assert.equal(result.content.communicationStyle, communicationStyle);
+  assert.equal(result.content.workStyle, workStyle);
+  assert.equal(result.content.leadershipStyle, leadership);
+  assert.equal(result.content.decisionMaking, decisionMaking);
+  assert.equal(result.content.riskProfile, riskProfile);
+  assert.equal(result.content.strategicProfile, strategicProfile);
+  assert.ok(result.content.limitations.includes('Pode subestimar detalhe operacional.'));
+  assert.deepEqual(result.rawContent, {
+    summary,
+    strengths: ['Mobiliza pessoas com rapidez.', 'Gera tração em frentes de mudança.'],
+    limitations: ['Pode subestimar detalhe operacional.', 'Pode atropelar escuta em ciclos curtos.'],
+    communicationStyle,
+    leadershipStyle: leadership,
+    decisionMaking,
+    workStyle,
+    riskProfile,
+    strategicProfile,
+    tone: 'business',
+  });
+});
+
 test('generateAiDiscContent faz retry estrito no mesmo provider após falha de parse', async () => {
   const fallback = buildFallbackDiscContent(baseInput);
   let callCount = 0;

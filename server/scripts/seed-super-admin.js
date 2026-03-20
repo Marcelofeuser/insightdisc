@@ -39,49 +39,32 @@ async function main() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`[seed-super-admin] ${result} user: ${email}`);
-  // eslint-disable-next-line no-console
   console.log('[seed-super-admin] summary');
-  // eslint-disable-next-line no-console
   console.log(`  status: ${result}`);
-  // eslint-disable-next-line no-console
   console.log(`  email: ${email}`);
-  // eslint-disable-next-line no-console
   console.log(`  role: ${role}`);
-  // eslint-disable-next-line no-console
   console.log(
     `  source env: SUPER_ADMIN_SEED_EMAIL=${process.env.SUPER_ADMIN_SEED_EMAIL ? 'set' : 'unset'} / SUPER_ADMIN_SEED_PASSWORD=${process.env.SUPER_ADMIN_SEED_PASSWORD ? 'set' : 'unset'}`,
   );
-  // eslint-disable-next-line no-console
   console.log('  login url: http://localhost:5173/super-admin-login');
-  // eslint-disable-next-line no-console
   console.log(
     `  senha de login: ${
       hasSeedPassword || hasLegacyPassword ? '(definida em variável de ambiente)' : 'change_me_in_production (fallback padrão)'
     }`,
   );
-  // eslint-disable-next-line no-console
   console.log('  master key env: SUPER_ADMIN_MASTER_KEY');
-  // eslint-disable-next-line no-console
   console.log('----------------------------------------');
-  // eslint-disable-next-line no-console
   console.log('SUPER ADMIN READY');
-  // eslint-disable-next-line no-console
   console.log('URL: http://localhost:5173/super-admin-login');
-  // eslint-disable-next-line no-console
   console.log(`EMAIL: ${email}`);
-  // eslint-disable-next-line no-console
   console.log(`PASSWORD: ${password}`);
-  // eslint-disable-next-line no-console
   console.log('MASTER KEY: use value from server/.env');
-  // eslint-disable-next-line no-console
   console.log('----------------------------------------');
 }
 
 main()
   .catch((error) => {
-    // eslint-disable-next-line no-console
     console.error('[seed-super-admin] failed:', error?.message || error);
     process.exitCode = 1;
   })
