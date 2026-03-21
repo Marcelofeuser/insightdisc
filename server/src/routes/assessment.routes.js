@@ -186,6 +186,41 @@ async function resolveAnyReportAccessToken(token) {
 function buildPdfFailure(error, fallbackReason = 'REPORT_PDF_FAILED') {
   const code = String(error?.code || error?.message || '').trim().toUpperCase();
 
+  if (code.includes('ASSESSMENT_EMPTY')) {
+    return {
+      status: 400,
+      reason: 'ASSESSMENT_EMPTY',
+      message: 'Não foi possível gerar o PDF porque a avaliação ainda não possui respostas.',
+    };
+  }
+
+  if (code.includes('TEMPLATE_NOT_FOUND')) {
+    return {
+      status: 500,
+      reason: 'TEMPLATE_NOT_FOUND',
+      message: 'Não foi possível gerar o PDF porque o template oficial não foi localizado.',
+      detail: code,
+    };
+  }
+
+  if (code.includes('PDF_HTML_INVALID')) {
+    return {
+      status: 500,
+      reason: 'PDF_HTML_INVALID',
+      message: 'Não foi possível gerar o PDF porque o HTML do relatório está inválido.',
+      detail: code,
+    };
+  }
+
+  if (code.includes('PDF_GENERATION_FAILED')) {
+    return {
+      status: 500,
+      reason: 'PDF_GENERATION_FAILED',
+      message: 'Não foi possível gerar o PDF porque o browser de renderização falhou.',
+      detail: code,
+    };
+  }
+
   if (code.includes('PARTICIPANT.NAME')) {
     return {
       status: 400,
@@ -1092,11 +1127,36 @@ router.post(
           creator: true,
           organization: { include: { owner: true } },
           quickContext: true,
+          response: true,
         },
       });
 
+      console.info('GENERATE_REPORT_START', { assessmentId, reportType, userId: req.auth.userId });
+
       if (!assessment) {
-        return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+        return res.status(404).json({
+          ok: false,
+          reason: 'ASSESSMENT_NOT_FOUND',
+          message: 'Assessment não encontrado para geração do PDF.',
+        });
+      }
+
+      const answersCount = Array.isArray(assessment?.response?.answersJson)
+        ? assessment.response.answersJson.length
+        : 0;
+      console.info('ASSESSMENT_FOUND', {
+        id: assessment.id,
+        organizationId: assessment.organizationId,
+        status: assessment.status,
+        answersCount,
+      });
+
+      if (answersCount === 0) {
+        return res.status(400).json({
+          ok: false,
+          reason: 'ASSESSMENT_EMPTY',
+          message: 'A avaliação ainda não possui respostas suficientes para gerar o PDF.',
+        });
       }
 
       const allowed = await canAccessOrganization(req.auth.userId, assessment.organizationId);
@@ -1116,6 +1176,12 @@ router.post(
         assetBaseUrl,
         currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
         reportType,
+      });
+      console.info('REPORT_DATA', {
+        assessmentId: assessment.id,
+        reportType,
+        participantName: reportModel?.participant?.name || '',
+        profileKey: reportModel?.profile?.key || reportModel?.profileKey || '',
       });
 
       const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
@@ -1171,6 +1237,10 @@ router.post(
         publicAccess,
       });
     } catch (error) {
+      console.error('GENERATE_REPORT_ERROR', {
+        assessmentId: String(req.body?.assessmentId || '').trim(),
+        error: error?.stack || error?.message || error,
+      });
       const failure = buildPdfFailure(error, 'GENERATE_REPORT_FAILED');
       return res.status(failure.status).json({
         ok: false,

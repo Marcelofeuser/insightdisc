@@ -2,10 +2,13 @@ import { exec } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
 
-const basePath = '/Users/marcelofeuser/Projects/insightdisc/public/relatorio_teste';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const basePath = path.join(PROJECT_ROOT, 'public/relatorio_teste');
 const MASTER_TEMPLATE_PATH = path.join(basePath, 'relatorio_disc_pdf.html');
 const REPORT_PLACEHOLDER_KEYS = Object.freeze([
   'name',
@@ -430,7 +433,7 @@ async function loadReportHtmlEngine() {
     const runtimeRoot = mkdtempSync(path.join(os.tmpdir(), 'insightdisc-report-lib-'));
 
     for (const relativePath of REPORT_LIB_TS_FILES) {
-      const sourcePath = path.resolve(process.cwd(), relativePath);
+      const sourcePath = path.resolve(PROJECT_ROOT, relativePath);
       const outputPath = path.join(runtimeRoot, relativePath.replace(/\.ts$/i, '.js'));
       const source = readFileSync(sourcePath, 'utf8');
       const transpiled = ts.transpileModule(source, {
@@ -478,7 +481,7 @@ async function loadTemplateSource({
 } = {}) {
   const inlineTemplate = String(templateHtml || '');
   const resolvedTemplatePath = templatePath
-    ? path.resolve(process.cwd(), templatePath)
+    ? path.resolve(PROJECT_ROOT, templatePath)
     : MASTER_TEMPLATE_PATH;
 
   if (inlineTemplate) {

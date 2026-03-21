@@ -613,11 +613,13 @@ export default function SuperAdminDashboard() {
 
         return pdfUrl;
       } catch (_error) {
+        const description =
+          _error?.payload?.message || _error?.payload?.detail || _error?.message || 'Não foi possível gerar o PDF para este assessment.';
         if (!silent) {
           toast({
             variant: 'destructive',
             title: 'Falha ao gerar relatório',
-            description: 'Não foi possível gerar o PDF para este assessment.',
+            description,
           });
         }
         return '';
@@ -676,10 +678,12 @@ export default function SuperAdminDashboard() {
         );
         downloadBlob(blob, fileName);
       } catch (_error) {
+        const description =
+          _error?.payload?.message || _error?.payload?.detail || _error?.message || 'Não foi possível baixar o PDF deste relatório.';
         toast({
           variant: 'destructive',
           title: 'Falha ao baixar PDF',
-          description: 'Não foi possível baixar o PDF deste relatório.',
+          description,
         });
       } finally {
         setDownloadingPdfId('');

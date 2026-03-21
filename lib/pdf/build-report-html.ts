@@ -125,6 +125,16 @@ function getTemplateSource(
   return inlineTemplate || loadedTemplateHtml;
 }
 
+function getInlineTemplateSource(templateSnapshot: UnknownRecord): string {
+  return asText(
+    pickFirstDefined(
+      templateSnapshot.html,
+      templateSnapshot.template_html,
+      templateSnapshot.templateHtml,
+    ),
+  );
+}
+
 function resolveName(
   assessment: UnknownRecord,
   templateSnapshot: UnknownRecord,
@@ -235,11 +245,33 @@ export function buildReportHtml(
       input.template_snapshot?.language ??
       REPORT_LANGUAGE_FALLBACK,
   );
-  const loadedTemplate = loadReportTemplate(reportType, language);
   const definition = getReportTemplateDefinition(reportType, language);
   const inputSnapshot = toRecord(input.input_snapshot);
   const scoringSnapshot = toRecord(input.scoring_snapshot);
   const templateSnapshot = toRecord(input.template_snapshot);
+  const inlineTemplateHtml = getInlineTemplateSource(templateSnapshot);
+  const loadedTemplate = inlineTemplateHtml
+    ? {
+        html: inlineTemplateHtml,
+        templatePath: asText(
+          pickFirstDefined(
+            templateSnapshot.templatePath,
+            templateSnapshot.path,
+            definition.templatePath,
+          ),
+        ) || definition.templatePath,
+        cacheKey: [
+          REPORT_VERSION,
+          definition.language,
+          reportType,
+          'inline',
+        ].join(':'),
+        reportType,
+        version: REPORT_VERSION,
+        language: definition.language,
+        fromCache: false,
+      }
+    : loadReportTemplate(reportType, language);
   const assessment = getAssessmentSnapshot(inputSnapshot);
   const result = getAssessmentResultSnapshot(scoringSnapshot);
   const templateHtml = getTemplateSource(loadedTemplate.html, templateSnapshot);

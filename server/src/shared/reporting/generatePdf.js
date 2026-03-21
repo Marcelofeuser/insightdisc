@@ -176,6 +176,11 @@ export async function generatePdfFromData(rawData, options = {}) {
     reportModel,
     includeAiComplement: options.includeAiComplement !== false,
   });
+  if (!html || html.length < 100) {
+    const error = new Error('PDF_HTML_INVALID');
+    error.code = 'PDF_HTML_INVALID';
+    throw error;
+  }
   assertNoRawPlaceholders(html);
   const htmlWithInlinedCover = await inlineOfficialCoverAsset(html);
   const htmlForPdf = normalizeHtmlAssetPaths(htmlWithInlinedCover);
@@ -256,6 +261,11 @@ export async function generatePdfFromData(rawData, options = {}) {
 
     if (shouldReturnBuffer) {
       pdfBuffer = await page.pdf(pdfOptions);
+      if (!pdfBuffer || Number(pdfBuffer.length || 0) === 0) {
+        const error = new Error('PDF_GENERATION_FAILED');
+        error.code = 'PDF_GENERATION_FAILED';
+        throw error;
+      }
     } else {
       await page.pdf({
         ...pdfOptions,

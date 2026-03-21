@@ -152,6 +152,7 @@ router.get('/overview', async (req, res) => {
               assessment: {
                 select: {
                   id: true,
+                  organizationId: true,
                   candidateName: true,
                   candidateEmail: true,
                   createdAt: true,
@@ -202,6 +203,7 @@ router.get('/overview', async (req, res) => {
             take: 8,
             select: {
               id: true,
+              organizationId: true,
               candidateName: true,
               candidateEmail: true,
               status: true,
@@ -229,7 +231,7 @@ router.get('/overview', async (req, res) => {
     const assessmentId = String(report.assessmentId || '').trim();
     const publicAccess = issuePublicReportAccess({
       assessmentId,
-      accountId: report.assessment?.organizationId,
+      accountId: report.assessment?.organizationId || report.assessment?.organization?.id,
       reportType: resolveStoredReportType(report, 'business'),
       appBaseUrl,
     });
@@ -312,7 +314,7 @@ router.get('/overview', async (req, res) => {
       '-',
     pdfUrl: issuePublicReportAccess({
       assessmentId: assessment.id,
-      accountId: assessment.organizationId,
+      accountId: assessment.organizationId || assessment.organization?.id,
       reportType: resolveStoredReportType(assessment, 'business'),
       appBaseUrl,
     }).pdfUrl,
