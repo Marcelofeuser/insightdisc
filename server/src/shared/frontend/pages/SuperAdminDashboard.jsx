@@ -134,6 +134,14 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function normalizeReportType(value = '', fallback = 'business') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback;
+}
+
 function inferReportAssessmentId(report = {}) {
   return firstNonEmpty(
     report?.assessmentId,
@@ -286,7 +294,11 @@ export default function SuperAdminDashboard() {
             const mergedAssessmentId = normalized.assessmentId || fallbackAssessmentId;
             const mergedPreviewPath =
               normalized.previewPath ||
-              (mergedAssessmentId ? `/Report?id=${encodeURIComponent(mergedAssessmentId)}` : '');
+              firstNonEmpty(
+                assessmentFallback?.publicReportUrl,
+                assessmentFallback?.previewUrl,
+                assessmentFallback?.previewPath,
+              );
             const mergedPdfUrl = normalized.pdfUrl || fallbackPdfUrl;
             return {
               ...normalized,
@@ -427,8 +439,16 @@ export default function SuperAdminDashboard() {
         payload?.publicAccess?.public_token,
       );
       if (!token) return '';
+      const reportType = normalizeReportType(
+        payload?.publicAccess?.reportType ||
+          payload?.reportType ||
+          payload?.report?.reportType ||
+          'business',
+      );
 
-      return resolveAbsoluteApiUrl(`/api/report/pdf?token=${encodeURIComponent(token)}`);
+      return resolveAbsoluteApiUrl(
+        `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`,
+      );
     },
     [resolveAbsoluteApiUrl],
   );
@@ -1122,8 +1142,8 @@ export default function SuperAdminDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => latestDemoAssessment?.id && navigate(`/Report?id=${latestDemoAssessment.id}`)}
-                  disabled={!latestDemoAssessment?.id}
+                  onClick={() => handleOpenReportPreview(latestDemoReport || {})}
+                  disabled={!resolveReportPreviewPath(latestDemoReport || {})}
                 >
                   Abrir preview
                 </Button>

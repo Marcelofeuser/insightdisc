@@ -36,6 +36,40 @@ function normalizeBranding(input = {}) {
   };
 }
 
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
+function normalizeBrandingUiError(error, fallback = 'Falha ao carregar branding.') {
+  const rawMessage = String(error?.payload?.message || error?.message || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const code = String(error?.code || error?.payload?.error || error?.payload?.reason || '')
+    .trim()
+    .toUpperCase();
+
+  if (!rawMessage) return fallback;
+  if (code.includes('FORBIDDEN') || code.includes('HTTP_403')) {
+    return 'Você não tem permissão para editar a marca deste workspace.';
+  }
+  if (code.includes('WORKSPACE_NOT_FOUND') || code.includes('NOT_FOUND') || code.includes('HTTP_404')) {
+    return 'Workspace não encontrado para configuração de branding.';
+  }
+  if (code.includes('UPLOAD_STORAGE_NOT_CONFIGURED')) {
+    return 'Upload indisponível neste ambiente. Use uma URL pública do logotipo.';
+  }
+  if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+    return fallback;
+  }
+  if (isOpaqueUiErrorMessage(rawMessage)) {
+    return fallback;
+  }
+
+  return rawMessage;
+}
+
 export default function BrandingSettings() {
   const { access, user } = useAuth();
   const { toast } = useToast();
@@ -95,7 +129,7 @@ export default function BrandingSettings() {
           );
         }
       } catch (loadError) {
-        setError(loadError?.message || 'Falha ao carregar branding.');
+        setError(normalizeBrandingUiError(loadError, 'Falha ao carregar branding.'));
       } finally {
         setLoading(false);
       }
@@ -184,7 +218,10 @@ export default function BrandingSettings() {
         description: 'Logo, cores e rodapé foram atualizados no preview.',
       });
     } catch (saveError) {
-      const message = saveError?.message || 'Falha ao salvar identidade visual.';
+      const message = normalizeBrandingUiError(
+        saveError,
+        'Falha ao salvar identidade visual.',
+      );
       setError(message);
       toast({
         variant: 'destructive',
@@ -242,7 +279,7 @@ export default function BrandingSettings() {
         title: 'Logo atualizado',
       });
     } catch (uploadError) {
-      const message = uploadError?.message || 'Falha ao enviar logo.';
+      const message = normalizeBrandingUiError(uploadError, 'Falha ao enviar logo.');
       setError(message);
       toast({
         variant: 'destructive',

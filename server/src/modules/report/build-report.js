@@ -723,6 +723,7 @@ export async function buildPremiumReportModel({
   currentUser = null,
   reportType = REPORT_TYPE.BUSINESS,
   includeAiComplement = true,
+  useAi = true,
   aiOptions = {},
 }) {
   const branding = resolveBranding(assessment, assetBaseUrl);
@@ -756,6 +757,36 @@ export async function buildPremiumReportModel({
   };
 
   const reportModel = await buildReportModel(input);
+  if (useAi === false) {
+    return {
+      ...reportModel,
+      reportType: normalizedReportType,
+      meta: {
+        ...(reportModel?.meta || {}),
+        reportType: normalizedReportType,
+        aiProvider: 'deterministic_engine',
+        aiModel: 'deterministic_engine',
+        aiSource: 'disabled',
+        aiUsedFallback: false,
+        aiComplementEnabled: false,
+      },
+      quality: {
+        ...(reportModel?.quality || {}),
+        noAi: true,
+        deterministic: true,
+      },
+      aiComplement: { ...EMPTY_AI_COMPLEMENT },
+      ai: {
+        enabled: false,
+        provider: 'deterministic_engine',
+        model: 'deterministic_engine',
+        source: 'disabled',
+        usedFallback: false,
+        attempts: [],
+      },
+    };
+  }
+
   const aiResult = await generateAiDiscContent({
     mode: normalizedReportType,
     nome: participant.name,

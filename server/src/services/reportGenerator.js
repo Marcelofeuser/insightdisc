@@ -3,7 +3,15 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { prisma } from '../lib/prisma.js';
+import { verifyPublicReportToken } from '../lib/public-report-token.js';
 import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
+import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
+import {
+  REPORT_TYPE,
+  normalizeReportType as normalizeCanonicalReportType,
+  resolveStoredReportType,
+} from '../modules/report/report-type.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,8 +95,11 @@ const OFFICIAL_TEMPLATE_VALIDATION_HTML =
 const modeLocks = new Map();
 const templateCache = new Map();
 const templateInflight = new Map();
+const GENERATED_REPORT_CACHE_TTL_MS = 10 * 60 * 1000;
+const generatedReportCache = new Map();
 let reportHtmlEnginePromise = null;
 let discEngineRuntimePromise = null;
+let premiumReportPipelinePromise = null;
 
 function normalizeMode(mode = 'business') {
   const normalized = String(mode || '').trim().toLowerCase();
@@ -746,8 +757,8 @@ function invalidateTemplateCache() {
 }
 
 function resolveOfficialTemplatePath(reportType = 'business') {
-  const normalizedReportType = normalizeMode(reportType);
-  return OFFICIAL_TEMPLATE_PATHS[normalizedReportType] || OFFICIAL_TEMPLATE_PATHS.business;
+  normalizeMode(reportType);
+  return MASTER_TEMPLATE_PATH;
 }
 
 async function buildReportHtmlPreview({
@@ -1370,6 +1381,478 @@ export function gerarRelatorio({
       }
     });
   })();
+}
+
+function normalizePublicReportType(value, fallback = REPORT_TYPE.BUSINESS) {
+  return normalizeCanonicalReportType(value, fallback);
+}
+
+function createServiceError(code, message, statusCode = 400, details = {}) {
+  const error = createReportGeneratorError(code, message, details);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function resolveAssessmentParticipantName(assessment = {}) {
+  const reportParticipant = toPlainObject(assessment?.report?.discProfile?.participant);
+
+  return (
+    toText(
+      pickFirstDefined(
+        assessment?.candidateName,
+        assessment?.respondent_name,
+        assessment?.respondentName,
+        reportParticipant?.name,
+        reportParticipant?.candidateName,
+        reportParticipant?.respondent_name,
+        assessment?.candidateEmail,
+        assessment?.email,
+        'Participante DISC',
+      ),
+    ) || 'Participante DISC'
+  );
+}
+
+function slugifyFileNamePart(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replaceAll(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function buildGeneratedReportCacheKey({ assessmentId = '', reportType = REPORT_TYPE.BUSINESS } = {}) {
+  return `${toText(assessmentId)}:${normalizePublicReportType(reportType)}`;
+}
+
+function pruneGeneratedReportCache() {
+  const now = Date.now();
+
+  for (const [key, entry] of generatedReportCache.entries()) {
+    if (Number(entry?.expiresAt || 0) <= now) {
+      generatedReportCache.delete(key);
+    }
+  }
+}
+
+function getCachedGeneratedReport(cacheKey) {
+  pruneGeneratedReportCache();
+
+  const entry = generatedReportCache.get(cacheKey);
+  if (!entry) return null;
+
+  return entry.value || null;
+}
+
+function setCachedGeneratedReport(cacheKey, value, ttlMs = GENERATED_REPORT_CACHE_TTL_MS) {
+  if (!cacheKey || !value?.pdfBuffer) return;
+
+  generatedReportCache.set(cacheKey, {
+    expiresAt: Date.now() + Math.max(1_000, Number(ttlMs) || GENERATED_REPORT_CACHE_TTL_MS),
+    value: {
+      ...value,
+      pdfBuffer: Buffer.from(value.pdfBuffer),
+    },
+  });
+}
+
+async function loadPremiumReportPipeline() {
+  if (premiumReportPipelinePromise) {
+    return premiumReportPipelinePromise;
+  }
+
+  premiumReportPipelinePromise = (async () => {
+    const [buildModule, pdfModule] = await Promise.all([
+      import('../modules/report/build-report.js'),
+      import('../modules/report/generate-pdf.js'),
+    ]);
+
+    return {
+      buildPremiumReportModel: buildModule.buildPremiumReportModel,
+      generatePremiumPdf: pdfModule.generatePremiumPdf,
+      loadServerBrowserLauncher: pdfModule.loadServerBrowserLauncher,
+    };
+  })();
+
+  return premiumReportPipelinePromise;
+}
+
+function resolveAssessmentDiscResultSnapshot(assessment = {}) {
+  return assessment?.report?.discProfile || assessment?.results || assessment?.disc_results || {};
+}
+
+export function buildPublicReportFileName({
+  assessment = {},
+  reportType = REPORT_TYPE.BUSINESS,
+} = {}) {
+  const normalizedReportType = normalizePublicReportType(reportType);
+  const participantSlug = slugifyFileNamePart(resolveAssessmentParticipantName(assessment));
+
+  if (participantSlug) {
+    return `relatorio-disc-${participantSlug}.pdf`;
+  }
+
+  return `relatorio-disc-${normalizedReportType}.pdf`;
+}
+
+export function invalidateGeneratedReportCache() {
+  generatedReportCache.clear();
+}
+
+export async function buildStructuredReportModel({
+  assessment = {},
+  reportType = REPORT_TYPE.BUSINESS,
+  assetBaseUrl = '',
+  currentUser = null,
+} = {}) {
+  if (!assessment?.id) {
+    throw createServiceError('NOT_FOUND', 'Assessment não encontrado.', 404);
+  }
+
+  const normalizedReportType = normalizePublicReportType(
+    reportType,
+    resolveStoredReportType(assessment, REPORT_TYPE.BUSINESS),
+  );
+  const { buildPremiumReportModel } = await loadPremiumReportPipeline();
+
+  return buildPremiumReportModel({
+    assessment,
+    discResult: resolveAssessmentDiscResultSnapshot(assessment),
+    assetBaseUrl,
+    currentUser: currentUser || assessment?.creator || assessment?.organization?.owner || null,
+    reportType: normalizedReportType,
+    includeAiComplement: false,
+    useAi: false,
+  });
+}
+
+function formatAssessmentDate(value) {
+  const date = new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR').format(date);
+}
+
+function resolveStructuredReportScores(reportModel = {}, assessment = {}) {
+  const reportScores = toPlainObject(reportModel?.scores);
+  const summaryScores = toPlainObject(
+    pickFirstDefined(reportScores.summary, reportScores.natural, reportScores.adapted),
+  );
+  const assessmentScores = resolveAssessmentDiscResultSnapshot(assessment);
+
+  return normalizeScoresSnapshot(
+    {
+      D: pickFirstDefined(summaryScores.D, summaryScores.d, assessmentScores?.summary?.D, assessmentScores?.D),
+      I: pickFirstDefined(summaryScores.I, summaryScores.i, assessmentScores?.summary?.I, assessmentScores?.I),
+      S: pickFirstDefined(summaryScores.S, summaryScores.s, assessmentScores?.summary?.S, assessmentScores?.S),
+      C: pickFirstDefined(summaryScores.C, summaryScores.c, assessmentScores?.summary?.C, assessmentScores?.C),
+    },
+    { allowDefaultValues: true },
+  );
+}
+
+function resolveStructuredReportProfile(reportModel = {}, normalizedScores = {}) {
+  return toText(
+    pickFirstDefined(
+      reportModel?.profile?.label,
+      reportModel?.profile?.title,
+      reportModel?.profile?.key,
+      reportModel?.profileKey,
+    ),
+  ) || computeProfileLabel(normalizedScores);
+}
+
+function buildOfficialPreviewPayload({ assessment = {}, reportModel = {}, normalizedScores = {} } = {}) {
+  const participant = toPlainObject(reportModel?.participant);
+
+  return {
+    name: toText(
+      pickFirstDefined(
+        participant.name,
+        participant.candidateName,
+        assessment?.candidateName,
+        assessment?.respondent_name,
+        assessment?.candidateEmail,
+      ),
+    ),
+    cargo: toText(
+      pickFirstDefined(
+        participant.role,
+        assessment?.candidateRole,
+        assessment?.role,
+      ),
+    ),
+    empresa: toText(
+      pickFirstDefined(
+        participant.company,
+        assessment?.candidateCompany,
+        assessment?.company,
+        assessment?.organization?.name,
+      ),
+    ),
+    data: formatAssessmentDate(
+      pickFirstDefined(assessment?.completedAt, assessment?.createdAt, assessment?.updatedAt),
+    ),
+    profile: resolveStructuredReportProfile(reportModel, normalizedScores),
+    disc: {
+      profile: resolveStructuredReportProfile(reportModel, normalizedScores),
+    },
+  };
+}
+
+export async function buildStructuredReportHtml({
+  assessment = {},
+  reportType = REPORT_TYPE.BUSINESS,
+  assetBaseUrl = '',
+  currentUser = null,
+  reportModel = null,
+} = {}) {
+  const normalizedReportType = normalizePublicReportType(
+    reportType,
+    resolveStoredReportType(assessment, REPORT_TYPE.BUSINESS),
+  );
+  const resolvedReportModel =
+    reportModel ||
+    (await buildStructuredReportModel({
+      assessment,
+      reportType: normalizedReportType,
+      assetBaseUrl,
+      currentUser,
+    }));
+  const normalizedScores = resolveStructuredReportScores(resolvedReportModel, assessment);
+  const payload = buildOfficialPreviewPayload({
+    assessment,
+    reportModel: resolvedReportModel,
+    normalizedScores,
+  });
+  const preview = await buildReportHtmlPreview({
+    reportType: normalizedReportType,
+    scores: normalizedScores,
+    payload,
+    templatePath: resolveOfficialTemplatePath(normalizedReportType),
+    template_snapshot: {
+      required_placeholders: REPORT_PLACEHOLDER_KEYS,
+      language: 'pt-BR',
+      version: 'report.v1',
+    },
+  });
+
+  return {
+    reportModel: resolvedReportModel,
+    html: preview.html || '',
+    normalizedScores,
+  };
+}
+
+async function renderOfficialHtmlToPdfBuffer(html = '') {
+  const normalizedHtml = String(html || '').trim();
+  if (!normalizedHtml) {
+    throw createServiceError(
+      'PUBLIC_REPORT_HTML_EMPTY',
+      'Não foi possível montar o HTML oficial do relatório.',
+      500,
+    );
+  }
+
+  const { loadServerBrowserLauncher } = await loadPremiumReportPipeline();
+  const browserLauncher = await loadServerBrowserLauncher();
+  const browser = await browserLauncher.launch();
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({
+      width: 1400,
+      height: 900,
+      deviceScaleFactor: 1,
+    });
+    await page.emulateMediaType('screen');
+    await page.setContent(normalizedHtml, {
+      waitUntil: browserLauncher.name === 'playwright' ? 'networkidle' : 'networkidle0',
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0mm',
+        right: '0mm',
+        bottom: '0mm',
+        left: '0mm',
+      },
+      preferCSSPageSize: true,
+    });
+
+    return Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function loadAssessmentByPublicReportToken({
+  token = '',
+  reportType = REPORT_TYPE.BUSINESS,
+} = {}) {
+  const normalizedToken = toText(token);
+  if (!normalizedToken) {
+    throw createServiceError('TOKEN_REQUIRED', 'Token do relatório é obrigatório.', 400);
+  }
+
+  let payload = null;
+
+  try {
+    payload = verifyPublicReportToken(normalizedToken);
+  } catch (error) {
+    throw createServiceError(
+      'PUBLIC_REPORT_TOKEN_INVALID',
+      error?.message || 'Token inválido.',
+      401,
+    );
+  }
+
+  const assessmentId = toText(
+    pickFirstDefined(payload?.assessmentId, payload?.id, payload?.assessment_id),
+  );
+  const accountId = toText(
+    pickFirstDefined(payload?.accountId, payload?.organizationId, payload?.account_id),
+  );
+
+  if (!assessmentId) {
+    throw createServiceError(
+      'PUBLIC_REPORT_ASSESSMENT_REQUIRED',
+      'Token sem assessmentId.',
+      400,
+    );
+  }
+
+  if (!accountId) {
+    throw createServiceError(
+      'PUBLIC_REPORT_ACCOUNT_REQUIRED',
+      'Token sem accountId.',
+      400,
+    );
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      organizationId: accountId,
+    },
+    include: {
+      report: true,
+      creator: true,
+      organization: { include: { owner: true } },
+      quickContext: true,
+      response: true,
+    },
+  });
+
+  if (!assessment) {
+    throw createServiceError(
+      'NOT_FOUND',
+      'Não localizamos a avaliação para gerar o relatório.',
+      404,
+    );
+  }
+
+  return {
+    assessment,
+    tokenPayload: payload,
+    reportType: normalizePublicReportType(
+      reportType || payload?.reportType || resolveStoredReportType(assessment, REPORT_TYPE.BUSINESS),
+    ),
+  };
+}
+
+export async function generateAssessmentReport({
+  assessment = {},
+  reportType = REPORT_TYPE.BUSINESS,
+  assetBaseUrl = '',
+  currentUser = null,
+  inMemory = true,
+  useCache = true,
+} = {}) {
+  if (!assessment?.id) {
+    throw createServiceError('NOT_FOUND', 'Assessment não encontrado.', 404);
+  }
+
+  const normalizedReportType = normalizePublicReportType(
+    reportType,
+    resolveStoredReportType(assessment, REPORT_TYPE.BUSINESS),
+  );
+  const cacheKey = buildGeneratedReportCacheKey({
+    assessmentId: assessment.id,
+    reportType: normalizedReportType,
+  });
+
+  if (inMemory && useCache) {
+    const cached = getCachedGeneratedReport(cacheKey);
+    if (cached) {
+      return {
+        ...cached,
+        cacheHit: true,
+      };
+    }
+  }
+
+  const structured = await buildStructuredReportHtml({
+    assessment,
+    reportType: normalizedReportType,
+    assetBaseUrl,
+    currentUser,
+  });
+  const reportModel = structured.reportModel;
+  const html = structured.html;
+  const pdfBuffer = await renderOfficialHtmlToPdfBuffer(html);
+  const branding = normalizeBrandingFromOrganization(assessment?.organization || {});
+  const payload = {
+    assessment,
+    reportType: normalizedReportType,
+    reportModel,
+    html,
+    pdfBuffer,
+    outputPath: null,
+    pdfUrl: '',
+    fileName: buildPublicReportFileName({
+      assessment: {
+        ...assessment,
+        branding,
+      },
+      reportType: normalizedReportType,
+    }),
+    cacheHit: false,
+  };
+ 
+  if (inMemory && useCache && payload.pdfBuffer) {
+    setCachedGeneratedReport(cacheKey, payload);
+  }
+
+  return payload;
+}
+
+export async function generateReport({
+  token = '',
+  reportType = REPORT_TYPE.BUSINESS,
+  assetBaseUrl = '',
+  inMemory = true,
+  useCache = true,
+} = {}) {
+  const resolved = await loadAssessmentByPublicReportToken({
+    token,
+    reportType,
+  });
+
+  return generateAssessmentReport({
+    assessment: resolved.assessment,
+    reportType: resolved.reportType,
+    assetBaseUrl,
+    currentUser: resolved.assessment?.creator || resolved.assessment?.organization?.owner || null,
+    inMemory,
+    useCache,
+  });
 }
 
 export {

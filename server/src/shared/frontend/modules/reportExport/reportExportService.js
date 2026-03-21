@@ -55,7 +55,15 @@ export function downloadPdfBlob(blob, fileName = 'insightdisc-relatorio-oficial.
   }
 }
 
-function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '') {
+function normalizeReportType(value = '', fallback = 'business') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback;
+}
+
+function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '', reportType = 'business') {
   const directUrl = resolveApiRequestUrl(
     publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || publicAccess?.pdfUrl || '',
     { baseUrl: apiBaseUrl },
@@ -68,7 +76,9 @@ function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '') {
   if (!token) return '';
 
   return resolveApiRequestUrl(
-    `/api/report/pdf?token=${encodeURIComponent(token)}`,
+    `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(
+      normalizeReportType(reportType),
+    )}`,
     { baseUrl: apiBaseUrl },
   );
 }
@@ -77,6 +87,7 @@ export async function exportAssessmentReportPdf({
   assessmentId,
   apiBaseUrl: apiBaseUrlOverride,
   publicAccess: publicAccessFromState = null,
+  reportType = 'business',
 } = {}) {
   const normalizedAssessmentId = String(assessmentId || '').trim();
   if (!normalizedAssessmentId) {
@@ -93,16 +104,24 @@ export async function exportAssessmentReportPdf({
   }
 
   let publicAccess = publicAccessFromState;
-  let endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl);
+  const resolvedReportType = normalizeReportType(
+    publicAccess?.reportType || publicAccess?.type || reportType,
+  );
+  let endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl, resolvedReportType);
 
   if (!endpoint) {
-    publicAccess = await apiRequest(`/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}`, {
-      method: 'GET',
-      requireAuth: true,
-      baseUrl: apiBaseUrl,
-      ...getDirectBackendRuntimeOptions(apiBaseUrl),
-    });
-    endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl);
+    publicAccess = await apiRequest(
+      `/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}?reportType=${encodeURIComponent(
+        resolvedReportType,
+      )}`,
+      {
+        method: 'GET',
+        requireAuth: true,
+        baseUrl: apiBaseUrl,
+        ...getDirectBackendRuntimeOptions(apiBaseUrl),
+      },
+    );
+    endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl, resolvedReportType);
   }
 
   if (!endpoint) {

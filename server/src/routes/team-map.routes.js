@@ -24,6 +24,19 @@ function resolveErrorCode(error, fallback = 'TEAM_MAP_FAILED') {
     .toUpperCase();
 }
 
+function resolveFriendlyErrorMessage(code, fallback = 'Não foi possível carregar os dados do mapa de equipe.') {
+  if (code === 'AUTH_REQUIRED') {
+    return 'Sua sessão expirou. Faça login novamente para acessar o mapa de equipe.';
+  }
+  if (code === 'ASSESSMENTS_NOT_ACCESSIBLE') {
+    return 'Você não possui permissão para analisar uma ou mais avaliações selecionadas.';
+  }
+  if (code === 'ASSESSMENT_IDS_REQUIRED' || code === 'INVALID_PAYLOAD') {
+    return 'Selecione avaliações válidas para gerar o mapa organizacional.';
+  }
+  return fallback;
+}
+
 function sendError(res, error, fallback = 'TEAM_MAP_FAILED') {
   const code = resolveErrorCode(error, fallback);
   const status = ERROR_STATUS[code] || 500;
@@ -31,7 +44,10 @@ function sendError(res, error, fallback = 'TEAM_MAP_FAILED') {
   return res.status(status).json({
     ok: false,
     error: code,
-    message: error?.message || code,
+    message: resolveFriendlyErrorMessage(
+      code,
+      error?.message || 'Não foi possível concluir a análise do mapa de equipe.',
+    ),
   });
 }
 

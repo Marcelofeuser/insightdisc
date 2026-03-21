@@ -214,3 +214,35 @@ test('renderReportHtml permite desligar a seção complementar por flag', async 
 
   assert.equal(html.includes('Análise Complementar por IA'), false);
 });
+
+test('buildPremiumReportModel ignora provider de IA quando useAi=false', async () => {
+  const assessment = createAssessment();
+  let providerCalls = 0;
+
+  const reportModel = await buildPremiumReportModel({
+    assessment,
+    discResult: createDiscResult(),
+    currentUser: assessment.creator,
+    reportType: 'business',
+    useAi: false,
+    aiOptions: {
+      providerOverride: {
+        name: 'should-not-run',
+        model: 'should-not-run',
+        async generateStructuredDiscInsights() {
+          providerCalls += 1;
+          throw new Error('PROVIDER_SHOULD_NOT_RUN');
+        },
+      },
+    },
+  });
+
+  assert.equal(providerCalls, 0);
+  assert.equal(reportModel.ai.enabled, false);
+  assert.equal(reportModel.meta.aiSource, 'disabled');
+  assert.equal(reportModel.meta.aiComplementEnabled, false);
+  assert.equal(reportModel.quality.noAi, true);
+
+  const html = renderReportHtml({ assessment, reportModel });
+  assert.equal(html.includes('Análise Complementar por IA'), false);
+});

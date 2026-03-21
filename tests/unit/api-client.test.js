@@ -50,44 +50,44 @@ test('preserva configuracao absoluta customizada fora do host publico principal'
   assert.equal(apiBaseUrl, 'https://staging-api.example.com');
 });
 
-test('usa proxy same-origin para campanhas no app publicado', () => {
+test('usa backend direto para campanhas no app publicado', () => {
   const url = resolveApiRequestUrl('/api/campaigns', {
     baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
 
-  assert.equal(url, 'https://app.insightdisc.com/api/proxy/api/campaigns');
+  assert.equal(url, 'https://insightdisc-production.up.railway.app/api/campaigns');
 });
 
-test('usa proxy same-origin para rotas autenticadas do backend no app publicado', () => {
+test('usa backend direto para rotas autenticadas do backend no app publicado', () => {
   const url = resolveApiRequestUrl('/super-admin/overview', {
     baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
 
-  assert.equal(url, 'https://app.insightdisc.com/api/proxy/super-admin/overview');
+  assert.equal(url, 'https://insightdisc-production.up.railway.app/super-admin/overview');
 });
 
-test('usa proxy same-origin para rotas de autenticacao no app publicado', () => {
+test('usa backend direto para rotas de autenticacao no app publicado', () => {
   const url = resolveApiRequestUrl('/auth/login', {
     baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
 
-  assert.equal(url, 'https://app.insightdisc.com/api/proxy/auth/login');
+  assert.equal(url, 'https://insightdisc-production.up.railway.app/auth/login');
 });
 
-test('converte URL absoluta do backend para proxy same-origin no app publicado', () => {
+test('mantem URL absoluta do backend fora do proxy same-origin no app publicado', () => {
   const url = resolveApiRequestUrl('https://insightdisc-production.up.railway.app/report/report-123/pdf?download=1', {
     baseUrl: 'https://insightdisc-production.up.railway.app',
     runtimeOrigin: 'https://app.insightdisc.com',
     prod: true,
   });
 
-  assert.equal(url, 'https://app.insightdisc.com/api/proxy/report/report-123/pdf?download=1');
+  assert.equal(url, 'https://insightdisc-production.up.railway.app/report/report-123/pdf?download=1');
 });
 
 test('mantem endpoints serverless locais fora do proxy de backend', () => {

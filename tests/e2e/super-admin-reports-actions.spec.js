@@ -10,6 +10,7 @@ const SUPER_ADMIN = {
   password: process.env.SUPER_ADMIN_PASSWORD || '',
   masterKey: process.env.SUPER_ADMIN_MASTER_KEY || '',
 };
+const RAW_ERROR_PATTERN = /NOT_FOUND|The page could not be found|Parâmetros ausentes|payload\.error/i;
 
 function hasSuperAdminCreds() {
   return Boolean(SUPER_ADMIN.email && SUPER_ADMIN.password && SUPER_ADMIN.masterKey);
@@ -40,12 +41,11 @@ test.describe('Super Admin - Relatórios mais recentes actions', () => {
     await loginAsSuperAdminUi(page);
     await waitForApp(page);
 
-    const table = page.getByTestId('super-admin-reports-table');
+    const table = page.locator('div[data-testid="super-admin-reports-table"]').first();
     await expect(table).toBeVisible();
 
     const rows = table.locator('tbody tr');
-    const rowCount = await rows.count();
-    test.skip(rowCount < 1, 'Nenhum relatório disponível para validar ações.');
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 });
     const targetRow = rows.first();
 
     const previewButton = targetRow.getByRole('button', { name: /^Preview$/i });
@@ -54,7 +54,12 @@ test.describe('Super Admin - Relatórios mais recentes actions', () => {
     const linkButton = targetRow.getByRole('button', { name: /^Link$/i });
 
     await previewButton.click();
-    await expect(page).toHaveURL(/\/Report\?id=/);
+    await expect(page).toHaveURL(/\/c\/report\?token=.*[?&]type=(personal|professional|business)/);
+    await expect(page.getByTestId('candidate-report-container')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Relatório DISC/i)).toBeVisible();
+    const reportFrame = page.frameLocator('iframe[title="Prévia do relatório do candidato"]');
+    await expect(reportFrame.locator('.slide').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('body')).not.toContainText(RAW_ERROR_PATTERN);
     await page.goBack({ waitUntil: 'domcontentloaded' });
     await waitForApp(page);
 
@@ -67,12 +72,12 @@ test.describe('Super Admin - Relatórios mais recentes actions', () => {
     );
 
     await rows.first().getByRole('button', { name: /Regenerar PDF|Gerando/i }).click();
-    await expect(page.getByText(/Relatório gerado/i)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Relatório gerado|Relatório em processamento/i)).toBeVisible({ timeout: 30000 });
 
     await rows.first().getByRole('button', { name: /^Link$/i }).click();
-    await expect(page.getByText(/copiado/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Copiado', { exact: true })).toBeVisible({ timeout: 10000 });
     const clipboardText = await page.evaluate(async () => navigator.clipboard.readText());
-    expect(clipboardText).toMatch(/\/Report\?id=/);
+    expect(clipboardText).toMatch(/\/c\/report\?token=.*[?&]type=(personal|professional|business)/);
 
     await expect(previewButton).toBeVisible();
     await expect(pdfButton).toBeVisible();

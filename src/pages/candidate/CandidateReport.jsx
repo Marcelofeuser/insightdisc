@@ -59,6 +59,46 @@ function looksLikePublicReportToken(token = '') {
   return String(token || '').trim().split('.').length === 3;
 }
 
+function normalizeReportType(value = '', fallback = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback ? normalizeReportType(fallback) : '';
+}
+
+function slugifyFileNamePart(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function buildReportFileName(assessment, reportType = 'business') {
+  const participantName =
+    assessment?.respondent_name ||
+    assessment?.candidateName ||
+    assessment?.respondent_email ||
+    assessment?.candidateEmail ||
+    '';
+  const slug = slugifyFileNamePart(participantName);
+
+  if (slug) {
+    return `relatorio-disc-${slug}.pdf`;
+  }
+
+  return `relatorio-disc-${normalizeReportType(reportType, 'business')}.pdf`;
+}
+
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
 async function exportLocalPdfFromHtml(html, fileName) {
   const parser = new DOMParser();
   const parsed = parser.parseFromString(html, 'text/html');
@@ -80,7 +120,7 @@ async function exportLocalPdfFromHtml(html, fileName) {
   document.body.appendChild(host);
 
   try {
-    const pages = Array.from(host.querySelectorAll('.page, .report-page'));
+    const pages = Array.from(host.querySelectorAll('.page, .report-page, .slide'));
     if (!pages.length) {
       throw new Error('Nenhuma página encontrada para exportação.');
     }
@@ -125,10 +165,12 @@ export default function CandidateReport() {
 
   const assessmentId = params.get('id') || '';
   const token = params.get('token') || params.get('t') || '';
+  const urlReportType = normalizeReportType(params.get('type') || params.get('reportType') || '');
   const apiBaseUrl = getApiBaseUrl();
 
   const [assessment, setAssessment] = useState(null);
   const [remoteReportModel, setRemoteReportModel] = useState(null);
+  const [remotePreviewHtml, setRemotePreviewHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
@@ -171,6 +213,38 @@ export default function CandidateReport() {
     }
 
     return 'Não foi possível salvar o relatório no portal agora. Tente novamente em instantes.';
+  };
+
+  const resolveReportLoadErrorMessage = (error) => {
+    const rawMessage = String(error?.payload?.message || error?.message || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const code = String(error?.code || error?.payload?.error || error?.payload?.reason || '')
+      .trim()
+      .toUpperCase();
+
+    if (!rawMessage) {
+      return 'Não foi possível carregar o relatório.';
+    }
+    if (code.includes('TOKEN_REQUIRED') || code.includes('HTTP_400')) {
+      return 'Link público inválido. Verifique o endereço recebido.';
+    }
+    if (
+      code.includes('NOT_FOUND') ||
+      code.includes('PUBLIC_REPORT_TOKEN_INVALID') ||
+      code.includes('HTTP_404') ||
+      code.includes('HTTP_401')
+    ) {
+      return 'Não localizamos este relatório público. Solicite um novo link.';
+    }
+    if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+      return 'Não localizamos este relatório público. Solicite um novo link.';
+    }
+    if (isOpaqueUiErrorMessage(rawMessage)) {
+      return 'Não foi possível carregar o relatório.';
+    }
+
+    return rawMessage;
   };
 
   const resolvePdfErrorMessage = (error) => {
@@ -295,7 +369,7 @@ export default function CandidateReport() {
     Boolean(
       model &&
         typeof model === 'object' &&
-        model?.meta?.totalPages >= 20 &&
+        model?.meta?.totalPages >= 18 &&
         model?.participant?.name &&
         model?.profile?.key
     );
@@ -313,14 +387,24 @@ export default function CandidateReport() {
 
       try {
         setRemoteReportModel(null);
+        setRemotePreviewHtml('');
         setPublicAccess(null);
         if (apiBaseUrl && token) {
           try {
-            const payload = await apiRequest(`/assessment/report-by-token?token=${encodeURIComponent(token)}`);
+            const reportByTokenQuery = new URLSearchParams({
+              token,
+            });
+            if (urlReportType) {
+              reportByTokenQuery.set('type', urlReportType);
+            }
+            const payload = await apiRequest(`/assessment/report-by-token?${reportByTokenQuery.toString()}`);
             const normalizedAssessment = normalizeAssessmentFromApi(
               payload?.assessment,
               payload?.report?.discProfile,
-              payload?.report
+              {
+                ...(payload?.report || {}),
+                reportType: payload?.report?.reportType || payload?.reportType || urlReportType,
+              }
             );
             if (
               normalizedAssessment?.branding?.logo_url &&
@@ -330,6 +414,7 @@ export default function CandidateReport() {
             }
             setAvailablePdfUrl(resolvePdfUrl(payload?.publicAccess?.publicPdfUrl || payload?.report?.pdfUrl));
             setPublicAccess(payload?.publicAccess || null);
+            setRemotePreviewHtml(String(payload?.report?.html || '').trim());
             if (isPremiumReportModel(payload?.report?.discProfile)) {
               setRemoteReportModel(payload.report.discProfile);
             }
@@ -375,6 +460,7 @@ export default function CandidateReport() {
                       }
                     : null,
                 );
+                setRemotePreviewHtml('');
                 if (isPremiumReportModel(matched?.discProfile)) {
                   setRemoteReportModel(matched.discProfile);
                 }
@@ -390,7 +476,7 @@ export default function CandidateReport() {
         }
 
         if (!assessmentId) {
-          throw new Error('Parâmetros de relatório ausentes.');
+          throw new Error('Não foi possível identificar o relatório solicitado.');
         }
 
         const localAssessments = await base44.entities.Assessment.filter({ id: assessmentId });
@@ -421,18 +507,19 @@ export default function CandidateReport() {
         }
 
         setAvailablePdfUrl(resolvePdfUrl(localAssessment?.report_pdf_url || localAssessment?.pdf_url));
+        setRemotePreviewHtml('');
         setAssessment(localAssessment);
         setClaimName(localAssessment?.respondent_name || '');
         setClaimEmail(localAssessment?.respondent_email || '');
       } catch (error) {
-        setLoadError(error?.message || 'Não foi possível carregar o relatório.');
+        setLoadError(resolveReportLoadErrorMessage(error));
       } finally {
         setLoading(false);
       }
     };
 
     loadReport();
-  }, [assessmentId, apiBaseUrl, token]);
+  }, [assessmentId, apiBaseUrl, token, urlReportType]);
 
   const reportModel = useMemo(
     () => (remoteReportModel || (assessment ? buildDiscReportModel(assessment) : null)),
@@ -440,9 +527,18 @@ export default function CandidateReport() {
   );
 
   const reportHtml = useMemo(
-    () => (assessment && reportModel ? renderReportHtml({ assessment, reportModel }) : ''),
-    [assessment, reportModel]
+    () =>
+      remotePreviewHtml || (assessment && reportModel ? renderReportHtml({ assessment, reportModel }) : ''),
+    [assessment, remotePreviewHtml, reportModel]
   );
+
+  // CRITICAL FIX: Detect if preview HTML is empty after successful load
+  useEffect(() => {
+    if (!loading && !loadError && assessment && !reportHtml) {
+      setLoadError('Não foi possível gerar a prévia do relatório. Por favor, tente novamente.');
+    }
+  }, [loading, loadError, assessment, reportHtml]);
+
   const currentPlan = useMemo(() => resolvePlanFromAccess(access), [access]);
   const isAuthenticated = Boolean(access?.userId);
   const hasPaidPlan = isPlanAtLeast(currentPlan, PLANS.PROFESSIONAL);
@@ -473,7 +569,7 @@ export default function CandidateReport() {
 
     const payload = await apiRequest(
       `/assessment/public-token/${encodeURIComponent(resolvedAssessmentId)}?token=${encodeURIComponent(token || '')}&reportType=${encodeURIComponent(
-        assessment?.report_type || publicAccess?.reportType || 'business',
+        assessment?.report_type || publicAccess?.reportType || urlReportType || 'business',
       )}`,
       { method: 'GET' }
     );
@@ -598,11 +694,17 @@ export default function CandidateReport() {
     setIsPreparingPdf(true);
     try {
       if (apiBaseUrl && token) {
-        const fileName = `insightdisc-relatorio-${assessment?.id || 'export'}.pdf`;
+        const resolvedReportType =
+          assessment?.report_type || publicAccess?.reportType || urlReportType || 'business';
+        const fileName = buildReportFileName(assessment, resolvedReportType);
         const directPdfToken =
           publicAccess?.token || (looksLikePublicReportToken(token) ? token : '');
         const directDownloadUrl = directPdfToken
-          ? `/api/report/pdf?token=${encodeURIComponent(directPdfToken)}`
+          ? resolvePdfUrl(
+              `/api/report/pdf?token=${encodeURIComponent(directPdfToken)}&type=${encodeURIComponent(
+                resolvedReportType,
+              )}`,
+            )
           : '';
         try {
           if (directDownloadUrl) {

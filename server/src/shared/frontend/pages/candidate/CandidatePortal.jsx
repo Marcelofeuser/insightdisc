@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 
@@ -18,6 +17,26 @@ export default function CandidatePortal() {
   const [error, setError] = useState('');
 
   const candidateToken = useMemo(() => getCandidateToken(), []);
+
+  const resolveReportHref = (report = {}) =>
+    [
+      report?.publicReportUrl,
+      report?.publicReportPath,
+      report?.previewUrl,
+      report?.previewPath,
+    ]
+      .map((value) => String(value || '').trim())
+      .find(Boolean) || '';
+
+  const resolvePdfHref = (report = {}) =>
+    [
+      report?.publicPdfUrl,
+      report?.publicPdfPath,
+      report?.pdfUrl,
+      report?.pdf_url,
+    ]
+      .map((value) => String(value || '').trim())
+      .find(Boolean) || '';
 
   useEffect(() => {
     const run = async () => {
@@ -74,25 +93,37 @@ export default function CandidatePortal() {
 
       {!loading && !error && reports.length > 0 ? (
         <div className="grid gap-3">
-          {reports.map((report) => (
-            <div key={report.assessmentId} className="rounded-xl border bg-white p-4">
-              <div className="font-semibold text-slate-900">{report.candidateName || 'Relatório DISC'}</div>
-              <div className="text-xs text-slate-500">{report.candidateEmail || ''}</div>
+          {reports.map((report) => {
+            const reportHref = resolveReportHref(report);
+            const pdfHref = resolvePdfHref(report);
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link to={`/c/report?id=${encodeURIComponent(report.assessmentId)}`}>
-                  <Button variant="outline" className="rounded-lg">Abrir relatório</Button>
-                </Link>
-                {report.pdfUrl ? (
-                  <a href={report.pdfUrl} target="_blank" rel="noreferrer">
-                    <Button className="rounded-lg bg-slate-900 hover:bg-slate-800">Baixar PDF</Button>
-                  </a>
-                ) : (
-                  <span className="text-sm text-slate-400 self-center">PDF indisponível</span>
-                )}
+            return (
+              <div key={report.assessmentId} className="rounded-xl border bg-white p-4">
+                <div className="font-semibold text-slate-900">{report.candidateName || 'Relatório DISC'}</div>
+                <div className="text-xs text-slate-500">{report.candidateEmail || ''}</div>
+                <div className="mt-1 text-xs uppercase tracking-wide text-slate-400">
+                  {report.reportType || 'business'}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {reportHref ? (
+                    <a href={reportHref} target="_blank" rel="noreferrer">
+                      <Button variant="outline" className="rounded-lg">Abrir relatório</Button>
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-400 self-center">Relatório indisponível</span>
+                  )}
+                  {pdfHref ? (
+                    <a href={pdfHref} target="_blank" rel="noreferrer">
+                      <Button className="rounded-lg bg-slate-900 hover:bg-slate-800">Baixar PDF</Button>
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-400 self-center">PDF indisponível</span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </div>

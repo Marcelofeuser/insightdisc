@@ -24,6 +24,12 @@ import {
   requireRole,
 } from '../middleware/rbac.js';
 import { requireReportExport } from '../middleware/require-report-export.js';
+import {
+  buildPublicReportFileName,
+  buildStructuredReportHtml,
+  buildStructuredReportModel,
+  generateReport as generateStructuredReport,
+} from '../services/reportGenerator.js';
 
 const router = Router();
 const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
@@ -121,8 +127,8 @@ function issuePublicReportAccess({
     ttlSeconds,
   );
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
-  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}`;
-  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
+  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
 
   return {
     token,
@@ -564,35 +570,26 @@ router.get('/report-by-token', async (req, res) => {
               organizationId: access.accountId,
             }
           : { id: access.assessmentId },
-      include: { report: true, response: true, organization: true, quickContext: true },
+      include: {
+        report: true,
+        response: true,
+        creator: true,
+        organization: { include: { owner: true } },
+        quickContext: true,
+      },
     });
 
     if (!assessment) {
-      return res.status(404).json({ ok: false, reason: 'NOT_FOUND' });
+      return res.status(404).json({
+        ok: false,
+        reason: 'NOT_FOUND',
+        message: 'Não localizamos a avaliação vinculada a este relatório.',
+      });
     }
 
     const responseAnswers = Array.isArray(assessment?.response?.answersJson)
       ? assessment.response.answersJson
       : [];
-
-    const companyName = String(assessment?.organization?.companyName || '').trim();
-    const logoUrl = String(assessment?.organization?.logoUrl || '').trim();
-    if (!companyName || !logoUrl) {
-      return res.status(400).json({
-        ok: false,
-        reason: 'BRANDING_INCOMPLETE',
-        error: 'Branding incompleto para geracao white-label',
-      });
-    }
-
-    const participantName = resolveAssessmentParticipantName(assessment);
-    if (!participantName) {
-      return res.status(400).json({
-        ok: false,
-        reason: 'PARTICIPANT_NAME_MISSING',
-        error: 'Dado obrigatorio ausente: participant.name',
-      });
-    }
 
     const requestedReportType = normalizeReportType(
       req.query.type ||
@@ -600,6 +597,21 @@ router.get('/report-by-token', async (req, res) => {
         access.reportType ||
         resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
     );
+    const assetBaseUrl = getRequestBaseUrl(req);
+    const participantName = resolveAssessmentParticipantName(assessment);
+    const reportModel = await buildStructuredReportModel({
+      assessment,
+      reportType: requestedReportType,
+      assetBaseUrl,
+      currentUser: assessment.creator || assessment.organization?.owner || null,
+    });
+    const preview = await buildStructuredReportHtml({
+      assessment,
+      reportType: requestedReportType,
+      assetBaseUrl,
+      currentUser: assessment.creator || assessment.organization?.owner || null,
+      reportModel,
+    });
     const publicAccess = issuePublicReportAccess({
       assessmentId: assessment.id,
       accountId: assessment.organizationId,
@@ -623,8 +635,9 @@ router.get('/report-by-token', async (req, res) => {
       },
       report: {
         id: assessment.report?.id || null,
+        html: preview.html || '',
         pdfUrl: publicAccess.publicPdfUrl,
-        discProfile: assessment.report?.discProfile || null,
+        discProfile: preview.reportModel,
         reportType: requestedReportType,
       },
       publicAccess,
@@ -944,11 +957,14 @@ router.get('/report-pdf-by-token', async (req, res) => {
       assetBaseUrl,
       currentUser: assessment.creator || assessment.organization?.owner || null,
       reportType,
+      includeAiComplement: false,
+      useAi: false,
     });
 
     const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
       inMemory: true,
       reportType,
+      includeAiComplement: false,
     });
     await prisma.report.upsert({
       where: { assessmentId: assessment.id },
@@ -984,7 +1000,6 @@ router.get('/report-pdf-by-token', async (req, res) => {
 
     return res.status(200).send(buffer);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('[assessment/report-pdf-by-token] failed:', error?.stack || error?.message || error);
     const failure = buildPdfFailure(error, 'PDF_BY_TOKEN_FAILED');
     return res.status(failure.status).json({
@@ -997,78 +1012,14 @@ router.get('/report-pdf-by-token', async (req, res) => {
 });
 
 export async function handlePublicReportPdf(req, res) {
-  const token = String(req.query.token || req.query.t || '').trim();
-
-  let assessmentId = '';
-  let accountId = '';
-  let reportType = REPORT_TYPE.BUSINESS;
   try {
-    const payload = verifyPublicReportToken(token);
-    assessmentId = String(
-      payload?.assessmentId || payload?.id || payload?.assessment_id || '',
-    ).trim();
-    accountId = String(
-      payload?.accountId || payload?.organizationId || payload?.account_id || '',
-    ).trim();
-    reportType = normalizeReportType(payload?.reportType || req.query.type || req.query.reportType);
-  } catch (error) {
-    return res.status(401).json({
-      ok: false,
-      reason: 'PUBLIC_REPORT_TOKEN_INVALID',
-      message: error?.message || 'Token inválido.',
-    });
-  }
-
-  if (!assessmentId) {
-    return res.status(400).json({
-      ok: false,
-      reason: 'PUBLIC_REPORT_ASSESSMENT_REQUIRED',
-      message: 'Token sem assessmentId',
-    });
-  }
-
-  if (!accountId) {
-    return res.status(400).json({
-      ok: false,
-      reason: 'PUBLIC_REPORT_ACCOUNT_REQUIRED',
-      message: 'Token sem accountId',
-    });
-  }
-
-  try {
-    const assetBaseUrl = getRequestBaseUrl(req);
-    const assessment = await prisma.assessment.findFirst({
-      where: {
-        id: assessmentId,
-        organizationId: accountId,
-      },
-      include: {
-        report: true,
-        creator: true,
-        organization: { include: { owner: true } },
-        quickContext: true,
-      },
-    });
-
-    if (!assessment) {
-      return res.status(404).json({
-        ok: false,
-        reason: 'NOT_FOUND',
-        message: 'Não localizamos a avaliação para gerar o PDF oficial.',
-      });
-    }
-
-    const reportModel = await buildPremiumReportModel({
-      assessment,
-      discResult: resolveAssessmentDiscResult(assessment),
-      assetBaseUrl,
-      currentUser: assessment.creator || assessment.organization?.owner || null,
-      reportType,
-    });
-
-    const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
+    const token = String(req.query.token || req.query.t || '').trim();
+    const requestedReportType = normalizeReportType(req.query.type || req.query.reportType);
+    const generated = await generateStructuredReport({
+      token,
+      reportType: requestedReportType,
+      assetBaseUrl: getRequestBaseUrl(req),
       inMemory: true,
-      reportType,
     });
     const buffer = generated.pdfBuffer;
 
@@ -1083,13 +1034,21 @@ export async function handlePublicReportPdf(req, res) {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="relatorio-disc-${reportType}-${assessment.id}.pdf"`,
+      `inline; filename="${generated.fileName || buildPublicReportFileName({ assessment: generated.assessment, reportType: generated.reportType })}"`,
     );
     res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Report-Cache', generated.cacheHit ? 'hit' : 'miss');
     return res.status(200).send(buffer);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('[assessment/public-report-pdf] failed:', error?.stack || error?.message || error);
+    if (Number(error?.statusCode) > 0 && typeof error?.code === 'string') {
+      return res.status(Number(error.statusCode)).json({
+        ok: false,
+        reason: error.code,
+        message: error.message || 'Falha ao gerar o PDF público.',
+        ...(error?.details ? { details: error.details } : {}),
+      });
+    }
     const failure = buildPdfFailure(error, 'PUBLIC_REPORT_PDF_FAILED');
     return res.status(failure.status).json({
       ok: false,
@@ -1176,6 +1135,8 @@ router.post(
         assetBaseUrl,
         currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
         reportType,
+        includeAiComplement: false,
+        useAi: false,
       });
       console.info('REPORT_DATA', {
         assessmentId: assessment.id,
@@ -1187,6 +1148,7 @@ router.post(
       const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
         inMemory: true,
         reportType,
+        includeAiComplement: false,
       });
 
       const buffer = generated.pdfBuffer;

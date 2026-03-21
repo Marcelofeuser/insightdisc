@@ -134,6 +134,14 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function normalizeReportType(value = '', fallback = 'business') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback;
+}
+
 function inferReportAssessmentId(report = {}) {
   return firstNonEmpty(
     report?.assessmentId,
@@ -367,7 +375,7 @@ export default function SuperAdminDashboard() {
           title: 'Copiado',
           description: `${label} copiado para a área de transferência.`,
         });
-      } catch (_error) {
+      } catch {
         toast({
           variant: 'destructive',
           title: 'Falha ao copiar',
@@ -431,8 +439,16 @@ export default function SuperAdminDashboard() {
         payload?.publicAccess?.public_token,
       );
       if (!token) return '';
+      const reportType = normalizeReportType(
+        payload?.publicAccess?.reportType ||
+          payload?.reportType ||
+          payload?.report?.reportType ||
+          'business',
+      );
 
-      return resolveAbsoluteApiUrl(`/api/report/pdf?token=${encodeURIComponent(token)}`);
+      return resolveAbsoluteApiUrl(
+        `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`,
+      );
     },
     [resolveAbsoluteApiUrl],
   );
@@ -519,7 +535,7 @@ export default function SuperAdminDashboard() {
         title: 'CSV exportado',
         description: 'Arquivo de leads baixado com sucesso.',
       });
-    } catch (_error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Falha ao exportar CSV',
@@ -546,7 +562,7 @@ export default function SuperAdminDashboard() {
           lead.id === leadId ? { ...lead, status: payload?.lead?.status || status } : lead,
         ),
       }));
-    } catch (_error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar lead',
@@ -617,8 +633,10 @@ export default function SuperAdminDashboard() {
 
         return pdfUrl;
     } catch (_error) {
-      const description =
-        _error?.payload?.message || _error?.payload?.detail || _error?.message || 'Não foi possível gerar o PDF para este assessment.';
+      const description = normalizeSuperAdminUiError(
+        _error,
+        'Não foi possível gerar o relatório deste assessment.',
+      );
       if (!silent) {
         toast({
           variant: 'destructive',
@@ -679,8 +697,10 @@ export default function SuperAdminDashboard() {
         );
         downloadBlob(blob, fileName);
       } catch (_error) {
-        const description =
-          _error?.payload?.message || _error?.payload?.detail || _error?.message || 'Não foi possível baixar o PDF deste relatório.';
+        const description = normalizeSuperAdminUiError(
+          _error,
+          'Não foi possível baixar o PDF deste relatório.',
+        );
         toast({
           variant: 'destructive',
           title: 'Falha ao baixar PDF',

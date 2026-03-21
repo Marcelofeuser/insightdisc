@@ -122,6 +122,7 @@ export default function AssessmentReport() {
         assessmentId,
         apiBaseUrl,
         publicAccess: loadState.assessment?.publicAccess || null,
+        reportType: loadState.assessment?.reportType || loadState.assessment?.report_type || 'business',
       });
       downloadPdfBlob(payload.blob, payload.fileName);
       toast({

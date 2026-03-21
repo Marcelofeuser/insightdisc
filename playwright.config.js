@@ -46,7 +46,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
     headless: true,
     viewport: { width: 1280, height: 720 },
     screenshot: 'only-on-failure',
@@ -56,13 +56,13 @@ export default defineConfig({
   webServer: isApiMode
     ? [
         {
-          command: `SERVER_PORT=${e2eApiPort} npm --prefix server run start`,
+          command: `APP_URL=http://127.0.0.1:5173 FRONTEND_URL=http://127.0.0.1:5173 SERVER_PORT=${e2eApiPort} npm --prefix server run start`,
           timeout: 120_000,
           reuseExistingServer: false,
           url: `${e2eApiBaseUrl.replace(/\/+$/, '')}/health`,
         },
         {
-          command: `VITE_API_URL=${e2eApiBaseUrl} VITE_API_BASE_URL=${e2eApiBaseUrl} npm run dev -- --mod e e2e-api --host 127.0.0.1 --port 5173`,
+          command: `VITE_API_URL=${e2eApiBaseUrl} VITE_API_BASE_URL=${e2eApiBaseUrl} npm run dev -- --mode e2e-api --host 127.0.0.1 --port 5173`,
           timeout: 120_000,
           reuseExistingServer: false,
           url: 'http://127.0.0.1:5173',

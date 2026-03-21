@@ -72,6 +72,40 @@ function formatDate(value) {
   return parsed.toLocaleDateString('pt-BR');
 }
 
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
+function normalizeTeamMapError(error, fallback = 'Não foi possível carregar avaliações para o mapa comportamental.') {
+  const rawMessage = String(error?.payload?.message || error?.message || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const code = String(error?.code || error?.payload?.error || error?.payload?.reason || '')
+    .trim()
+    .toUpperCase();
+
+  if (!rawMessage) return fallback;
+  if (code.includes('AUTH_REQUIRED') || code.includes('HTTP_401')) {
+    return 'Sua sessão expirou. Faça login novamente para acessar o mapa de equipe.';
+  }
+  if (code.includes('FORBIDDEN') || code.includes('ASSESSMENTS_NOT_ACCESSIBLE')) {
+    return 'Você não possui permissão para analisar uma ou mais avaliações selecionadas.';
+  }
+  if (code.includes('NOT_FOUND') || /^HTTP_404$/i.test(code)) {
+    return 'Não encontramos avaliações elegíveis para montar o mapa de equipe.';
+  }
+  if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+    return fallback;
+  }
+  if (isOpaqueUiErrorMessage(rawMessage)) {
+    return fallback;
+  }
+
+  return rawMessage;
+}
+
 export default function TeamMap() {
   const { toast } = useToast();
   const { checkFeature, featureKeys } = useFeatureAccess();
@@ -161,8 +195,10 @@ export default function TeamMap() {
         });
         return;
       } catch (fallbackError) {
-        const message =
-          fallbackError?.message || apiError?.message || 'Não foi possível carregar avaliações para o mapa comportamental.';
+        const message = normalizeTeamMapError(
+          fallbackError?.message ? fallbackError : apiError,
+          'Não foi possível carregar avaliações para o mapa comportamental.',
+        );
         setError(message);
         setAssessments([]);
       }
@@ -227,7 +263,7 @@ export default function TeamMap() {
         return;
       }
 
-      const message = apiError?.message || 'Falha ao analisar equipe.';
+      const message = normalizeTeamMapError(apiError, 'Falha ao analisar equipe.');
       setError(message);
       toast({
         title: 'Erro ao gerar mapa',

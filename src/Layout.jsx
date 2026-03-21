@@ -338,7 +338,7 @@ export default function Layout({ children, currentPageName }) {
     <PanelModeProvider value={panelModeContextValue}>
       <AppShell
         currentPageName={currentPageName}
-        currentPath={location.pathname}
+        currentPath={`${location.pathname}${location.hash || ''}`}
         navItems={navItems}
         user={user}
         onLogout={handleLogout}

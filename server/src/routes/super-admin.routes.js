@@ -16,7 +16,6 @@ async function safeQuery(label, queryFn, fallbackValue) {
   try {
     return await queryFn();
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn(`[super-admin/overview] ${label} unavailable: ${error?.message || error}`);
     return fallbackValue;
   }
@@ -46,8 +45,8 @@ function issuePublicReportAccess({
     },
     ttlSeconds,
   );
-  const previewPath = `/c/report?token=${encodeURIComponent(token)}`;
-  const pdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+  const previewPath = `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
+  const pdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
 
   return {
     token,

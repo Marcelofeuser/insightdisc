@@ -22,8 +22,8 @@ import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
 import { DOSSIER_BASE_PATH } from '@/modules/dossier/routes';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
 
-function makeItem(icon, label, page, to, section = 'Principal') {
-  return { icon, label, page, to, section };
+function makeItem(icon, label, page, to, section = 'Principal', options = {}) {
+  return { icon, label, page, to, section, ...options };
 }
 
 function resolveCapabilities(access) {
@@ -82,7 +82,15 @@ function buildBusinessNavigation(capabilities) {
   const items = [
     makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
-      ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação')
+      ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
+          activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if onMyAssessments AND NO #reports hash
+            return (
+              currentPageName === 'MyAssessments' &&
+              !String(currentPath || '').includes('#reports')
+            );
+          },
+        })
       : null,
     capabilities.canUseDossier
       ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
@@ -97,7 +105,15 @@ function buildBusinessNavigation(capabilities) {
       ? makeItem(Sparkles, 'Insights', 'JobMatching', '/JobMatching', 'Análises')
       : null,
     capabilities.canViewAssessments
-      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments', 'Análises')
+      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Análises', {
+          activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if onMyAssessments AND #reports hash is present
+            return (
+              currentPageName === 'MyAssessments' &&
+              String(currentPath || '').includes('#reports')
+            );
+          },
+        })
       : null,
     capabilities.canViewTenantData && capabilities.canUseOrganizationalReport
       ? makeItem(Brain, 'Relatório Org', 'OrganizationalReport', '/organization-report', 'Análises')
@@ -121,7 +137,15 @@ function buildProfessionalNavigation(capabilities) {
   const items = [
     makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
-      ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação')
+      ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
+          activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if on MyAssessments AND NO #reports hash
+            return (
+              currentPageName === 'MyAssessments' &&
+              !String(currentPath || '').includes('#reports')
+            );
+          },
+        })
       : null,
     capabilities.canManageAssessments
       ? makeItem(Building2, 'Clientes', 'SendAssessment', '/SendAssessment', 'Operação')
@@ -130,7 +154,15 @@ function buildProfessionalNavigation(capabilities) {
       ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
       : null,
     capabilities.canViewAssessments
-      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments', 'Operação')
+      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Operação', {
+          activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if on MyAssessments AND #reports hash is present
+            return (
+              currentPageName === 'MyAssessments' &&
+              String(currentPath || '').includes('#reports')
+            );
+          },
+        })
       : null,
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')

@@ -101,6 +101,9 @@ export default function PremiumAssessment() {
 
   const token = searchParams.get('token');
   const prefetchedId = searchParams.get('assessment_id');
+  const reportType = String(searchParams.get('type') || searchParams.get('reportType') || 'business')
+    .trim()
+    .toLowerCase();
   const resumeMode = searchParams.get('resume') === '1';
   const queryAnsweredCount = Number(searchParams.get('answeredCount') || 0);
   const apiBaseUrl = getApiBaseUrl();
@@ -144,7 +147,6 @@ export default function PremiumAssessment() {
       return;
     }
     initAssessment();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefetchedId]);
 
   useEffect(() => {
@@ -163,7 +165,7 @@ export default function PremiumAssessment() {
       if (apiBaseUrl && token) {
         try {
           const payload = await apiRequest(
-            `/assessment/report-by-token?token=${encodeURIComponent(token)}`
+            `/assessment/report-by-token?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`
           );
           existingAnswers = normalizeAnswerList(payload?.answers || []);
           respondentName = payload?.assessment?.candidateName || '';
@@ -329,7 +331,7 @@ export default function PremiumAssessment() {
 
           try {
             const reportPayload = await apiRequest(
-              `/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+              `/assessment/report-by-token?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`,
               { method: 'GET' },
             );
             const resolvedAssessmentId = reportPayload?.assessment?.id || '';
@@ -448,7 +450,7 @@ export default function PremiumAssessment() {
         const resolvedAssessmentId = payload.assessmentId || assessmentId;
         const reportPath =
           token && location.pathname.startsWith('/c')
-            ? payload?.publicAccess?.publicReportPath || `/c/report?token=${encodeURIComponent(token)}`
+            ? payload?.publicAccess?.publicReportPath || `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`
             : `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`;
         navigate(reportPath);
         return;
@@ -473,7 +475,7 @@ export default function PremiumAssessment() {
 
       const reportPath =
         token && location.pathname.startsWith('/c')
-          ? `/c/report?token=${encodeURIComponent(token)}`
+          ? `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`
           : `${createPageUrl('Report')}?id=${encodeURIComponent(assessmentId)}`;
       navigate(reportPath);
     } catch (error) {

@@ -204,6 +204,8 @@ async function generateReportPayload({ assessmentId, reportType, req }) {
     assetBaseUrl,
     currentUser: req.user || null,
     reportType: normalizedReportType,
+    includeAiComplement: false,
+    useAi: false,
   });
 
   console.info('[report/generate] generating report', {
@@ -214,6 +216,7 @@ async function generateReportPayload({ assessmentId, reportType, req }) {
 
   const pdf = await generatePremiumPdf(reportModel, assessment.id, assessment, {
     reportType: normalizedReportType,
+    includeAiComplement: false,
   });
 
   const report = await prisma.report.upsert({
@@ -391,6 +394,8 @@ router.get(
         assetBaseUrl,
         currentUser: req.user || null,
         reportType: normalizeReportType(req.query?.type || req.query?.reportType),
+        includeAiComplement: false,
+        useAi: false,
       });
       await assertOfficialReportHtml({ assessment, reportModel });
       const html = renderReportHtml({ assessment, reportModel });

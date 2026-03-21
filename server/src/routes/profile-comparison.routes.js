@@ -27,6 +27,19 @@ function resolveErrorCode(error, fallback = 'PROFILE_COMPARISON_FAILED') {
     .toUpperCase();
 }
 
+function resolveFriendlyErrorMessage(code, fallback = 'Não foi possível carregar os perfis para comparação.') {
+  if (code === 'AUTH_REQUIRED') {
+    return 'Sua sessão expirou. Faça login novamente para acessar o comparador.';
+  }
+  if (code === 'ASSESSMENTS_NOT_ACCESSIBLE') {
+    return 'Você não possui permissão para comparar uma ou mais avaliações selecionadas.';
+  }
+  if (code === 'ASSESSMENTS_MIN_REQUIRED' || code === 'INVALID_PAYLOAD') {
+    return 'Selecione avaliações válidas para gerar a comparação.';
+  }
+  return fallback;
+}
+
 function sendError(res, error, fallback = 'PROFILE_COMPARISON_FAILED') {
   const code = resolveErrorCode(error, fallback);
   const status = ERROR_STATUS[code] || 500;
@@ -34,7 +47,10 @@ function sendError(res, error, fallback = 'PROFILE_COMPARISON_FAILED') {
   return res.status(status).json({
     ok: false,
     error: code,
-    message: error?.message || code,
+    message: resolveFriendlyErrorMessage(
+      code,
+      error?.message || 'Não foi possível concluir a comparação de perfis.',
+    ),
   });
 }
 

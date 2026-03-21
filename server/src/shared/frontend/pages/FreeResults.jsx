@@ -213,7 +213,7 @@ export default function FreeResults() {
   const continueReportUrl = resolvedAssessmentId
     ? `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`
     : assessmentToken
-      ? `/c/report?token=${encodeURIComponent(assessmentToken)}`
+      ? `/c/report?token=${encodeURIComponent(assessmentToken)}&type=business`
       : createPageUrl('Dashboard');
   const reportUnlockPriceLabel = formatPriceBRL(PRODUCTS.REPORT_UNLOCK.price);
   const compareRelation = searchParams.get('relation') || '';

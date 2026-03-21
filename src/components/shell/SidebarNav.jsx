@@ -9,7 +9,10 @@ function normalizePath(value = '') {
 }
 
 function isItemActive(item, currentPageName, currentPath, activeItemKey) {
-  if (activeItemKey && item.key === activeItemKey) return true;
+  if (typeof item?.activeMatch === 'function') {
+    return Boolean(item.activeMatch({ item, currentPageName, currentPath, activeItemKey }));
+  }
+  if (activeItemKey) return item.key === activeItemKey;
   if (item.page && currentPageName && item.page === currentPageName) return true;
 
   const itemPath = normalizePath(item.to || '/');

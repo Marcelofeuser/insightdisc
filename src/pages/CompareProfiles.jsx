@@ -116,6 +116,40 @@ function dedupeProfiles(profiles = []) {
   return Array.from(map.values());
 }
 
+function isOpaqueUiErrorMessage(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return true;
+  return /^HTTP_\d+$/i.test(normalized) || /^[A-Z0-9_:-]+$/.test(normalized);
+}
+
+function normalizeCompareProfilesError(error, fallback = 'Não foi possível carregar os perfis para comparação.') {
+  const rawMessage = String(error?.payload?.message || error?.message || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const code = String(error?.code || error?.payload?.error || error?.payload?.reason || '')
+    .trim()
+    .toUpperCase();
+
+  if (!rawMessage) return fallback;
+  if (code.includes('AUTH_REQUIRED') || code.includes('HTTP_401')) {
+    return 'Sua sessão expirou. Faça login novamente para acessar o comparador.';
+  }
+  if (code.includes('FORBIDDEN') || code.includes('ASSESSMENTS_NOT_ACCESSIBLE')) {
+    return 'Você não possui permissão para comparar uma ou mais avaliações selecionadas.';
+  }
+  if (code.includes('NOT_FOUND') || /^HTTP_404$/i.test(code)) {
+    return 'Nenhuma avaliação elegível foi encontrada para comparação.';
+  }
+  if (/the page could not be found/i.test(rawMessage) || /\bnot[_\s-]?found\b/i.test(rawMessage)) {
+    return fallback;
+  }
+  if (isOpaqueUiErrorMessage(rawMessage)) {
+    return fallback;
+  }
+
+  return rawMessage;
+}
+
 async function loadLocalAssessments(access = {}) {
   if (access?.tenantId) {
     return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 500);
@@ -268,7 +302,12 @@ export default function CompareProfiles() {
 
           if (!normalizedProfiles.length && !base44?.__isMock) {
             setProfiles([]);
-            setError(fallbackMessage || 'Nao foi possivel carregar perfis de comparacao.');
+            setError(
+              normalizeCompareProfilesError(
+                { message: fallbackMessage },
+                'Não foi possível carregar perfis de comparação.',
+              ),
+            );
             return;
           }
         }
@@ -287,7 +326,7 @@ export default function CompareProfiles() {
         setProfiles(deduped);
       } catch (fetchError) {
         setProfiles([]);
-        setError(fetchError?.message || 'Nao foi possivel carregar perfis para comparacao.');
+        setError(normalizeCompareProfilesError(fetchError));
       } finally {
         if (silent) {
           setIsRefreshing(false);

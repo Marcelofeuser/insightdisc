@@ -123,6 +123,10 @@ function shouldProxyViaSameOrigin({
     return false;
   }
 
+  // Production app no longer serves /api/proxy reliably on Vercel.
+  // Keep same-origin only for explicit serverless endpoints handled elsewhere.
+  return false;
+
   const normalizedPath = normalizeRelativePath(pathname);
   if (!normalizedPath || isLocalServerlessApiPath(normalizedPath)) {
     return false;

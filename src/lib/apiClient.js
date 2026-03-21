@@ -115,24 +115,12 @@ function shouldProxyViaSameOrigin({
   prod = false,
 } = {}) {
   const hasExplicitProd = prod !== undefined && prod !== null && prod !== '';
-  if (!hasExplicitProd || !isProductionRuntime(prod)) return false;
+  const isProdRuntime = hasExplicitProd && isProductionRuntime(prod);
 
-  const normalizedRuntimeOrigin = getRuntimeOrigin(runtimeOrigin);
-  const runtimeHost = getHostname(normalizedRuntimeOrigin);
-  if (!normalizedRuntimeOrigin || !isInsightDiscFrontendHost(runtimeHost)) {
-    return false;
-  }
-
-  const normalizedPath = normalizeRelativePath(pathname);
-  if (!normalizedPath || isLocalServerlessApiPath(normalizedPath)) {
-    return false;
-  }
-
-  if (/^https?:\/\//i.test(String(requestUrl || '').trim())) {
-    return isInsightDiscBackendHost(getHostname(requestUrl));
-  }
-
-  return isInsightDiscBackendHost(getHostname(baseUrl));
+  // The /api/proxy route is disabled in production environments on Vercel
+  // due to reliability issues. All API calls should resolve to the canonical
+  // backend URL or a specific serverless function path.
+  return false;
 }
 
 function normalizeTimeout(value, fallback = DEFAULT_API_TIMEOUT_MS) {
@@ -352,11 +340,20 @@ export function getApiErrorMessage(error, { apiBaseUrl = '', fallback = '' } = {
       ? `Não foi possível conectar com a API em ${requestUrl}.`
       : 'Não foi possível conectar com a API.';
   }
-  if (code === 'INVALID_JSON_RESPONSE') return 'A API respondeu com um payload inválido.';
-  if (code.includes('CORS')) return 'A API recusou a origem da requisição (CORS).';
-  if (status >= 500) return serverMessage || 'Servidor respondeu com erro interno.';
+  if (code === 'INVALID_JSON_RESPONSE') return 'A API respondeu com dados em formato inesperado.';
+  if (code.includes('CORS')) return 'A API recusou a origem da requisição (erro de CORS).';
 
-  return serverMessage || fallback || error?.message || 'Falha ao comunicar com a API.';
+  // Para erros de servidor (5xx), sempre mostramos uma mensagem genérica por segurança.
+  if (status >= 500) {
+    return 'Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.';
+  }
+
+  // Para erros do cliente (4xx), a mensagem do servidor costuma ser útil.
+  if (serverMessage) {
+    return serverMessage;
+  }
+
+  return fallback || error?.message || 'Falha ao comunicar com a API.';
 }
 
 export function resolveApiBaseUrl({
@@ -642,14 +639,24 @@ async function performFetchRequest(url, options = {}) {
     }
 
     if (!response.ok) {
+      // CRITICAL FIX: Never expose raw HTTP status codes to users
+      const code = payload?.error || payload?.reason || `HTTP_${response.status}`;
+      let message = payload?.message || payload?.error || payload?.reason || response.statusText;
+      
+      // If message is empty or is just HTTP status code, use a generic message
+      if (!message || /^HTTP_\d+/.test(message)) {
+        if (response.status >= 500) {
+          message = 'Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.';
+        } else if (response.status >= 400) {
+          message = 'Falha na requisição. Verifique os dados e tente novamente.';
+        } else {
+          message = 'Falha ao comunicar com a API.';
+        }
+      }
+      
       throw createApiError({
-        code: payload?.error || payload?.reason || `HTTP_${response.status}`,
-        message:
-          payload?.message ||
-          payload?.error ||
-          payload?.reason ||
-          response.statusText ||
-          `HTTP_${response.status}`,
+        code,
+        message,
         status: response.status,
         payload,
         requestUrl: url,

@@ -76,8 +76,8 @@ function issuePublicReportAccess({
     },
     ttlSeconds,
   );
-  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}`;
-  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}`;
+  const publicReportPath = `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
+  const publicPdfPath = `/api/report/pdf?token=${encodeURIComponent(token)}&type=${encodeURIComponent(normalizedReportType)}`;
 
   return {
     token,
@@ -243,7 +243,6 @@ router.post('/login', async (req, res) => {
     try {
       await markPromoAccountActivated(user.id);
     } catch (activationError) {
-      // eslint-disable-next-line no-console
       console.warn('[candidate/login] promo account activation skipped:', activationError?.message || activationError);
     }
 

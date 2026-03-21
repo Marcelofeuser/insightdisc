@@ -7,6 +7,7 @@ import { useUserStore } from '@/store/user-store';
 import {
   apiRequest,
   clearApiSession,
+  clearSuperAdminSession,
   getApiBaseUrl,
   getApiErrorMessage,
   getApiToken,
@@ -391,6 +392,7 @@ export const AuthProvider = ({ children }) => {
 
     if (apiBaseUrl) {
       clearApiSession();
+      clearSuperAdminSession();
       if (shouldRedirect && typeof window !== 'undefined') {
         window.location.href = createPageUrl('Home');
       }

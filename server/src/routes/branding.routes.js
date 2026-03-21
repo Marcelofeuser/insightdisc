@@ -53,15 +53,34 @@ function normalizeWorkspaceId(raw) {
   return String(raw || '').trim();
 }
 
+function resolveFriendlyBrandingMessage(code = '', fallback = 'Não foi possível atualizar a identidade visual.') {
+  const normalized = String(code || '').trim().toUpperCase();
+  if (normalized.includes('FORBIDDEN')) {
+    return 'Você não tem permissão para editar a marca deste workspace.';
+  }
+  if (normalized.includes('WORKSPACE') && normalized.includes('OBRIGAT')) {
+    return 'Workspace não identificado para esta ação.';
+  }
+  return fallback;
+}
+
 async function ensureWorkspaceAccess(req, res, workspaceId) {
   if (!workspaceId) {
-    res.status(400).json({ ok: false, error: 'workspaceId é obrigatório.' });
+    res.status(400).json({
+      ok: false,
+      error: 'WORKSPACE_ID_REQUIRED',
+      message: 'Workspace não identificado para esta ação.',
+    });
     return false;
   }
 
   const allowed = await canManageOrganization(req.auth.userId, workspaceId);
   if (!allowed) {
-    res.status(403).json({ error: 'FORBIDDEN' });
+    res.status(403).json({
+      ok: false,
+      error: 'FORBIDDEN',
+      message: 'Você não tem permissão para editar a marca deste workspace.',
+    });
     return false;
   }
 
@@ -76,11 +95,19 @@ function runLogoUpload(req, res, next) {
     }
 
     if (error?.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ ok: false, error: 'Logo deve ter no máximo 4MB.' });
+      res.status(400).json({
+        ok: false,
+        error: 'LOGO_FILE_TOO_LARGE',
+        message: 'Logo deve ter no máximo 4MB.',
+      });
       return;
     }
 
-    res.status(400).json({ ok: false, error: error?.message || 'Falha no upload do logo.' });
+    res.status(400).json({
+      ok: false,
+      error: 'BRANDING_LOGO_UPLOAD_FAILED',
+      message: error?.message || 'Falha no upload do logo.',
+    });
   });
 }
 
@@ -91,12 +118,20 @@ router.get('/:workspaceId', async (req, res) => {
 
     const branding = await getOrganizationBranding(workspaceId);
     if (!branding) {
-      return res.status(404).json({ ok: false, error: 'Workspace não encontrado.' });
+      return res.status(404).json({
+        ok: false,
+        error: 'WORKSPACE_NOT_FOUND',
+        message: 'Workspace não encontrado.',
+      });
     }
 
     return res.status(200).json({ ok: true, ...branding });
   } catch (error) {
-    return res.status(500).json({ ok: false, error: error?.message || 'Falha ao carregar branding.' });
+    return res.status(500).json({
+      ok: false,
+      error: 'BRANDING_LOAD_FAILED',
+      message: resolveFriendlyBrandingMessage(error?.message, 'Falha ao carregar branding.'),
+    });
   }
 });
 
@@ -110,7 +145,11 @@ router.put('/:workspaceId', async (req, res) => {
 
     return res.status(200).json({ ok: true, ...branding });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao salvar branding.' });
+    return res.status(400).json({
+      ok: false,
+      error: 'BRANDING_SAVE_FAILED',
+      message: resolveFriendlyBrandingMessage(error?.message, 'Falha ao salvar branding.'),
+    });
   }
 });
 
@@ -133,11 +172,16 @@ router.post('/:workspaceId/logo', runLogoUpload, async (req, res) => {
     if (code.includes('UPLOAD_STORAGE_NOT_CONFIGURED')) {
       return res.status(422).json({
         ok: false,
-        error:
+        error: 'UPLOAD_STORAGE_NOT_CONFIGURED',
+        message:
           'Upload de arquivo indisponível neste ambiente. Use uma URL pública do logotipo no campo de logo.',
       });
     }
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao enviar logo.' });
+    return res.status(400).json({
+      ok: false,
+      error: 'BRANDING_LOGO_SAVE_FAILED',
+      message: resolveFriendlyBrandingMessage(error?.message, 'Falha ao enviar logo.'),
+    });
   }
 });
 
