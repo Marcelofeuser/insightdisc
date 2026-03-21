@@ -413,6 +413,30 @@ export default function SuperAdminDashboard() {
     [resolveAbsoluteApiUrl],
   );
 
+  const resolveGeneratedPdfEndpoint = useCallback(
+    (payload = {}) => {
+      const pdfPath = firstNonEmpty(
+        payload?.publicAccess?.publicPdfUrl,
+        payload?.publicAccess?.publicPdfPath,
+        payload?.pdfUrl,
+        payload?.report?.pdfUrl,
+      );
+      if (pdfPath) {
+        return resolveAbsoluteApiUrl(pdfPath);
+      }
+
+      const token = firstNonEmpty(
+        payload?.publicAccess?.token,
+        payload?.publicAccess?.publicToken,
+        payload?.publicAccess?.public_token,
+      );
+      if (!token) return '';
+
+      return resolveAbsoluteApiUrl(`/api/report/pdf?token=${encodeURIComponent(token)}`);
+    },
+    [resolveAbsoluteApiUrl],
+  );
+
   const handleOpenReportPreview = useCallback(
     (report = {}) => {
       const previewPath = resolveReportPreviewPath(report);
@@ -442,59 +466,6 @@ export default function SuperAdminDashboard() {
       await handleCopyText(absoluteLink, 'Link do relatório');
     },
     [handleCopyText, resolveReportPreviewPath, toAbsoluteAppUrl],
-  );
-
-  const handleDownloadReportPdf = useCallback(
-    async (report = {}) => {
-      const reportKey = firstNonEmpty(report?.id, report?.reportId, report?.assessmentId);
-      const endpoint = resolveReportPdfEndpoint(report);
-      if (!endpoint) {
-        toast({
-          variant: 'destructive',
-          title: 'PDF indisponível',
-          description: 'Não foi possível identificar o endpoint de download deste relatório.',
-        });
-        return;
-      }
-
-      setDownloadingPdfId(reportKey || 'downloading');
-      try {
-        const response = await fetch(endpoint, {
-          method: 'GET',
-        });
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          const message =
-            payload?.message ||
-            payload?.error ||
-            payload?.reason ||
-            `HTTP_${response.status}`;
-          throw new Error(message);
-        }
-
-        const blob = await response.blob();
-        if (!blob || blob.size === 0) {
-          throw new Error('PDF_EMPTY');
-        }
-
-        const fallbackAssessmentId = inferReportAssessmentId(report) || 'export';
-        const fileName = parsePdfFileName(
-          response.headers.get('content-disposition'),
-          `insightdisc-relatorio-${fallbackAssessmentId}.pdf`,
-        );
-        downloadBlob(blob, fileName);
-      } catch (_error) {
-        toast({
-          variant: 'destructive',
-          title: 'Falha ao baixar PDF',
-          description: 'Não foi possível baixar o PDF deste relatório.',
-        });
-      } finally {
-        setDownloadingPdfId('');
-      }
-    },
-    [resolveReportPdfEndpoint, toast],
   );
 
   const handleOpenLeadWhatsapp = (lead) => {
@@ -586,69 +557,137 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleGenerateReportFromAssessment = async (assessmentId) => {
-    if (!assessmentId) {
-      toast({
-        variant: 'destructive',
-        title: 'Assessment não encontrado',
-        description: 'Não há assessment disponível para gerar o relatório.',
-      });
-      return;
-    }
+  const handleGenerateReportFromAssessment = useCallback(
+    async (assessmentId, options = {}) => {
+      const { silent = false } = options || {};
+      if (!assessmentId) {
+        if (!silent) {
+          toast({
+            variant: 'destructive',
+            title: 'Assessment não encontrado',
+            description: 'Não há assessment disponível para gerar o relatório.',
+          });
+        }
+        return '';
+      }
 
-    setGeneratingReport(assessmentId);
-    try {
-      console.info('[SuperAdminDashboard] regenerate report requested', { assessmentId });
-      const payload = await apiRequest('/assessment/generate-report', {
-        method: 'POST',
-        requireAuth: true,
-        body: { assessmentId, reportType: 'business' },
-        ...directBackendRequestOptions,
-      });
+      setGeneratingReport(assessmentId);
+      try {
+        console.info('[SuperAdminDashboard] regenerate report requested', { assessmentId });
+        const payload = await apiRequest('/assessment/generate-report', {
+          method: 'POST',
+          requireAuth: true,
+          body: { assessmentId, reportType: 'business' },
+          ...directBackendRequestOptions,
+        });
 
-      const previewPath = firstNonEmpty(
-        payload?.publicAccess?.publicReportUrl,
-        payload?.publicAccess?.publicReportPath,
-      );
-      const pdfPath = firstNonEmpty(
-        payload?.publicAccess?.publicPdfUrl,
-        payload?.publicAccess?.publicPdfPath,
-        payload?.pdfUrl,
-        payload?.report?.pdfUrl,
-      );
-      const pdfUrl = resolveAbsoluteApiUrl(pdfPath);
-      setOverview((prev) => ({
-        ...prev,
-        latestReports: prev.latestReports.map((report) =>
-          inferReportAssessmentId(report) === assessmentId
-            ? {
-                ...report,
-                reportType: payload?.reportType || report.reportType || 'business',
-                previewPath: previewPath || report.previewPath,
-                publicLink: previewPath || report.publicLink,
-                pdfUrl: pdfUrl || report.pdfUrl,
-                pdfPath: pdfPath || report.pdfPath,
-              }
-            : report,
-        ),
-      }));
+        const previewPath = firstNonEmpty(
+          payload?.publicAccess?.publicReportUrl,
+          payload?.publicAccess?.publicReportPath,
+        );
+        const pdfUrl = resolveGeneratedPdfEndpoint(payload);
 
-      await loadOverview(true);
+        setOverview((prev) => ({
+          ...prev,
+          latestReports: prev.latestReports.map((report) =>
+            inferReportAssessmentId(report) === assessmentId
+              ? {
+                  ...report,
+                  reportType: payload?.reportType || report.reportType || 'business',
+                  previewPath: previewPath || report.previewPath,
+                  publicLink: previewPath || report.publicLink,
+                  pdfUrl: pdfUrl || report.pdfUrl,
+                  pdfPath: pdfUrl || report.pdfPath,
+                  hasStoredPdf: Boolean(pdfUrl || report.hasStoredPdf),
+                }
+              : report,
+          ),
+        }));
 
-      toast({
-        title: 'Relatório gerado',
-        description: 'A geração business foi concluída com sucesso.',
-      });
-    } catch (_error) {
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao gerar relatório',
-        description: 'Não foi possível gerar o PDF para este assessment.',
-      });
-    } finally {
-      setGeneratingReport('');
-    }
-  };
+        await loadOverview(true);
+
+        if (!silent) {
+          toast({
+            title: pdfUrl ? 'Relatório gerado' : 'Relatório em processamento',
+            description: pdfUrl
+              ? 'A geração business foi concluída com sucesso.'
+              : 'Relatório gerado, mas o PDF ainda não está disponível.',
+          });
+        }
+
+        return pdfUrl;
+      } catch (_error) {
+        if (!silent) {
+          toast({
+            variant: 'destructive',
+            title: 'Falha ao gerar relatório',
+            description: 'Não foi possível gerar o PDF para este assessment.',
+          });
+        }
+        return '';
+      } finally {
+        setGeneratingReport('');
+      }
+    },
+    [directBackendRequestOptions, loadOverview, resolveGeneratedPdfEndpoint, toast],
+  );
+
+  const handleDownloadReportPdf = useCallback(
+    async (report = {}) => {
+      const reportKey = firstNonEmpty(report?.id, report?.reportId, report?.assessmentId);
+      const assessmentId = inferReportAssessmentId(report);
+      let endpoint = resolveReportPdfEndpoint(report);
+      if (!endpoint && assessmentId) {
+        endpoint = await handleGenerateReportFromAssessment(assessmentId, { silent: true });
+      }
+      if (!endpoint) {
+        toast({
+          variant: 'destructive',
+          title: 'PDF indisponível',
+          description: 'Relatório ainda não está disponível.',
+        });
+        return;
+      }
+
+      setDownloadingPdfId(reportKey || 'downloading');
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const message =
+            payload?.message ||
+            payload?.error ||
+            payload?.reason ||
+            `HTTP_${response.status}`;
+          throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        if (!blob || blob.size === 0) {
+          throw new Error('PDF_EMPTY');
+        }
+
+        const fallbackAssessmentId = assessmentId || 'export';
+        const fileName = parsePdfFileName(
+          response.headers.get('content-disposition'),
+          `insightdisc-relatorio-${fallbackAssessmentId}.pdf`,
+        );
+        downloadBlob(blob, fileName);
+      } catch (_error) {
+        toast({
+          variant: 'destructive',
+          title: 'Falha ao baixar PDF',
+          description: 'Não foi possível baixar o PDF deste relatório.',
+        });
+      } finally {
+        setDownloadingPdfId('');
+      }
+    },
+    [handleGenerateReportFromAssessment, resolveReportPdfEndpoint, toast],
+  );
 
   return (
     <div className="min-h-screen bg-slate-950">

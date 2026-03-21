@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { getPublicAppBaseUrl } from '../lib/request-base-url.js';
 import { hashPassword, sha256, signJwt, verifyJwt, verifyPassword } from '../lib/security.js';
 import { signPublicReportToken } from '../lib/public-report-token.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -428,7 +429,7 @@ async function listCandidateReports(req, res) {
       include: { report: true },
       take: 100,
     });
-    const appBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const appBaseUrl = getPublicAppBaseUrl(req);
 
     return res.status(200).json({
       ok: true,

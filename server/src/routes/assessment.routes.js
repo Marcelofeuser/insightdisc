@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { sendSafeJsonError } from '../lib/http-security.js';
 import { prisma } from '../lib/prisma.js';
 import { signPublicReportToken, verifyPublicReportToken } from '../lib/public-report-token.js';
-import { getRequestBaseUrl } from '../lib/request-base-url.js';
+import { getPublicAppBaseUrl, getRequestBaseUrl } from '../lib/request-base-url.js';
 import { generateRandomToken, sha256 } from '../lib/security.js';
 import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
@@ -569,7 +569,7 @@ router.get('/report-by-token', async (req, res) => {
       assessmentId: assessment.id,
       accountId: assessment.organizationId,
       reportType: requestedReportType,
-      baseUrl: getRequestBaseUrl(req),
+      baseUrl: getPublicAppBaseUrl(req),
     });
 
     return res.status(200).json({
@@ -665,7 +665,7 @@ router.get('/public-token/:id', optionalAuth, attachUser, async (req, res) => {
           req.query.reportType ||
           resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
       ),
-      baseUrl: getRequestBaseUrl(req),
+      baseUrl: getPublicAppBaseUrl(req),
     });
 
     return res.status(200).json({
@@ -889,7 +889,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
       assessmentId: assessment.id,
       accountId: assessment.organizationId,
       reportType,
-      baseUrl: assetBaseUrl,
+      baseUrl: getPublicAppBaseUrl(req),
     });
     if (!shouldDownload) {
       return res.status(200).json({
@@ -961,7 +961,7 @@ router.get('/report-pdf-by-token', async (req, res) => {
   }
 });
 
-router.get('/public-report-pdf', async (req, res) => {
+export async function handlePublicReportPdf(req, res) {
   const token = String(req.query.token || req.query.t || '').trim();
 
   let assessmentId = '';
@@ -1063,7 +1063,9 @@ router.get('/public-report-pdf', async (req, res) => {
       ...(failure.detail ? { detail: failure.detail } : {}),
     });
   }
-});
+}
+
+router.get('/public-report-pdf', handlePublicReportPdf);
 
 router.post(
   '/generate-report',
@@ -1134,7 +1136,7 @@ router.post(
         assessmentId: assessment.id,
         accountId: assessment.organizationId,
         reportType,
-        baseUrl: assetBaseUrl,
+        baseUrl: getPublicAppBaseUrl(req),
       });
 
       const report = await prisma.report.upsert({
@@ -1379,7 +1381,7 @@ router.post('/submit', async (req, res) => {
       assessmentId: response.assessment.id,
       accountId: response.assessment.organizationId,
       reportType: resolveStoredReportType(response.assessment, REPORT_TYPE.BUSINESS),
-      baseUrl: getRequestBaseUrl(req),
+      baseUrl: getPublicAppBaseUrl(req),
     });
 
     return res.status(200).json({

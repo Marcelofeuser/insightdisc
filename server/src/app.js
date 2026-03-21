@@ -10,7 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import assessmentsRoutes from './routes/assessments.routes.js';
-import assessmentRoutes from './routes/assessment.routes.js';
+import assessmentRoutes, { handlePublicReportPdf } from './routes/assessment.routes.js';
 import candidateRoutes from './routes/candidate.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
@@ -144,6 +144,7 @@ export function createApp() {
   app.use('/admin', adminRoutes);
   app.use('/assessments', assessmentsRoutes);
   app.use('/assessment', assessmentRoutes);
+  app.get('/api/report/pdf', handlePublicReportPdf);
   app.use('/candidate', candidateRoutes);
   app.use('/report', reportRoutes);
   app.use('/branding', brandingRoutes);

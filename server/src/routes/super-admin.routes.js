@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { getRequestBaseUrl } from '../lib/request-base-url.js';
+import { getPublicAppBaseUrl } from '../lib/request-base-url.js';
 import { signPublicReportToken } from '../lib/public-report-token.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser, requireSuperAdmin } from '../middleware/rbac.js';
@@ -81,7 +81,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/overview', async (req, res) => {
-  const appBaseUrl = getRequestBaseUrl(req);
+  const appBaseUrl = getPublicAppBaseUrl(req);
   const toAbsoluteUrl = (rawPath = '') => {
     const normalized = String(rawPath || '').trim();
     if (!normalized) return '';
