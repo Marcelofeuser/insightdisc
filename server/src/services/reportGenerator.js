@@ -142,6 +142,15 @@ function toText(value) {
   return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function createReportGeneratorError(code, message, details = {}) {
   const error = new Error(message);
   error.code = code;
