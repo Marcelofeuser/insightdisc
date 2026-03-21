@@ -1,5 +1,5 @@
 import { exec } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -7,7 +7,26 @@ import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+
+function resolveProjectRoot() {
+  const candidates = [
+    path.resolve(__dirname, '../../..'),
+    path.resolve(__dirname, '../..'),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      existsSync(path.join(candidate, 'lib/pdf/build-report-html.ts')) ||
+      existsSync(path.join(candidate, 'public/relatorio_teste/disc_engine.js'))
+    ) {
+      return candidate;
+    }
+  }
+
+  return path.resolve(__dirname, '../..');
+}
+
+const PROJECT_ROOT = resolveProjectRoot();
 const basePath = path.join(PROJECT_ROOT, 'public/relatorio_teste');
 const MASTER_TEMPLATE_PATH = path.join(basePath, 'relatorio_disc_pdf.html');
 const REPORT_PLACEHOLDER_KEYS = Object.freeze([
@@ -423,41 +442,188 @@ function assertRequiredPlaceholderValues(values = {}, requiredPlaceholders = REP
   }
 }
 
+function assertKnownTemplatePlaceholders(templateHtml = '') {
+  const matches = String(templateHtml || '').matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g);
+  const unknown = [];
+
+  for (const match of matches) {
+    const key = String(match?.[1] || '').trim();
+    if (key && !REPORT_PLACEHOLDER_KEYS.includes(key)) {
+      unknown.push(key);
+    }
+  }
+
+  if (unknown.length > 0) {
+    throw createReportGeneratorError(
+      'UNKNOWN_PLACEHOLDER',
+      'Unknown placeholder found in template.',
+      { placeholders: [...new Set(unknown)] },
+    );
+  }
+}
+
+function assertRequiredTemplatePlaceholders(templateHtml = '', requiredPlaceholders = REPORT_PLACEHOLDER_KEYS) {
+  const present = new Set(
+    Array.from(String(templateHtml || '').matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g))
+      .map((match) => String(match?.[1] || '').trim())
+      .filter(Boolean),
+  );
+  const missing = requiredPlaceholders.filter((key) => !present.has(key));
+
+  if (missing.length > 0) {
+    throw createReportGeneratorError(
+      'MISSING_REQUIRED_PLACEHOLDER',
+      'Missing required placeholder in template.',
+      { placeholders: missing },
+    );
+  }
+}
+
+function applyWhitelistedPlaceholders(templateHtml = '', values = {}) {
+  return String(templateHtml || '').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (match, key) => {
+    if (!REPORT_PLACEHOLDER_KEYS.includes(key)) {
+      return match;
+    }
+
+    return escapeHtml(values[key] ?? '');
+  });
+}
+
+function createFallbackReportHtmlRuntime() {
+  return {
+    buildReportHtml(input = {}) {
+      const reportType = normalizeMode(input.reportType);
+      const templateSnapshot = toPlainObject(input.template_snapshot);
+      const inputSnapshot = toPlainObject(input.input_snapshot);
+      const scoringSnapshot = toPlainObject(input.scoring_snapshot);
+      const assessment = resolveAssessmentSnapshot(inputSnapshot);
+      const result = resolveScoringResultSnapshot(scoringSnapshot);
+      const templateHtml = toText(
+        pickFirstDefined(
+          templateSnapshot.html,
+          templateSnapshot.template_html,
+          templateSnapshot.templateHtml,
+        ),
+      );
+
+      if (!templateHtml) {
+        throw createReportGeneratorError(
+          'TEMPLATE_NOT_FOUND',
+          'Report template not found.',
+          {
+            reportType,
+            templatePath:
+              toText(
+                pickFirstDefined(templateSnapshot.templatePath, templateSnapshot.path),
+              ) || resolveOfficialTemplatePath(reportType),
+          },
+        );
+      }
+
+      const requiredPlaceholders = resolveRequiredPlaceholders(templateSnapshot);
+      const placeholderValues = {
+        name: toText(assessment.name),
+        profile: toText(assessment.profile),
+        disc_d: toText(
+          pickFirstDefined(result.disc_d, result.d, result.D),
+        ),
+        disc_i: toText(
+          pickFirstDefined(result.disc_i, result.i, result.I),
+        ),
+        disc_s: toText(
+          pickFirstDefined(result.disc_s, result.s, result.S),
+        ),
+        disc_c: toText(
+          pickFirstDefined(result.disc_c, result.c, result.C),
+        ),
+      };
+
+      assertKnownTemplatePlaceholders(templateHtml);
+      assertRequiredTemplatePlaceholders(templateHtml, requiredPlaceholders);
+      assertRequiredPlaceholderValues(placeholderValues, requiredPlaceholders);
+
+      const language =
+        toText(
+          pickFirstDefined(input.language, templateSnapshot.language, templateSnapshot.lang, 'pt-BR'),
+        ) || 'pt-BR';
+      const templatePath =
+        toText(
+          pickFirstDefined(templateSnapshot.templatePath, templateSnapshot.path),
+        ) || resolveOfficialTemplatePath(reportType);
+      const cacheKey =
+        toText(templateSnapshot.cacheKey) || `inline:report.v1:${language}:${reportType}`;
+
+      return {
+        reportType,
+        html: applyWhitelistedPlaceholders(templateHtml, placeholderValues),
+        language,
+        version: 'report.v1',
+        templatePath,
+        cacheKey,
+        template_snapshot: {
+          templatePath,
+          language,
+          version: 'report.v1',
+          placeholders: requiredPlaceholders,
+        },
+      };
+    },
+  };
+}
+
 async function loadReportHtmlEngine() {
   if (reportHtmlEnginePromise) {
     return reportHtmlEnginePromise;
   }
 
   reportHtmlEnginePromise = (async () => {
-    const ts = await import('typescript');
-    const runtimeRoot = mkdtempSync(path.join(os.tmpdir(), 'insightdisc-report-lib-'));
+    try {
+      const ts = await import('typescript');
+      const runtimeRoot = mkdtempSync(path.join(os.tmpdir(), 'insightdisc-report-lib-'));
 
-    for (const relativePath of REPORT_LIB_TS_FILES) {
-      const sourcePath = path.resolve(PROJECT_ROOT, relativePath);
-      const outputPath = path.join(runtimeRoot, relativePath.replace(/\.ts$/i, '.js'));
-      const source = readFileSync(sourcePath, 'utf8');
-      const transpiled = ts.transpileModule(source, {
-        compilerOptions: {
-          module: ts.ModuleKind.ES2022,
-          target: ts.ScriptTarget.ES2022,
-        },
-        fileName: sourcePath,
+      for (const relativePath of REPORT_LIB_TS_FILES) {
+        const sourcePath = path.resolve(PROJECT_ROOT, relativePath);
+        const outputPath = path.join(runtimeRoot, relativePath.replace(/\.ts$/i, '.js'));
+        const source = readFileSync(sourcePath, 'utf8');
+        const transpiled = ts.transpileModule(source, {
+          compilerOptions: {
+            module: ts.ModuleKind.ES2022,
+            target: ts.ScriptTarget.ES2022,
+          },
+          fileName: sourcePath,
+        });
+
+        mkdirSync(path.dirname(outputPath), { recursive: true });
+        writeFileSync(outputPath, rewriteTranspiledTsSpecifiers(transpiled.outputText), 'utf8');
+      }
+
+      const moduleUrl = pathToFileURL(
+        path.join(runtimeRoot, 'lib/pdf/build-report-html.js'),
+      ).href;
+      const runtimeModule = await import(moduleUrl);
+
+      if (typeof runtimeModule.buildReportHtml !== 'function') {
+        throw new Error('REPORT_HTML_ENGINE_UNAVAILABLE');
+      }
+
+      return runtimeModule;
+    } catch (error) {
+      const detail = String(error?.code || error?.message || error || '').trim();
+      const shouldFallback =
+        detail.includes('ERR_MODULE_NOT_FOUND') ||
+        detail.includes('ENOENT') ||
+        detail.includes('Cannot find package') ||
+        detail.includes('REPORT_HTML_ENGINE_UNAVAILABLE');
+
+      if (!shouldFallback) {
+        throw error;
+      }
+
+      console.warn('[disc-report] using built-in fallback html runtime', {
+        reason: detail,
       });
-
-      mkdirSync(path.dirname(outputPath), { recursive: true });
-      writeFileSync(outputPath, rewriteTranspiledTsSpecifiers(transpiled.outputText), 'utf8');
+      return createFallbackReportHtmlRuntime();
     }
-
-    const moduleUrl = pathToFileURL(
-      path.join(runtimeRoot, 'lib/pdf/build-report-html.js'),
-    ).href;
-    const runtimeModule = await import(moduleUrl);
-
-    if (typeof runtimeModule.buildReportHtml !== 'function') {
-      throw new Error('REPORT_HTML_ENGINE_UNAVAILABLE');
-    }
-
-    return runtimeModule;
   })();
 
   return reportHtmlEnginePromise;
