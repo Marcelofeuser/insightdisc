@@ -27,6 +27,14 @@ function getAnswersCountFromAssessment(assessment) {
   return 0;
 }
 
+function normalizeReportType(value = '', fallback = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback ? normalizeReportType(fallback) : '';
+}
+
 export default function CandidateUpgrade() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -34,6 +42,7 @@ export default function CandidateUpgrade() {
 
   const token = String(params.get('token') || '').trim();
   const providedAssessmentId = String(params.get('assessmentId') || params.get('assessment_id') || '').trim();
+  const reportType = normalizeReportType(params.get('type') || params.get('reportType') || '');
   const [error, setError] = useState('');
 
   const hasApi = useMemo(() => Boolean(apiBaseUrl), [apiBaseUrl]);
@@ -52,9 +61,11 @@ export default function CandidateUpgrade() {
       // 1) Prefer backend public endpoint when available.
       if (hasApi && token) {
         try {
-          const payload = await apiRequest(
-            `/assessment/report-by-token?token=${encodeURIComponent(token)}`
-          );
+          const requestQuery = new URLSearchParams({ token });
+          if (reportType) {
+            requestQuery.set('type', reportType);
+          }
+          const payload = await apiRequest(`/assessment/report-by-token?${requestQuery.toString()}`);
 
           const apiAssessmentId = payload?.assessment?.id || providedAssessmentId;
           const answeredCount = Number(
@@ -69,17 +80,19 @@ export default function CandidateUpgrade() {
             if (apiAssessmentId) query.set('assessment_id', apiAssessmentId);
             query.set('resume', '1');
             query.set('answeredCount', String(answeredCount));
+            if (reportType) query.set('type', reportType);
             navigate(`/c/assessment?${query.toString()}`, { replace: true });
             return;
           }
 
-          const reportQuery = new URLSearchParams();
-          reportQuery.set('token', token);
           const publicReportPath = String(payload?.publicAccess?.publicReportPath || '').trim();
           if (publicReportPath) {
             navigate(publicReportPath, { replace: true });
             return;
           }
+          const reportQuery = new URLSearchParams();
+          reportQuery.set('token', token);
+          if (reportType) reportQuery.set('type', reportType);
           navigate(`/c/report?${reportQuery.toString()}`, { replace: true });
           return;
         } catch (requestError) {
@@ -122,12 +135,14 @@ export default function CandidateUpgrade() {
           if (assessmentId) query.set('assessment_id', assessmentId);
           query.set('resume', '1');
           query.set('answeredCount', String(answeredCount));
+          if (reportType) query.set('type', reportType);
           navigate(`/c/assessment?${query.toString()}`, { replace: true });
           return;
         }
 
         const reportQuery = new URLSearchParams();
         if (token) reportQuery.set('token', token);
+        if (reportType) reportQuery.set('type', reportType);
         navigate(`/c/report?${reportQuery.toString()}`, { replace: true });
       } catch {
         if (mounted) {
@@ -141,7 +156,7 @@ export default function CandidateUpgrade() {
     return () => {
       mounted = false;
     };
-  }, [token, providedAssessmentId, hasApi, navigate]);
+  }, [token, providedAssessmentId, reportType, hasApi, navigate]);
 
   return (
     <div className="rounded-xl border bg-white p-6">

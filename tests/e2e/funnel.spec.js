@@ -190,6 +190,22 @@ test('CheckoutSuccess mock mantém página estável e abre fluxo público quando
   await expect(page).toHaveURL(/\/c\/upgrade|\/c\/assessment|\/c\/report/);
 });
 
+for (const reportType of ['personal', 'professional', 'business']) {
+  test(`CheckoutSuccess preserva o type=${reportType} no link de continuação`, async ({ page }) => {
+    await page.goto(
+      `/CheckoutSuccess?session_id=mock_e2e_checkout_${reportType}&assessmentId=assessment-${reportType}&token=tok-${reportType}&flow=candidate&type=${reportType}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await expect(page.getByRole('heading', { name: /Relatório liberado/i })).toBeVisible();
+
+    const reportLink = page.getByRole('link', { name: /Abrir relatório/i });
+    await expect(reportLink).toHaveAttribute(
+      'href',
+      new RegExp(`/c/upgrade\\?token=tok-${reportType}.*type=${reportType}`),
+    );
+  });
+}
+
 test('Usuário sem compra é redirecionado para planos/desbloqueio', async ({ page }) => {
   await loginAsUser(page);
 

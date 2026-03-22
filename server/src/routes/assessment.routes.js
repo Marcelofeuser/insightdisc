@@ -26,6 +26,7 @@ import {
 import { requireReportExport } from '../middleware/require-report-export.js';
 import {
   buildPublicReportFileName,
+  generateAssessmentReport,
   buildStructuredReportHtml,
   buildStructuredReportModel,
   generateReport as generateStructuredReport,
@@ -100,6 +101,29 @@ function resolveAssessmentDiscResult(assessment = {}) {
 
 function resolveAssessmentReportType(assessment = {}, fallback = REPORT_TYPE.BUSINESS) {
   return resolveStoredReportType(assessment, fallback);
+}
+
+function buildStoredDiscProfile(discResult = {}, reportType = REPORT_TYPE.BUSINESS) {
+  const normalizedReportType = normalizeReportType(reportType);
+  const normalizedDiscResult =
+    discResult && typeof discResult === 'object' && !Array.isArray(discResult)
+      ? discResult
+      : {};
+  const normalizedMeta =
+    normalizedDiscResult?.meta &&
+    typeof normalizedDiscResult.meta === 'object' &&
+    !Array.isArray(normalizedDiscResult.meta)
+      ? normalizedDiscResult.meta
+      : {};
+
+  return {
+    ...normalizedDiscResult,
+    reportType: normalizedReportType,
+    meta: {
+      ...normalizedMeta,
+      reportType: normalizedReportType,
+    },
+  };
 }
 
 function issuePublicReportAccess({
@@ -765,8 +789,21 @@ router.get(
         return res.status(404).json({ ok: false, reason: 'REPORT_NOT_FOUND' });
       }
 
+      const resolvedReportType = normalizeReportType(
+        req.query.type ||
+          req.query.reportType ||
+          resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
+      );
+      const publicAccess = issuePublicReportAccess({
+        assessmentId: assessment.id,
+        accountId: assessment.organizationId,
+        reportType: resolvedReportType,
+        baseUrl: getPublicAppBaseUrl(req),
+      });
+
       return res.status(200).json({
         ok: true,
+        reportType: resolvedReportType,
         assessment: {
           id: assessment.id,
           status: assessment.status,
@@ -781,7 +818,8 @@ router.get(
         },
         report: {
           id: assessment.report.id,
-          pdfUrl: assessment.report.pdfUrl || '',
+          pdfUrl: publicAccess.publicPdfUrl,
+          reportType: resolvedReportType,
           discProfile: assessment.report.discProfile || {},
         },
         reportItem: {
@@ -792,9 +830,14 @@ router.get(
           candidateEmail: assessment.candidateEmail || '',
           createdAt: assessment.createdAt,
           completedAt: assessment.completedAt,
-          pdfUrl: assessment.report.pdfUrl || '',
+          pdfUrl: publicAccess.publicPdfUrl,
+          reportType: resolvedReportType,
+          publicToken: publicAccess.token,
+          publicReportUrl: publicAccess.publicReportUrl,
+          publicPdfUrl: publicAccess.publicPdfUrl,
           discProfile: assessment.report.discProfile || {},
         },
+        publicAccess,
       });
     } catch (error) {
       return res.status(500).json({
@@ -1129,26 +1172,19 @@ router.post(
         userId: req.auth.userId,
       });
 
-      const reportModel = await buildPremiumReportModel({
+      const generated = await generateAssessmentReport({
         assessment,
-        discResult: resolveAssessmentDiscResult(assessment),
+        reportType,
         assetBaseUrl,
         currentUser: req.user || assessment.creator || assessment.organization?.owner || null,
-        reportType,
-        includeAiComplement: false,
-        useAi: false,
+        inMemory: true,
+        useCache: false,
       });
       console.info('REPORT_DATA', {
         assessmentId: assessment.id,
         reportType,
-        participantName: reportModel?.participant?.name || '',
-        profileKey: reportModel?.profile?.key || reportModel?.profileKey || '',
-      });
-
-      const generated = await generatePremiumPdf(reportModel, assessment.id, assessment, {
-        inMemory: true,
-        reportType,
-        includeAiComplement: false,
+        participantName: generated?.reportModel?.participant?.name || '',
+        profileKey: generated?.reportModel?.profile?.key || generated?.reportModel?.profileKey || '',
       });
 
       const buffer = generated.pdfBuffer;
@@ -1171,11 +1207,11 @@ router.post(
         where: { assessmentId: assessment.id },
         create: {
           assessmentId: assessment.id,
-          discProfile: reportModel,
+          discProfile: generated.reportModel,
           pdfUrl: publicAccess.publicPdfUrl,
         },
         update: {
-          discProfile: reportModel,
+          discProfile: generated.reportModel,
           pdfUrl: publicAccess.publicPdfUrl,
         },
       });
@@ -1296,6 +1332,8 @@ router.post('/submit', async (req, res) => {
       token: z.string().min(1),
       respondentName: z.string().min(2),
       respondentEmail: z.string().email(),
+      type: z.string().optional(),
+      reportType: z.string().optional(),
       answers: z.array(
         z.object({
           questionId: z.string().min(1),
@@ -1343,6 +1381,10 @@ router.post('/submit', async (req, res) => {
     }
 
     const discResult = calculateDiscFromAnswers(input.answers);
+    const submittedReportType = normalizeReportType(
+      input.type || input.reportType || REPORT_TYPE.BUSINESS,
+    );
+    const storedDiscProfile = buildStoredDiscProfile(discResult, submittedReportType);
 
     const response = await prisma.$transaction(async (tx) => {
       if (isSelfAssessment && !isSuperAdminSelfAssessment) {
@@ -1389,10 +1431,10 @@ router.post('/submit', async (req, res) => {
         where: { assessmentId: assessment.id },
         create: {
           assessmentId: assessment.id,
-          discProfile: discResult,
+          discProfile: storedDiscProfile,
         },
         update: {
-          discProfile: discResult,
+          discProfile: storedDiscProfile,
         },
       });
 
@@ -1412,7 +1454,7 @@ router.post('/submit', async (req, res) => {
     const publicAccess = issuePublicReportAccess({
       assessmentId: response.assessment.id,
       accountId: response.assessment.organizationId,
-      reportType: resolveStoredReportType(response.assessment, REPORT_TYPE.BUSINESS),
+      reportType: submittedReportType,
       baseUrl: getPublicAppBaseUrl(req),
     });
 
@@ -1420,7 +1462,7 @@ router.post('/submit', async (req, res) => {
       ok: true,
       assessmentId: response.assessment.id,
       reportId: response.report.id,
-      reportType: publicAccess.reportType,
+      reportType: submittedReportType,
       creditsConsumed: Number(response.creditsConsumed || 0),
       disc: discResult,
       publicAccess,

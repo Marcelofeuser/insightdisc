@@ -22,6 +22,7 @@ import { FULL_QUESTION_BANK, calculateDISCResults } from '@/components/disc/disc
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { buildAssessmentReportPath } from '@/modules/reports';
 
 const DRAFT_KEY = (id) => `disc_draft_${id}`;
 const QUICK_CONTEXT_STEP_KEY = (id) => `disc_quick_context_done_${id}`;
@@ -93,6 +94,14 @@ function parseDraft(raw) {
   }
 }
 
+function normalizeReportType(value = '', fallback = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback ? normalizeReportType(fallback) : '';
+}
+
 export default function PremiumAssessment() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,9 +110,10 @@ export default function PremiumAssessment() {
 
   const token = searchParams.get('token');
   const prefetchedId = searchParams.get('assessment_id');
-  const reportType = String(searchParams.get('type') || searchParams.get('reportType') || 'business')
-    .trim()
-    .toLowerCase();
+  const reportType = normalizeReportType(
+    searchParams.get('type') || searchParams.get('reportType') || 'business',
+    'business',
+  );
   const resumeMode = searchParams.get('resume') === '1';
   const queryAnsweredCount = Number(searchParams.get('answeredCount') || 0);
   const apiBaseUrl = getApiBaseUrl();
@@ -364,9 +374,17 @@ export default function PremiumAssessment() {
         const assessmentPath = location.pathname.startsWith('/c')
           ? '/c/assessment'
           : createPageUrl('PremiumAssessment');
+        const nextQuery = new URLSearchParams({
+          token: String(payload.token || ''),
+          self: '1',
+          from: 'assessment',
+        });
+        if (reportType) {
+          nextQuery.set('type', reportType);
+        }
 
         navigate(
-          `${assessmentPath}?token=${encodeURIComponent(payload.token)}&self=1&from=assessment`,
+          `${assessmentPath}?${nextQuery.toString()}`,
           { replace: true },
         );
         return;
@@ -398,7 +416,7 @@ export default function PremiumAssessment() {
 
       const assessment = await base44.entities.Assessment.create({
         user_id: resolvedUserId,
-        type: 'business',
+        type: reportType || 'business',
         status: 'in_progress',
         access_token: token || null,
         started_at: new Date().toISOString(),
@@ -432,6 +450,7 @@ export default function PremiumAssessment() {
           method: 'POST',
           body: {
             token,
+            reportType,
             respondentName: sessionStorage.getItem('candidate_name') || 'Participante',
             respondentEmail:
               sessionStorage.getItem('candidate_email') || 'participante@example.com',
@@ -451,7 +470,7 @@ export default function PremiumAssessment() {
         const reportPath =
           token && location.pathname.startsWith('/c')
             ? payload?.publicAccess?.publicReportPath || `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`
-            : `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`;
+            : buildAssessmentReportPath(resolvedAssessmentId);
         navigate(reportPath);
         return;
       }
@@ -476,7 +495,7 @@ export default function PremiumAssessment() {
       const reportPath =
         token && location.pathname.startsWith('/c')
           ? `/c/report?token=${encodeURIComponent(token)}&type=${encodeURIComponent(reportType)}`
-          : `${createPageUrl('Report')}?id=${encodeURIComponent(assessmentId)}`;
+          : buildAssessmentReportPath(assessmentId);
       navigate(reportPath);
     } catch (error) {
       console.error('Submit failed:', error);

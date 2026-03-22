@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
+import { buildAssessmentReportPath } from '@/modules/reports';
 import {
   buildGiftLink,
   markGiftOrderPaid,
@@ -22,6 +23,14 @@ const DEFAULT_GIFT_MESSAGE =
 function buildGiftWhatsappShareLink(giftUrl) {
   const message = `Você recebeu um presente InsightDISC. Acesse seu teste por este link: ${giftUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+function normalizeReportType(value = '', fallback = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'personal' || normalized === 'standard') return 'personal';
+  if (normalized === 'professional') return 'professional';
+  if (normalized === 'business' || normalized === 'premium') return 'business';
+  return fallback ? normalizeReportType(fallback) : '';
 }
 
 export default function CheckoutSuccess() {
@@ -55,6 +64,9 @@ export default function CheckoutSuccess() {
   const canExportReport = hasPermission(authAccess, PERMISSIONS.REPORT_EXPORT);
 
   const queryGiftToken = searchParams.get('giftToken') || '';
+  const requestedReportType = normalizeReportType(
+    searchParams.get('type') || searchParams.get('reportType') || '',
+  );
   const isGiftFlow = flow === 'gift' || Boolean(queryGiftToken);
 
   const giftLandingUrl = useMemo(() => {
@@ -88,13 +100,18 @@ export default function CheckoutSuccess() {
         || fallbackFlow === 'candidate'
         || Boolean(fallbackEmail);
 
-      const resolvePdfFromToken = async (token) => {
+      const resolvePdfFromToken = async (token, reportType = requestedReportType) => {
         if (!apiBaseUrl || !token) return '';
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 7000);
+          const query = new URLSearchParams({ token });
+          const normalizedReportType = normalizeReportType(reportType);
+          if (normalizedReportType) {
+            query.set('type', normalizedReportType);
+          }
           const endpoint = resolveApiRequestUrl(
-            `/assessment/report-by-token?token=${encodeURIComponent(token)}`,
+            `/assessment/report-by-token?${query.toString()}`,
             { baseUrl: apiBaseUrl },
           );
           const response = await fetch(
@@ -145,7 +162,7 @@ export default function CheckoutSuccess() {
       if (searchParams.get('pdfUrl')) {
         setAvailablePdfUrl(searchParams.get('pdfUrl') || '');
       } else if (fallbackToken && !isMock) {
-        const pdfByToken = await resolvePdfFromToken(fallbackToken);
+        const pdfByToken = await resolvePdfFromToken(fallbackToken, requestedReportType);
         if (pdfByToken) setAvailablePdfUrl(pdfByToken);
       }
 
@@ -233,7 +250,10 @@ export default function CheckoutSuccess() {
             || (data.token || fallbackToken ? 'candidate' : '')
         );
 
-        const pdfByToken = await resolvePdfFromToken(data.token || fallbackToken || '');
+        const pdfByToken = await resolvePdfFromToken(
+          data.token || fallbackToken || '',
+          requestedReportType,
+        );
         if (pdfByToken) setAvailablePdfUrl(pdfByToken);
 
         if (isGiftContext && fallbackGiftToken) {
@@ -290,7 +310,7 @@ export default function CheckoutSuccess() {
     };
 
     processCheckout();
-  }, [searchParams, apiBaseUrl]);
+  }, [searchParams, apiBaseUrl, requestedReportType]);
 
   const openReportHref = (() => {
     const isCandidateFlow = flow === 'candidate' || Boolean(candidateToken);
@@ -299,11 +319,12 @@ export default function CheckoutSuccess() {
       const qs = new URLSearchParams();
       if (candidateToken) qs.set('token', candidateToken);
       if (assessmentId) qs.set('assessmentId', assessmentId);
+      if (requestedReportType) qs.set('type', requestedReportType);
       return `/c/upgrade?${qs.toString()}`;
     }
 
     if (assessmentId) {
-      return `${createPageUrl('Report')}?id=${assessmentId}`;
+      return buildAssessmentReportPath(assessmentId);
     }
 
     return createPageUrl('Dashboard');
