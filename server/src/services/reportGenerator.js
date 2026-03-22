@@ -35,8 +35,8 @@ function resolveProjectRoot() {
 }
 
 const PROJECT_ROOT = resolveProjectRoot();
-const basePath = path.join(PROJECT_ROOT, 'public/relatorio_teste');
-const MASTER_TEMPLATE_PATH = path.join(basePath, 'relatorio_disc_pdf.html');
+const basePath = path.join(PROJECT_ROOT, 'report-templates/approved/html');
+const MASTER_TEMPLATE_PATH = path.join(basePath, 'relatorio_disc_business.html');
 const REPORT_PLACEHOLDER_KEYS = Object.freeze([
   'name',
   'profile',
@@ -86,9 +86,9 @@ const REPORT_OUTPUTS = {
   },
 };
 const OFFICIAL_TEMPLATE_PATHS = Object.freeze({
-  personal: 'templates/reports/relatorio_disc_personal.html',
-  professional: 'templates/reports/relatorio_disc_professional.html',
-  business: 'templates/reports/relatorio_disc_business.html',
+  personal: 'relatorio_disc_personal.html',
+  professional: 'relatorio_disc_professional.html',
+  business: 'relatorio_disc_business.html',
 });
 const OFFICIAL_TEMPLATE_VALIDATION_HTML =
   '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8" /></head><body>{{name}} {{profile}} {{disc_d}} {{disc_i}} {{disc_s}} {{disc_c}}</body></html>';
@@ -1670,12 +1670,15 @@ async function renderOfficialHtmlToPdfBuffer(html = '') {
       deviceScaleFactor: 1,
     });
     await page.emulateMediaType('screen');
+    page.setDefaultNavigationTimeout(60_000);
     await page.setContent(normalizedHtml, {
-      waitUntil: browserLauncher.name === 'playwright' ? 'networkidle' : 'networkidle0',
+      waitUntil: 'domcontentloaded',
+      timeout: 60_000,
     });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
+      timeout: 90_000,
       printBackground: true,
       margin: {
         top: '0mm',
