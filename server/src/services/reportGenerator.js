@@ -7,6 +7,9 @@ import { prisma } from '../lib/prisma.js';
 import { verifyPublicReportToken } from '../lib/public-report-token.js';
 import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
 import { normalizeBrandingFromOrganization } from '../modules/branding/branding-service.js';
+import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
+import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
+import { calculateDiscFromAnswers } from '../modules/disc/calculate-disc.js';
 import {
   REPORT_TYPE,
   normalizeReportType as normalizeCanonicalReportType,
@@ -1480,7 +1483,13 @@ async function loadPremiumReportPipeline() {
 }
 
 function resolveAssessmentDiscResultSnapshot(assessment = {}) {
-  return assessment?.report?.discProfile || assessment?.results || assessment?.disc_results || {};
+  const stored = assessment?.report?.discProfile || assessment?.results || assessment?.disc_results;
+  if (stored && (stored.D || stored.summary)) return stored;
+  const answers = assessment?.response?.answersJson;
+  if (Array.isArray(answers) && answers.length > 0) {
+    try { return calculateDiscFromAnswers(answers); } catch (e) {}
+  }
+  return stored || {};
 }
 
 export function buildPublicReportFileName({
