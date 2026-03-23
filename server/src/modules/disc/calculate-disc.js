@@ -56,19 +56,12 @@ export function calculateDiscFromAnswers(answers = []) {
   const rawScores = { D: 0, I: 0, S: 0, C: 0 };
 
   for (const answer of answers) {
-    const question = questionMap.get(answer.questionId);
-    if (!question) continue;
+    // Formato "q01I" — extrai o fator da última letra
+    const mostFactor = String(answer.most || '').slice(-1).toUpperCase();
+    const leastFactor = String(answer.least || '').slice(-1).toUpperCase();
 
-    const mostOption = question.options?.[answer.most];
-    const leastOption = question.options?.[answer.least];
-
-    if (mostOption?.factor && rawScores[mostOption.factor] !== undefined) {
-      rawScores[mostOption.factor] += 2;
-    }
-
-    if (leastOption?.factor && rawScores[leastOption.factor] !== undefined) {
-      rawScores[leastOption.factor] -= 1;
-    }
+    if (FACTORS.includes(mostFactor)) rawScores[mostFactor] += 2;
+    if (FACTORS.includes(leastFactor)) rawScores[leastFactor] -= 1;
   }
 
   const normalized = normalizeScores(rawScores);
