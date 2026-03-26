@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Lock, 
@@ -64,6 +64,23 @@ const FACTOR_INFO = {
   }
 };
 
+function buildCandidateReportUnlockUrl({ assessmentId = '', token = '' } = {}) {
+  const params = new URLSearchParams();
+
+  params.set('product', 'report-unlock');
+  params.set('flow', 'candidate');
+
+  if (assessmentId) {
+    params.set('assessmentId', assessmentId);
+  }
+
+  if (token) {
+    params.set('token', token);
+  }
+
+  return '/checkout?' + params.toString();
+}
+
 export default function FreeResults() {
   const { access } = useAuth();
   const [searchParams] = useSearchParams();
@@ -72,9 +89,13 @@ export default function FreeResults() {
   const [comparisonAssessment, setComparisonAssessment] = useState(null);
   const [comparisonError, setComparisonError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const requestedAssessmentId = String(searchParams.get('id') || '').trim();
+  const requestedAssessmentToken = String(searchParams.get('token') || '').trim();
+  const requestedEmail = String(searchParams.get('email') || '').trim();
+  const requestedName = String(searchParams.get('name') || '').trim();
 
   const loadAssessment = useCallback(async () => {
-    const assessmentId = searchParams.get('id');
+    const assessmentId = requestedAssessmentId;
     const compareWith = searchParams.get('compareWith');
     let loaded = false;
     let loadedComparison = false;
@@ -155,7 +176,7 @@ export default function FreeResults() {
     }
     
     setIsLoading(false);
-  }, [apiBaseUrl, searchParams]);
+  }, [apiBaseUrl, requestedAssessmentId, searchParams]);
 
   useEffect(() => {
     const run = async () => {
@@ -177,25 +198,54 @@ export default function FreeResults() {
   }
 
   const hasAssessmentContext = Boolean(
-    searchParams.get('id') || searchParams.get('token') || searchParams.get('email') || searchParams.get('name')
+    requestedAssessmentId || requestedAssessmentToken || requestedEmail || requestedName
   );
   const hasSuperAdminBypass = isSuperAdminAccess(access);
 
   if (!assessment?.results) {
-    if (hasAssessmentContext && !hasSuperAdminBypass) {
-      return <Navigate to="/checkout?product=report-unlock" replace />;
-    }
+    const fallbackCheckoutUrl =
+      requestedAssessmentId && requestedAssessmentToken
+        ? buildCandidateReportUnlockUrl({
+            assessmentId: requestedAssessmentId,
+            token: requestedAssessmentToken,
+          })
+        : '';
+    const errorTitle = hasAssessmentContext
+      ? 'Não foi possível carregar seu resultado'
+      : 'Resultado não encontrado';
+    const errorDescription = hasAssessmentContext
+      ? 'O link recebido pode estar incompleto, expirado ou inválido. Você pode refazer o teste agora e só seguir para o checkout se quiser.'
+      : 'Não encontramos um resultado salvo para esta sessão. Refaça o teste para gerar um novo preview do perfil.';
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Resultado não encontrado</h1>
-          <Link to={createPageUrl('StartFree')}>
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Fazer Teste Novamente
-            </Button>
-          </Link>
+        <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <RefreshCw className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-3">{errorTitle}</h1>
+          <p className="text-slate-600 mb-6">{errorDescription}</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link to={createPageUrl('StartFree')}>
+              <Button className="bg-indigo-600 hover:bg-indigo-700">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Fazer Teste Novamente
+              </Button>
+            </Link>
+            {fallbackCheckoutUrl ? (
+              <Link to={fallbackCheckoutUrl}>
+                <Button variant="outline" className="rounded-xl">
+                  Ir para checkout
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+          {fallbackCheckoutUrl ? (
+            <p className="mt-4 text-sm text-slate-500">
+              Se você recebeu um link de desbloqueio, use o checkout apenas pelo botão acima.
+            </p>
+          ) : null}
         </div>
       </div>
     );
