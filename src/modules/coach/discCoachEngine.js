@@ -16,11 +16,11 @@ const INTENT_RULES = Object.freeze([
     id: 'motivate_c',
     keywords: ['motivar', 'perfil c', 'conformidade', 'c alto'],
     response:
-      'Perfis C se engajam quando há clareza de critério, autonomia técnica e reconhecimento por precisão.',
+      'Para motivar um perfil C alto, ofereça clareza, critério e autonomia técnica: mostre o padrão esperado, explique o porquê das decisões e evite improviso desnecessário.',
     actions: [
-      'Transforme metas amplas em critérios objetivos de entrega.',
-      'Reconheça decisões baseadas em análise e consistência.',
-      'Evite pressão emocional vaga; prefira dados e contexto.',
+      'Defina objetivos com métricas, prazo e critérios de qualidade explícitos.',
+      'Compartilhe contexto e lógica da decisão antes de cobrar velocidade.',
+      'Reconheça precisão, consistência e melhoria contínua com feedback objetivo.',
     ],
   },
   {
