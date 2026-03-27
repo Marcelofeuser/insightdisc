@@ -151,6 +151,23 @@ function inferReportAssessmentId(report = {}) {
   );
 }
 
+function resolveReportTypeFromRecord(record = {}, fallback = 'business') {
+  return normalizeReportType(
+    firstNonEmpty(
+      record?.reportType,
+      record?.type,
+      record?.report?.reportType,
+      record?.report?.type,
+      record?.publicAccess?.reportType,
+      record?.assessment?.reportType,
+      record?.assessment?.type,
+      record?.plan,
+      record?.variant,
+    ),
+    fallback,
+  );
+}
+
 function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
   const assessmentId = inferReportAssessmentId(report);
   const previewPath =
@@ -575,7 +592,8 @@ export default function SuperAdminDashboard() {
 
   const handleGenerateReportFromAssessment = useCallback(
     async (assessmentId, options = {}) => {
-      const { silent = false } = options || {};
+      const { silent = false, reportType = 'business' } = options || {};
+      const resolvedReportType = resolveReportTypeFromRecord({ reportType }, 'business');
       if (!assessmentId) {
         if (!silent) {
           toast({
@@ -589,11 +607,14 @@ export default function SuperAdminDashboard() {
 
       setGeneratingReport(assessmentId);
       try {
-        console.info('[SuperAdminDashboard] regenerate report requested', { assessmentId });
+        console.info('[SuperAdminDashboard] regenerate report requested', {
+          assessmentId,
+          reportType: resolvedReportType,
+        });
         const payload = await apiRequest('/assessment/generate-report', {
           method: 'POST',
           requireAuth: true,
-          body: { assessmentId, reportType: 'business' },
+          body: { assessmentId, reportType: resolvedReportType },
           ...directBackendRequestOptions,
         });
 
@@ -609,7 +630,9 @@ export default function SuperAdminDashboard() {
             inferReportAssessmentId(report) === assessmentId
               ? {
                   ...report,
-                  reportType: payload?.reportType || report.reportType || 'business',
+                  reportType:
+                    payload?.reportType ||
+                    resolveReportTypeFromRecord(report, resolvedReportType),
                   previewPath: previewPath || report.previewPath,
                   publicLink: previewPath || report.publicLink,
                   pdfUrl: pdfUrl || report.pdfUrl,
@@ -626,7 +649,7 @@ export default function SuperAdminDashboard() {
           toast({
             title: pdfUrl ? 'Relatório gerado' : 'Relatório em processamento',
             description: pdfUrl
-              ? 'A geração business foi concluída com sucesso.'
+              ? `A geração ${resolvedReportType} foi concluída com sucesso.`
               : 'Relatório gerado, mas o PDF ainda não está disponível.',
           });
         }
@@ -1020,7 +1043,11 @@ export default function SuperAdminDashboard() {
                               !inferReportAssessmentId(report) ||
                               generatingReport === inferReportAssessmentId(report)
                             }
-                            onClick={() => void handleGenerateReportFromAssessment(inferReportAssessmentId(report))}
+                            onClick={() =>
+                              void handleGenerateReportFromAssessment(inferReportAssessmentId(report), {
+                                reportType: resolveReportTypeFromRecord(report, 'business'),
+                              })
+                            }
                           >
                             {generatingReport === inferReportAssessmentId(report) ? 'Gerando...' : 'Regenerar PDF'}
                           </Button>
@@ -1135,7 +1162,14 @@ export default function SuperAdminDashboard() {
                   Abrir AI Lab
                 </Button>
                 <Button
-                  onClick={() => void handleGenerateReportFromAssessment(latestDemoAssessment?.id)}
+                  onClick={() =>
+                    void handleGenerateReportFromAssessment(latestDemoAssessment?.id, {
+                      reportType: resolveReportTypeFromRecord(
+                        latestDemoReport || latestDemoAssessment || {},
+                        'business',
+                      ),
+                    })
+                  }
                   disabled={!latestDemoAssessment?.id || generatingReport === latestDemoAssessment?.id}
                 >
                   {generatingReport === latestDemoAssessment?.id ? 'Gerando...' : 'Gerar relatório demo'}
