@@ -10,6 +10,7 @@ import { getApiBaseUrl, setApiSession } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { mapAuthRequestError, submitAuthRequest } from '@/modules/auth/authApi';
 import { deriveUserLifecycle, USER_LIFECYCLE } from '@/modules/auth/access-control';
+import { sanitizeNextPath } from '@/modules/auth/next-path';
 
 const DEV_MOCK_ACCOUNTS = Object.freeze([
   { email: 'admin@example.com', label: 'Entrar como Admin' },
@@ -19,14 +20,6 @@ const DEV_MOCK_ACCOUNTS = Object.freeze([
 
 const ENABLE_DEV_LOGIN_SHORTCUTS =
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
-
-function sanitizeNextPath(nextPath) {
-  const raw = String(nextPath || '').trim();
-  if (!raw.startsWith('/')) return '';
-  if (raw.startsWith('//')) return '';
-  if (raw === createPageUrl('Login') || raw === createPageUrl('Signup')) return '';
-  return raw;
-}
 
 function resolvePostLoginPath(user, nextPath = '') {
   const lifecycleStatus = deriveUserLifecycle(user || {});

@@ -5,6 +5,24 @@ import '../styles/landing.css';
 const LANDING_TITLE = 'InsightDISC - Plataforma de Inteligência Comportamental';
 const LANDING_DESCRIPTION =
   'InsightDISC — Plataforma de Inteligência Comportamental para avaliação individual, comparação de perfis, recrutamento e inteligência de equipes.';
+const HERO_HIGHLIGHTS = Object.freeze([
+  {
+    title: 'Perfil',
+    description: 'Leitura individual detalhada',
+  },
+  {
+    title: 'Comparação',
+    description: 'Pessoa x pessoa e pessoa x cargo',
+  },
+  {
+    title: 'Team Map',
+    description: 'Distribuição e inteligência de equipe',
+  },
+  {
+    title: 'PDF',
+    description: 'Relatório premium exportável',
+  },
+]);
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
   let tag = document.head.querySelector(selector);
@@ -265,7 +283,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div ref={rootRef} className="landing-page h-full gradient-bg text-white overflow-auto">
+    <div ref={rootRef} className="landing-page h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
 <div className="min-h-full w-full">
    
    <nav id="navbar" className="fixed top-0 left-0 right-0 z-50 glass-card transition-all duration-300">
@@ -277,7 +295,7 @@ export default function Home() {
        </div><span className="text-xl font-bold">InsightDISC</span>
       </div>
       <div className="hidden md:flex items-center gap-8 text-sm">
-       <a href="#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</a> <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a> <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a> <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a> <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a>
+       <a href="#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</a> <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a> <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a> <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a> <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a> <Link to="/dossie" className="text-slate-300 hover:text-white transition-colors">Dossiê</Link>
       </div>
       <div className="flex items-center gap-3">
        <Link to="/Login" className="text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link> <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
@@ -287,7 +305,7 @@ export default function Home() {
        </svg></button>
      </div>
      <div id="mobile-menu" className="hidden md:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4">
-      <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a> <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a> <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a> <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a> <a href="#planos" className="block text-slate-300 hover:text-white transition-colors py-2">Planos</a>
+      <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a> <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a> <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a> <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a> <a href="#planos" className="block text-slate-300 hover:text-white transition-colors py-2">Planos</a> <Link to="/dossie" className="block text-slate-300 hover:text-white transition-colors py-2">Dossiê</Link>
      </div>
     </div>
    </nav>
@@ -298,8 +316,8 @@ export default function Home() {
      <div className="absolute bottom-16 left-1/3 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
     </div>
     <div className="max-w-7xl mx-auto relative z-10 w-full">
-     <div className="grid lg:grid-cols-2 gap-14 items-center">
-      <div>
+     <div className="grid lg:grid-cols-2 gap-14 xl:gap-16 items-center">
+      <div className="lg:pr-3 xl:pr-6">
        <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-8">
         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> <span className="text-sm text-slate-300">Muito além de um teste DISC</span>
        </div>
@@ -308,39 +326,17 @@ export default function Home() {
        <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s' }}>
         <Link to="/avaliacoes" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Fazer minha avaliação </Link> <a href="#plataforma" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10"> Ver demonstração </a>
        </div>
-       <div className="fade-up grid grid-cols-2 md:grid-cols-4 gap-4 hero-highlight-grid" style={{ animationDelay: '.4s' }}>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
-         <div className="text-2xl font-extrabold hero-highlight-title">
-          Perfil
-         </div>
-         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
-          Leitura individual detalhada
-         </div>
-        </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
-         <div className="text-2xl font-extrabold hero-highlight-title">
-          Comparação
-         </div>
-         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
-          Pessoa x pessoa e pessoa x cargo
-         </div>
-        </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
-         <div className="text-2xl font-extrabold hero-highlight-title">
-          Team Map
-         </div>
-         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
-          Distribuição e inteligência de equipe
-         </div>
-        </div>
-        <div className="glass-card rounded-2xl p-5 hover:border-blue-500/30 transition-all hero-highlight-card">
-         <div className="text-2xl font-extrabold hero-highlight-title">
-          PDF
-         </div>
-         <div className="text-sm text-slate-400 mt-1 hero-highlight-copy">
-          Relatório premium exportável
-         </div>
-        </div>
+       <div className="fade-up hero-highlight-grid" style={{ animationDelay: '.4s' }}>
+        {HERO_HIGHLIGHTS.map((item) => (
+          <div key={item.title} className="glass-card hero-highlight-card hover:border-blue-500/30 transition-all">
+           <p className="hero-highlight-title">
+            {item.title}
+           </p>
+           <p className="hero-highlight-copy">
+            {item.description}
+           </p>
+          </div>
+        ))}
        </div>
       </div>
       <div className="fade-up" style={{ animationDelay: '.25s' }}>

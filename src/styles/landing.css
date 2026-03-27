@@ -45,10 +45,20 @@ body.landing-body {
 
 .landing-page .hero-highlight-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
+  .landing-page .hero-highlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
   .landing-page .hero-highlight-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -56,15 +66,43 @@ body.landing-body {
 
 .landing-page .hero-highlight-card {
   min-width: 0;
+  min-height: 172px;
+  padding: 1.15rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.7rem;
+  border-radius: 1rem;
+  box-shadow: 0 12px 26px rgba(2, 6, 23, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-.landing-page .hero-highlight-title,
+.landing-page .hero-highlight-title {
+  margin: 0;
+  font-size: clamp(0.98rem, 0.94rem + 0.18vw, 1.08rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.24;
+  color: #f8fafc;
+  white-space: nowrap;
+}
 .landing-page .hero-highlight-copy {
-  white-space: normal;
+  margin: 0;
+  max-width: 28ch;
+  font-size: 0.9rem;
+  line-height: 1.52;
+  color: #94a3b8;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
 }
 
-.landing-page .hero-highlight-copy {
-  overflow-wrap: anywhere;
+@media (min-width: 1024px) and (max-width: 1330px) {
+  .landing-page .hero-highlight-card {
+    padding-inline: 0.95rem;
+  }
+
+  .landing-page .hero-highlight-title {
+    font-size: 0.98rem;
+  }
 }
 
 @keyframes gradientShift {

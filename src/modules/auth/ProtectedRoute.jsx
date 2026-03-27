@@ -11,6 +11,7 @@ import {
   hasPermission,
   isAuthenticatedAccess,
 } from '@/modules/auth/access-control';
+import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
 
 function evaluatePolicy(access, policy) {
   if (!policy) return { allowed: true };
@@ -80,8 +81,11 @@ export default function ProtectedRoute({ children, policy, pageName }) {
   }
 
   if (!isAuthenticatedAccess(access)) {
-    const next = `${location.pathname}${location.search || ''}`;
-    return <Navigate to={`${createPageUrl('Login')}?next=${encodeURIComponent(next)}`} replace />;
+    const loginRedirectUrl = buildLoginRedirectUrl({
+      pathname: location.pathname,
+      search: location.search || '',
+    });
+    return <Navigate to={loginRedirectUrl} replace />;
   }
 
   const evaluation = evaluatePolicy(access, policy);

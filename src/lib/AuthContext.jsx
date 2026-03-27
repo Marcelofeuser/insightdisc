@@ -14,6 +14,7 @@ import {
   isRetryableApiError,
 } from '@/lib/apiClient';
 import { createPageUrl } from '@/utils';
+import { buildLoginRedirectUrl, isAuthEntryPath } from '@/modules/auth/next-path';
 
 const AuthContext = createContext();
 const ENABLE_DEV_LOGIN_SHORTCUTS =
@@ -410,8 +411,16 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = () => {
     if (typeof window !== 'undefined') {
-      const next = `${window.location.pathname}${window.location.search || ''}`;
-      const loginUrl = `${createPageUrl('Login')}?next=${encodeURIComponent(next)}`;
+      const currentPathname = String(window.location.pathname || '');
+      if (isAuthEntryPath(currentPathname)) {
+        return;
+      }
+
+      const loginUrl = buildLoginRedirectUrl({
+        pathname: currentPathname,
+        search: window.location.search || '',
+      });
+
       window.location.href = loginUrl;
     }
   };

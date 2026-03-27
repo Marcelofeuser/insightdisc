@@ -119,14 +119,9 @@ function renderProtectedPage(path, pageName, PageComponent) {
 }
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const location = useLocation();
   const isCandidatePublicPath = location.pathname.startsWith('/c/');
-  const isSuperAdminPath =
-    location.pathname === '/super-admin-login' ||
-    location.pathname.startsWith('/super-admin') ||
-    location.pathname === '/admin' ||
-    location.pathname.startsWith('/admin/');
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -139,10 +134,6 @@ const AuthenticatedApp = () => {
   if (authError && !isCandidatePublicPath) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    }
-    if (authError.type === 'auth_required' && !isSuperAdminPath) {
-      navigateToLogin();
-      return null;
     }
   }
 
