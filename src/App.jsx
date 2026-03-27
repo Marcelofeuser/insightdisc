@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client';
 import { pagesConfig } from './pages.config';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import PaletteTest from './pages/PaletteTest';
+import Archetypes from '@/pages/Archetypes';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -51,6 +52,7 @@ const EXCLUDED_AUTO_ROUTES = new Set([
   'SuperAdminLogin',
   'SuperAdminDashboard',
   'Dashboard',
+  'Home',
 ]);
 
 const APP_ALIAS_ROUTES = [
@@ -166,12 +168,11 @@ const AuthenticatedApp = () => {
         }
       />
 
+      <Route path="/dossie-comportamental" element={<Navigate to="/dossie" replace />} />
       <Route
-        path="/dossie-comportamental"
+        path="/dossie"
         element={
-          <LayoutWrapper currentPageName="DossieComportamentalLanding">
-            <DossieComportamentalLandingPage />
-          </LayoutWrapper>
+          <DossieComportamentalLandingPage />
         }
       />
       <Route
@@ -314,6 +315,10 @@ const AuthenticatedApp = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/archetypes"
+        element={<Archetypes />}
+      />
 
       <Route
         path="/assessments/:id/result"
@@ -449,6 +454,8 @@ const AuthenticatedApp = () => {
         path="/"
         element={<Home />}
       />
+      <Route path="/Home" element={<Navigate to="/" replace />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
 
       {Object.entries(Pages)
         .filter(([path]) => !EXCLUDED_AUTO_ROUTES.has(path))
@@ -487,7 +494,7 @@ const AuthenticatedApp = () => {
 
 function RouteAwareChatWidget() {
   const location = useLocation();
-  if (location.pathname === '/') {
+  if (location.pathname === '/' || location.pathname === '/dossie') {
     return null;
   }
   return <InsightChatWidget />;
