@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquareText, SendHorizonal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,21 +24,32 @@ export default function Coach() {
   const [selectedProfileKey, setSelectedProfileKey] = useState(PRESET_PROFILES[0].key);
   const [question, setQuestion] = useState(QUICK_QUESTIONS[0]);
   const [submittedQuestion, setSubmittedQuestion] = useState(QUICK_QUESTIONS[0]);
+  const [answer, setAnswer] = useState({ response: '', recommendedActions: [], profileCode: '', styleLabel: '' });
+  const [loading, setLoading] = useState(false);
 
-  const selectedProfile = useMemo(
-    () => PRESET_PROFILES.find((item) => item.key === selectedProfileKey) || PRESET_PROFILES[0],
-    [selectedProfileKey],
-  );
+  const selectedProfile = PRESET_PROFILES.find((item) => item.key === selectedProfileKey) || PRESET_PROFILES[0];
 
-  const answer = useMemo(
-    () =>
-      answerDiscCoachQuestion({
-        question: submittedQuestion,
-        scores: selectedProfile?.scores || {},
-        detailLevel: 'medium',
-      }),
-    [selectedProfile?.scores, submittedQuestion],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAnswer() {
+      setLoading(true);
+      try {
+        const result = await answerDiscCoachQuestion({
+          question: submittedQuestion,
+          scores: selectedProfile?.scores || {},
+          detailLevel: 'medium',
+          profile: selectedProfile?.key,
+        });
+        if (!cancelled) setAnswer(result);
+      } catch {
+        if (!cancelled) setAnswer({ response: 'Erro ao gerar resposta.', recommendedActions: [], profileCode: '', styleLabel: '' });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchAnswer();
+    return () => { cancelled = true; };
+  }, [selectedProfileKey, submittedQuestion]);
 
   if (!coachAccess.allowed) {
     return (
@@ -131,7 +142,9 @@ export default function Coach() {
             <MessageSquareText className="h-4 w-4 text-indigo-600" />
             Resposta do coach
           </h2>
-          <p className="mt-2 text-sm text-slate-700">{answer.response}</p>
+          <p className="mt-2 text-sm text-slate-700">
+            {loading ? 'Gerando resposta...' : answer.response}
+          </p>
           <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600">
             Perfil: {answer.profileCode || '-'} • {answer.styleLabel || 'Leitura semântica DISC'}
           </p>

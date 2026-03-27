@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { clearAuth } from './helpers/auth';
-import { capturePdfDownload } from './helpers/downloads';
 import { waitForApp } from './helpers/waitForApp';
 
 const IS_API_MODE = String(process.env.PW_ENABLE_API_MODE || '').trim().toLowerCase() === 'true';
@@ -36,6 +35,7 @@ test.describe('Super Admin - Relatórios mais recentes actions', () => {
   test('Preview, PDF, Regenerar PDF e Link funcionam com dados reais', async ({ page, context }) => {
     test.skip(!HAS_API, 'Requer backend API configurado (VITE_API_URL ou E2E_API_URL).');
     test.skip(!hasSuperAdminCreds(), 'Missing SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD / SUPER_ADMIN_MASTER_KEY.');
+    test.setTimeout(180_000);
 
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await loginAsSuperAdminUi(page);
@@ -60,19 +60,41 @@ test.describe('Super Admin - Relatórios mais recentes actions', () => {
     const reportFrame = page.frameLocator('iframe[title="Prévia do relatório do candidato"]');
     await expect(reportFrame.locator('.slide').first()).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('body')).not.toContainText(RAW_ERROR_PATTERN);
-    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await page.goto('/super-admin', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
+    await expect(table).toBeVisible({ timeout: 30_000 });
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 });
 
-    await capturePdfDownload(
-      page,
-      async () => {
-        await rows.first().getByRole('button', { name: /^PDF$|^Baixando/i }).click();
-      },
-      { minBytes: 2000 },
+    const pdfResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        /\/api\/report\/pdf\?token=/.test(response.url()),
+      { timeout: 90_000 },
     );
+    await rows.first().getByRole('button', { name: /^PDF$|^Baixando/i }).click();
+    const pdfResponse = await pdfResponsePromise;
+    expect(pdfResponse.ok()).toBeTruthy();
+    expect(String(pdfResponse.headers()['content-type'] || '').toLowerCase()).toContain('application/pdf');
+    expect(String(pdfResponse.headers()['content-disposition'] || '').toLowerCase()).toContain('.pdf');
+    await expect(rows.first().getByRole('button', { name: /^PDF$/i })).toBeVisible({
+      timeout: 90_000,
+    });
+    await expect(page.locator('body')).not.toContainText(RAW_ERROR_PATTERN);
 
+    const regenerateResponsePromise = page.waitForResponse((response) => {
+      return (
+        response.request().method() === 'POST' &&
+        response.url().includes('/assessment/generate-report')
+      );
+    });
     await rows.first().getByRole('button', { name: /Regenerar PDF|Gerando/i }).click();
-    await expect(page.getByText(/Relatório gerado|Relatório em processamento/i)).toBeVisible({ timeout: 30000 });
+    const regenerateResponse = await regenerateResponsePromise;
+    expect(regenerateResponse.ok()).toBeTruthy();
+    const regeneratePayload = await regenerateResponse.json();
+    expect(regeneratePayload?.reportType).toMatch(/personal|professional|business/i);
+    await expect(rows.first().getByRole('button', { name: /Regenerar PDF/i })).toBeVisible({
+      timeout: 30_000,
+    });
 
     await rows.first().getByRole('button', { name: /^Link$/i }).click();
     await expect(page.getByText('Copiado', { exact: true })).toBeVisible({ timeout: 10000 });

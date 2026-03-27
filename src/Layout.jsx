@@ -7,6 +7,7 @@ import AppShell from '@/components/shell/AppShell';
 import MainNavigation, { HOME_HASH_ITEMS } from '@/components/layout/MainNavigation';
 import PanelModeSwitcher from '@/components/layout/PanelModeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
+import { PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import {
   canAccessPremiumSaas,
   PERMISSIONS,
@@ -241,6 +242,16 @@ export default function Layout({ children, currentPageName }) {
                   >
                     {item.label}
                   </Button>
+                ))}
+                {PRODUCT_TABS.map((tab) => (
+                  <Link
+                    key={tab.to}
+                    to={tab.to}
+                    className="block rounded-lg px-3 py-2 text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => setHomeMenuOpen(false)}
+                  >
+                    {tab.label}
+                  </Link>
                 ))}
               </div>
             ) : null}

@@ -149,6 +149,70 @@ function normalizeOptionalBoolean(value) {
   return null;
 }
 
+const QUICK_CONTEXT_ENUMS = {
+  smoker: ['não', 'sim'],
+  alcoholConsumption: ['não', 'ocasionalmente', 'frequentemente'],
+  stressLevel: ['baixo', 'moderado', 'alto'],
+  sleepQuality: ['boa', 'regular', 'ruim'],
+  physicalActivity: ['não', '1-2x semana', '3+ vezes semana'],
+  usesMedication: ['não', 'sim'],
+};
+
+function normalizeComparisonText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeQuickContextEnum(value, allowed = []) {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) return null;
+  const expected = normalizeComparisonText(normalized);
+  const match = allowed.find((entry) => normalizeComparisonText(entry) === expected);
+  return match || null;
+}
+
+export function mapQuickContextToDossierAnamnesis(quickContext = {}) {
+  return {
+    sex: normalizeOptionalString(quickContext.sex),
+    maritalStatus: normalizeOptionalString(quickContext.maritalStatus),
+    city: normalizeOptionalString(quickContext.city),
+    stressLevel: normalizeOptionalString(quickContext.stressLevel),
+    sleepQuality: normalizeOptionalString(quickContext.sleepQuality),
+    physicalActivity: normalizeOptionalString(quickContext.physicalActivity),
+    smoker: normalizeOptionalString(quickContext.smoker),
+    alcoholConsumption: normalizeOptionalString(quickContext.alcoholConsumption),
+    usesMedication: normalizeOptionalString(quickContext.usesMedication),
+    healthConditions: normalizeOptionalString(quickContext.healthConditions),
+  };
+}
+
+function mapDossierAnamnesisToQuickContext(anamnesis = {}) {
+  return {
+    sex: normalizeOptionalString(anamnesis.sex),
+    maritalStatus: normalizeOptionalString(anamnesis.maritalStatus),
+    city: normalizeOptionalString(anamnesis.city),
+    stressLevel: normalizeQuickContextEnum(anamnesis.stressLevel, QUICK_CONTEXT_ENUMS.stressLevel),
+    sleepQuality: normalizeQuickContextEnum(anamnesis.sleepQuality, QUICK_CONTEXT_ENUMS.sleepQuality),
+    physicalActivity: normalizeQuickContextEnum(
+      anamnesis.physicalActivity,
+      QUICK_CONTEXT_ENUMS.physicalActivity,
+    ),
+    smoker: normalizeQuickContextEnum(anamnesis.smoker, QUICK_CONTEXT_ENUMS.smoker),
+    alcoholConsumption: normalizeQuickContextEnum(
+      anamnesis.alcoholConsumption,
+      QUICK_CONTEXT_ENUMS.alcoholConsumption,
+    ),
+    usesMedication: normalizeQuickContextEnum(
+      anamnesis.usesMedication,
+      QUICK_CONTEXT_ENUMS.usesMedication,
+    ),
+    healthConditions: normalizeOptionalString(anamnesis.healthConditions),
+  };
+}
+
 function buildAssessmentLinkNote(assessment = {}) {
   return `Avaliação vinculada ao dossiê. ID da avaliação: ${String(assessment?.id || '').trim()}.`;
 }
@@ -661,6 +725,55 @@ function hasAnyAnamnesisValue(anamnesis = null) {
   });
 }
 
+function hasAnyQuickContextValue(quickContext = null) {
+  if (!quickContext || typeof quickContext !== 'object') return false;
+  return Object.values(quickContext).some((value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && !value.trim()) return false;
+    return true;
+  });
+}
+
+export async function syncDossierAnamnesisFromQuickContext({
+  assessmentId,
+  quickContext = {},
+}) {
+  const normalizedAssessmentId = normalizeRequiredId(assessmentId, 'ASSESSMENT_ID_REQUIRED');
+  if (!prisma.dossierAnamnesis?.upsert) return null;
+
+  const payload = mapQuickContextToDossierAnamnesis(quickContext);
+  if (!hasAnyAnamnesisValue(payload)) return null;
+
+  return prisma.dossierAnamnesis.upsert({
+    where: { assessmentId: normalizedAssessmentId },
+    create: {
+      assessmentId: normalizedAssessmentId,
+      ...payload,
+    },
+    update: payload,
+  });
+}
+
+async function syncQuickContextFromDossierAnamnesis({
+  assessmentId,
+  anamnesis = {},
+}) {
+  const normalizedAssessmentId = normalizeRequiredId(assessmentId, 'ASSESSMENT_ID_REQUIRED');
+  if (!prisma.assessmentQuickContext?.upsert) return null;
+
+  const payload = mapDossierAnamnesisToQuickContext(anamnesis);
+  if (!hasAnyQuickContextValue(payload)) return null;
+
+  return prisma.assessmentQuickContext.upsert({
+    where: { assessmentId: normalizedAssessmentId },
+    create: {
+      assessmentId: normalizedAssessmentId,
+      ...payload,
+    },
+    update: payload,
+  });
+}
+
 function buildAssessmentSummary(assessment = {}) {
   const profile =
     String(
@@ -683,9 +796,37 @@ function buildAssessmentSummary(assessment = {}) {
 export async function getDossierAnamnesisByAssessment(assessmentId, workspaceId) {
   assertDossierClient();
   const assessment = await resolveAssessmentForWorkspace(assessmentId, workspaceId);
-  const anamnesis = await prisma.dossierAnamnesis.findUnique({
-    where: { assessmentId: assessment.id },
-  });
+  const [storedAnamnesis, quickContext] = await Promise.all([
+    prisma.dossierAnamnesis.findUnique({
+      where: { assessmentId: assessment.id },
+    }),
+    prisma.assessmentQuickContext?.findUnique
+      ? prisma.assessmentQuickContext.findUnique({
+          where: { assessmentId: assessment.id },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  let anamnesis = storedAnamnesis;
+  const shouldHydrateFromQuickContext =
+    !hasAnyAnamnesisValue(storedAnamnesis) &&
+    hasAnyQuickContextValue(mapQuickContextToDossierAnamnesis(quickContext || {}));
+
+  if (shouldHydrateFromQuickContext) {
+    try {
+      anamnesis =
+        (await syncDossierAnamnesisFromQuickContext({
+          assessmentId: assessment.id,
+          quickContext: quickContext || {},
+        })) || storedAnamnesis;
+    } catch {
+      anamnesis = {
+        ...(storedAnamnesis || {}),
+        assessmentId: assessment.id,
+        ...mapQuickContextToDossierAnamnesis(quickContext || {}),
+      };
+    }
+  }
 
   return {
     workspaceId,
@@ -721,6 +862,15 @@ export async function saveDossierAnamnesisByAssessment({
     },
     update: payload,
   });
+
+  try {
+    await syncQuickContextFromDossierAnamnesis({
+      assessmentId: assessment.id,
+      anamnesis,
+    });
+  } catch {
+    // Sincronização com quick context é best-effort.
+  }
 
   return {
     workspaceId,

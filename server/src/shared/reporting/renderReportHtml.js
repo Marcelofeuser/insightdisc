@@ -206,12 +206,13 @@ const DEFAULT_BRANDING = Object.freeze({
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
   website: 'www.insightdisc.app',
-  support_email: 'contato@insightdisc.app',
+  support_email: 'contato@insightdisc.com',
   instagram: '@insightdisc',
   logo_contains_tagline: false,
 });
 
 const PLATFORM_BRAND_LINE = 'InsightDISC – Plataforma de Análise Comportamental';
+const OFFICIAL_INSTITUTIONAL_EMAIL = 'contato@insightdisc.com';
 
 const COVER_BACKGROUND_BY_TIER = Object.freeze({
   business: '',
@@ -302,6 +303,15 @@ function firstNonEmptyText(...values) {
   return '';
 }
 
+function normalizeInstitutionalEmail(value, fallback = OFFICIAL_INSTITUTIONAL_EMAIL) {
+  const email = safeText(value, '').toLowerCase();
+  if (!email || !email.includes('@')) return fallback;
+  if (email.endsWith('@insightdisc.app') || email.endsWith('@insightdisc.com')) {
+    return OFFICIAL_INSTITUTIONAL_EMAIL;
+  }
+  return email;
+}
+
 function safeArray(value, fallback = []) {
   if (Array.isArray(value)) {
     const normalized = value.filter((item) => {
@@ -368,7 +378,10 @@ function normalizeBranding(branding = {}, meta = {}) {
       DEFAULT_BRANDING.report_footer_text
     ),
     website: safeText(branding?.website, DEFAULT_BRANDING.website),
-    support_email: safeText(branding?.support_email || branding?.contact_email, DEFAULT_BRANDING.support_email),
+    support_email: normalizeInstitutionalEmail(
+      safeText(branding?.support_email || branding?.contact_email, DEFAULT_BRANDING.support_email),
+      DEFAULT_BRANDING.support_email
+    ),
     instagram: safeText(branding?.instagram, DEFAULT_BRANDING.instagram),
     logo_contains_tagline: Boolean(branding?.logo_contains_tagline),
   };
@@ -2112,7 +2125,10 @@ export function renderReportHtml(input = {}) {
   });
   const shouldRenderFinalLockupLogo = /^(data:image\/|https?:\/\/|file:\/\/)/i.test(finalLockupLogoSrc);
   const platformWebsite = safeText(branding?.website, DEFAULT_BRANDING.website);
-  const platformEmail = safeText(branding?.support_email, safeText(report?.lgpd?.contact, DEFAULT_BRANDING.support_email));
+  const platformEmail = normalizeInstitutionalEmail(
+    firstNonEmptyText(branding?.support_email, report?.lgpd?.contact, DEFAULT_BRANDING.support_email)
+  );
+  const platformLegalContact = normalizeInstitutionalEmail(report?.lgpd?.contact, platformEmail);
   const platformInstagram = safeText(branding?.instagram, DEFAULT_BRANDING.instagram);
   const issuerResponsibleName = safeText(meta.responsibleName, 'Especialista InsightDISC');
   const issuerResponsibleRole = safeText(meta.responsibleRole, 'Especialista em Análise Comportamental');
@@ -3948,7 +3964,7 @@ export function renderReportHtml(input = {}) {
             <p><strong>Fatores de maior expressão:</strong> ${esc(profile.primary)} e ${esc(profile.secondary)}</p>
             <p><strong>Custo de adaptação:</strong> ${esc(adaptation.label)} (${esc(adaptation.avgAbsDelta ?? 'n/d')} pontos)</p>
             <p>${esc(safeText(report?.lgpd?.notice, 'Dados pessoais tratados para finalidade de desenvolvimento comportamental, conforme consentimento e princípios da LGPD.'))}</p>
-            <p><strong>Contato:</strong> ${esc(safeText(report?.lgpd?.contact, platformEmail))}</p>
+            <p><strong>Contato:</strong> ${esc(platformLegalContact)}</p>
             <p>Este relatório utiliza o modelo DISC como ferramenta de análise comportamental e não constitui diagnóstico psicológico.</p>
           </div>
           <div class="card">

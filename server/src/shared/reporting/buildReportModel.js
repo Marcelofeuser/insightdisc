@@ -24,7 +24,7 @@ const DEFAULT_BRANDING = Object.freeze({
   brand_secondary_color: '#f7b500',
   report_footer_text: 'InsightDISC - Plataforma de Análise Comportamental',
   website: 'www.insightdisc.app',
-  support_email: 'contato@insightdisc.app',
+  support_email: 'contato@insightdisc.com',
   instagram: '@insightdisc',
 });
 
@@ -1576,7 +1576,7 @@ export async function buildReportModel(input = {}) {
         input?.lgpd?.notice,
         'Este documento contem dados pessoais e deve ser utilizado exclusivamente para desenvolvimento comportamental, em conformidade com a LGPD e com o consentimento informado.'
       ),
-      contact: safeText(input?.lgpd?.contact, 'suporte@insightdisc.app'),
+      contact: safeText(input?.lgpd?.contact, 'contato@insightdisc.com'),
     },
     aiComplement:
       input?.aiComplement && typeof input.aiComplement === 'object' && !Array.isArray(input.aiComplement)

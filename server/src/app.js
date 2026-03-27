@@ -14,6 +14,7 @@ import assessmentRoutes, { handlePublicReportPdf } from './routes/assessment.rou
 import candidateRoutes from './routes/candidate.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
+import checkoutRoutes from './routes/checkout.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
 import leadsRoutes from './routes/leads.routes.js';
@@ -25,6 +26,7 @@ import profileComparisonRoutes from './routes/profile-comparison.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import campaignsRoutes from './routes/campaigns.routes.js';
 import anamnesisRoutes from './routes/anamnesis.routes.js';
+import saasRouter from './saas/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,11 +151,13 @@ export function createApp() {
   app.use('/report', reportRoutes);
   app.use('/branding', brandingRoutes);
   app.use('/payments', paymentsRoutes);
+  app.use('/api/checkout', checkoutRoutes);
   app.use('/jobs', jobsRoutes);
   app.use('/api/leads', leadsRoutes);
   app.use('/api/dossier', dossierRoutes);
   app.use('/api/campaigns', campaignsRoutes);
   app.use('/api/anamnesis', anamnesisRoutes);
+  app.use('/saas', saasRouter);
   app.use('/api/team-map', teamMapRoutes);
   app.use('/api/profile-comparison', profileComparisonRoutes);
   app.use('/billing', billingRoutes);

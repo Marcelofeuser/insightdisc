@@ -20,7 +20,7 @@ import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
-import { ReportValueLadderCard } from '@/modules/reports';
+import { buildAssessmentReportPath, ReportValueLadderCard } from '@/modules/reports';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -42,7 +42,7 @@ const FACTOR_INFO = {
     name: 'Influência',
     emoji: '🦊',
     color: 'from-orange-500 to-amber-600',
-    description: 'Você é comunicativo, entusiasta e otimista. Adora interagir com pessoas e criar conexões.',
+    description: 'Você é comunicativo, entusiasta e persuasivo. Inspira pessoas e adora trabalhar em equipe.',
     strengths: ['Comunicativo', 'Persuasivo', 'Entusiasta', 'Inspirador'],
     challenges: ['Pode perder foco', 'Tendência a falar demais']
   },
@@ -257,13 +257,20 @@ export default function FreeResults() {
   const profile = results.natural_profile || {};
   const isUnlocked = Boolean(assessment?.report_unlocked) || hasSuperAdminBypass;
   const currentReportTier = hasSuperAdminBypass ? 'professional' : isUnlocked ? 'premium' : 'standard';
-  const assessmentToken = assessment?.access_token || '';
-  const resolvedAssessmentId = String(assessment?.assessmentId || assessment?.id || '').trim();
-  const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(resolvedAssessmentId)}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
+  const assessmentToken = String(
+    assessment?.access_token || assessment?.publicToken || assessment?.public_token || requestedAssessmentToken || ''
+  ).trim();
+  const resolvedAssessmentId = String(
+    assessment?.assessmentId || assessment?.id || requestedAssessmentId || ''
+  ).trim();
+  const pricingUrl = buildCandidateReportUnlockUrl({
+    assessmentId: resolvedAssessmentId,
+    token: assessmentToken,
+  });
   const continueReportUrl = resolvedAssessmentId
-    ? `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`
+    ? buildAssessmentReportPath(resolvedAssessmentId)
     : assessmentToken
-      ? `/c/report?token=${encodeURIComponent(assessmentToken)}&type=business`
+        ? '/c/report?token=' + encodeURIComponent(assessmentToken) + '&type=business'
       : createPageUrl('Dashboard');
   const reportUnlockPriceLabel = formatPriceBRL(PRODUCTS.REPORT_UNLOCK.price);
   const compareRelation = searchParams.get('relation') || '';
@@ -283,7 +290,7 @@ export default function FreeResults() {
     params.set('compareWith', assessment.id);
     params.set('relation', relation);
     params.set('fromName', currentName);
-    return `${createPageUrl('StartFree')}?${params.toString()}`;
+      return createPageUrl('StartFree') + '?' + params.toString();
   };
 
   return (
@@ -301,7 +308,6 @@ export default function FreeResults() {
           </div>
           {hasSuperAdminBypass ? (
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 text-sm font-semibold mb-4">
-              SUPER ADMIN — ACESSO TOTAL
             </div>
           ) : null}
           
@@ -495,7 +501,7 @@ export default function FreeResults() {
                   size="lg"
                   className="bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl shadow-lg"
                 >
-                  Continuar para Relatório Completo
+                  👉 Ver meu relatório completo
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
@@ -526,7 +532,7 @@ export default function FreeResults() {
         >
           <div className="flex items-center gap-2 text-indigo-700 mb-2">
             <UserPlus className="w-5 h-5" />
-            <h3 className="text-lg font-bold">Compare seu perfil com outras pessoas</h3>
+            <h3 className="text-lg font-bold">Descubra como você se comporta em relação a outras pessoas</h3>
           </div>
           <p className="text-sm text-indigo-900/90 mb-4">
             Convide alguém para fazer o teste e receba leitura automática de compatibilidade comportamental.

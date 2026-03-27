@@ -63,16 +63,39 @@ function normalizeReportType(value = '', fallback = 'business') {
   return fallback;
 }
 
+function isLegacyIdBasedPdfEndpoint(url = '') {
+  const normalized = String(url || '').trim();
+  if (!normalized) return false;
+
+  try {
+    const parsed = new URL(normalized, 'http://localhost');
+    const hasIdOnlyQuery =
+      (parsed.pathname === '/api/report/pdf' || parsed.pathname.endsWith('/api/report/pdf')) &&
+      (parsed.searchParams.has('id') || parsed.searchParams.has('assessmentId')) &&
+      !parsed.searchParams.has('token');
+
+    const hasLegacyPath =
+      /\/report\/[^/]+\/pdf$/i.test(parsed.pathname) || /\/reports\/[^/]+\/pdf$/i.test(parsed.pathname);
+
+    return hasIdOnlyQuery || hasLegacyPath;
+  } catch {
+    return /\/api\/report\/pdf\?(?:[^#]*[?&])?(?:id|assessmentId)=/i.test(normalized);
+  }
+}
+
 function resolvePublicPdfEndpoint(publicAccess = {}, apiBaseUrl = '', reportType = 'business') {
   const directUrl = resolveApiRequestUrl(
     publicAccess?.publicPdfUrl || publicAccess?.publicPdfPath || publicAccess?.pdfUrl || '',
     { baseUrl: apiBaseUrl },
   );
-  if (directUrl) return directUrl;
 
   const token = String(
     publicAccess?.token || publicAccess?.publicToken || publicAccess?.public_token || '',
   ).trim();
+
+  if (directUrl && !isLegacyIdBasedPdfEndpoint(directUrl)) {
+    return directUrl;
+  }
   if (!token) return '';
 
   return resolveApiRequestUrl(
@@ -110,17 +133,30 @@ export async function exportAssessmentReportPdf({
   let endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl, resolvedReportType);
 
   if (!endpoint) {
-    publicAccess = await apiRequest(
-      `/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}?reportType=${encodeURIComponent(
-        resolvedReportType,
-      )}`,
-      {
-        method: 'GET',
-        requireAuth: true,
-        baseUrl: apiBaseUrl,
-        ...getDirectBackendRuntimeOptions(apiBaseUrl),
-      },
-    );
+    try {
+      publicAccess = await apiRequest(
+        `/assessment/public-token/${encodeURIComponent(normalizedAssessmentId)}?reportType=${encodeURIComponent(
+          resolvedReportType,
+        )}`,
+        {
+          method: 'GET',
+          requireAuth: true,
+          baseUrl: apiBaseUrl,
+          ...getDirectBackendRuntimeOptions(apiBaseUrl),
+        },
+      );
+    } catch (error) {
+      const mappedError = new Error(
+        resolveExportErrorMessage({
+          status: Number(error?.status || 0),
+          reason: error?.payload?.reason || error?.payload?.error || error?.message,
+          payloadMessage: error?.payload?.message,
+        }),
+      );
+      mappedError.status = Number(error?.status || 503);
+      mappedError.payload = error?.payload || null;
+      throw mappedError;
+    }
     endpoint = resolvePublicPdfEndpoint(publicAccess, apiBaseUrl, resolvedReportType);
   }
 

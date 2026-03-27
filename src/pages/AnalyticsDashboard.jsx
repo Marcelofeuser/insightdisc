@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
+import { buildAssessmentReportPath } from '@/modules/reports';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
@@ -347,7 +348,7 @@ export default function AnalyticsDashboard() {
                             </p>
                           </div>
                           <CulturalFitScore candidate={a.results.natural_profile} jobProfile={activeJobProfile} />
-                          <Link to={createPageUrl('Report') + `?id=${a.id}`}>
+                          <Link to={buildAssessmentReportPath(a.id)}>
                             <Button variant="ghost" size="sm" className="text-indigo-600 text-xs">Ver</Button>
                           </Link>
                         </div>

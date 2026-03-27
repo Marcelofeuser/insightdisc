@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { sha256, verifyJwt } from '../lib/security.js';
 import { canAccessOrganization } from '../middleware/rbac.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import { syncDossierAnamnesisFromQuickContext } from '../modules/dossier/dossier.service.js';
 
 const router = Router();
 
@@ -179,6 +180,15 @@ router.post('/quick', async (req, res) => {
         healthConditions: normalizeOptionalString(input.healthConditions),
       },
     });
+
+    try {
+      await syncDossierAnamnesisFromQuickContext({
+        assessmentId: assessment.id,
+        quickContext,
+      });
+    } catch {
+      // Sincronização com dossier_anamnesis é best-effort.
+    }
 
     return res.status(200).json({
       ok: true,

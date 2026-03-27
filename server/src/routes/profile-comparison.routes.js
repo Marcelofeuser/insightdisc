@@ -6,6 +6,8 @@ import {
   compareAssessmentProfiles,
   listComparisonAssessments,
 } from '../modules/profile-comparison/profile-comparison.service.js';
+import { canUseFeature } from '../saas/modules/plans/featureGate.js';
+import { prisma } from '../lib/prisma.js';
 
 const router = Router();
 
@@ -75,6 +77,17 @@ router.get('/assessments', async (req, res) => {
 router.post('/compare', async (req, res) => {
   try {
     const input = compareSchema.parse(req.body || {});
+
+    // SaaS: gate profile_comparison
+    const orgMembership = await prisma.organizationMember.findFirst({
+      where: { userId: req.auth.userId },
+      select: { organizationId: true },
+    });
+    const orgId = orgMembership?.organizationId || req.auth.userId;
+    const compGate = canUseFeature(orgId, 'profile_comparison');
+    if (!compGate.ok) {
+      return res.status(402).json({ ok: false, ...compGate });
+    }
 
     const comparison = await compareAssessmentProfiles({
       userId: req.auth.userId,

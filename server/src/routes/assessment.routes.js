@@ -32,6 +32,9 @@ import {
   generateReport as generateStructuredReport,
 } from '../services/reportGenerator.js';
 
+
+import { checkUsage, registerUsage } from '../saas/modules/usage/usageService.js';
+
 const router = Router();
 const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
 
@@ -452,6 +455,20 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
 
     const organizationId = await resolveOrganizationForUser(user.id);
     await ensureOrganizationBrandingDefaults(organizationId);
+
+    // SaaS: valida limite antes de criar
+    const usageCheck = checkUsage(organizationId);
+    if (!usageCheck.ok) {
+      return res.status(402).json({
+        ok: false,
+        error: 'LIMIT_REACHED',
+        reason: 'LIMIT_REACHED',
+        message: 'Limite de avaliações do plano atingido.',
+        used: usageCheck.used,
+        limit: usageCheck.limit,
+      });
+    }
+
     const token = generateRandomToken(24);
     const tokenHash = sha256(token);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
@@ -1457,6 +1474,13 @@ router.post('/submit', async (req, res) => {
       reportType: submittedReportType,
       baseUrl: getPublicAppBaseUrl(req),
     });
+
+    // SaaS: registra uso apenas após sucesso real
+    try {
+      registerUsage(response.assessment.organizationId, 'assessment');
+    } catch (usageErr) {
+      console.warn('[saas] registerUsage failed (non-blocking):', usageErr?.message);
+    }
 
     return res.status(200).json({
       ok: true,

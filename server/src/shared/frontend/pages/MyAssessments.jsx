@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { FileText, Search } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { createPageUrl } from '@/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +16,7 @@ import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
+import { buildAssessmentReportPath } from '@/modules/reports';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 function formatDate(value) {
@@ -315,7 +315,6 @@ export default function MyAssessments() {
             <TableBody>
               {filteredAssessments.map((assessment) => {
                 const targetAssessmentId = assessment?.assessmentId || assessment?.id || '';
-                const encodedAssessmentId = encodeURIComponent(targetAssessmentId);
                 const resultHref = buildAssessmentResultPath(targetAssessmentId);
 
                 return (
@@ -337,7 +336,7 @@ export default function MyAssessments() {
                             <Link to={resultHref}>
                               <Button variant="outline" size="sm">Ver resultado</Button>
                             </Link>
-                            <Link to={`${createPageUrl('Report')}?id=${encodedAssessmentId}`}>
+                            <Link to={buildAssessmentReportPath(targetAssessmentId)}>
                               <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">Ver relatório</Button>
                             </Link>
                           </>

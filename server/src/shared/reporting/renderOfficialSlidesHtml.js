@@ -528,6 +528,7 @@ const VARIANT_CONFIG = {
     sequence: [1, "personal-summary", 3, 4, 5, 6, 10, 11, 12, 14, 25],
   },
 };
+const OFFICIAL_INSTITUTIONAL_EMAIL = "contato@insightdisc.com";
 
 function safeText(value, fallback = "") {
   const text = String(value ?? "").trim();
@@ -542,6 +543,15 @@ function normalizeEmail(value, fallback = "-") {
   const domainRaw = domainParts.join("@").trim();
   const domain = domainRaw.replace(/\s+/g, ".").replace(/\.{2,}/g, ".");
   return `${localPart}@${domain}`;
+}
+
+function normalizeInstitutionalEmail(value, fallback = OFFICIAL_INSTITUTIONAL_EMAIL) {
+  const email = normalizeEmail(value, "").toLowerCase();
+  if (!email || !email.includes("@")) return fallback;
+  if (email.endsWith("@insightdisc.app") || email.endsWith("@insightdisc.com")) {
+    return OFFICIAL_INSTITUTIONAL_EMAIL;
+  }
+  return email;
 }
 
 function getProfileKey(model) {
@@ -660,7 +670,10 @@ function buildContext(model, variant) {
   const participant = model?.participant || {};
   const branding = model?.branding || {};
   const issuerOrganization = firstNonEmpty(meta.issuerOrganization, participant.company, branding.company_name, "InsightDISC");
-  const issuerContact = firstNonEmpty(meta.issuerContact, meta.responsibleEmail, branding.support_email, "contato@insightdisc.app");
+  const institutionalEmail = normalizeInstitutionalEmail(
+    firstNonEmpty(meta.institutionalEmail, branding.support_email, "contato@insightdisc.com")
+  );
+  const issuerContact = firstNonEmpty(meta.issuerContact, meta.responsibleEmail, institutionalEmail);
   return {
     variant,
     variantLabel: config.label,
@@ -681,11 +694,11 @@ function buildContext(model, variant) {
     responsibleName: fixPt(firstNonEmpty(meta.responsibleName, "Equipe InsightDISC")),
     responsibleRole: fixPt(firstNonEmpty(meta.responsibleRole, "Especialista em Análise Comportamental")),
     issuerOrganization: fixPt(issuerOrganization),
-    issuerContact: issuerContact.includes("@") ? normalizeEmail(issuerContact, "-") : fixPt(issuerContact, "-"),
+    issuerContact: issuerContact.includes("@") ? normalizeInstitutionalEmail(issuerContact, institutionalEmail) : fixPt(issuerContact, "-"),
     brandLine: "InsightDISC – Plataforma de Análise Comportamental",
     brandName: fixPt(firstNonEmpty(branding.company_name, "InsightDISC")),
     brandWebsite: safeText(firstNonEmpty(branding.website, "www.insightdisc.app")),
-    brandEmail: normalizeEmail(firstNonEmpty(branding.support_email, "contato@insightdisc.app")),
+    brandEmail: institutionalEmail,
     brandInstagram: safeText(firstNonEmpty(branding.instagram, "@insightdisc")),
     supportName: "Verônica Feuser",
     supportRole: "Psicanalista",

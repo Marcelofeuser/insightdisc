@@ -289,23 +289,43 @@ export default function Home() {
    <nav id="navbar" className="fixed top-0 left-0 right-0 z-50 glass-card transition-all duration-300">
     <div className="max-w-7xl mx-auto px-6 py-4">
      <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+      <Link to="/" className="flex items-center gap-3">
        <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
         <span className="text-white text-lg font-extrabold">ID</span>
-       </div><span className="text-xl font-bold">InsightDISC</span>
-      </div>
-      <div className="hidden md:flex items-center gap-8 text-sm">
-       <a href="#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</a> <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a> <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a> <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a> <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a> <Link to="/dossie" className="text-slate-300 hover:text-white transition-colors">Dossiê</Link>
+       </div>
+       <span className="text-xl font-bold">InsightDISC</span>
+      </Link>
+      <div className="hidden lg:flex items-center gap-5 text-sm">
+       <a href="#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</a>
+       <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a>
+       <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a>
+       <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a>
+       <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a>
+       <Link to="/dossie" className="text-slate-300 hover:text-white transition-colors">Dossiê</Link>
+       <Link to="/personal" className="text-slate-300 hover:text-white transition-colors">Personal</Link>
+       <Link to="/profissional" className="text-slate-300 hover:text-white transition-colors">Profissional</Link>
+       <Link to="/business" className="text-slate-300 hover:text-white transition-colors">Business</Link>
       </div>
       <div className="flex items-center gap-3">
-       <Link to="/Login" className="text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link> <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
-      </div><button id="menu-toggle" className="md:hidden text-slate-300 hover:text-white">
+       <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
+       <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
+      </div>
+      <button id="menu-toggle" className="lg:hidden text-slate-300 hover:text-white">
        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-       </svg></button>
+       </svg>
+      </button>
      </div>
-     <div id="mobile-menu" className="hidden md:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4">
-      <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a> <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a> <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a> <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a> <a href="#planos" className="block text-slate-300 hover:text-white transition-colors py-2">Planos</a> <Link to="/dossie" className="block text-slate-300 hover:text-white transition-colors py-2">Dossiê</Link>
+     <div id="mobile-menu" className="hidden lg:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4">
+      <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a>
+      <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a>
+      <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a>
+      <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a>
+      <a href="#planos" className="block text-slate-300 hover:text-white transition-colors py-2">Planos</a>
+      <Link to="/dossie" className="block text-slate-300 hover:text-white transition-colors py-2">Dossiê</Link>
+      <Link to="/personal" className="block text-slate-300 hover:text-white transition-colors py-2">Personal</Link>
+      <Link to="/profissional" className="block text-slate-300 hover:text-white transition-colors py-2">Profissional</Link>
+      <Link to="/business" className="block text-slate-300 hover:text-white transition-colors py-2">Business</Link>
      </div>
     </div>
    </nav>

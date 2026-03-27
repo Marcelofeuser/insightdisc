@@ -2,31 +2,13 @@ import { normalizeAiDiscResponse } from './schema.js';
 import { env } from '../../config/env.js';
 import { buildAiProviderChain } from './provider.js';
 import { isProviderJsonParseError } from './json-utils.js';
+import { resolveDiscProfile } from '../disc/report-profile-resolver.js';
 import {
   countMeaningfulAiDiscFields,
   extractAiDiscProviderContent,
   normalizeAiDiscContentCandidate,
   safeValidateAiDiscContent,
 } from './schema.js';
-
-const PROFILE_NAMES = {
-  DD: 'Dominante Puro',
-  DI: 'Dominante Influente',
-  DS: 'Dominante Estável',
-  DC: 'Dominante Analítico',
-  ID: 'Influente Dominante',
-  II: 'Influente Puro',
-  IS: 'Influente Estável',
-  IC: 'Influente Analítico',
-  SD: 'Estável Dominante',
-  SI: 'Estável Influente',
-  SS: 'Estável Puro',
-  SC: 'Estável Analítico',
-  CD: 'Analítico Dominante',
-  CI: 'Analítico Influente',
-  CS: 'Analítico Estável',
-  CC: 'Analítico Puro',
-};
 
 const FACTOR_META = {
   D: {
@@ -88,20 +70,14 @@ function normalizeScores(rawScores = {}) {
 }
 
 function computeProfile(scores) {
-  const sorted = Object.entries(scores)
-    .map(([key, value]) => ({ key, value }))
-    .sort((left, right) => right.value - left.value);
-
-  const primary = sorted[0]?.key || 'D';
-  const secondary = sorted[1]?.key || 'I';
-  const profileCode = `${primary}${secondary}`;
+  const resolved = resolveDiscProfile(scores);
 
   return {
-    primary,
-    secondary,
-    profileCode,
-    profileName: PROFILE_NAMES[profileCode] || `${FACTOR_META[primary].label} / ${FACTOR_META[secondary].label}`,
-    sorted,
+    primary: resolved.primary.key,
+    secondary: resolved.secondary.key,
+    profileCode: resolved.code,
+    profileName: resolved.name,
+    sorted: resolved.factors.map((factor) => ({ key: factor.key, value: factor.value })),
   };
 }
 
@@ -413,6 +389,192 @@ function mergeWithFallback(validatedContent, fallbackContent) {
       validatedContent?.businessRecommendations || fallbackContent.businessRecommendations,
     ).slice(0, 6),
   };
+}
+
+function truncateSentence(value = '', maximumLength = 320) {
+  const normalized = String(value || '').replaceAll(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  if (normalized.length <= maximumLength) return normalized;
+  return `${normalized.slice(0, Math.max(1, maximumLength - 1)).trim()}…`;
+}
+
+function firstNonEmptyText(values = []) {
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (normalized) return normalized;
+  }
+
+  return '';
+}
+
+const RECOMMENDATION_FORBIDDEN_PATTERNS = [
+  /\bmuito bom\b/i,
+  /\binspirador\b/i,
+  /\btransformador\b/i,
+  /\bincr[ií]vel\b/i,
+  /você vai se sentir/i,
+  /voce vai se sentir/i,
+  /lideran[cç]a de ataque/i,
+];
+
+function normalizeRecommendationText(value = '') {
+  return String(value || '').replaceAll(/\s+/g, ' ').trim();
+}
+
+function isGenericRecommendation(text = '') {
+  const normalized = normalizeRecommendationText(text);
+  if (!normalized) return true;
+  if (normalized.length < 60) return true;
+  return RECOMMENDATION_FORBIDDEN_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function contradictsDiscScores(text = '', scores = {}) {
+  const normalized = normalizeRecommendationText(text);
+  if (!normalized) return true;
+
+  const normalizedScores = normalizeScores(scores || {});
+  const lowD = normalizedScores.D <= 20;
+  const lowI = normalizedScores.I <= 20;
+
+  if (lowD && /(domin[âa]ncia|agressiv|imposi[cç][aã]o)/i.test(normalized)) {
+    return true;
+  }
+
+  if (lowI && /(persuas[aã]o|carisma|influenciar pessoas|engajar pessoas)/i.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildRecommendationFallback(input = {}) {
+  const candidate = firstNonEmptyText([
+    input?.fallbackRationale,
+    'Ajuda a transformar excesso de demandas em priorização clara, fortalecendo foco e tomada de decisão prática.',
+  ]);
+  return truncateSentence(candidate, 300);
+}
+
+function isUsableRecommendationText(text = '', input = {}) {
+  const normalized = normalizeRecommendationText(text);
+  if (!normalized) return false;
+  if (isGenericRecommendation(normalized)) return false;
+  if (contradictsDiscScores(normalized, input?.scores || {})) return false;
+  return true;
+}
+
+function shouldUseRecommendationAi() {
+  const flag = String(process.env.DISC_RECOMMENDATION_AI || '')
+    .trim()
+    .toLowerCase();
+  const hasCredentials = Boolean(env.geminiApiKey || env.groqApiKey);
+
+  return hasCredentials && ['1', 'true', 'yes', 'on'].includes(flag);
+}
+
+function buildRecommendationPrefix(input = {}) {
+  const profileCode = String(input?.profile?.slashCode || input?.profileCode || '').trim();
+  const focus = Array.isArray(input?.developmentFocus)
+    ? input.developmentFocus.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  const works = [
+    input?.book?.title ? `\"${String(input.book.title).trim()}\"` : '',
+    input?.film?.title ? `\"${String(input.film.title).trim()}\"` : '',
+  ].filter(Boolean);
+  const focusText =
+    focus.length === 0
+      ? ''
+      : focus.length === 1
+        ? focus[0]
+        : `${focus.slice(0, -1).join(', ')} e ${focus.at(-1)}`;
+  const worksText =
+    works.length === 0
+      ? 'A recomendação'
+      : works.length === 1
+        ? `A obra ${works[0]}`
+        : `As obras ${works[0]} e ${works[1]}`;
+  const profileText = profileCode ? ` para o perfil ${profileCode}` : '';
+  const focusSuffix = focusText ? `, com foco em ${focusText}` : '';
+
+  return `${worksText}${profileText}${focusSuffix}`;
+}
+
+export async function generateAiRecommendationRationale(input = {}) {
+  const fallbackRationale = buildRecommendationFallback(input);
+  if (!shouldUseRecommendationAi()) {
+    return {
+      text: fallbackRationale,
+      source: 'deterministic',
+      enabled: false,
+      provider: '',
+      model: '',
+      usedFallback: false,
+      attempts: [],
+    };
+  }
+
+  try {
+    const aiResult = await generateAiDiscContent({
+      mode: input.mode || 'business',
+      nome: input.nome || 'Pessoa avaliada',
+      cargo: input.cargo || 'Profissional',
+      empresa: input.empresa || 'InsightDISC',
+      scores: input.scores || {},
+      profileCode: input.profile?.code || input.profileCode || '',
+      profileName: input.profile?.name || input.profileName || '',
+    });
+    const aiCandidate = firstNonEmptyText([
+      aiResult?.content?.developmentRecommendations?.[0],
+      aiResult?.content?.professionalPositioning,
+      aiResult?.content?.summary,
+    ]);
+
+    if (!aiCandidate || !isUsableRecommendationText(aiCandidate, input)) {
+      return {
+        text: fallbackRationale,
+        source: aiResult?.source || 'fallback',
+        enabled: true,
+        provider: aiResult?.provider || '',
+        model: aiResult?.model || '',
+        usedFallback: Boolean(aiResult?.usedFallback),
+        attempts: Array.isArray(aiResult?.attempts) ? aiResult.attempts : [],
+      };
+    }
+
+    const prefix = buildRecommendationPrefix(input);
+    const text = truncateSentence(`${prefix}. ${aiCandidate}`, 300);
+    if (!isUsableRecommendationText(text, input)) {
+      return {
+        text: fallbackRationale,
+        source: aiResult?.source || 'fallback',
+        enabled: true,
+        provider: aiResult?.provider || '',
+        model: aiResult?.model || '',
+        usedFallback: true,
+        attempts: Array.isArray(aiResult?.attempts) ? aiResult.attempts : [],
+      };
+    }
+
+    return {
+      text,
+      source: aiResult?.source || 'ai',
+      enabled: true,
+      provider: aiResult?.provider || '',
+      model: aiResult?.model || '',
+      usedFallback: Boolean(aiResult?.usedFallback),
+      attempts: Array.isArray(aiResult?.attempts) ? aiResult.attempts : [],
+    };
+  } catch {
+    return {
+      text: fallbackRationale,
+      source: 'error_fallback',
+      enabled: true,
+      provider: '',
+      model: '',
+      usedFallback: true,
+      attempts: [],
+    };
+  }
 }
 
 export async function generateAiDiscContent(input = {}, options = {}) {

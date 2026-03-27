@@ -101,6 +101,44 @@ export default function AssessmentReport() {
   const compareHref = reportIdentity.id
     ? `/compare-profiles?assessmentId=${encodeURIComponent(reportIdentity.id)}`
     : '/compare-profiles';
+  const resolvedPublicAccess = useMemo(
+    () => ({
+      ...(loadState.assessment?.publicAccess || {}),
+      token:
+        loadState.assessment?.publicAccess?.token ||
+        loadState.assessment?.publicToken ||
+        loadState.assessment?.public_token ||
+        '',
+      publicToken:
+        loadState.assessment?.publicAccess?.publicToken ||
+        loadState.assessment?.publicToken ||
+        loadState.assessment?.public_token ||
+        '',
+      public_token:
+        loadState.assessment?.publicAccess?.public_token ||
+        loadState.assessment?.public_token ||
+        loadState.assessment?.publicToken ||
+        '',
+      publicPdfUrl:
+        loadState.assessment?.publicAccess?.publicPdfUrl ||
+        loadState.assessment?.publicPdfUrl ||
+        loadState.assessment?.public_pdf_url ||
+        loadState.assessment?.pdfUrl ||
+        loadState.assessment?.pdf_url ||
+        '',
+      publicReportUrl:
+        loadState.assessment?.publicAccess?.publicReportUrl ||
+        loadState.assessment?.publicReportUrl ||
+        loadState.assessment?.public_report_url ||
+        '',
+      reportType:
+        loadState.assessment?.publicAccess?.reportType ||
+        loadState.assessment?.reportType ||
+        loadState.assessment?.report_type ||
+        'business',
+    }),
+    [loadState.assessment],
+  );
 
   const handleExportPdf = async () => {
     if (!reportPdfAccess.allowed) {
@@ -121,7 +159,12 @@ export default function AssessmentReport() {
       const payload = await exportAssessmentReportPdf({
         assessmentId,
         apiBaseUrl,
-        publicAccess: loadState.assessment?.publicAccess || null,
+        publicAccess: resolvedPublicAccess,
+        reportType:
+          resolvedPublicAccess.reportType ||
+          loadState.assessment?.reportType ||
+          loadState.assessment?.report_type ||
+          'business',
       });
       downloadPdfBlob(payload.blob, payload.fileName);
       toast({

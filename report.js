@@ -1,10 +1,11 @@
 (() => {
   const PLATFORM_BRAND_LINE = 'InsightDISC – Plataforma de Análise Comportamental';
+  const OFFICIAL_INSTITUTIONAL_EMAIL = 'contato@insightdisc.com';
   const DEFAULT_PLATFORM = Object.freeze({
     name: 'InsightDISC',
     subtitle: 'Plataforma de Análise Comportamental',
     website: 'www.insightdisc.app',
-    email: 'contato@insightdisc.app',
+    email: OFFICIAL_INSTITUTIONAL_EMAIL,
     instagram: '@insightdisc',
   });
   const MODE_LABELS = Object.freeze({
@@ -98,6 +99,15 @@
     return '';
   }
 
+  function normalizeInstitutionalEmail(value, fallback = OFFICIAL_INSTITUTIONAL_EMAIL) {
+    const email = safeText(value).toLowerCase();
+    if (!email || !email.includes('@')) return fallback;
+    if (email.endsWith('@insightdisc.app') || email.endsWith('@insightdisc.com')) {
+      return OFFICIAL_INSTITUTIONAL_EMAIL;
+    }
+    return email;
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -153,13 +163,15 @@
     const platformName = firstNonEmpty(brand.company_name, brand.name, DEFAULT_PLATFORM.name);
     const platformSubtitle = firstNonEmpty(brand.subtitle, DEFAULT_PLATFORM.subtitle);
     const platformWebsite = firstNonEmpty(brand.website, brand.site, raw?.platform?.website, DEFAULT_PLATFORM.website);
-    const platformEmail = firstNonEmpty(
-      brand.support_email,
-      brand.email,
-      raw?.platform?.email,
-      meta?.responsibleEmail,
-      responsible?.email,
-      DEFAULT_PLATFORM.email
+    const platformEmail = normalizeInstitutionalEmail(
+      firstNonEmpty(
+        brand.support_email,
+        brand.email,
+        raw?.platform?.email,
+        meta?.responsibleEmail,
+        responsible?.email,
+        DEFAULT_PLATFORM.email
+      )
     );
     const platformInstagram = firstNonEmpty(
       brand.instagram,
@@ -184,10 +196,13 @@
       responsible?.role,
       'Especialista em Análise Comportamental'
     );
-    const issuerContact = firstNonEmpty(
-      meta?.issuerContact,
-      meta?.responsibleEmail,
-      responsible?.email,
+    const issuerContact = normalizeInstitutionalEmail(
+      firstNonEmpty(
+        meta?.issuerContact,
+        meta?.responsibleEmail,
+        responsible?.email,
+        platformEmail
+      ),
       platformEmail
     );
 

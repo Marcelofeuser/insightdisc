@@ -53,6 +53,18 @@ function mapReportDataPayload(payload = {}, assessmentId = '') {
   };
 }
 
+function resolveReportTypeFromPayload(payload = {}, fallback = 'business') {
+  return String(
+    payload?.publicAccess?.reportType ||
+      payload?.reportType ||
+      payload?.report?.reportType ||
+      payload?.reportItem?.reportType ||
+      fallback,
+  )
+    .trim()
+    .toLowerCase() || fallback;
+}
+
 export async function loadAssessmentReportData({
   assessmentId,
   apiBaseUrl,
@@ -73,10 +85,11 @@ export async function loadAssessmentReportData({
           requireAuth: true,
         });
         let enrichedPayload = payload;
+        const resolvedReportType = resolveReportTypeFromPayload(payload);
 
         try {
           const publicAccess = await apiRequest(
-            `/assessment/public-token/${encodeURIComponent(trimmedId)}`,
+            `/assessment/public-token/${encodeURIComponent(trimmedId)}?reportType=${encodeURIComponent(resolvedReportType)}`,
             {
               method: 'GET',
               requireAuth: true,

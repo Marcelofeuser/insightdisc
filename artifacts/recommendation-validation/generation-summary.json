@@ -1,0 +1,227 @@
+[
+  {
+    "caseId": "case1_cs",
+    "caseLabel": "C/S crítico",
+    "mode": "personal",
+    "scores": {
+      "D": 1,
+      "I": 10,
+      "S": 35,
+      "C": 54
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case1_cs_personal.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case1_cs_personal.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  },
+  {
+    "caseId": "case2_d",
+    "caseLabel": "D alto",
+    "mode": "personal",
+    "scores": {
+      "D": 70,
+      "I": 12,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case2_d_personal.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case2_d_personal.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "D/I (Dominante Influente)"
+  },
+  {
+    "caseId": "case3_i",
+    "caseLabel": "I alto",
+    "mode": "personal",
+    "scores": {
+      "D": 14,
+      "I": 68,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case3_i_personal.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case3_i_personal.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "I/D (Influente Dominante)"
+  },
+  {
+    "caseId": "case4_s",
+    "caseLabel": "S alto",
+    "mode": "personal",
+    "scores": {
+      "D": 5,
+      "I": 8,
+      "S": 72,
+      "C": 15
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case4_s_personal.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case4_s_personal.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "S/C (Estável Analítico)"
+  },
+  {
+    "caseId": "case5_c",
+    "caseLabel": "C alto",
+    "mode": "personal",
+    "scores": {
+      "D": 8,
+      "I": 10,
+      "S": 14,
+      "C": 68
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case5_c_personal.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case5_c_personal.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  },
+  {
+    "caseId": "case1_cs",
+    "caseLabel": "C/S crítico",
+    "mode": "professional",
+    "scores": {
+      "D": 1,
+      "I": 10,
+      "S": 35,
+      "C": 54
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case1_cs_professional.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case1_cs_professional.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  },
+  {
+    "caseId": "case2_d",
+    "caseLabel": "D alto",
+    "mode": "professional",
+    "scores": {
+      "D": 70,
+      "I": 12,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case2_d_professional.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case2_d_professional.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "D/I (Dominante Influente)"
+  },
+  {
+    "caseId": "case3_i",
+    "caseLabel": "I alto",
+    "mode": "professional",
+    "scores": {
+      "D": 14,
+      "I": 68,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case3_i_professional.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case3_i_professional.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "I/D (Influente Dominante)"
+  },
+  {
+    "caseId": "case4_s",
+    "caseLabel": "S alto",
+    "mode": "professional",
+    "scores": {
+      "D": 5,
+      "I": 8,
+      "S": 72,
+      "C": 15
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case4_s_professional.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case4_s_professional.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "S/C (Estável Analítico)"
+  },
+  {
+    "caseId": "case5_c",
+    "caseLabel": "C alto",
+    "mode": "professional",
+    "scores": {
+      "D": 8,
+      "I": 10,
+      "S": 14,
+      "C": 68
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case5_c_professional.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case5_c_professional.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  },
+  {
+    "caseId": "case1_cs",
+    "caseLabel": "C/S crítico",
+    "mode": "business",
+    "scores": {
+      "D": 1,
+      "I": 10,
+      "S": 35,
+      "C": 54
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case1_cs_business.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case1_cs_business.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  },
+  {
+    "caseId": "case2_d",
+    "caseLabel": "D alto",
+    "mode": "business",
+    "scores": {
+      "D": 70,
+      "I": 12,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case2_d_business.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case2_d_business.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "D/I (Dominante Influente)"
+  },
+  {
+    "caseId": "case3_i",
+    "caseLabel": "I alto",
+    "mode": "business",
+    "scores": {
+      "D": 14,
+      "I": 68,
+      "S": 10,
+      "C": 8
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case3_i_business.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case3_i_business.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "I/D (Influente Dominante)"
+  },
+  {
+    "caseId": "case4_s",
+    "caseLabel": "S alto",
+    "mode": "business",
+    "scores": {
+      "D": 5,
+      "I": 8,
+      "S": 72,
+      "C": 15
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case4_s_business.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case4_s_business.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "S/C (Estável Analítico)"
+  },
+  {
+    "caseId": "case5_c",
+    "caseLabel": "C alto",
+    "mode": "business",
+    "scores": {
+      "D": 8,
+      "I": 10,
+      "S": 14,
+      "C": 68
+    },
+    "html": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/html/case5_c_business.html",
+    "pdf": "/Users/marcelofeuser/Projects/insightdisc/artifacts/recommendation-validation/pdf/case5_c_business.pdf",
+    "recommendationBlockPresent": true,
+    "profileHint": "C/S (Analítico Estável)"
+  }
+]

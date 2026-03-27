@@ -1,0 +1,62 @@
+[
+  {
+    "file": "case1_cs_business.pdf",
+    "pages": 30
+  },
+  {
+    "file": "case1_cs_personal.pdf",
+    "pages": 18
+  },
+  {
+    "file": "case1_cs_professional.pdf",
+    "pages": 24
+  },
+  {
+    "file": "case2_d_business.pdf",
+    "pages": 30
+  },
+  {
+    "file": "case2_d_personal.pdf",
+    "pages": 18
+  },
+  {
+    "file": "case2_d_professional.pdf",
+    "pages": 24
+  },
+  {
+    "file": "case3_i_business.pdf",
+    "pages": 30
+  },
+  {
+    "file": "case3_i_personal.pdf",
+    "pages": 18
+  },
+  {
+    "file": "case3_i_professional.pdf",
+    "pages": 24
+  },
+  {
+    "file": "case4_s_business.pdf",
+    "pages": 30
+  },
+  {
+    "file": "case4_s_personal.pdf",
+    "pages": 18
+  },
+  {
+    "file": "case4_s_professional.pdf",
+    "pages": 24
+  },
+  {
+    "file": "case5_c_business.pdf",
+    "pages": 30
+  },
+  {
+    "file": "case5_c_personal.pdf",
+    "pages": 18
+  },
+  {
+    "file": "case5_c_professional.pdf",
+    "pages": 24
+  }
+]

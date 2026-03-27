@@ -13,6 +13,7 @@ import { generatePremiumPdf } from '../modules/report/generate-pdf.js';
 import { normalizeReportType as normalizeCanonicalReportType } from '../modules/report/report-type.js';
 import { assertOfficialReportHtml, renderReportHtml } from '../modules/report/render-report-html.js';
 import { gerarRelatorio, normalizeMode as normalizeDiscMode } from '../services/reportGenerator.js';
+import { canUseFeature } from '../saas/modules/plans/featureGate.js';
 
 const router = Router();
 
@@ -198,6 +199,15 @@ async function generateReportPayload({ assessmentId, reportType, req }) {
     throw error;
   }
 
+  // SaaS: gate premium_pdf
+  const pdfGate = canUseFeature(assessment.organizationId, 'premium_pdf');
+  if (!pdfGate.ok) {
+    const error = new Error('FEATURE_BLOCKED');
+    error.statusCode = 402;
+    error.saasGate = pdfGate;
+    throw error;
+  }
+
   const reportModel = await buildPremiumReportModel({
     assessment,
     discResult: assessment.report?.discProfile || assessment.results || assessment.disc_results || {},
@@ -342,6 +352,9 @@ router.get(
       });
       return res.status(200).json({ ok: true, ...payload });
     } catch (error) {
+      if (error?.message === 'FEATURE_BLOCKED' && error?.saasGate) {
+        return res.status(402).json({ ok: false, ...error.saasGate });
+      }
       const status = Number(error?.statusCode) || 400;
       return sendSafeJsonError(res, {
         status,
@@ -428,6 +441,9 @@ router.post(
       });
       return res.status(200).json({ ok: true, ...payload });
     } catch (error) {
+      if (error?.message === 'FEATURE_BLOCKED' && error?.saasGate) {
+        return res.status(402).json({ ok: false, ...error.saasGate });
+      }
       const status = Number(error?.statusCode) || 400;
       return sendSafeJsonError(res, {
         status,

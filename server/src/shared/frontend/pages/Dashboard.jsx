@@ -20,6 +20,7 @@ import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { trackEvent } from '@/lib/analytics';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 import { buildDossierPath } from '@/modules/dossier/routes';
+import { buildAssessmentReportPath } from '@/modules/reports';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -203,7 +204,6 @@ export default function Dashboard() {
         source: 'dashboard',
       });
     } catch (error) {
-      // eslint-disable-next-line no-alert
       alert(error?.payload?.message || error?.message || 'Não foi possível iniciar sua avaliação.');
     } finally {
       setIsStartingSelfAssessment(false);
@@ -458,9 +458,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <Link
-                  to={`${createPageUrl('Report')}?id=${encodeURIComponent(
-                    assessment?.assessmentId || assessment?.id || ''
-                  )}`}
+                  to={buildAssessmentReportPath(assessment?.assessmentId || assessment?.id || '')}
                 >
                   <Button variant="outline" size="sm">Abrir relatório</Button>
                 </Link>

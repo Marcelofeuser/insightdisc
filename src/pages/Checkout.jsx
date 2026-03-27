@@ -150,12 +150,28 @@ export default function Checkout() {
       return;
     }
 
-    setLoadingPackage(`legacy-${payload.product}`);
+    // Detecta fluxo público/candidato para report-unlock
+    const isCandidateFlow = searchParams.get('flow') === 'candidate';
+    const isReportUnlock = payload.product === 'report-unlock';
+    const hasPublicContext = Boolean(payload.assessmentId && payload.token);
 
+    // Se for fluxo público/candidato de report-unlock com contexto válido, não exige auth
+    const requireAuth = !(isCandidateFlow && isReportUnlock && hasPublicContext);
+
+    if (isCandidateFlow && isReportUnlock && !hasPublicContext) {
+      toast({
+        title: 'Contexto insuficiente',
+        description: 'Não foi possível identificar a avaliação para liberar o relatório. Solicite um novo link.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoadingPackage(`legacy-${payload.product}`);
     try {
       const response = await apiRequest('/payments/create-checkout', {
         method: 'POST',
-        requireAuth: true,
+        requireAuth,
         body: payload,
       });
 
@@ -166,11 +182,10 @@ export default function Checkout() {
 
       window.location.href = checkoutUrl;
     } catch (error) {
-      const fallbackMessage =
-        error?.message === 'API_AUTH_MISSING'
-          ? 'Faça login para iniciar o checkout.'
-          : error?.message || 'Falha ao iniciar checkout para este produto.';
-
+      let fallbackMessage = error?.message || 'Falha ao iniciar checkout para este produto.';
+      if (!requireAuth && error?.message === 'API_AUTH_MISSING') {
+        fallbackMessage = 'Não foi possível iniciar o checkout público. Tente novamente ou solicite suporte.';
+      }
       toast({
         title: 'Falha no checkout',
         description: fallbackMessage,

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { argv } from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { resolveDiscProfile } from '../../../src/modules/disc/report-profile-resolver.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,8 +80,8 @@ const PROFILE_NAMES = {
 };
 
 const AI_TEXT_LIMITS = {
-  summary: 240,
-  executiveSummary: 220,
+  summary: 420,
+  executiveSummary: 520,
   profileOverview: 240,
   profileInterpretation: 300,
   communicationStyle: 250,
@@ -92,8 +93,8 @@ const AI_TEXT_LIMITS = {
   negotiation: 210,
   sales: 210,
   learning: 210,
-  finalQuote: 170,
-  finalCard: 190,
+  finalQuote: 460,
+  finalCard: 520,
   listItem: 96,
   tableCell: 96,
   recommendation: 120,
@@ -417,23 +418,15 @@ function normalizeScores(input = {}) {
 }
 
 function computeProfile(scores) {
-  const sorted = Object.entries(scores)
-    .map(([factor, score]) => ({ factor, score }))
-    .sort((left, right) => right.score - left.score);
-
-  const primary = sorted[0]?.factor || 'D';
-  const secondary = sorted[1]?.factor || 'I';
-  const compactCode = `${primary}${secondary}`;
+  const resolved = resolveDiscProfile(scores);
 
   return {
-    primary,
-    secondary,
-    compactCode,
-    slashCode: `${primary}/${secondary}`,
-    name:
-      PROFILE_NAMES[compactCode] ||
-      `${FACTOR_META[primary].name} / ${FACTOR_META[secondary].name}`,
-    sorted,
+    primary: resolved.primary.key,
+    secondary: resolved.secondary.key,
+    compactCode: resolved.code,
+    slashCode: resolved.slashCode,
+    name: resolved.name,
+    sorted: resolved.factors.map((entry) => ({ factor: entry.key, score: entry.value })),
   };
 }
 
@@ -768,7 +761,7 @@ function buildContext(args) {
   const version = String(firstDefined(args.version, ai.version) || '').trim();
   const cache = clonePlainObject(firstDefined(args.cache, ai.cache));
   const profileLabel = escapeHtml(
-    firstDefined(inputSnapshot.profile, `${profile.compactCode} (${profile.name})`) || `${profile.compactCode} (${profile.name})`,
+    firstDefined(inputSnapshot.profile, `${profile.slashCode} (${profile.name})`) || `${profile.slashCode} (${profile.name})`,
   );
 
   return {
@@ -1384,7 +1377,7 @@ function applyBusinessAiTextReplacements(html, context) {
       if (negotiationText) {
         updatedBlock = replaceNthMatch(
           updatedBlock,
-          /<div class="nva-card">[\s\S]*?<\/div>/g,
+          /<div class="nva-card">[\s\S]*?<\/p><\/div>/g,
           0,
           renderNvaCard('🤝', 'Estilo de Negociação', negotiationText),
         );
@@ -1392,7 +1385,7 @@ function applyBusinessAiTextReplacements(html, context) {
       if (salesText) {
         updatedBlock = replaceNthMatch(
           updatedBlock,
-          /<div class="nva-card">[\s\S]*?<\/div>/g,
+          /<div class="nva-card">[\s\S]*?<\/p><\/div>/g,
           1,
           renderNvaCard('💼', 'Estilo de Vendas', salesText),
         );
@@ -1400,7 +1393,7 @@ function applyBusinessAiTextReplacements(html, context) {
       if (learningText) {
         updatedBlock = replaceNthMatch(
           updatedBlock,
-          /<div class="nva-card">[\s\S]*?<\/div>/g,
+          /<div class="nva-card">[\s\S]*?<\/p><\/div>/g,
           2,
           renderNvaCard('📚', 'Estilo de Aprendizado', learningText),
         );

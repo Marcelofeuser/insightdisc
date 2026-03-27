@@ -25,6 +25,9 @@ import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
+import PersonalLandingPage from '@/pages/PersonalLanding';
+import ProfissionalLandingPage from '@/pages/ProfissionalLanding';
+import BusinessLandingPage from '@/pages/BusinessLanding';
 import CompareProfiles from '@/pages/CompareProfiles';
 import TeamMap from '@/pages/TeamMap';
 import RoleDashboardHome from '@/pages/RoleDashboardHome';
@@ -166,6 +169,9 @@ const AuthenticatedApp = () => {
           <DossieComportamentalLandingPage />
         }
       />
+      <Route path="/personal" element={<PersonalLandingPage />} />
+      <Route path="/profissional" element={<ProfissionalLandingPage />} />
+      <Route path="/business" element={<BusinessLandingPage />} />
       <Route
         path="/demo"
         element={
@@ -485,7 +491,13 @@ const AuthenticatedApp = () => {
 
 function RouteAwareChatWidget() {
   const location = useLocation();
-  if (location.pathname === '/' || location.pathname === '/dossie') {
+  if (
+    location.pathname === '/' ||
+    location.pathname === '/dossie' ||
+    location.pathname === '/personal' ||
+    location.pathname === '/profissional' ||
+    location.pathname === '/business'
+  ) {
     return null;
   }
   return <InsightChatWidget />;

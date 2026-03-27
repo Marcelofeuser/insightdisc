@@ -8,6 +8,441 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                          String                       @id @default(cuid())
+  email                       String                       @unique
+  passwordHash                String                       @map("password_hash")
+  name                        String
+  role                        UserRole                     @default(PRO)
+  createdAt                   DateTime                     @default(now()) @map("created_at")
+  candidateAssessments        Assessment[]                 @relation("AssessmentCandidate")
+  assessmentsCreated          Assessment[]                 @relation("AssessmentCreator")
+  candidateDossiers           BehavioralDossier[]          @relation("BehavioralDossierCandidate")
+  createdDossiers             BehavioralDossier[]          @relation("BehavioralDossierCreator")
+  campaignAuditLogs           CampaignAuditLog[]           @relation("CampaignAuditActor")
+  couponsRedeemed             CampaignCoupon[]             @relation("CampaignCouponRedeemer")
+  campaignsCreated            Campaign[]                   @relation("CampaignCreator")
+  creditGrantsIssued          CreditGrant[]                @relation("CreditGrantActor")
+  creditGrantsReceived        CreditGrant[]                @relation("CreditGrantRecipient")
+  credits                     Credit?
+  memberships                 OrganizationMember[]
+  organizationsOwned          Organization[]               @relation("OrganizationOwner")
+  payments                    Payment[]
+  promoAccountBatchesCreated  PromoAccountBatch[]          @relation("PromoAccountBatchCreator")
+  promoAccountSecretsRevealed PromoAccountDeliverySecret[] @relation("PromoAccountSecretRevealer")
+  promoAccountProvisions      PromoAccountProvision?       @relation("PromoAccountUser")
+
+  @@map("users")
+}
+
+model Organization {
+  id                  String               @id @default(cuid())
+  name                String
+  companyName         String?              @map("company_name")
+  logoUrl             String?              @map("logo_url")
+  brandPrimaryColor   String?              @map("brand_primary_color")
+  brandSecondaryColor String?              @map("brand_secondary_color")
+  reportFooterText    String?              @map("report_footer_text")
+  ownerId             String               @map("owner_id")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  assessments         Assessment[]
+  behavioralDossiers  BehavioralDossier[]
+  memberships         OrganizationMember[]
+  owner               User                 @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  userId         String       @map("user_id")
+  role           MemberRole   @default(MEMBER)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model Credit {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  balance   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credits")
+}
+
+model Assessment {
+  id               String                  @id @default(cuid())
+  organizationId   String                  @map("organization_id")
+  createdBy        String                  @map("created_by")
+  candidateUserId  String?                 @map("candidate_user_id")
+  accessTokenHash  String?                 @map("access_token_hash")
+  status           AssessmentStatus        @default(PENDING)
+  candidateName    String?                 @map("candidate_name")
+  candidateEmail   String?                 @map("candidate_email")
+  completedAt      DateTime?               @map("completed_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  quickContext     AssessmentQuickContext?
+  candidateUser    User?                   @relation("AssessmentCandidate", fields: [candidateUserId], references: [id])
+  creator          User                    @relation("AssessmentCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  dossierAnamnesis DossierAnamnesis?
+  invites          Invite[]
+  report           Report?
+  response         Response?
+
+  @@index([organizationId])
+  @@index([candidateUserId])
+  @@map("assessments")
+}
+
+model AssessmentQuickContext {
+  id                 String     @id @default(cuid())
+  assessmentId       String     @unique @map("assessment_id")
+  sex                String?
+  maritalStatus      String?    @map("marital_status")
+  city               String?
+  stressLevel        String?    @map("stress_level")
+  sleepQuality       String?    @map("sleep_quality")
+  physicalActivity   String?    @map("physical_activity")
+  smoker             String?
+  alcoholConsumption String?    @map("alcohol_consumption")
+  usesMedication     String?    @map("uses_medication")
+  healthConditions   String?    @map("health_conditions")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  assessment         Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("assessment_quick_context")
+}
+
+model DossierAnamnesis {
+  id                   String     @id @default(cuid())
+  assessmentId         String     @unique @map("assessment_id")
+  fullName             String?    @map("full_name")
+  birthDate            DateTime?  @map("birth_date")
+  age                  Int?
+  sex                  String?
+  maritalStatus        String?    @map("marital_status")
+  spouseName           String?    @map("spouse_name")
+  spouseAge            Int?       @map("spouse_age")
+  hasChildren          Boolean?   @map("has_children")
+  childrenCount        Int?       @map("children_count")
+  childrenInfo         String?    @map("children_info")
+  city                 String?
+  address              String?
+  profession           String?
+  education            String?
+  stressLevel          String?    @map("stress_level")
+  sleepQuality         String?    @map("sleep_quality")
+  physicalActivity     String?    @map("physical_activity")
+  smoker               String?
+  alcoholConsumption   String?    @map("alcohol_consumption")
+  usesMedication       String?    @map("uses_medication")
+  medicationList       String?    @map("medication_list")
+  healthConditions     String?    @map("health_conditions")
+  familyHealthHistory  String?    @map("family_health_history")
+  psychologicalHistory String?    @map("psychological_history")
+  mainComplaint        String?    @map("main_complaint")
+  evaluationReason     String?    @map("evaluation_reason")
+  professionalNotes    String?    @map("professional_notes")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+  assessment           Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("dossier_anamnesis")
+}
+
+model Invite {
+  id           String       @id @default(cuid())
+  assessmentId String       @map("assessment_id")
+  tokenHash    String       @unique @map("token_hash")
+  expiresAt    DateTime     @map("expires_at")
+  usedAt       DateTime?    @map("used_at")
+  status       InviteStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("invites")
+}
+
+model Response {
+  id           String     @id @default(cuid())
+  assessmentId String     @unique @map("assessment_id")
+  answersJson  Json       @map("answers_json")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("responses")
+}
+
+model Report {
+  id           String     @id @default(cuid())
+  assessmentId String     @unique @map("assessment_id")
+  discProfile  Json       @map("disc_profile")
+  pdfUrl       String?    @map("pdf_url")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  userId        String        @map("user_id")
+  creditsAdded  Int           @map("credits_added")
+  amount        Int
+  stripeSession String        @unique @map("stripe_session")
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Lead {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  source     String   @default("chatbot")
+  name       String
+  email      String
+  phone      String?
+  company    String?
+  interest   String?
+  message    String?
+  status     String   @default("new")
+  tags       String[] @default([])
+  page       String?
+  assignedTo String?  @map("assigned_to")
+  notes      String?
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@map("leads")
+}
+
+model BehavioralDossier {
+  id          String                 @id @default(cuid())
+  candidateId String                 @map("candidate_id")
+  workspaceId String                 @map("workspace_id")
+  createdBy   String                 @map("created_by")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  candidate   User                   @relation("BehavioralDossierCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  creator     User                   @relation("BehavioralDossierCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  workspace   Organization           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  plans       DevelopmentPlan[]
+  insights    DossierInsight[]
+  notes       DossierNote[]
+  reminders   ReassessmentReminder[]
+
+  @@unique([candidateId, workspaceId])
+  @@index([workspaceId, createdAt])
+  @@index([candidateId, createdAt])
+  @@map("behavioral_dossiers")
+}
+
+model DossierNote {
+  id        String            @id @default(cuid())
+  dossierId String            @map("dossier_id")
+  authorId  String            @map("author_id")
+  content   String
+  createdAt DateTime          @default(now()) @map("created_at")
+  dossier   BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("dossier_notes")
+}
+
+model DossierInsight {
+  id        String            @id @default(cuid())
+  dossierId String            @map("dossier_id")
+  authorId  String            @map("author_id")
+  insight   String
+  createdAt DateTime          @default(now()) @map("created_at")
+  dossier   BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("dossier_insights")
+}
+
+model DevelopmentPlan {
+  id          String            @id @default(cuid())
+  dossierId   String            @map("dossier_id")
+  goal        String
+  description String
+  createdAt   DateTime          @default(now()) @map("created_at")
+  dossier     BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+  @@map("development_plans")
+}
+
+model ReassessmentReminder {
+  id        String            @id @default(cuid())
+  dossierId String            @map("dossier_id")
+  date      DateTime
+  note      String
+  createdAt DateTime          @default(now()) @map("created_at")
+  dossier   BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, date])
+  @@map("reassessment_reminders")
+}
+
+model Campaign {
+  id                              String                  @id @default(cuid())
+  name                            String
+  slug                            String?                 @unique
+  description                     String?
+  mode                            CampaignMode
+  creditsAmount                   Int                     @map("credits_amount")
+  quantityPlanned                 Int?                    @map("quantity_planned")
+  quantityGenerated               Int                     @default(0) @map("quantity_generated")
+  quantityRedeemed                Int                     @default(0) @map("quantity_redeemed")
+  startsAt                        DateTime?               @map("starts_at")
+  expiresAt                       DateTime?               @map("expires_at")
+  isActive                        Boolean                 @default(true) @map("is_active")
+  allowMultipleRedemptionsPerUser Boolean                 @default(false) @map("allow_multiple_redemptions_per_user")
+  maxRedemptionsPerUser           Int                     @default(1) @map("max_redemptions_per_user")
+  createdBy                       String                  @map("created_by")
+  createdAt                       DateTime                @default(now()) @map("created_at")
+  updatedAt                       DateTime                @updatedAt @map("updated_at")
+  auditLogs                       CampaignAuditLog[]
+  coupons                         CampaignCoupon[]
+  creator                         User                    @relation("CampaignCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  creditGrants                    CreditGrant[]
+  promoBatches                    PromoAccountBatch[]
+  promoAccounts                   PromoAccountProvision[]
+
+  @@index([isActive, startsAt, expiresAt])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model CampaignCoupon {
+  id               String               @id @default(cuid())
+  campaignId       String               @map("campaign_id")
+  code             String               @unique
+  creditsAmount    Int                  @map("credits_amount")
+  status           CampaignCouponStatus @default(AVAILABLE)
+  redeemedByUserId String?              @map("redeemed_by_user_id")
+  redeemedAt       DateTime?            @map("redeemed_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  campaign         Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  redeemedBy       User?                @relation("CampaignCouponRedeemer", fields: [redeemedByUserId], references: [id])
+
+  @@index([campaignId, status])
+  @@index([redeemedByUserId])
+  @@map("campaign_coupons")
+}
+
+model PromoAccountBatch {
+  id             String                  @id @default(cuid())
+  campaignId     String                  @map("campaign_id")
+  createdBy      String                  @map("created_by")
+  requestedCount Int                     @map("requested_count")
+  generatedCount Int                     @default(0) @map("generated_count")
+  creditsAmount  Int                     @map("credits_amount")
+  userRole       UserRole                @default(PRO) @map("user_role")
+  emailPrefix    String?                 @map("email_prefix")
+  emailDomain    String?                 @map("email_domain")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  campaign       Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator        User                    @relation("PromoAccountBatchCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  provisions     PromoAccountProvision[]
+
+  @@index([campaignId, createdAt])
+  @@map("promo_account_batches")
+}
+
+model PromoAccountProvision {
+  id             String                      @id @default(cuid())
+  campaignId     String                      @map("campaign_id")
+  batchId        String                      @map("batch_id")
+  email          String                      @unique
+  passwordHash   String                      @map("password_hash")
+  userId         String                      @unique @map("user_id")
+  creditsGranted Int                         @map("credits_granted")
+  status         PromoAccountStatus          @default(CREATED)
+  createdAt      DateTime                    @default(now()) @map("created_at")
+  activatedAt    DateTime?                   @map("activated_at")
+  exportedAt     DateTime?                   @map("exported_at")
+  disabledAt     DateTime?                   @map("disabled_at")
+  deliverySecret PromoAccountDeliverySecret?
+  batch          PromoAccountBatch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  campaign       Campaign                    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user           User                        @relation("PromoAccountUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@index([batchId, createdAt])
+  @@map("promo_account_provisions")
+}
+
+model PromoAccountDeliverySecret {
+  id               String                @id @default(cuid())
+  provisionId      String                @unique @map("provision_id")
+  cipherText       String                @map("cipher_text")
+  iv               String
+  authTag          String                @map("auth_tag")
+  isRevealed       Boolean               @default(false) @map("is_revealed")
+  revealedAt       DateTime?             @map("revealed_at")
+  revealedByUserId String?               @map("revealed_by_user_id")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  provision        PromoAccountProvision @relation(fields: [provisionId], references: [id], onDelete: Cascade)
+  revealedBy       User?                 @relation("PromoAccountSecretRevealer", fields: [revealedByUserId], references: [id])
+
+  @@index([revealedByUserId])
+  @@map("promo_account_delivery_secrets")
+}
+
+model CampaignAuditLog {
+  id          String    @id @default(cuid())
+  campaignId  String?   @map("campaign_id")
+  actorUserId String?   @map("actor_user_id")
+  action      String
+  targetType  String    @map("target_type")
+  targetId    String    @map("target_id")
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  actor       User?     @relation("CampaignAuditActor", fields: [actorUserId], references: [id])
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("campaign_audit_logs")
+}
+
+model CreditGrant {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  campaignId  String?   @map("campaign_id")
+  amount      Int
+  reason      String
+  sourceType  String    @map("source_type")
+  sourceId    String    @map("source_id")
+  actorUserId String?   @map("actor_user_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  actor       User?     @relation("CreditGrantActor", fields: [actorUserId], references: [id])
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+  user        User      @relation("CreditGrantRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([campaignId, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("credit_grants")
+}
+
 enum MemberRole {
   OWNER
   ADMIN
@@ -60,464 +495,4 @@ enum PromoAccountStatus {
   ACTIVATED
   EXPORTED
   DISABLED
-}
-
-model User {
-  id           String               @id @default(cuid())
-  email        String               @unique
-  passwordHash String               @map("password_hash")
-  name         String
-  role         UserRole             @default(PRO)
-  createdAt    DateTime             @default(now()) @map("created_at")
-
-  organizationsOwned Organization[]  @relation("OrganizationOwner")
-  memberships        OrganizationMember[]
-  credits            Credit[]
-  assessmentsCreated Assessment[]    @relation("AssessmentCreator")
-  candidateAssessments Assessment[]  @relation("AssessmentCandidate")
-  payments           Payment[]
-  candidateDossiers  BehavioralDossier[] @relation("BehavioralDossierCandidate")
-  createdDossiers    BehavioralDossier[] @relation("BehavioralDossierCreator")
-  campaignsCreated   Campaign[]          @relation("CampaignCreator")
-  couponsRedeemed    CampaignCoupon[]    @relation("CampaignCouponRedeemer")
-  promoAccountProvisions PromoAccountProvision[] @relation("PromoAccountUser")
-  promoAccountBatchesCreated PromoAccountBatch[] @relation("PromoAccountBatchCreator")
-  promoAccountSecretsRevealed PromoAccountDeliverySecret[] @relation("PromoAccountSecretRevealer")
-  campaignAuditLogs CampaignAuditLog[]   @relation("CampaignAuditActor")
-  creditGrantsReceived CreditGrant[]     @relation("CreditGrantRecipient")
-  creditGrantsIssued   CreditGrant[]     @relation("CreditGrantActor")
-
-  @@map("users")
-}
-
-model Organization {
-  id        String               @id @default(cuid())
-  name      String
-  companyName String?            @map("company_name")
-  logoUrl   String?              @map("logo_url")
-  brandPrimaryColor String?      @map("brand_primary_color")
-  brandSecondaryColor String?    @map("brand_secondary_color")
-  reportFooterText String?       @map("report_footer_text")
-  ownerId   String               @map("owner_id")
-  createdAt DateTime             @default(now()) @map("created_at")
-
-  owner       User               @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  memberships OrganizationMember[]
-  assessments Assessment[]
-  behavioralDossiers BehavioralDossier[]
-
-  @@map("organizations")
-}
-
-model OrganizationMember {
-  id             String       @id @default(cuid())
-  organizationId String       @map("organization_id")
-  userId         String       @map("user_id")
-  role           MemberRole   @default(MEMBER)
-  createdAt      DateTime     @default(now()) @map("created_at")
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@map("organization_members")
-}
-
-model Credit {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  balance   Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId])
-  @@map("credits")
-}
-
-model Assessment {
-  id              String           @id @default(cuid())
-  organizationId  String           @map("organization_id")
-  createdBy       String           @map("created_by")
-  candidateUserId String?          @map("candidate_user_id")
-  accessTokenHash String?          @map("access_token_hash")
-  status          AssessmentStatus @default(PENDING)
-  candidateName   String?          @map("candidate_name")
-  candidateEmail  String?          @map("candidate_email")
-  completedAt     DateTime?        @map("completed_at")
-  createdAt       DateTime         @default(now()) @map("created_at")
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  creator      User         @relation("AssessmentCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  candidateUser User?       @relation("AssessmentCandidate", fields: [candidateUserId], references: [id], onDelete: SetNull)
-  invites      Invite[]
-  response     Response?
-  report       Report?
-  quickContext AssessmentQuickContext?
-  dossierAnamnesis DossierAnamnesis?
-
-  @@index([organizationId])
-  @@index([candidateUserId])
-  @@map("assessments")
-}
-
-model AssessmentQuickContext {
-  id                 String   @id @default(cuid())
-  assessmentId       String   @unique @map("assessment_id")
-  sex                String?
-  maritalStatus      String?  @map("marital_status")
-  city               String?
-  stressLevel        String?  @map("stress_level")
-  sleepQuality       String?  @map("sleep_quality")
-  physicalActivity   String?  @map("physical_activity")
-  smoker             String?
-  alcoholConsumption String?  @map("alcohol_consumption")
-  usesMedication     String?  @map("uses_medication")
-  healthConditions   String?  @map("health_conditions")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@index([assessmentId])
-  @@map("assessment_quick_context")
-}
-
-model DossierAnamnesis {
-  id                      String   @id @default(cuid())
-  assessmentId            String   @unique @map("assessment_id")
-  fullName                String?  @map("full_name")
-  birthDate               DateTime? @map("birth_date")
-  age                     Int?
-  sex                     String?
-  maritalStatus           String?  @map("marital_status")
-  spouseName              String?  @map("spouse_name")
-  spouseAge               Int?     @map("spouse_age")
-  hasChildren             Boolean? @map("has_children")
-  childrenCount           Int?     @map("children_count")
-  childrenInfo            String?  @map("children_info")
-  city                    String?
-  address                 String?
-  profession              String?
-  education               String?
-  stressLevel             String?  @map("stress_level")
-  sleepQuality            String?  @map("sleep_quality")
-  physicalActivity        String?  @map("physical_activity")
-  smoker                  String?
-  alcoholConsumption      String?  @map("alcohol_consumption")
-  usesMedication          String?  @map("uses_medication")
-  medicationList          String?  @map("medication_list")
-  healthConditions        String?  @map("health_conditions")
-  familyHealthHistory     String?  @map("family_health_history")
-  psychologicalHistory    String?  @map("psychological_history")
-  mainComplaint           String?  @map("main_complaint")
-  evaluationReason        String?  @map("evaluation_reason")
-  professionalNotes       String?  @map("professional_notes")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@index([assessmentId])
-  @@map("dossier_anamnesis")
-}
-
-model Invite {
-  id           String      @id @default(cuid())
-  assessmentId String      @map("assessment_id")
-  tokenHash    String      @unique @map("token_hash")
-  expiresAt    DateTime    @map("expires_at")
-  usedAt       DateTime?   @map("used_at")
-  status       InviteStatus @default(ACTIVE)
-  createdAt    DateTime    @default(now()) @map("created_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@index([assessmentId])
-  @@map("invites")
-}
-
-model Response {
-  id           String   @id @default(cuid())
-  assessmentId String   @unique @map("assessment_id")
-  answersJson  Json     @map("answers_json")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@map("responses")
-}
-
-model Report {
-  id           String   @id @default(cuid())
-  assessmentId String   @unique @map("assessment_id")
-  discProfile  Json     @map("disc_profile")
-  pdfUrl       String?  @map("pdf_url")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-
-  @@map("reports")
-}
-
-model Payment {
-  id            String        @id @default(cuid())
-  userId        String        @map("user_id")
-  creditsAdded  Int           @map("credits_added")
-  amount        Int
-  stripeSession String        @unique @map("stripe_session")
-  status        PaymentStatus @default(PENDING)
-  createdAt     DateTime      @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("payments")
-}
-
-model Lead {
-  id         String   @id @default(cuid())
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  source     String   @default("chatbot")
-  name       String
-  email      String
-  phone      String?
-  company    String?
-  interest   String?
-  message    String?
-  status     String   @default("new")
-  tags       String[] @default([])
-  page       String?
-  assignedTo String?  @map("assigned_to")
-  notes      String?
-
-  @@index([status, createdAt])
-  @@index([email])
-  @@map("leads")
-}
-
-model BehavioralDossier {
-  id          String   @id @default(cuid())
-  candidateId String   @map("candidate_id")
-  workspaceId String   @map("workspace_id")
-  createdBy   String   @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  notes     DossierNote[]
-  insights  DossierInsight[]
-  plans     DevelopmentPlan[]
-  reminders ReassessmentReminder[]
-
-  candidate User         @relation("BehavioralDossierCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
-  creator   User         @relation("BehavioralDossierCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  workspace Organization @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([candidateId, workspaceId])
-  @@index([workspaceId, createdAt])
-  @@index([candidateId, createdAt])
-  @@map("behavioral_dossiers")
-}
-
-model DossierNote {
-  id        String   @id @default(cuid())
-  dossierId String   @map("dossier_id")
-  authorId  String   @map("author_id")
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-
-  @@index([dossierId, createdAt])
-  @@map("dossier_notes")
-}
-
-model DossierInsight {
-  id        String   @id @default(cuid())
-  dossierId String   @map("dossier_id")
-  authorId  String   @map("author_id")
-  insight   String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-
-  @@index([dossierId, createdAt])
-  @@map("dossier_insights")
-}
-
-model DevelopmentPlan {
-  id          String   @id @default(cuid())
-  dossierId   String   @map("dossier_id")
-  goal        String
-  description String
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-
-  @@index([dossierId, createdAt])
-  @@map("development_plans")
-}
-
-model ReassessmentReminder {
-  id        String   @id @default(cuid())
-  dossierId String   @map("dossier_id")
-  date      DateTime
-  note      String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  dossier BehavioralDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-
-  @@index([dossierId, date])
-  @@map("reassessment_reminders")
-}
-
-model Campaign {
-  id                              String          @id @default(cuid())
-  name                            String
-  slug                            String?         @unique
-  description                     String?
-  mode                            CampaignMode
-  creditsAmount                   Int             @map("credits_amount")
-  quantityPlanned                 Int?            @map("quantity_planned")
-  quantityGenerated               Int             @default(0) @map("quantity_generated")
-  quantityRedeemed                Int             @default(0) @map("quantity_redeemed")
-  startsAt                        DateTime?       @map("starts_at")
-  expiresAt                       DateTime?       @map("expires_at")
-  isActive                        Boolean         @default(true) @map("is_active")
-  allowMultipleRedemptionsPerUser Boolean         @default(false) @map("allow_multiple_redemptions_per_user")
-  maxRedemptionsPerUser           Int             @default(1) @map("max_redemptions_per_user")
-  createdBy                       String          @map("created_by")
-  createdAt                       DateTime        @default(now()) @map("created_at")
-  updatedAt                       DateTime        @updatedAt @map("updated_at")
-
-  creator          User                    @relation("CampaignCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  coupons          CampaignCoupon[]
-  promoBatches     PromoAccountBatch[]
-  promoAccounts    PromoAccountProvision[]
-  auditLogs        CampaignAuditLog[]
-  creditGrants     CreditGrant[]
-
-  @@index([isActive, startsAt, expiresAt])
-  @@index([createdAt])
-  @@map("campaigns")
-}
-
-model CampaignCoupon {
-  id               String               @id @default(cuid())
-  campaignId       String               @map("campaign_id")
-  code             String               @unique
-  creditsAmount    Int                  @map("credits_amount")
-  status           CampaignCouponStatus @default(AVAILABLE)
-  redeemedByUserId String?              @map("redeemed_by_user_id")
-  redeemedAt       DateTime?            @map("redeemed_at")
-  createdAt        DateTime             @default(now()) @map("created_at")
-
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  redeemedBy User?    @relation("CampaignCouponRedeemer", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
-
-  @@index([campaignId, status])
-  @@index([redeemedByUserId])
-  @@map("campaign_coupons")
-}
-
-model PromoAccountBatch {
-  id              String   @id @default(cuid())
-  campaignId      String   @map("campaign_id")
-  createdBy       String   @map("created_by")
-  requestedCount  Int      @map("requested_count")
-  generatedCount  Int      @default(0) @map("generated_count")
-  creditsAmount   Int      @map("credits_amount")
-  userRole        UserRole @default(PRO) @map("user_role")
-  emailPrefix     String?  @map("email_prefix")
-  emailDomain     String?  @map("email_domain")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  campaign   Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  creator    User                   @relation("PromoAccountBatchCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  provisions PromoAccountProvision[]
-
-  @@index([campaignId, createdAt])
-  @@map("promo_account_batches")
-}
-
-model PromoAccountProvision {
-  id             String            @id @default(cuid())
-  campaignId     String            @map("campaign_id")
-  batchId        String            @map("batch_id")
-  email          String            @unique
-  passwordHash   String            @map("password_hash")
-  userId         String            @unique @map("user_id")
-  creditsGranted Int               @map("credits_granted")
-  status         PromoAccountStatus @default(CREATED)
-  createdAt      DateTime          @default(now()) @map("created_at")
-  activatedAt    DateTime?         @map("activated_at")
-  exportedAt     DateTime?         @map("exported_at")
-  disabledAt     DateTime?         @map("disabled_at")
-
-  campaign       Campaign                   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  batch          PromoAccountBatch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  user           User                       @relation("PromoAccountUser", fields: [userId], references: [id], onDelete: Cascade)
-  deliverySecret PromoAccountDeliverySecret?
-
-  @@index([campaignId, status])
-  @@index([batchId, createdAt])
-  @@map("promo_account_provisions")
-}
-
-model PromoAccountDeliverySecret {
-  id               String    @id @default(cuid())
-  provisionId      String    @unique @map("provision_id")
-  cipherText       String    @map("cipher_text")
-  iv               String
-  authTag          String    @map("auth_tag")
-  isRevealed       Boolean   @default(false) @map("is_revealed")
-  revealedAt       DateTime? @map("revealed_at")
-  revealedByUserId String?   @map("revealed_by_user_id")
-  createdAt        DateTime  @default(now()) @map("created_at")
-
-  provision   PromoAccountProvision @relation(fields: [provisionId], references: [id], onDelete: Cascade)
-  revealedBy  User?                 @relation("PromoAccountSecretRevealer", fields: [revealedByUserId], references: [id], onDelete: SetNull)
-
-  @@index([revealedByUserId])
-  @@map("promo_account_delivery_secrets")
-}
-
-model CampaignAuditLog {
-  id          String   @id @default(cuid())
-  campaignId  String?  @map("campaign_id")
-  actorUserId String?  @map("actor_user_id")
-  action      String
-  targetType  String   @map("target_type")
-  targetId    String   @map("target_id")
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  actor    User?     @relation("CampaignAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-
-  @@index([campaignId, createdAt])
-  @@index([actorUserId, createdAt])
-  @@map("campaign_audit_logs")
-}
-
-model CreditGrant {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  campaignId  String?  @map("campaign_id")
-  amount      Int
-  reason      String
-  sourceType  String   @map("source_type")
-  sourceId    String   @map("source_id")
-  actorUserId String?  @map("actor_user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  user     User      @relation("CreditGrantRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  actor    User?     @relation("CreditGrantActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  @@unique([userId, sourceType, sourceId])
-  @@index([campaignId, createdAt])
-  @@index([sourceType, sourceId])
-  @@map("credit_grants")
 }

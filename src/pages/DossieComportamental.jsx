@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { buildDossierPath } from '@/modules/dossier/routes';
+import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import '../styles/landing.css';
 
 const LANDING_TITLE =
@@ -259,7 +260,7 @@ export default function DossieComportamentalLandingPage() {
   };
 
   return (
-    <div ref={rootRef} className="landing-page h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
+    <div ref={rootRef} className="landing-page dossie-landing h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
       <div className="min-h-full w-full">
         <nav id="navbar" className={`fixed left-0 right-0 top-0 z-50 glass-card transition-all duration-300 ${isNavSticky ? 'nav-sticky' : ''}`}>
           <div className="max-w-7xl mx-auto px-6 py-4">
@@ -271,18 +272,26 @@ export default function DossieComportamentalLandingPage() {
                 <span className="text-xl font-bold">InsightDISC</span>
               </Link>
 
-              <div className="hidden md:flex items-center gap-8 text-sm">
-                <Link to="/#plataforma" className="text-slate-300 hover:text-white transition-colors">Plataforma</Link>
-                <Link to="/#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</Link>
-                <Link to="/#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</Link>
-                <Link to="/#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</Link>
-                <Link
-                  to="/dossie"
-                  aria-current="page"
-                  className="text-white bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 transition-all"
-                >
-                  Dossiê
-                </Link>
+              <div className="hidden lg:flex items-center gap-5 text-sm">
+                {HOME_SECTION_LINKS.map((item) => (
+                  <Link key={item.label} to={item.href} className="text-slate-300 hover:text-white transition-colors">
+                    {item.label}
+                  </Link>
+                ))}
+                {PRODUCT_TABS.map((tab) => (
+                  <Link
+                    key={tab.to}
+                    to={tab.to}
+                    aria-current={tab.to === '/dossie' ? 'page' : undefined}
+                    className={`transition-all ${
+                      tab.to === '/dossie'
+                        ? 'text-white bg-white/10 border border-white/15 rounded-lg px-3 py-1.5'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                ))}
               </div>
 
               <div className="flex items-center gap-3">
@@ -290,7 +299,7 @@ export default function DossieComportamentalLandingPage() {
                 <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
                 <button
                   type="button"
-                  className="md:hidden text-slate-300 hover:text-white"
+                  className="lg:hidden text-slate-300 hover:text-white"
                   onClick={() => setMobileMenuOpen((prev) => !prev)}
                   aria-label="Abrir menu"
                 >
@@ -301,12 +310,29 @@ export default function DossieComportamentalLandingPage() {
               </div>
             </div>
 
-            <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4`}>
-              <Link to="/#plataforma" onClick={() => setMobileMenuOpen(false)} className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</Link>
-              <Link to="/#publicos" onClick={() => setMobileMenuOpen(false)} className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</Link>
-              <Link to="/#recursos" onClick={() => setMobileMenuOpen(false)} className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</Link>
-              <Link to="/#casos" onClick={() => setMobileMenuOpen(false)} className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</Link>
-              <Link to="/dossie" onClick={() => setMobileMenuOpen(false)} className="block text-white py-2 font-semibold">Dossiê</Link>
+            <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4`}>
+              {HOME_SECTION_LINKS.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-slate-300 hover:text-white transition-colors py-2"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {PRODUCT_TABS.map((tab) => (
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-2 transition-colors ${
+                    tab.to === '/dossie' ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
             </div>
           </div>
         </nav>
@@ -321,24 +347,24 @@ export default function DossieComportamentalLandingPage() {
           <div className="max-w-7xl mx-auto relative z-10 w-full">
             <div className="grid lg:grid-cols-2 gap-14 xl:gap-16 items-center">
               <div className="lg:pr-3 xl:pr-6">
-                <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-8">
+                <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-8" style={{ animationDuration: '.5s' }}>
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   <span className="text-sm text-slate-300">Funcionalidade avançada para especialistas DISC</span>
                 </div>
-                <h1 className="fade-up text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>
+                <h1 className="fade-up text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
                   Dossiê InsightDISC: análise comportamental estruturada para atuação profissional
                 </h1>
-                <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8" style={{ animationDelay: '.2s' }}>
+                <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8" style={{ animationDelay: '.2s', animationDuration: '.55s' }}>
                   Uma camada avançada de interpretação DISC, organizada para profissionais que demandam precisão, profundidade e aplicabilidade prática no dia a dia.
                 </p>
 
-                <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s' }}>
+                <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s', animationDuration: '.55s' }}>
                   <a href="#como-funciona" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackCta('hero_explorar')}>Explorar o Dossiê na prática</a>
                   <a href="#estrutura-analitica" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" onClick={() => trackCta('hero_demo_tecnica')}>Ver demonstração técnica</a>
                 </div>
               </div>
 
-              <div className="fade-up" style={{ animationDelay: '.25s' }}>
+              <div className="fade-up" style={{ animationDelay: '.25s', animationDuration: '.55s' }}>
                 <div className="glass-card rounded-[28px] p-5">
                   <div className="grid gap-4">
                     <div className="mock-card rounded-2xl p-5">
@@ -403,8 +429,8 @@ export default function DossieComportamentalLandingPage() {
                   'Reduzir subjetividade na leitura',
                   'Estruturar hipóteses comportamentais mais assertivas',
                   'Apoiar decisões com base em evidências comportamentais',
-                ].map((item) => (
-                  <div key={item} className="feature-card rounded-2xl glass-card p-6 flex items-start gap-3">
+                ].map((item, index) => (
+                  <div key={item} className="dossie-card rounded-2xl glass-card p-6 flex items-start gap-3" style={{ animationDelay: `${index * 0.06}s` }}>
                     <span className="mt-1 w-2.5 h-2.5 bg-cyan-400 rounded-full shrink-0"></span>
                     <p className="text-slate-200 leading-relaxed">{item}</p>
                   </div>
@@ -416,7 +442,7 @@ export default function DossieComportamentalLandingPage() {
 
         <section id="como-funciona" className="py-24 px-6 bg-slate-900/35 border-y border-white/5">
           <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mb-14">
+            <div className="max-w-3xl mb-14 scroll-reveal">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Fluxo operacional</p>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Como funciona na prática</h2>
               <p className="text-lg text-slate-400 leading-relaxed">
@@ -426,7 +452,7 @@ export default function DossieComportamentalLandingPage() {
 
             <div className="grid gap-5">
               {FLOW_STEPS.map((step, index) => (
-                <article key={step.title} className="scroll-reveal feature-card rounded-2xl glass-card p-6 md:p-7">
+                <article key={step.title} className="scroll-reveal dossie-card rounded-2xl glass-card p-6 md:p-7" style={{ animationDelay: `${index * 0.05}s` }}>
                   <div className="flex flex-col md:flex-row md:items-start gap-5">
                     <div className="h-11 w-11 rounded-full bg-blue-500/20 border border-blue-400/35 text-blue-200 font-extrabold flex items-center justify-center shrink-0">
                       {index + 1}
@@ -453,7 +479,7 @@ export default function DossieComportamentalLandingPage() {
 
         <section id="estrutura-analitica" className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mb-12">
+            <div className="max-w-3xl mb-12 scroll-reveal">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Estrutura analítica</p>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Blocos de leitura profissional</h2>
               <p className="text-lg text-slate-400 leading-relaxed">
@@ -461,8 +487,8 @@ export default function DossieComportamentalLandingPage() {
               </p>
             </div>
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {ANALYTICAL_BLOCKS.map((item) => (
-                <div key={item} className="scroll-reveal feature-card rounded-2xl glass-card p-6">
+              {ANALYTICAL_BLOCKS.map((item, index) => (
+                <div key={item} className="scroll-reveal dossie-card rounded-2xl glass-card p-6" style={{ animationDelay: `${index * 0.07}s` }}>
                   <p className="text-lg font-semibold leading-snug">{item}</p>
                 </div>
               ))}
@@ -472,13 +498,13 @@ export default function DossieComportamentalLandingPage() {
 
         <section className="py-24 px-6 bg-slate-900/35 border-y border-white/5">
           <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mb-12">
+            <div className="max-w-3xl mb-12 scroll-reveal">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Benefícios para o profissional</p>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Mais consistência técnica, mais segurança na decisão</h2>
             </div>
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {BENEFITS.map((item) => (
-                <div key={item.title} className="scroll-reveal feature-card rounded-2xl glass-card p-6">
+              {BENEFITS.map((item, index) => (
+                <div key={item.title} className="scroll-reveal dossie-card rounded-2xl glass-card p-6" style={{ animationDelay: `${index * 0.07}s` }}>
                   <h3 className="text-xl font-bold mb-3">{item.title}</h3>
                   <p className="text-slate-400 leading-relaxed">{item.description}</p>
                 </div>
@@ -489,13 +515,13 @@ export default function DossieComportamentalLandingPage() {
 
         <section className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mb-12">
+            <div className="max-w-3xl mb-12 scroll-reveal">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Aplicações profissionais</p>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Onde o Dossiê gera valor na prática</h2>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {APPLICATIONS.map((item) => (
-                <div key={item} className="scroll-reveal rounded-2xl glass-card px-5 py-4 font-semibold text-slate-200 border border-white/10">
+              {APPLICATIONS.map((item, index) => (
+                <div key={item} className="scroll-reveal dossie-card rounded-2xl glass-card px-5 py-4 font-semibold text-slate-200 border border-white/10" style={{ animationDelay: `${index * 0.07}s` }}>
                   {item}
                 </div>
               ))}
@@ -519,13 +545,13 @@ export default function DossieComportamentalLandingPage() {
 
         <section className="py-24 px-6 bg-slate-900/35 border-y border-white/5">
           <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mb-12">
+            <div className="max-w-3xl mb-12 scroll-reveal">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Para quem é</p>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-4">Perfis ideais de uso profissional</h2>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AUDIENCE.map((item) => (
-                <div key={item} className="scroll-reveal rounded-2xl glass-card p-5 border border-white/10">
+              {AUDIENCE.map((item, index) => (
+                <div key={item} className="scroll-reveal dossie-card rounded-2xl glass-card p-5 border border-white/10" style={{ animationDelay: `${index * 0.06}s` }}>
                   <p className="font-semibold">{item}</p>
                 </div>
               ))}
@@ -535,7 +561,7 @@ export default function DossieComportamentalLandingPage() {
 
         <section className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="rounded-[30px] glass-card border border-white/10 p-8 md:p-12">
+            <div className="scroll-reveal dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-4">Pronto para aplicar</p>
               <h2 className="text-3xl md:text-5xl font-extrabold leading-tight mb-5">
                 Utilize o Dossiê InsightDISC para transformar dados comportamentais em análise estruturada, decisões mais seguras e entregas profissionais de alto nível.

@@ -165,7 +165,7 @@ function validateHtml(model, html) {
     'Card de identificacao da capa nao encontrado.',
   );
   assert(
-    html.includes('www.insightdisc.app') && html.includes('contato@insightdisc.app'),
+    html.includes('www.insightdisc.app') && html.includes('contato@insightdisc.com'),
     'Bloco institucional da capa nao encontrado.'
   );
   assert(
@@ -207,7 +207,7 @@ function validateHtml(model, html) {
   assert(html.includes('Forças Naturais') || html.includes('Forcas Naturais'), 'Secao de forcas nao encontrada.');
   assert(html.includes('Pontos de Desenvolvimento'), 'Secao de desenvolvimento nao encontrada.');
   assert(html.includes('www.insightdisc.app'), 'Site institucional da ultima pagina nao encontrado.');
-  assert(html.includes('contato@insightdisc.app') || html.includes('suporte@insightdisc.app'), 'E-mail institucional da ultima pagina nao encontrado.');
+  assert(html.includes('contato@insightdisc.com'), 'E-mail institucional da ultima pagina nao encontrado.');
   assert(html.includes('@insightdisc'), 'Instagram institucional da ultima pagina nao encontrado.');
 
   for (let index = 0; index < pageBodies.length; index += 1) {

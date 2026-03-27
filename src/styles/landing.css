@@ -163,6 +163,21 @@ body.landing-body {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), inset 0 0 20px rgba(59, 130, 246, 0.05);
 }
 
+.landing-page .dossie-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+  will-change: transform;
+}
+
+.landing-page .dossie-card:hover {
+  transform: scale(1.02);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.14), 0 14px 28px rgba(2, 6, 23, 0.22), inset 0 0 14px rgba(59, 130, 246, 0.08);
+}
+
+.landing-page .dossie-cta-highlight {
+  box-shadow: 0 24px 52px rgba(2, 6, 23, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(59, 130, 246, 0.14);
+}
+
 .landing-page .fade-up {
   animation: fadeUp 0.8s ease forwards;
   opacity: 0;
@@ -242,6 +257,19 @@ body.landing-body {
 
 .landing-page .scroll-reveal.visible {
   animation: fadeUp 0.6s ease forwards;
+}
+
+.landing-page.dossie-landing .scroll-reveal {
+  transform: translateY(30px);
+}
+
+.landing-page.dossie-landing .scroll-reveal.visible {
+  animation: dossieFadeUp 0.6s ease forwards;
+}
+
+@keyframes dossieFadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .landing-page .feature-card:nth-child(1).visible { animation-delay: 0s; }

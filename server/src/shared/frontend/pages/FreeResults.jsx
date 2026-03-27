@@ -20,7 +20,7 @@ import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
-import { ReportValueLadderCard } from '@/modules/reports';
+import { buildAssessmentReportPath, ReportValueLadderCard } from '@/modules/reports';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -211,7 +211,7 @@ export default function FreeResults() {
   const resolvedAssessmentId = String(assessment?.assessmentId || assessment?.id || '').trim();
   const pricingUrl = `/checkout?product=report-unlock&assessmentId=${encodeURIComponent(resolvedAssessmentId)}${assessmentToken ? `&token=${encodeURIComponent(assessmentToken)}` : ''}&flow=candidate`;
   const continueReportUrl = resolvedAssessmentId
-    ? `${createPageUrl('Report')}?id=${encodeURIComponent(resolvedAssessmentId)}`
+    ? buildAssessmentReportPath(resolvedAssessmentId)
     : assessmentToken
       ? `/c/report?token=${encodeURIComponent(assessmentToken)}&type=business`
       : createPageUrl('Dashboard');
