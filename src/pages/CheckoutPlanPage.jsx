@@ -300,7 +300,12 @@ export default function CheckoutPlanPage() {
                 <ul className="grid gap-2 text-slate-200">
                   {plan.benefits.map((benefit) => (
                     <li key={benefit} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                      {benefit}
+                      <span className="inline-flex items-start gap-2">
+                        <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold">
+                          ✓
+                        </span>
+                        <span>{benefit}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>

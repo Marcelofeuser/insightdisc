@@ -24,6 +24,7 @@ import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
+import CheckoutPlanPage from '@/pages/CheckoutPlanPage';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 import PersonalLandingPage from '@/pages/PersonalLanding';
 import ProfissionalLandingPage from '@/pages/ProfissionalLanding';
@@ -191,6 +192,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route path="/checkout/:planSlug" element={<CheckoutPlanPage />} />
       <Route
         path="/empresa"
         element={

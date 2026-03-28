@@ -16,12 +16,24 @@ const CREDIBILITY_ITEMS = Object.freeze([
 const PLAN_COMPARISON_ROWS = Object.freeze([
   { feature: 'Acesso à plataforma', disc: '—', personal: '2 meses', profissional: 'Mensal', business: 'Mensal', diamond: 'Mensal' },
   { feature: 'Relatórios DISC inclusos', disc: '1 relatório', personal: '1 por ciclo', profissional: '10 créditos/mês', business: '25 créditos/mês', diamond: 'Ilimitado' },
+  { feature: 'Envio de avaliações DISC', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Gestão de avaliações realizadas', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Comparação de perfis comportamentais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Dossiê comportamental completo', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Relatórios técnicos avançados', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Biblioteca DISC (conteúdo em expansão)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Arquétipos comportamentais (novas funcionalidades sendo adicionadas continuamente)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Coach DISC com recomendações práticas', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Acesso ao AI Lab (preview de IA)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Download em PDF', disc: '✓', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Histórico e evolução', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Dossiê completo', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Recursos profissionais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Team Map', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Recursos para equipes', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Análise de perfis em grupo', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Comparação entre colaboradores', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Apoio à liderança e tomada de decisão', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Gestão de múltiplos usuários', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Aplicação DISC em equipes e empresas', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Operação em escala', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
   { feature: 'Uso ilimitado', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
 ]);
 
@@ -286,7 +298,12 @@ export default function PlanosPage() {
                     <ul className="space-y-2 text-sm text-slate-300 mb-6 flex-1">
                       {plan.benefits.map((benefit) => (
                         <li key={benefit} className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                          {benefit}
+                          <span className="inline-flex items-start gap-2">
+                            <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold">
+                              ✓
+                            </span>
+                            <span>{benefit}</span>
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -321,7 +338,12 @@ export default function PlanosPage() {
                     <ul className="space-y-2 text-sm text-slate-300 mb-6 flex-1">
                       {plan.benefits.map((benefit) => (
                         <li key={benefit} className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                          {benefit}
+                          <span className="inline-flex items-start gap-2">
+                            <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold">
+                              ✓
+                            </span>
+                            <span>{benefit}</span>
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -387,6 +409,9 @@ export default function PlanosPage() {
                 Créditos mensais incluídos no plano são renovados automaticamente a cada ciclo e não são acumulativos para o mês seguinte.
               </div>
             </div>
+            <p className="scroll-reveal mt-4 text-sm text-slate-400">
+              No modelo comercial atual, o plano Business herda integralmente os recursos do Profissional, com camadas adicionais para operação em equipe.
+            </p>
           </div>
         </section>
 

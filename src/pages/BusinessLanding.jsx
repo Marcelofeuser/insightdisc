@@ -8,12 +8,13 @@ const BUSINESS_CONFIG = {
   hero: {
     badge: 'Solução corporativa para equipes, líderes e RH estratégico',
     title: 'InsightDISC Business: inteligência comportamental para decisões organizacionais',
+    titleHighlight: 'decisões organizacionais',
     subtitle:
       'Conecte comportamento, cultura e performance com uma visão estruturada da equipe para liderar com mais precisão e escalar com consistência.',
     primaryCta: {
       label: 'Aplicar na empresa',
-      to: '/StartFree',
-      source: 'hero_aplicar_na_empresa',
+      to: '/checkout/business',
+      source: 'hero_checkout_business',
     },
     secondaryCta: {
       label: 'Ver solução para times',
@@ -206,18 +207,14 @@ const BUSINESS_CONFIG = {
     ],
   },
   finalCta: {
-    title: 'Transforme comportamento em vantagem competitiva para sua empresa.',
+    layout: 'single-centered',
+    title: 'Leve inteligência comportamental para decisões de equipe, liderança e cultura.',
     description:
-      'Com o InsightDISC Business, sua organização ganha visão técnica de equipes para liderar melhor, desenvolver pessoas e sustentar performance.',
+      'Ative o Business para consolidar visão organizacional e conduzir performance com mais previsibilidade.',
     primaryCta: {
       label: 'Aplicar na empresa',
-      to: '/StartFree',
-      source: 'cta_aplicar_na_empresa',
-    },
-    secondaryCta: {
-      label: 'Ver solução para times',
-      to: '#o-que-oferece',
-      source: 'cta_ver_solucao_times',
+      to: '/checkout/business',
+      source: 'cta_checkout_business',
     },
   },
 };

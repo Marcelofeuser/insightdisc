@@ -8,12 +8,13 @@ const PROFISSIONAL_CONFIG = {
   hero: {
     badge: 'Camada técnica para atuação profissional com DISC',
     title: 'InsightDISC Profissional: leitura técnica para decisões comportamentais consistentes',
+    titleHighlight: 'decisões comportamentais consistentes',
     subtitle:
       'Estruture devolutivas, recrutamento e desenvolvimento com uma base analítica confiável, reduzindo subjetividade e aumentando precisão.',
     primaryCta: {
       label: 'Usar na prática',
-      to: '/StartFree',
-      source: 'hero_usar_na_pratica',
+      to: '/checkout/profissional',
+      source: 'hero_checkout_profissional',
     },
     secondaryCta: {
       label: 'Ver análise profissional',
@@ -202,18 +203,14 @@ const PROFISSIONAL_CONFIG = {
     ],
   },
   finalCta: {
-    title: 'Eleve a qualidade das suas análises com uma estrutura DISC profissional.',
+    layout: 'single-centered',
+    title: 'Escale sua atuação com leitura técnica consistente e fluxo profissional completo.',
     description:
-      'Use o InsightDISC Profissional para transformar dados comportamentais em leitura técnica consistente, decisões seguras e entregas de alto nível.',
+      'Ative o plano Profissional para padronizar análises, ganhar produtividade e elevar sua entrega técnica.',
     primaryCta: {
-      label: 'Usar na prática',
-      to: '/StartFree',
-      source: 'cta_usar_na_pratica',
-    },
-    secondaryCta: {
-      label: 'Ver análise profissional',
-      to: '/dossie',
-      source: 'cta_ver_analise_profissional',
+      label: 'Adquirir acesso profissional',
+      to: '/checkout/profissional',
+      source: 'cta_checkout_profissional',
     },
   },
 };

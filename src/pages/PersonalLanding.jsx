@@ -8,12 +8,13 @@ const PERSONAL_CONFIG = {
   hero: {
     badge: 'Experiência individual para autoconhecimento prático',
     title: 'InsightDISC Personal: clareza comportamental para evolução pessoal',
+    titleHighlight: 'evolução pessoal',
     subtitle:
       'Uma jornada simples e estruturada para entender seu perfil, melhorar sua comunicação e tomar decisões com mais consciência emocional.',
     primaryCta: {
       label: 'Fazer minha análise',
-      to: '/avaliacoes',
-      source: 'hero_fazer_minha_analise',
+      to: '/checkout/personal',
+      source: 'hero_checkout_personal',
     },
     secondaryCta: {
       label: 'Descobrir meu perfil',
@@ -203,18 +204,14 @@ const PERSONAL_CONFIG = {
     ],
   },
   finalCta: {
-    title: 'Comece hoje sua leitura comportamental com clareza e aplicabilidade real.',
+    layout: 'single-centered',
+    title: 'Comece sua jornada de autoconhecimento com um plano feito para evolução contínua.',
     description:
-      'Use o InsightDISC Personal para transformar percepção em ação e evoluir com mais segurança no seu ritmo.',
+      'Ative o Personal e acompanhe sua leitura comportamental com clareza prática no seu dia a dia.',
     primaryCta: {
-      label: 'Fazer minha análise',
-      to: '/avaliacoes',
-      source: 'cta_fazer_minha_analise',
-    },
-    secondaryCta: {
-      label: 'Descobrir meu perfil',
-      to: '#o-que-e',
-      source: 'cta_descobrir_meu_perfil',
+      label: 'Começar no Personal',
+      to: '/checkout/personal',
+      source: 'cta_checkout_personal',
     },
   },
 };
