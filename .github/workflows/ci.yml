@@ -79,6 +79,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Start backend server
+        run: npm --prefix server start &
+      - name: Wait for backend
+        run: npx wait-on http://127.0.0.1:4000/health --timeout 30000
+
       - name: Run E2E (core)
         run: npm run test:e2e
         env:
