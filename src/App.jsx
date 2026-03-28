@@ -28,6 +28,7 @@ import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 import PersonalLandingPage from '@/pages/PersonalLanding';
 import ProfissionalLandingPage from '@/pages/ProfissionalLanding';
 import BusinessLandingPage from '@/pages/BusinessLanding';
+import PlanosPage from '@/pages/PlanosPage';
 import CompareProfiles from '@/pages/CompareProfiles';
 import TeamMap from '@/pages/TeamMap';
 import RoleDashboardHome from '@/pages/RoleDashboardHome';
@@ -172,6 +173,7 @@ const AuthenticatedApp = () => {
       <Route path="/personal" element={<PersonalLandingPage />} />
       <Route path="/profissional" element={<ProfissionalLandingPage />} />
       <Route path="/business" element={<BusinessLandingPage />} />
+      <Route path="/planos" element={<PlanosPage />} />
       <Route
         path="/demo"
         element={
@@ -496,7 +498,8 @@ function RouteAwareChatWidget() {
     location.pathname === '/dossie' ||
     location.pathname === '/personal' ||
     location.pathname === '/profissional' ||
-    location.pathname === '/business'
+    location.pathname === '/business' ||
+    location.pathname === '/planos'
   ) {
     return null;
   }

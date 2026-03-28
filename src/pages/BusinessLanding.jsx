@@ -40,6 +40,47 @@ const BUSINESS_CONFIG = {
       ],
     },
   },
+  visualShowcase: {
+    eyebrow: 'Visão de equipe',
+    title: 'Visualizações para decisões organizacionais',
+    description:
+      'Team Map e leitura agregada DISC para apoiar liderança, cultura e performance com visão sistêmica.',
+    variant: 'business',
+    content: {
+      teamMap: {
+        title: 'Team Map',
+        members: [
+          'D', 'I', 'S', 'C', 'I',
+          'S', 'D', 'C', 'I', 'S',
+          'C', 'D', 'I', 'S', 'C',
+          'D', 'I', 'S', 'C', 'D',
+        ],
+      },
+      bars: {
+        title: 'Distribuição DISC da equipe',
+        values: { D: 32, I: 27, S: 24, C: 17 },
+      },
+      radar: {
+        title: 'Radar médio da equipe',
+        subtitle: 'Composição comportamental consolidada',
+        values: { D: 68, I: 61, S: 54, C: 59 },
+      },
+      insights: [
+        {
+          title: 'Liderança',
+          description: 'Ajustes de comunicação para melhorar alinhamento e execução.',
+        },
+        {
+          title: 'Cultura',
+          description: 'Leitura de aderência comportamental por contexto organizacional.',
+        },
+        {
+          title: 'Performance',
+          description: 'Sinais de equilíbrio e possíveis pontos de tensão do time.',
+        },
+      ],
+    },
+  },
   whatIs: {
     title: 'Uma camada de inteligência comportamental para gestão de pessoas',
     description:
@@ -184,4 +225,3 @@ const BUSINESS_CONFIG = {
 export default function BusinessLandingPage() {
   return <ProductSegmentLandingBase {...BUSINESS_CONFIG} />;
 }
-

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { buildDossierPath } from '@/modules/dossier/routes';
 import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
+import ProductVisualShowcase from '@/components/marketing/ProductVisualShowcase';
 import '../styles/landing.css';
 
 const LANDING_TITLE =
@@ -137,6 +138,47 @@ const FLOW_STEPS = Object.freeze([
     bullets: ['Acompanhamento da evolução', 'Comparações futuras', 'Continuidade do desenvolvimento'],
   },
 ]);
+
+const DOSSIE_VISUAL_SHOWCASE = Object.freeze({
+  eyebrow: 'Visual técnico',
+  title: 'Interpretação DISC apoiada por estrutura visual',
+  description:
+    'Um conjunto de painéis para transformar dados comportamentais em leitura profissional clara, consistente e aplicável.',
+  variant: 'dossie',
+  content: {
+    radar: {
+      title: 'Radar DISC',
+      subtitle: 'Intensidade por fator para leitura inicial',
+      values: { D: 72, I: 58, S: 47, C: 79 },
+    },
+    reportStructure: {
+      title: 'Estrutura visual do relatório',
+      bullets: [
+        'Padrão predominante e combinações comportamentais.',
+        'Estilo de comunicação e resposta ao ambiente.',
+        'Tomada de decisão, ritmo e estabilidade.',
+        'Indicadores de adaptação e possíveis pontos de tensão.',
+      ],
+    },
+    flow: {
+      title: 'Fluxo de leitura',
+      stages: [
+        {
+          title: 'Entrada',
+          description: 'Coleta de dados da avaliação e contexto do avaliado.',
+        },
+        {
+          title: 'Análise',
+          description: 'Processamento DISC com organização em blocos técnicos.',
+        },
+        {
+          title: 'Saída',
+          description: 'Dossiê estruturado para devolutiva e decisão profissional.',
+        },
+      ],
+    },
+  },
+});
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
   let tag = document.head.querySelector(selector);
@@ -405,6 +447,14 @@ export default function DossieComportamentalLandingPage() {
             </div>
           </div>
         </section>
+
+        <ProductVisualShowcase
+          eyebrow={DOSSIE_VISUAL_SHOWCASE.eyebrow}
+          title={DOSSIE_VISUAL_SHOWCASE.title}
+          description={DOSSIE_VISUAL_SHOWCASE.description}
+          variant={DOSSIE_VISUAL_SHOWCASE.variant}
+          content={DOSSIE_VISUAL_SHOWCASE.content}
+        />
 
         <section id="o-que-e" className="py-24 px-6">
           <div className="max-w-7xl mx-auto">

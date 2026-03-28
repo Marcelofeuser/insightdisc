@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
+import ProductVisualShowcase from '@/components/marketing/ProductVisualShowcase';
 import '../styles/landing.css';
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
@@ -52,6 +53,7 @@ export default function ProductSegmentLandingBase({
   metaTitle,
   metaDescription,
   hero,
+  visualShowcase,
   whatIs,
   audience,
   offers,
@@ -301,6 +303,16 @@ export default function ProductSegmentLandingBase({
           </div>
         </section>
 
+        {visualShowcase ? (
+          <ProductVisualShowcase
+            eyebrow={visualShowcase.eyebrow}
+            title={visualShowcase.title}
+            description={visualShowcase.description}
+            variant={visualShowcase.variant}
+            content={visualShowcase.content}
+          />
+        ) : null}
+
         <section id="o-que-e" className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-stretch">
@@ -461,4 +473,3 @@ export default function ProductSegmentLandingBase({
     </div>
   );
 }
-

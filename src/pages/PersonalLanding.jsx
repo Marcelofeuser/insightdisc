@@ -40,6 +40,44 @@ const PERSONAL_CONFIG = {
       ],
     },
   },
+  visualShowcase: {
+    eyebrow: 'Preview visual',
+    title: 'Veja seu perfil DISC de forma clara e aplicada',
+    description:
+      'Um painel visual objetivo para transformar autoconhecimento em ações práticas no dia a dia.',
+    variant: 'personal',
+    content: {
+      radar: {
+        title: 'Radar DISC pessoal',
+        subtitle: 'Intensidade comportamental por fator',
+        values: { D: 62, I: 78, S: 55, C: 67 },
+      },
+      insights: [
+        {
+          title: 'Comunicação',
+          description: 'Tendência a interações diretas com boa capacidade de engajamento.',
+        },
+        {
+          title: 'Decisão',
+          description: 'Equilíbrio entre velocidade e cautela conforme o contexto.',
+        },
+        {
+          title: 'Desenvolvimento',
+          description: 'Pontos de evolução priorizados para rotina e relações.',
+        },
+      ],
+      preview: {
+        title: 'Preview do relatório',
+        badge: 'Leitura pessoal',
+        lines: [
+          'Síntese do padrão predominante com linguagem acessível.',
+          'Forças naturais e pontos de atenção no comportamento.',
+          'Insights práticos para decisões e comunicação.',
+          'Direcionamentos de evolução para o cotidiano.',
+        ],
+      },
+    },
+  },
   whatIs: {
     title: 'Uma experiência DISC desenhada para quem quer se entender melhor',
     description:
@@ -184,4 +222,3 @@ const PERSONAL_CONFIG = {
 export default function PersonalLandingPage() {
   return <ProductSegmentLandingBase {...PERSONAL_CONFIG} />;
 }
-

@@ -40,6 +40,43 @@ const PROFISSIONAL_CONFIG = {
       ],
     },
   },
+  visualShowcase: {
+    eyebrow: 'Painel técnico',
+    title: 'Leitura DISC visual para atuação profissional',
+    description:
+      'Visualizações que apoiam interpretação consistente, devolutiva estruturada e tomada de decisão com menos ruído.',
+    variant: 'profissional',
+    content: {
+      radar: {
+        title: 'Radar DISC com intensidade',
+        subtitle: 'Mapa dos fatores para leitura técnica',
+        values: { D: 74, I: 63, S: 48, C: 82 },
+      },
+      bars: {
+        title: 'Distribuição D/I/S/C',
+        values: { D: 74, I: 63, S: 48, C: 82 },
+      },
+      technical: {
+        title: 'Bloco de leitura técnica',
+        bullets: [
+          'Predominância com combinações secundárias.',
+          'Estilo de comunicação em contexto profissional.',
+          'Tendências decisórias e resposta à pressão.',
+          'Indicadores de adaptação e esforço comportamental.',
+        ],
+      },
+      preview: {
+        title: 'Preview do relatório profissional',
+        badge: 'Dossiê técnico',
+        lines: [
+          'Leitura estruturada por blocos analíticos.',
+          'Evidências comportamentais para devolutiva.',
+          'Pontos de tensão e hipóteses de investigação.',
+          'Recomendações práticas para aplicação profissional.',
+        ],
+      },
+    },
+  },
   whatIs: {
     title: 'Uma solução profissional para leitura DISC orientada a decisão',
     description:
@@ -184,4 +221,3 @@ const PROFISSIONAL_CONFIG = {
 export default function ProfissionalLandingPage() {
   return <ProductSegmentLandingBase {...PROFISSIONAL_CONFIG} />;
 }
-
