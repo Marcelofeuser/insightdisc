@@ -10,6 +10,7 @@ import {
 import { publicReportUrl } from './fixtures/publicReport';
 
 test('fluxo público do relatório: render + download de PDF', async ({ page }, testInfo) => {
+  test.skip(!process.env.PW_PUBLIC_REPORT_URL, 'Requires PW_PUBLIC_REPORT_URL env var');
   await openPublicReport(page, publicReportUrl);
   await waitForReportRender(page);
 
