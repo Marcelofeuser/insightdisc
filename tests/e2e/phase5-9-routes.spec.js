@@ -16,7 +16,7 @@ test.describe('Fase 5-9 - rotas principais', () => {
 
     await page.goto('/coach');
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: 'Assistente comportamental estratégico' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Assistente comportamental contextual por relatório/i })).toBeVisible();
 
     await page.goto('/organization-report');
     await waitForApp(page);

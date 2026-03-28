@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { loginSuperAdminWithAutoSeed } from './helpers/super-admin-login.js';
 
-const API_BASE_URL = process.env.LIVE_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = (
+  process.env.LIVE_API_BASE_URL ||
+  process.env.E2E_API_URL ||
+  process.env.VITE_API_URL ||
+  'http://localhost:4000'
+).replace(/\/+$/, '');
 
 const SUPER_ADMIN = {
   email: process.env.SUPER_ADMIN_EMAIL || 'admin@insightdisc.app',
@@ -17,16 +23,22 @@ function authHeaders(token = '') {
 }
 
 async function superAdminLogin(request) {
-  const response = await request.post(`${API_BASE_URL}/auth/super-admin-login`, {
-    data: {
-      email: SUPER_ADMIN.email,
-      password: SUPER_ADMIN.password,
-      masterKey: SUPER_ADMIN.masterKey,
+  const { response, payload, seedAttempted, seedError } = await loginSuperAdminWithAutoSeed(
+    request,
+    {
+      apiBaseUrl: API_BASE_URL,
+      credentials: SUPER_ADMIN,
     },
-    failOnStatusCode: false,
-  });
-  expect(response.status()).toBe(200);
-  const payload = await response.json();
+  );
+
+  const status = response.status();
+  const loginError = payload?.error || payload?.message || 'UNKNOWN_LOGIN_ERROR';
+  const seedContext = seedAttempted ? ' Seed attempted automatically.' : '';
+  const seedFailure = seedError ? ` Seed failed: ${seedError}` : '';
+  expect(
+    status,
+    `super-admin login failed with status ${status} (${loginError}).${seedContext}${seedFailure}`,
+  ).toBe(200);
   expect(payload?.ok).toBeTruthy();
   expect(payload?.token).toBeTruthy();
   return payload.token;
@@ -186,4 +198,3 @@ test.describe('Audit API Authorization', () => {
     expect(contentType.toLowerCase()).toContain('application/pdf');
   });
 });
-

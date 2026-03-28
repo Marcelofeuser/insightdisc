@@ -1,4 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { loginSuperAdminWithAutoSeed } from './helpers/super-admin-login.js';
+
+const API_BASE_URL = (
+  process.env.LIVE_API_BASE_URL ||
+  process.env.E2E_API_URL ||
+  process.env.VITE_API_URL ||
+  'http://localhost:4000'
+).replace(/\/+$/, '');
 
 const SUPER_ADMIN = {
   email: process.env.SUPER_ADMIN_EMAIL || 'admin@insightdisc.app',
@@ -22,6 +30,8 @@ async function clearClientSession(page) {
       'disc_mock_user_email',
       'disc_mock_active_tenant',
       'candidate_jwt',
+      'insightdisc_super_admin_token',
+      'insightdisc_super_admin_email',
     ].forEach((key) => {
       window.localStorage.removeItem(key);
       window.sessionStorage.removeItem(key);
@@ -29,7 +39,23 @@ async function clearClientSession(page) {
   });
 }
 
-async function loginSuperAdmin(page) {
+async function loginSuperAdmin(page, request) {
+  const { response, payload, seedAttempted, seedError } = await loginSuperAdminWithAutoSeed(
+    request,
+    {
+      apiBaseUrl: API_BASE_URL,
+      credentials: SUPER_ADMIN,
+    },
+  );
+  const status = response.status();
+  const loginError = payload?.error || payload?.message || 'UNKNOWN_LOGIN_ERROR';
+  const seedContext = seedAttempted ? ' Seed attempted automatically.' : '';
+  const seedFailure = seedError ? ` Seed failed: ${seedError}` : '';
+  expect(
+    status,
+    `super-admin preflight login failed with status ${status} (${loginError}).${seedContext}${seedFailure}`,
+  ).toBe(200);
+
   await page.goto('/super-admin-login', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#super-admin-email')).toBeVisible();
   await page.locator('#super-admin-email').fill(SUPER_ADMIN.email);
@@ -98,9 +124,9 @@ async function expectProtected(page, route) {
 }
 
 test.describe('Audit Auth Routes', () => {
-  test('super admin login, session persistence, and logout behavior', async ({ page }) => {
+  test('super admin login, session persistence, and logout behavior', async ({ page, request }) => {
     await clearClientSession(page);
-    await loginSuperAdmin(page);
+    await loginSuperAdmin(page, request);
 
     const sessionBeforeReload = await page.evaluate(() => ({
       token: window.localStorage.getItem('insightdisc_api_token') || '',

@@ -199,13 +199,18 @@ async function generateReportPayload({ assessmentId, reportType, req }) {
     throw error;
   }
 
-  // SaaS: gate premium_pdf
-  const pdfGate = canUseFeature(assessment.organizationId, 'premium_pdf');
-  if (!pdfGate.ok) {
-    const error = new Error('FEATURE_BLOCKED');
-    error.statusCode = 402;
-    error.saasGate = pdfGate;
-    throw error;
+  const requesterRole = String(req.user?.role || '').trim().toUpperCase();
+  const isSuperAdmin = requesterRole === 'SUPER_ADMIN';
+
+  // SaaS: gate premium_pdf (SUPER_ADMIN bypassa restrição de plano)
+  if (!isSuperAdmin) {
+    const pdfGate = canUseFeature(assessment.organizationId, 'premium_pdf');
+    if (!pdfGate.ok) {
+      const error = new Error('FEATURE_BLOCKED');
+      error.statusCode = 402;
+      error.saasGate = pdfGate;
+      throw error;
+    }
   }
 
   const reportModel = await buildPremiumReportModel({
