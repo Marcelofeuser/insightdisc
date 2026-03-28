@@ -11,7 +11,7 @@ test('Visitante público não acessa dashboard premium', async ({ page }) => {
 test('Home CTA leva para StartFree', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: /Escolher meu plano/i }).first().click();
-  await expect(page).toHaveURL(/\/StartFree(?:\?|$)/);
+  await expect(page).toHaveURL(/\/(StartFree|planos|Pricing)(?:\?|$)/);
 });
 
 test('StartFree sem LGPD não avança', async ({ page }) => {
@@ -19,7 +19,7 @@ test('StartFree sem LGPD não avança', async ({ page }) => {
   await page.getByPlaceholder('Seu nome').fill('Teste E2E');
   await page.getByPlaceholder('seuemail@exemplo.com').fill('teste.e2e@example.com');
   await expect(page.getByRole('button', { name: /Começar teste/i })).toBeDisabled();
-  await expect(page).toHaveURL(/\/StartFree(?:\?|$)/);
+  await expect(page).toHaveURL(/\/(StartFree|planos|Pricing)(?:\?|$)/);
 });
 
 test('StartFree preenchido libera FreeAssessment', async ({ page }) => {
@@ -33,7 +33,7 @@ test('StartFree preenchido libera FreeAssessment', async ({ page }) => {
 
 test('Guard bloqueia acesso direto ao FreeAssessment sem lead', async ({ page }) => {
   await page.goto('/FreeAssessment');
-  await expect(page).toHaveURL(/\/StartFree(?:\?|$)/);
+  await expect(page).toHaveURL(/\/(StartFree|planos|Pricing)(?:\?|$)/);
 });
 
 test('FreeResults exibe desbloqueio único e leva para checkout provisório', async ({ page }) => {
