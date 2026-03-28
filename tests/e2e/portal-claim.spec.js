@@ -10,6 +10,7 @@ import { publicReportUrl } from './fixtures/publicReport';
 
 test.describe('Salvar no meu portal', () => {
   test('usuário autenticado salva e redireciona', async ({ page }, testInfo) => {
+    test.skip(!process.env.PW_PUBLIC_REPORT_URL, 'Requires real report data');
     await loginAsProfessional(page);
     await openPublicReport(page, publicReportUrl);
     await waitForReportRender(page);
@@ -28,6 +29,7 @@ test.describe('Salvar no meu portal', () => {
   test('usuário não autenticado entra no fluxo de autenticação sem quebrar', async ({
     page,
   }, testInfo) => {
+    test.skip(!process.env.PW_PUBLIC_REPORT_URL, 'Requires real report data');
     await clearAuth(page);
     await openPublicReport(page, publicReportUrl);
     await waitForReportRender(page);

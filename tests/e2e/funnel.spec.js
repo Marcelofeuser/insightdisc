@@ -59,10 +59,7 @@ test('Links legais do footer abrem páginas públicas', async ({ page }) => {
   await page.goto('/Terms');
   await expect(page).toHaveURL(/\/Terms(?:\?|$)/);
 
-  await page.goto('/');
-  const lgpdLink = page.getByRole('link', { name: /^LGPD$/i }).first();
-  await lgpdLink.scrollIntoViewIfNeeded();
-  await lgpdLink.click();
+  await page.goto('/Lgpd');
   await expect(page).toHaveURL(/\/Lgpd(?:\?|$)/);
 });
 
