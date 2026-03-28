@@ -11,7 +11,7 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push",
+    "prisma:push": "prisma db push --accept-data-loss",
     "seed:super-admin": "node scripts/seed-super-admin.js",
     "create:super-admin": "node scripts/create-super-admin.js"
   },
