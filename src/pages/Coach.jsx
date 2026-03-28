@@ -5,29 +5,61 @@ import { Input } from '@/components/ui/input';
 import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
 import { answerDiscCoachQuestion } from '@/modules/coach';
 
-const PRESET_PROFILES = Object.freeze([
-  { key: 'DI', label: 'Perfil DI', scores: { D: 42, I: 30, S: 16, C: 12 } },
-  { key: 'SC', label: 'Perfil SC', scores: { D: 14, I: 18, S: 40, C: 28 } },
-  { key: 'CD', label: 'Perfil CD', scores: { D: 32, I: 12, S: 21, C: 35 } },
-  { key: 'IS', label: 'Perfil IS', scores: { D: 15, I: 38, S: 31, C: 16 } },
+const PRESET_REPORTS = Object.freeze([
+  {
+    id: 'report-ana-di',
+    title: 'Relatório #001 • Ana Martins',
+    context: 'Devolutiva individual',
+    profileCode: 'DI',
+    styleLabel: 'Direta e influente',
+    collectedAt: '24 mar 2026',
+    scores: { D: 42, I: 30, S: 16, C: 12 },
+  },
+  {
+    id: 'report-carlos-sc',
+    title: 'Relatório #014 • Carlos Souza',
+    context: 'Coaching de liderança',
+    profileCode: 'SC',
+    styleLabel: 'Estável e analítico',
+    collectedAt: '21 mar 2026',
+    scores: { D: 14, I: 18, S: 40, C: 28 },
+  },
+  {
+    id: 'report-bianca-cd',
+    title: 'Relatório #022 • Bianca Lima',
+    context: 'Entrevista comportamental',
+    profileCode: 'CD',
+    styleLabel: 'Analítica e orientada a resultado',
+    collectedAt: '17 mar 2026',
+    scores: { D: 32, I: 12, S: 21, C: 35 },
+  },
+  {
+    id: 'report-pedro-is',
+    title: 'Relatório #031 • Pedro Rocha',
+    context: 'Acompanhamento de desenvolvimento',
+    profileCode: 'IS',
+    styleLabel: 'Comunicativo e colaborativo',
+    collectedAt: '12 mar 2026',
+    scores: { D: 15, I: 38, S: 31, C: 16 },
+  },
 ]);
 
 const QUICK_QUESTIONS = Object.freeze([
-  'Como liderar um perfil SC?',
-  'Como motivar um perfil C alto?',
-  'Como lidar com conflito D x S?',
+  'Quais perguntas técnicas devo usar na devolutiva?',
+  'Como conduzir esse perfil sob pressão?',
+  'Que recomendações práticas priorizar na próxima sessão?',
 ]);
 
 export default function Coach() {
   const { checkFeature, featureKeys } = useFeatureAccess();
   const coachAccess = checkFeature(featureKeys.COACH);
-  const [selectedProfileKey, setSelectedProfileKey] = useState(PRESET_PROFILES[0].key);
+  const [selectedReportId, setSelectedReportId] = useState(PRESET_REPORTS[0].id);
   const [question, setQuestion] = useState(QUICK_QUESTIONS[0]);
   const [submittedQuestion, setSubmittedQuestion] = useState(QUICK_QUESTIONS[0]);
   const [answer, setAnswer] = useState({ response: '', recommendedActions: [], profileCode: '', styleLabel: '' });
   const [loading, setLoading] = useState(false);
 
-  const selectedProfile = PRESET_PROFILES.find((item) => item.key === selectedProfileKey) || PRESET_PROFILES[0];
+  const selectedReport = PRESET_REPORTS.find((item) => item.id === selectedReportId) || PRESET_REPORTS[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -36,28 +68,35 @@ export default function Coach() {
       try {
         const result = await answerDiscCoachQuestion({
           question: submittedQuestion,
-          scores: selectedProfile?.scores || {},
+          scores: selectedReport?.scores || {},
           detailLevel: 'medium',
-          profile: selectedProfile?.key,
+          profile: selectedReport?.profileCode,
         });
         if (!cancelled) setAnswer(result);
       } catch {
-        if (!cancelled) setAnswer({ response: 'Erro ao gerar resposta.', recommendedActions: [], profileCode: '', styleLabel: '' });
+        if (!cancelled) {
+          setAnswer({ response: 'Erro ao gerar resposta.', recommendedActions: [], profileCode: '', styleLabel: '' });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
     fetchAnswer();
-    return () => { cancelled = true; };
-  }, [selectedProfileKey, submittedQuestion]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReport, submittedQuestion]);
 
   if (!coachAccess.allowed) {
     return (
-      <div className="w-full min-w-0 max-w-4xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
+      <div
+        className="w-full min-w-0 max-w-4xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8"
+        data-testid="coach-gated-state"
+      >
         <UpgradePrompt
           title="Coach DISC bloqueado no plano atual"
-          description="Faça upgrade para desbloquear o coach comportamental com recomendações práticas baseadas no discEngine."
-          requiredPlanLabel="Professional"
+          description="O Coach DISC está disponível nos planos Personal, Profissional e Business com recomendações práticas baseadas em perfis analisados."
+          requiredPlanLabel="Personal"
           ctaLabel="Ativar coach"
         />
       </div>
@@ -65,56 +104,69 @@ export default function Coach() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div
+      className="w-full min-w-0 max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8"
+      data-testid="coach-page"
+    >
+      <section
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        data-testid="coach-unlocked-state"
+      >
         <p className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-700">
           Coach DISC
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-          Assistente comportamental estratégico
+          Assistente comportamental contextual por relatório
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Faça perguntas sobre liderança, motivação e conflitos para receber respostas práticas baseadas no perfil DISC.
+          Selecione um relatório já analisado e receba recomendações práticas com base no perfil DISC contextualizado.
         </p>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Perfil de referência</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {PRESET_PROFILES.map((profile) => {
-              const active = profile.key === selectedProfileKey;
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Relatório base</p>
+          <div className="mt-2 grid gap-2">
+            {PRESET_REPORTS.map((report) => {
+              const active = report.id === selectedReportId;
               return (
                 <button
-                  key={profile.key}
+                  key={report.id}
                   type="button"
-                  onClick={() => setSelectedProfileKey(profile.key)}
+                  onClick={() => setSelectedReportId(report.id)}
                   className={`rounded-xl border px-3 py-2 text-left transition ${
                     active
                       ? 'border-indigo-300 bg-indigo-50 text-indigo-900'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                   }`}
                 >
-                  <p className="text-sm font-semibold">{profile.label}</p>
+                  <p className="text-sm font-semibold">{report.title}</p>
                   <p className="mt-0.5 text-xs text-slate-600">
-                    D {profile.scores.D}% • I {profile.scores.I}% • S {profile.scores.S}% • C {profile.scores.C}%
+                    {report.context} • Perfil {report.profileCode} • {report.collectedAt}
                   </p>
                 </button>
               );
             })}
           </div>
 
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Pergunta</p>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-xs text-slate-600">
+            <p className="font-semibold text-slate-700">Contexto atual: {selectedReport.title}</p>
+            <p className="mt-1">
+              Perfil {selectedReport.profileCode} • {selectedReport.styleLabel}
+            </p>
+            <p className="mt-1">
+              D {selectedReport.scores.D}% • I {selectedReport.scores.I}% • S {selectedReport.scores.S}% • C {selectedReport.scores.C}%
+            </p>
+          </div>
+
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Pergunta técnica</p>
           <div className="mt-2 flex gap-2">
             <Input
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ex.: Como lidar com conflito D x S?"
+              placeholder="Ex.: Como conduzir a devolutiva deste perfil em contexto de liderança?"
             />
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700"
-              onClick={() => setSubmittedQuestion(question)}
-            >
+            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setSubmittedQuestion(question)}>
               <SendHorizonal className="mr-2 h-4 w-4" />
               Perguntar
             </Button>
@@ -140,13 +192,13 @@ export default function Coach() {
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900">
             <MessageSquareText className="h-4 w-4 text-indigo-600" />
-            Resposta do coach
+            Resposta orientada pelo relatório
           </h2>
-          <p className="mt-2 text-sm text-slate-700">
-            {loading ? 'Gerando resposta...' : answer.response}
-          </p>
           <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600">
-            Perfil: {answer.profileCode || '-'} • {answer.styleLabel || 'Leitura semântica DISC'}
+            Base atual: {selectedReport.title} • Perfil {answer.profileCode || selectedReport.profileCode} • {answer.styleLabel || selectedReport.styleLabel}
+          </p>
+          <p className="mt-3 text-sm text-slate-700">
+            {loading ? 'Gerando resposta contextual...' : answer.response}
           </p>
           <ul className="mt-3 space-y-2">
             {(answer.recommendedActions || []).map((item) => (
@@ -155,6 +207,11 @@ export default function Coach() {
               </li>
             ))}
           </ul>
+          {!loading && (!answer.recommendedActions || answer.recommendedActions.length === 0) ? (
+            <p className="mt-3 text-xs text-slate-500">
+              Sem ações adicionais no momento. Ajuste a pergunta para aprofundar a devolutiva.
+            </p>
+          ) : null}
         </article>
       </section>
     </div>
