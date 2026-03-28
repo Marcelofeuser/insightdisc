@@ -13,26 +13,73 @@ const CREDIBILITY_ITEMS = Object.freeze([
   'Aplicado em empresas',
   'Baseado em DISC',
 ]);
-const PLAN_COMPARISON_ROWS = Object.freeze([
+const SUMMARY_COMPARISON_ROWS = Object.freeze([
+  {
+    feature: 'Preço',
+    disc: PLANS.disc.price,
+    personal: PLANS.personal.price,
+    profissional: `${PLANS.profissional.price}${PLANS.profissional.billingLabel}`,
+    business: `${PLANS.business.price}${PLANS.business.billingLabel}`,
+    diamond: `${PLANS.diamond.price}${PLANS.diamond.billingLabel}`,
+  },
+  {
+    feature: 'Duração / recorrência',
+    disc: 'Pagamento único',
+    personal: '2 meses',
+    profissional: 'Assinatura mensal',
+    business: 'Assinatura mensal',
+    diamond: 'Assinatura mensal',
+  },
+  {
+    feature: 'Para quem é',
+    disc: PLANS.disc.indication,
+    personal: PLANS.personal.indication,
+    profissional: PLANS.profissional.indication,
+    business: PLANS.business.indication,
+    diamond: PLANS.diamond.indication,
+  },
+  {
+    feature: 'Créditos mensais',
+    disc: 'Não se aplica',
+    personal: '1 relatório por ciclo',
+    profissional: '10 créditos/mês',
+    business: '25 créditos/mês',
+    diamond: 'Ilimitado',
+  },
+  {
+    feature: 'Principal diferencial',
+    disc: 'Relatório completo imediato em PDF',
+    personal: 'Coach DISC e evolução pessoal guiada',
+    profissional: 'Dossiê técnico e AI Lab para análise',
+    business: 'Team Map com gestão comportamental de equipe',
+    diamond: 'Uso ilimitado para operação em escala',
+  },
+]);
+
+const DETAILED_COMPARISON_ROWS = Object.freeze([
   { feature: 'Acesso à plataforma', disc: '—', personal: '2 meses', profissional: 'Mensal', business: 'Mensal', diamond: 'Mensal' },
   { feature: 'Relatórios DISC inclusos', disc: '1 relatório', personal: '1 por ciclo', profissional: '10 créditos/mês', business: '25 créditos/mês', diamond: 'Ilimitado' },
-  { feature: 'Envio de avaliações DISC', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Gestão de avaliações realizadas', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Comparação de perfis comportamentais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Acompanhamento contínuo do perfil', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Gestão completa de avaliações DISC', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Comparação inteligente de perfis comportamentais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Dossiê comportamental completo', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Relatórios técnicos avançados', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Biblioteca DISC (conteúdo em expansão)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Arquétipos comportamentais (novas funcionalidades sendo adicionadas continuamente)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Coach DISC com recomendações práticas', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Acesso ao AI Lab (preview de IA)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Coach DISC contextual por relatório', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'AI Lab para aprofundamento analítico (preview)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Biblioteca DISC aplicada (conteúdo em expansão contínua)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Arquétipos comportamentais (evolução contínua)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Exportação profissional em PDF', disc: '✓', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Download em PDF', disc: '✓', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Histórico e evolução', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Herança completa do Profissional', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Team Map', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Análise de perfis em grupo', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Comparação entre colaboradores', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Apoio à liderança e tomada de decisão', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Visão estratégica para equipes e cultura', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Aplicação DISC em processos internos', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Estrutura para RH e gestão de pessoas', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Gestão de múltiplos usuários', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Aplicação DISC em equipes e empresas', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
   { feature: 'Operação em escala', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
   { feature: 'Uso ilimitado', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
 ]);
@@ -73,6 +120,7 @@ export default function PlanosPage() {
   const rootRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
+  const [showFullComparison, setShowFullComparison] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -146,6 +194,15 @@ export default function PlanosPage() {
 
   const trackPlanClick = (planKey, source) => {
     trackEvent('planos_cta_click', { path: '/planos', planKey, source });
+  };
+
+  const toggleComparisonDetails = () => {
+    const nextState = !showFullComparison;
+    setShowFullComparison(nextState);
+    trackEvent('planos_comparison_toggle', {
+      path: '/planos',
+      expanded: nextState,
+    });
   };
 
   const firstRowPlans = PLAN_ORDER.slice(0, 3);
@@ -244,17 +301,17 @@ export default function PlanosPage() {
                 <span className="text-sm text-slate-300">Planos oficiais InsightDISC para uso individual, profissional e empresarial</span>
               </div>
               <h1 className="fade-up hero-gradient-title text-4xl md:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>
-                Assine o InsightDISC e ative inteligência comportamental em <span className="headline-accent">nível premium</span>
+                Escolha o plano certo para transformar leitura DISC em <span className="headline-accent">decisão de alto nível</span>
               </h1>
               <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed mb-8" style={{ animationDelay: '.2s' }}>
-                Escolha o acesso ideal para seu momento, com planos claros, progressivos e prontos para escalar sua operação.
+                Do uso individual à operação empresarial, cada assinatura entrega funcionalidades concretas para aplicação real no dia a dia.
               </p>
               <div className="fade-up flex flex-col sm:flex-row gap-4 mb-8" style={{ animationDelay: '.3s' }}>
                 <Link to="/checkout/profissional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'hero_profissional')}>
-                  Escolher plano profissional
+                  Quero analisar perfis com profundidade
                 </Link>
                 <a href="#comparativo-planos" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10">
-                  Ver comparativo detalhado
+                  Comparar recursos por plano
                 </a>
               </div>
               <div className="fade-up flex flex-wrap gap-2" style={{ animationDelay: '.34s' }}>
@@ -374,22 +431,22 @@ export default function PlanosPage() {
               </p>
             </div>
 
-            <div className="scroll-reveal overflow-x-auto rounded-3xl glass-card border border-white/10">
-              <table className="w-full min-w-[960px] text-left">
+            <div className="scroll-reveal planos-compare-scroll rounded-3xl glass-card border border-white/10">
+              <table className="planos-compare-table w-full min-w-[980px] text-left">
                 <thead>
                   <tr className="border-b border-slate-700/70">
-                    <th className="py-4 px-5 font-bold text-slate-200">Recurso</th>
-                    <th className="py-4 px-5 text-center font-bold text-slate-200">DISC Individual</th>
-                    <th className="py-4 px-5 text-center font-bold text-slate-200">Personal</th>
-                    <th className="py-4 px-5 text-center font-bold text-blue-200 bg-blue-500/10">Profissional</th>
-                    <th className="py-4 px-5 text-center font-bold text-slate-200">Business</th>
-                    <th className="py-4 px-5 text-center font-bold text-slate-200">Diamond</th>
+                    <th className="planos-compare-head-cell planos-compare-sticky-col py-4 px-5 font-bold text-slate-200">Recurso</th>
+                    <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">DISC Individual</th>
+                    <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Personal</th>
+                    <th className="planos-compare-head-cell planos-compare-head-prof py-4 px-5 text-center font-bold text-blue-200">Profissional</th>
+                    <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Business</th>
+                    <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Diamond</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
-                  {PLAN_COMPARISON_ROWS.map((row) => (
-                    <tr key={row.feature} className="hover:bg-white/5 transition-colors">
-                      <td className="py-4 px-5 text-slate-300">{row.feature}</td>
+                  {SUMMARY_COMPARISON_ROWS.map((row) => (
+                    <tr key={row.feature} className="group planos-compare-summary-row hover:bg-white/5 transition-colors">
+                      <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-300">{row.feature}</td>
                       {renderComparisonCell(row.disc, false)}
                       {renderComparisonCell(row.personal, false)}
                       {renderComparisonCell(row.profissional, true)}
@@ -397,9 +454,40 @@ export default function PlanosPage() {
                       {renderComparisonCell(row.diamond, false)}
                     </tr>
                   ))}
+                  <tr className="group planos-compare-toggle-row border-t border-white/10">
+                    <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-200 font-semibold">
+                      Comparação completa
+                    </td>
+                    <td colSpan={5} className="planos-compare-toggle-cell py-4 px-5 text-center">
+                      <button
+                        type="button"
+                        onClick={toggleComparisonDetails}
+                        className="planos-compare-toggle-btn inline-flex items-center justify-center rounded-xl border border-blue-400/35 bg-blue-500/12 px-4 py-2 text-sm font-semibold text-blue-100 transition-all hover:border-blue-300/55 hover:bg-blue-500/20"
+                      >
+                        {showFullComparison ? 'Ocultar comparação completa' : 'Mostrar todos os recursos'}
+                      </button>
+                    </td>
+                  </tr>
                 </tbody>
+                {showFullComparison ? (
+                  <tbody className="divide-y divide-slate-700/45 planos-compare-details">
+                    {DETAILED_COMPARISON_ROWS.map((row, index) => (
+                      <tr key={row.feature} className="group planos-compare-detail-row hover:bg-white/5 transition-colors" style={{ animationDelay: `${index * 0.016}s` }}>
+                        <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-300">{row.feature}</td>
+                        {renderComparisonCell(row.disc, false)}
+                        {renderComparisonCell(row.personal, false)}
+                        {renderComparisonCell(row.profissional, true)}
+                        {renderComparisonCell(row.business, false)}
+                        {renderComparisonCell(row.diamond, false)}
+                      </tr>
+                    ))}
+                  </tbody>
+                ) : null}
               </table>
             </div>
+            <p className="scroll-reveal mt-3 text-sm text-slate-400">
+              Tabela inicial com critérios essenciais. Use “Mostrar todos os recursos” para abrir o detalhamento completo sem sair da página.
+            </p>
 
             <div className="scroll-reveal mt-7 grid md:grid-cols-2 gap-4">
               <div className="rounded-2xl bg-amber-500/10 border border-amber-400/25 px-5 py-4 text-amber-100">
@@ -419,14 +507,14 @@ export default function PlanosPage() {
           <div className="max-w-7xl mx-auto">
             <div className="scroll-reveal cta-focus dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12 text-center">
               <h2 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4">
-                Escolha seu plano e ative agora a versão ideal do InsightDISC.
+                Defina agora seu plano e avance com clareza comercial e técnica.
               </h2>
               <p className="text-lg text-slate-300 mb-8">
-                Estruture sua operação com assinatura recorrente, recursos claros e evolução comercial previsível.
+                Escolha a assinatura que combina com seu momento e evolua com recursos claros, comparáveis e escaláveis.
               </p>
               <div className="flex justify-center">
                 <Link to="/checkout/profissional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'final_cta_profissional')}>
-                  Escolher meu plano agora
+                  Escolher meu plano
                 </Link>
               </div>
             </div>

@@ -12,12 +12,12 @@ const PROFISSIONAL_CONFIG = {
     subtitle:
       'Estruture devolutivas, recrutamento e desenvolvimento com uma base analítica confiável, reduzindo subjetividade e aumentando precisão.',
     primaryCta: {
-      label: 'Usar na prática',
+      label: 'Quero analisar perfis com profundidade',
       to: '/checkout/profissional',
       source: 'hero_checkout_profissional',
     },
     secondaryCta: {
-      label: 'Ver análise profissional',
+      label: 'Explorar estrutura técnica',
       to: '/dossie',
       source: 'hero_ver_analise_profissional',
     },
@@ -204,11 +204,11 @@ const PROFISSIONAL_CONFIG = {
   },
   finalCta: {
     layout: 'single-centered',
-    title: 'Escale sua atuação com leitura técnica consistente e fluxo profissional completo.',
+    title: 'Eleve sua atuação com análise técnica consistente e produtividade comercial.',
     description:
-      'Ative o plano Profissional para padronizar análises, ganhar produtividade e elevar sua entrega técnica.',
+      'Ative o Profissional para estruturar devolutivas, reduzir viés e ampliar seu valor entregue em cada análise.',
     primaryCta: {
-      label: 'Adquirir acesso profissional',
+      label: 'Quero analisar perfis com profundidade',
       to: '/checkout/profissional',
       source: 'cta_checkout_profissional',
     },

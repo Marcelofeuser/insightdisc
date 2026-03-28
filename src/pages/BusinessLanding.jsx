@@ -12,12 +12,12 @@ const BUSINESS_CONFIG = {
     subtitle:
       'Conecte comportamento, cultura e performance com uma visão estruturada da equipe para liderar com mais precisão e escalar com consistência.',
     primaryCta: {
-      label: 'Aplicar na empresa',
+      label: 'Quero estruturar minha equipe com inteligência',
       to: '/checkout/business',
       source: 'hero_checkout_business',
     },
     secondaryCta: {
-      label: 'Ver solução para times',
+      label: 'Ver como a solução escala equipes',
       to: '#diferenciais',
       source: 'hero_ver_solucao_times',
     },
@@ -208,11 +208,11 @@ const BUSINESS_CONFIG = {
   },
   finalCta: {
     layout: 'single-centered',
-    title: 'Leve inteligência comportamental para decisões de equipe, liderança e cultura.',
+    title: 'Transforme comportamento em inteligência operacional para liderança, cultura e performance.',
     description:
-      'Ative o Business para consolidar visão organizacional e conduzir performance com mais previsibilidade.',
+      'Ative o Business para consolidar visão de equipe, apoiar decisões estratégicas e escalar gestão de pessoas com segurança.',
     primaryCta: {
-      label: 'Aplicar na empresa',
+      label: 'Quero estruturar minha equipe com inteligência',
       to: '/checkout/business',
       source: 'cta_checkout_business',
     },

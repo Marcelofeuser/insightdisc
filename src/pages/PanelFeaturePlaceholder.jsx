@@ -6,12 +6,12 @@ const FEATURE_COPY = {
   arquetipos: {
     title: 'Arquétipos DISC',
     description:
-      'Esta área será o hub de arquétipos comportamentais com leitura técnica e recomendações acionáveis.',
+      'Arquétipos comportamentais com evolução contínua de conteúdo, voltados para leitura técnica e recomendações acionáveis nos planos Profissional, Business e Diamond.',
   },
   'biblioteca-disc': {
     title: 'Biblioteca DISC',
     description:
-      'Conteúdo de referência para interpretação avançada, comunicação e aplicação prática do modelo DISC.',
+      'Biblioteca DISC aplicada, com conteúdo técnico em expansão contínua para interpretação avançada e aplicação prática nos planos Profissional, Business e Diamond.',
   },
   'meu-desenvolvimento': {
     title: 'Meu Desenvolvimento',

@@ -58,20 +58,20 @@ export default defineConfig({
         {
           command: `APP_URL=http://127.0.0.1:5173 FRONTEND_URL=http://127.0.0.1:5173 SERVER_PORT=${e2eApiPort} npm --prefix server run start`,
           timeout: 120_000,
-          reuseExistingServer: false,
+          reuseExistingServer: true,
           url: `${e2eApiBaseUrl.replace(/\/+$/, '')}/health`,
         },
         {
           command: `VITE_API_URL=${e2eApiBaseUrl} VITE_API_BASE_URL=${e2eApiBaseUrl} npm run dev -- --mode e2e-api --host 127.0.0.1 --port 5173`,
           timeout: 120_000,
-          reuseExistingServer: false,
+          reuseExistingServer: true,
           url: 'http://127.0.0.1:5173',
         },
       ]
     : {
         command: 'npm run dev -- --mode e2e-core --host 127.0.0.1 --port 5173',
         timeout: 120_000,
-        reuseExistingServer: false,
+        reuseExistingServer: true,
         url: 'http://127.0.0.1:5173',
       },
   projects: [

@@ -12,12 +12,12 @@ const PERSONAL_CONFIG = {
     subtitle:
       'Uma jornada simples e estruturada para entender seu perfil, melhorar sua comunicação e tomar decisões com mais consciência emocional.',
     primaryCta: {
-      label: 'Fazer minha análise',
+      label: 'Quero acessar meu perfil completo',
       to: '/checkout/personal',
       source: 'hero_checkout_personal',
     },
     secondaryCta: {
-      label: 'Descobrir meu perfil',
+      label: 'Ver como funciona na prática',
       to: '#como-funciona',
       source: 'hero_descobrir_meu_perfil',
     },
@@ -205,11 +205,11 @@ const PERSONAL_CONFIG = {
   },
   finalCta: {
     layout: 'single-centered',
-    title: 'Comece sua jornada de autoconhecimento com um plano feito para evolução contínua.',
+    title: 'Comece sua evolução com um plano que transforma autoconhecimento em ação diária.',
     description:
-      'Ative o Personal e acompanhe sua leitura comportamental com clareza prática no seu dia a dia.',
+      'Ative o Personal para acompanhar seu perfil, receber orientação prática e evoluir com consistência.',
     primaryCta: {
-      label: 'Começar no Personal',
+      label: 'Quero acessar meu perfil completo',
       to: '/checkout/personal',
       source: 'cta_checkout_personal',
     },

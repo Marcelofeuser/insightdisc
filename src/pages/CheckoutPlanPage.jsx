@@ -24,6 +24,17 @@ const TRUST_ITEMS = Object.freeze([
   'Ativação simples após confirmação de pagamento',
 ]);
 
+const PLAN_CONTEXT_NOTES = Object.freeze({
+  disc: 'Entrega pontual com acesso imediato ao relatório completo, sem assinatura da plataforma.',
+  personal: 'Inclui Coach DISC e acompanhamento de evolução para uso pessoal com recorrência leve.',
+  profissional:
+    'Inclui dossiê técnico, AI Lab (preview), Biblioteca DISC, Arquétipos em evolução e 10 créditos mensais.',
+  business:
+    'Herda integralmente o Profissional e adiciona Team Map, visão estratégica de equipe e recursos para gestão de pessoas.',
+  diamond:
+    'Herda integralmente o Business com uso ilimitado para operação em escala empresarial.',
+});
+
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
   let tag = document.head.querySelector(selector);
   let created = false;
@@ -330,6 +341,9 @@ export default function CheckoutPlanPage() {
                   <p className="text-sm text-slate-400 mb-1">Valor do plano</p>
                   <p className="text-3xl font-extrabold mb-2">{plan.price}</p>
                   <p className="text-slate-400">{plan.billingLabel}</p>
+                  {PLAN_CONTEXT_NOTES[plan.key] ? (
+                    <p className="mt-3 text-sm text-slate-300 leading-relaxed">{PLAN_CONTEXT_NOTES[plan.key]}</p>
+                  ) : null}
                 </div>
               </article>
 

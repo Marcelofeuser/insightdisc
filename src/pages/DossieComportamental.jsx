@@ -407,8 +407,8 @@ export default function DossieComportamentalLandingPage() {
                 </p>
 
                 <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s', animationDuration: '.55s' }}>
-                  <a href="#como-funciona" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackCta('hero_explorar')}>Explorar o Dossiê na prática</a>
-                  <a href="#estrutura-analitica" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" onClick={() => trackCta('hero_demo_tecnica')}>Ver demonstração técnica</a>
+                  <a href="#como-funciona" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackCta('hero_explorar')}>Quero analisar perfis com profundidade</a>
+                  <a href="#estrutura-analitica" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" onClick={() => trackCta('hero_demo_tecnica')}>Ver estrutura técnica aplicada</a>
                 </div>
               </div>
 
@@ -620,14 +620,14 @@ export default function DossieComportamentalLandingPage() {
             <div className="scroll-reveal cta-focus dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12 text-center">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-4">Pronto para aplicar</p>
               <h2 className="text-3xl md:text-5xl font-extrabold leading-tight mb-5">
-                Transforme leitura comportamental em decisão profissional com a base certa de plano e operação.
+                Transforme leitura comportamental em decisão profissional com base técnica e assinatura adequada.
               </h2>
               <p className="text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
-                Escolha o plano ideal para aplicar o Dossiê com consistência técnica no seu fluxo de atendimento.
+                Compare os planos e escolha a camada certa para aplicar o Dossiê com consistência no seu fluxo real de atendimento.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link to="/planos" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg mx-auto" onClick={() => trackCta('cta_ir_para_planos')}>
-                  Ver planos para aplicar o Dossiê
+                  Escolher plano para aplicar o Dossiê
                 </Link>
               </div>
             </div>
