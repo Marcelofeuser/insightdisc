@@ -36,6 +36,7 @@ test.describe('Leads Dashboard', () => {
   });
 
   test('chatbot captura lead e dashboard lista', async ({ page }) => {
+    test.skip(!process.env.PW_ENABLE_CHATBOT_TEST, 'Requires chatbot to be enabled');
     const now = Date.now();
     const leadName = `Lead E2E ${now}`;
     const leadEmail = `lead-e2e-${now}@example.com`;
