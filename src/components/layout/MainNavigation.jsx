@@ -8,7 +8,6 @@ const HOME_HASH_ITEMS = Object.freeze([
   { label: 'Para quem é', hash: '#publicos' },
   { label: 'Recursos', hash: '#recursos' },
   { label: 'Casos de uso', hash: '#casos' },
-  { label: 'Planos', hash: '#planos' },
 ]);
 
 export { HOME_HASH_ITEMS };
@@ -30,6 +29,16 @@ export default function MainNavigation({ goHomeHash }) {
           {item.label}
         </Button>
       ))}
+      <Link
+        to="/planos"
+        className={`inline-flex h-9 items-center rounded-lg px-3 text-sm transition-colors border ${
+          activePath === '/planos'
+            ? 'text-amber-100 border-amber-300/50 bg-amber-400/18 shadow-[0_8px_20px_rgba(245,158,11,0.15)]'
+            : 'text-amber-200 border-amber-300/30 bg-amber-400/10 hover:bg-amber-400/16'
+        }`}
+      >
+        Planos
+      </Link>
       {PRODUCT_TABS.map((tab) => (
         <Link
           key={tab.to}

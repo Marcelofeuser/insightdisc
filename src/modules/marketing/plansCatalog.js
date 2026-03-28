@@ -8,7 +8,8 @@ export const PLANS = Object.freeze({
     ctaLabel: 'Gerar meu relatório',
     checkoutPath: '/checkout/disc',
     benefits: ['1 relatório DISC completo', 'Download em PDF', 'Sem acesso à plataforma'],
-    description: 'Ideal para quem busca uma leitura objetiva e rápida do próprio perfil comportamental.',
+    description: 'Avaliação individual com entrega imediata de relatório completo em PDF.',
+    indication: 'Ideal para uso individual pontual',
   },
   personal: {
     key: 'personal',
@@ -18,8 +19,9 @@ export const PLANS = Object.freeze({
     billingLabel: '2 meses',
     ctaLabel: 'Acompanhar minha evolução',
     checkoutPath: '/checkout/personal',
-    benefits: ['Acesso à plataforma por 2 meses', '1 relatório por ciclo mensal (total 2)', 'Histórico e evolução'],
-    description: 'Acompanhamento contínuo para transformar autoconhecimento em evolução prática.',
+    benefits: ['Acesso à plataforma por 2 meses', '1 relatório por ciclo mensal', 'Histórico e evolução'],
+    description: 'Plano para evolução pessoal contínua com histórico e acompanhamento de comportamento.',
+    indication: 'Autoconhecimento com recorrência leve',
   },
   profissional: {
     key: 'profissional',
@@ -30,8 +32,9 @@ export const PLANS = Object.freeze({
     ctaLabel: 'Adquirir acesso profissional',
     checkoutPath: '/checkout/profissional',
     highlight: 'Mais escolhido',
-    benefits: ['Tudo do Personal', '10 créditos/mês', 'Leitura técnica', 'Dossiê completo'],
-    description: 'Plano técnico para RH, analistas, consultores e especialistas em devolutiva estruturada.',
+    benefits: ['Tudo do Personal', '10 créditos por mês', 'Dossiê completo', 'Recursos profissionais'],
+    description: 'Plano técnico para especialistas que precisam de análise consistente e escala operacional.',
+    indication: 'RH, consultores e especialistas DISC',
   },
   business: {
     key: 'business',
@@ -41,8 +44,9 @@ export const PLANS = Object.freeze({
     billingLabel: '/mês',
     ctaLabel: 'Adquirir plano business',
     checkoutPath: '/checkout/business',
-    benefits: ['Tudo do Profissional', '25 créditos/mês', 'Team Map'],
-    description: 'Visão de equipe e operação em escala para áreas de RH, liderança e gestão estratégica.',
+    benefits: ['Tudo do Profissional', '25 créditos por mês', 'Team Map', 'Recursos para equipes'],
+    description: 'Leitura organizacional para lideranças, RH e decisões estratégicas de equipe.',
+    indication: 'Empresas e operações com equipes',
   },
   diamond: {
     key: 'diamond',
@@ -52,8 +56,9 @@ export const PLANS = Object.freeze({
     billingLabel: '/mês',
     ctaLabel: 'Escalar sem limites',
     checkoutPath: '/checkout/diamond',
-    benefits: ['Tudo do Business', 'Créditos ilimitados'],
-    description: 'Máxima capacidade para operações de grande volume com inteligência comportamental contínua.',
+    benefits: ['Tudo do Business', 'Uso ilimitado', 'Ideal para empresas acima de 50 funcionários'],
+    description: 'Camada enterprise para operações amplas com alta demanda de análises comportamentais.',
+    indication: 'Empresas acima de 50 colaboradores',
   },
 });
 

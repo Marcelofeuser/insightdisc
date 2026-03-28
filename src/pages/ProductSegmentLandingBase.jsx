@@ -48,6 +48,23 @@ function CtaLink({ cta, className, onTrack }) {
   );
 }
 
+function renderHeadlineWithHighlight(title, highlight) {
+  if (!highlight || !title || !title.includes(highlight)) {
+    return title;
+  }
+
+  const [before, ...rest] = title.split(highlight);
+  const after = rest.join(highlight);
+
+  return (
+    <>
+      {before}
+      <span className="headline-accent">{highlight}</span>
+      {after}
+    </>
+  );
+}
+
 export default function ProductSegmentLandingBase({
   slug,
   metaTitle,
@@ -154,6 +171,7 @@ export default function ProductSegmentLandingBase({
   const trackCta = (source) => {
     trackEvent(`${slug}_landing_cta_click`, { path: activePath, source });
   };
+  const isCenteredFinalCta = finalCta?.layout === 'single-centered';
 
   return (
     <div ref={rootRef} className="landing-page dossie-landing h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
@@ -170,7 +188,11 @@ export default function ProductSegmentLandingBase({
 
               <div className="hidden lg:flex items-center gap-5 text-sm">
                 {HOME_SECTION_LINKS.map((item) => (
-                  <Link key={item.label} to={item.href} className="text-slate-300 hover:text-white transition-colors">
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
+                  >
                     {item.label}
                   </Link>
                 ))}
@@ -192,7 +214,7 @@ export default function ProductSegmentLandingBase({
 
               <div className="flex items-center gap-3">
                 <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-                <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
+                <Link to="/planos" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Ver planos</Link>
                 <button
                   type="button"
                   className="lg:hidden text-slate-300 hover:text-white"
@@ -212,7 +234,11 @@ export default function ProductSegmentLandingBase({
                   key={item.label}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-slate-300 hover:text-white transition-colors py-2"
+                  className={`block py-2 transition-colors ${
+                    item.featured
+                      ? 'planos-nav-link-mobile'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -247,8 +273,8 @@ export default function ProductSegmentLandingBase({
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   <span className="text-sm text-slate-300">{hero.badge}</span>
                 </div>
-                <h1 className="fade-up text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
-                  {hero.title}
+                <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
+                  {renderHeadlineWithHighlight(hero.title, hero.titleHighlight)}
                 </h1>
                 <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8" style={{ animationDelay: '.2s', animationDuration: '.55s' }}>
                   {hero.subtitle}
@@ -436,11 +462,11 @@ export default function ProductSegmentLandingBase({
 
         <section className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="scroll-reveal dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12">
+            <div className={`scroll-reveal cta-focus dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12 ${isCenteredFinalCta ? 'text-center' : ''}`}>
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-4">Pronto para começar</p>
               <h2 className="text-3xl md:text-5xl font-extrabold leading-tight mb-5">{finalCta.title}</h2>
-              <p className="text-lg text-slate-300 leading-relaxed max-w-3xl">{finalCta.description}</p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <p className={`text-lg text-slate-300 leading-relaxed ${isCenteredFinalCta ? 'max-w-2xl mx-auto' : 'max-w-3xl'}`}>{finalCta.description}</p>
+              <div className={`mt-8 flex flex-col sm:flex-row gap-4 ${isCenteredFinalCta ? 'justify-center items-center' : ''}`}>
                 <CtaLink
                   cta={finalCta.primaryCta}
                   onTrack={trackCta}

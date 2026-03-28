@@ -114,9 +114,6 @@ export default function Home() {
     const mobileMenu = root.querySelector('#mobile-menu');
     const navbar = root.querySelector('#navbar');
     const faqToggles = root.querySelectorAll('.faq-toggle');
-    const monthlyBtn = root.querySelector('#monthly-btn');
-    const annualBtn = root.querySelector('#annual-btn');
-    const priceElements = root.querySelectorAll('.price');
     const anchorLinks = root.querySelectorAll('a[href^="#"]');
     const scrollRevealEls = root.querySelectorAll('.scroll-reveal');
 
@@ -179,40 +176,6 @@ export default function Home() {
       cleanupFns.push(() => toggle.removeEventListener('click', handleFaqToggle));
     });
 
-    if (monthlyBtn && annualBtn && priceElements.length) {
-      const updatePrices = (period) => {
-        priceElements.forEach((priceEl) => {
-          const value = period === 'annual' ? priceEl.dataset.annual : priceEl.dataset.monthly;
-          const valueEl = priceEl.querySelector('.text-4xl');
-          const suffixEl = priceEl.querySelector('.text-slate-500');
-
-          if (valueEl && value) {
-            valueEl.textContent = `R$${value}`;
-          }
-
-          if (suffixEl) {
-            suffixEl.textContent = period === 'annual' ? '/mês (anual)' : '/mês';
-          }
-        });
-      };
-
-      const handleMonthly = () => {
-        monthlyBtn.classList.add('active');
-        annualBtn.classList.remove('active');
-        updatePrices('monthly');
-      };
-
-      const handleAnnual = () => {
-        annualBtn.classList.add('active');
-        monthlyBtn.classList.remove('active');
-        updatePrices('annual');
-      };
-
-      monthlyBtn.addEventListener('click', handleMonthly);
-      annualBtn.addEventListener('click', handleAnnual);
-      cleanupFns.push(() => monthlyBtn.removeEventListener('click', handleMonthly));
-      cleanupFns.push(() => annualBtn.removeEventListener('click', handleAnnual));
-    }
 
     let observer;
     if ('IntersectionObserver' in window) {
@@ -300,7 +263,7 @@ export default function Home() {
        <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a>
        <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a>
        <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a>
-       <a href="#planos" className="text-slate-300 hover:text-white transition-colors">Planos</a>
+       <Link to="/planos" className="planos-nav-link">Planos</Link>
        <Link to="/dossie" className="text-slate-300 hover:text-white transition-colors">Dossiê</Link>
        <Link to="/personal" className="text-slate-300 hover:text-white transition-colors">Personal</Link>
        <Link to="/profissional" className="text-slate-300 hover:text-white transition-colors">Profissional</Link>
@@ -308,7 +271,7 @@ export default function Home() {
       </div>
       <div className="flex items-center gap-3">
        <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-       <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
+       <Link to="/planos" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Ver planos</Link>
       </div>
       <button id="menu-toggle" className="lg:hidden text-slate-300 hover:text-white">
        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +284,7 @@ export default function Home() {
       <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a>
       <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a>
       <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a>
-      <a href="#planos" className="block text-slate-300 hover:text-white transition-colors py-2">Planos</a>
+      <Link to="/planos" className="block py-2 planos-nav-link-mobile">Planos</Link>
       <Link to="/dossie" className="block text-slate-300 hover:text-white transition-colors py-2">Dossiê</Link>
       <Link to="/personal" className="block text-slate-300 hover:text-white transition-colors py-2">Personal</Link>
       <Link to="/profissional" className="block text-slate-300 hover:text-white transition-colors py-2">Profissional</Link>
@@ -582,154 +545,100 @@ export default function Home() {
      </div>
     </div>
    </section>
-   <section className="py-24 px-6 bg-gradient-to-b from-slate-900/50 to-transparent">
+   <section id="planos" className="py-24 px-6 bg-gradient-to-b from-slate-900/50 to-transparent border-y border-white/5">
     <div className="max-w-7xl mx-auto">
      <div className="text-center mb-14">
-      <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Comparativo de Relatórios</h2>
-      <p className="text-xl text-slate-400 max-w-3xl mx-auto">Veja exatamente o que você ganha em cada plano.</p>
+      <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Compare o que você acessa em cada plano</h2>
+      <p className="text-xl text-slate-400 max-w-3xl mx-auto">Do uso individual à gestão de equipes completas.</p>
      </div>
-     <div className="overflow-x-auto">
-      <table className="w-full text-left">
+     <div className="scroll-reveal overflow-x-auto rounded-3xl glass-card border border-white/10">
+      <table className="w-full text-left min-w-[860px]">
        <thead>
-        <tr className="border-b border-slate-700">
-         <th className="py-4 px-6 font-bold text-lg text-slate-200">Recurso</th>
-         <th className="py-4 px-6 font-bold text-lg text-slate-200 text-center">Personal</th>
-         <th className="py-4 px-6 font-bold text-lg bg-blue-500/10 text-blue-300 text-center rounded-t-2xl">Professional</th>
-         <th className="py-4 px-6 font-bold text-lg text-slate-200 text-center">Business</th>
+        <tr className="border-b border-slate-700/70">
+         <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200">Acesso</th>
+         <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Personal</th>
+         <th className="py-4 px-6 font-bold text-base md:text-lg bg-blue-500/10 text-blue-300 text-center">Profissional</th>
+         <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Business</th>
+         <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Diamond</th>
         </tr>
        </thead>
        <tbody className="divide-y divide-slate-700/50">
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Avaliação individual</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Acesso à plataforma</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Resultado completo</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Relatórios DISC</td>
+         <td className="py-4 px-6 text-center text-slate-200">1 relatório/mês</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-100">10 créditos/mês</td>
+         <td className="py-4 px-6 text-center text-slate-200">25 créditos/mês</td>
+         <td className="py-4 px-6 text-center text-slate-100 font-semibold">Ilimitado</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Relatório básico</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Dossiê comportamental</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Relatório premium</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Histórico de relatórios</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Exportação PDF</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Team Map</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Comparação de perfis</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Análise de equipe</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Pessoa x pessoa</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Uso profissional</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Candidato x cargo</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Uso empresarial</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Team map</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">−</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-        </tr>
-        <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Inteligência de equipe</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">−</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-        </tr>
-        <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Uso consultivo/clientes</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5"><span className="text-green-400 font-bold">✓</span></td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
-        </tr>
-        <tr className="hover:bg-white/5 transition-colors">
-         <td className="py-4 px-6 text-slate-300">Múltiplos usuários</td>
-         <td className="py-4 px-6 text-center text-slate-500">−</td>
-         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">−</td>
-         <td className="py-4 px-6 text-center"><span className="text-green-400 font-bold">✓</span></td>
+         <td className="py-4 px-6 text-slate-300">Créditos adicionais</td>
+         <td className="py-4 px-6 text-center text-slate-200">No painel</td>
+         <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-100">No painel</td>
+         <td className="py-4 px-6 text-center text-slate-200">No painel</td>
+         <td className="py-4 px-6 text-center text-slate-100">No painel</td>
         </tr>
        </tbody>
       </table>
      </div>
+     <p className="mt-4 text-sm text-slate-500">
+      * Créditos mensais não acumulativos. Renovação automática a cada ciclo.
+     </p>
+     <div className="mt-9 flex justify-center">
+      <Link to="/planos" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg">
+       Ver todos os planos
+      </Link>
+     </div>
     </div>
    </section>
-   <div id="planos" className="max-w-6xl mx-auto">
-    <div className="text-center mb-14">
-     <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Planos para cada estágio da operação</h2>
-     <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10">Comece com o essencial e evolua para comparação, relatórios premium e inteligência organizacional.</p>
-     <div className="flex justify-center mb-8">
-      <div className="pricing-toggle">
-       <button id="monthly-btn" className="active" data-period="monthly">Mensal</button> <button id="annual-btn" data-period="annual">Anual (-20%)</button>
-      </div>
-     </div>
-    </div>
-    <div className="grid md:grid-cols-3 gap-8">
-     <div className="glass-card rounded-3xl p-8 feature-card scroll-reveal">
-      <h3 className="text-lg font-semibold text-slate-400 mb-2">Personal</h3>
-      <div className="flex items-baseline gap-1 mb-6 price" data-monthly="97" data-annual="78">
-       <span className="text-4xl font-extrabold">R$97</span> <span className="text-slate-500">/mês</span>
-      </div>
-      <ul className="space-y-3 text-slate-300 mb-8">
-       <li>• Avaliação individual</li>
-       <li>• Resultado completo</li>
-       <li>• Relatório básico</li>
-       <li>• Histórico pessoal</li>
-      </ul><Link to="/StartFree" className="block w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors text-center"> Começar </Link>
-     </div>
-     <div className="glass-card rounded-3xl p-8 feature-card border border-blue-500/40 relative scroll-reveal">
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold animate-pulse">
-       Mais popular
-      </div>
-      <h3 className="text-lg font-semibold text-blue-400 mb-2">Professional</h3>
-      <div className="flex items-baseline gap-1 mb-6 price" data-monthly="297" data-annual="237">
-       <span className="text-4xl font-extrabold">R$297</span> <span className="text-slate-500">/mês</span>
-      </div>
-      <ul className="space-y-3 text-slate-300 mb-8">
-       <li>• Relatório premium</li>
-       <li>• Exportação PDF</li>
-       <li>• Comparação de perfis</li>
-       <li>• Uso consultivo / clientes</li>
-       <li>• Mais créditos e recursos</li>
-      </ul><Link to="/Pricing" className="btn-primary block w-full py-4 rounded-2xl font-semibold hover:shadow-lg transition-all text-center"> Assinar agora </Link>
-     </div>
-     <div className="glass-card rounded-3xl p-8 feature-card scroll-reveal">
-      <h3 className="text-lg font-semibold text-slate-400 mb-2">Business</h3>
-      <div className="flex items-baseline gap-1 mb-6">
-       <span className="text-4xl font-extrabold">Custom</span>
-      </div>
-      <ul className="space-y-3 text-slate-300 mb-8">
-       <li>• Team map</li>
-       <li>• Inteligência de equipe</li>
-       <li>• Candidato x cargo</li>
-       <li>• Múltiplos usuários</li>
-       <li>• Recursos corporativos</li>
-      </ul><Link to="/empresa" className="block w-full py-4 rounded-2xl border border-slate-700 font-semibold hover:bg-slate-800 transition-colors text-center"> Falar com comercial </Link>
-     </div>
-    </div>
-   </div>
    <section className="py-24 px-6">
     <div className="max-w-5xl mx-auto">
      <div className="text-center mb-14">
@@ -778,7 +687,7 @@ export default function Home() {
        <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Transforme perfil em decisão prática</h2>
        <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-10">Use a InsightDISC para desenvolver pessoas, apoiar líderes, contratar melhor e formar equipes mais inteligentes.</p>
        <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <Link to="/StartFree" className="btn-primary cta-pulse px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Criar conta grátis </Link> <Link to="/empresa" className="glass-card px-10 py-5 rounded-2xl font-bold text-lg text-slate-200 border border-white/10 hover:border-white/20 transition-all"> Agendar demonstração </Link>
+        <Link to="/planos" className="btn-primary cta-pulse px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Escolher plano ideal </Link> <Link to="/empresa" className="glass-card px-10 py-5 rounded-2xl font-bold text-lg text-slate-200 border border-white/10 hover:border-white/20 transition-all"> Agendar demonstração </Link>
        </div>
        <p className="mt-8 text-sm text-slate-500">Sem cartão de crédito • Teste inicial • Evolua conforme o uso</p>
       </div>

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
-import { buildDossierPath } from '@/modules/dossier/routes';
 import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import ProductVisualShowcase from '@/components/marketing/ProductVisualShowcase';
 import '../styles/landing.css';
@@ -203,7 +202,6 @@ function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaConte
 
 export default function DossieComportamentalLandingPage() {
   const rootRef = useRef(null);
-  const dossierPath = buildDossierPath();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
 
@@ -316,7 +314,11 @@ export default function DossieComportamentalLandingPage() {
 
               <div className="hidden lg:flex items-center gap-5 text-sm">
                 {HOME_SECTION_LINKS.map((item) => (
-                  <Link key={item.label} to={item.href} className="text-slate-300 hover:text-white transition-colors">
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
+                  >
                     {item.label}
                   </Link>
                 ))}
@@ -338,7 +340,7 @@ export default function DossieComportamentalLandingPage() {
 
               <div className="flex items-center gap-3">
                 <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-                <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
+                <Link to="/planos" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Ver planos</Link>
                 <button
                   type="button"
                   className="lg:hidden text-slate-300 hover:text-white"
@@ -358,7 +360,11 @@ export default function DossieComportamentalLandingPage() {
                   key={item.label}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-slate-300 hover:text-white transition-colors py-2"
+                  className={`block py-2 transition-colors ${
+                    item.featured
+                      ? 'planos-nav-link-mobile'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -393,8 +399,8 @@ export default function DossieComportamentalLandingPage() {
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   <span className="text-sm text-slate-300">Funcionalidade avançada para especialistas DISC</span>
                 </div>
-                <h1 className="fade-up text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
-                  Dossiê InsightDISC: análise comportamental estruturada para atuação profissional
+                <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
+                  Dossiê InsightDISC: análise comportamental estruturada para <span className="headline-accent">atuação profissional</span>
                 </h1>
                 <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8" style={{ animationDelay: '.2s', animationDuration: '.55s' }}>
                   Uma camada avançada de interpretação DISC, organizada para profissionais que demandam precisão, profundidade e aplicabilidade prática no dia a dia.
@@ -611,15 +617,18 @@ export default function DossieComportamentalLandingPage() {
 
         <section className="py-24 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="scroll-reveal dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12">
+            <div className="scroll-reveal cta-focus dossie-cta-highlight rounded-[30px] glass-card border border-white/10 p-8 md:p-12 text-center">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-4">Pronto para aplicar</p>
               <h2 className="text-3xl md:text-5xl font-extrabold leading-tight mb-5">
-                Utilize o Dossiê InsightDISC para transformar dados comportamentais em análise estruturada, decisões mais seguras e entregas profissionais de alto nível.
+                Transforme leitura comportamental em decisão profissional com a base certa de plano e operação.
               </h2>
+              <p className="text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
+                Escolha o plano ideal para aplicar o Dossiê com consistência técnica no seu fluxo de atendimento.
+              </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <a href="#como-funciona" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackCta('cta_explorar')}>Explorar o Dossiê na prática</a>
-                <a href="#estrutura-analitica" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" onClick={() => trackCta('cta_demo')}>Ver demonstração técnica</a>
-                <Link to={dossierPath} className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" onClick={() => trackCta('cta_aplicar_caso_real')}>Aplicar em um caso real</Link>
+                <Link to="/planos" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg mx-auto" onClick={() => trackCta('cta_ir_para_planos')}>
+                  Ver planos para aplicar o Dossiê
+                </Link>
               </div>
             </div>
           </div>

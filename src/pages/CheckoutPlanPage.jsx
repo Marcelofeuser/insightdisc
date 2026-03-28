@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
-import { useAuth } from '@/lib/AuthContext';
-import { apiRequest, getApiToken } from '@/lib/apiClient';
-import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
 import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
 import '../styles/landing.css';
@@ -12,19 +9,19 @@ const PAYMENT_OPTIONS = Object.freeze([
   {
     key: 'pix',
     title: 'Pix',
-    copy: 'Aprovação rápida e confirmação praticamente imediata.',
+    copy: 'Confirmação rápida e fluxo otimizado para compra direta.',
   },
   {
     key: 'card',
     title: 'Cartão',
-    copy: 'Parcelamento e processamento seguro para compra recorrente.',
+    copy: 'Pagamento seguro com opção de parcelamento conforme emissor.',
   },
 ]);
 
 const TRUST_ITEMS = Object.freeze([
-  'Ambiente seguro para pagamento',
-  'Ativação imediata após confirmação',
-  'Base pronta para gateway real',
+  'Checkout público fora do painel',
+  'Fluxo preparado para integração de gateway',
+  'Ativação simples após confirmação de pagamento',
 ]);
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
@@ -50,16 +47,9 @@ function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaConte
 
 export default function CheckoutPlanPage() {
   const rootRef = useRef(null);
-  const confirmedSessionRef = useRef('');
-  const navigate = useNavigate();
   const location = useLocation();
-  const { access } = useAuth();
   const { planSlug } = useParams();
-  const queryParams = new URLSearchParams(location.search);
-  const tier = queryParams.get('tier') || '';
-  const paymentStatus = String(queryParams.get('payment') || '').trim().toLowerCase();
-  const sessionId = String(queryParams.get('session_id') || '').trim();
-  const plan = resolveCheckoutPlan(planSlug, tier);
+  const plan = resolveCheckoutPlan(planSlug);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
@@ -69,72 +59,12 @@ export default function CheckoutPlanPage() {
 
   useEffect(() => {
     if (!plan) return undefined;
-    trackEvent('checkout_plan_view', {
+    trackEvent('checkout_public_view', {
       planKey: plan.key,
       path: location.pathname,
-      tier: tier || undefined,
     });
     return undefined;
-  }, [location.pathname, plan, tier]);
-
-  useEffect(() => {
-    if (!plan) return;
-    if (paymentStatus === 'cancel') {
-      setFeedback('Pagamento cancelado. Você pode tentar novamente quando quiser.');
-      return;
-    }
-    if (paymentStatus !== 'success' || !sessionId) return;
-    if (confirmedSessionRef.current === sessionId) return;
-
-    const loginRedirectUrl = buildLoginRedirectUrl({
-      pathname: location.pathname,
-      search: location.search || '',
-    });
-    const isAuthenticated = Boolean(access?.userId) || Boolean(getApiToken());
-    if (!isAuthenticated) {
-      navigate(loginRedirectUrl, { replace: true });
-      return;
-    }
-
-    confirmedSessionRef.current = sessionId;
-    setIsSubmitting(true);
-    setFeedback('');
-
-    apiRequest('/billing/confirm-checkout-session', {
-      method: 'POST',
-      requireAuth: true,
-      body: { sessionId },
-    })
-      .then((payload) => {
-        const nextRenewalAt = payload?.summary?.nextRenewalAt
-          ? new Date(payload.summary.nextRenewalAt).toLocaleDateString('pt-BR')
-          : null;
-
-        if ((plan.enginePlanCode || plan.key) === 'disc') {
-          setFeedback('Pagamento confirmado. 1 relatório DISC individual foi liberado com sucesso.');
-          return;
-        }
-
-        if (nextRenewalAt) {
-          setFeedback(`Pagamento confirmado no Stripe. Plano ativado com renovação em ${nextRenewalAt}.`);
-          return;
-        }
-
-        setFeedback('Pagamento confirmado no Stripe e plano ativado com sucesso.');
-      })
-      .catch((error) => {
-        confirmedSessionRef.current = '';
-        const status = Number(error?.status || 0);
-        if (status === 401 || status === 403) {
-          navigate(loginRedirectUrl, { replace: true });
-          return;
-        }
-        setFeedback(error?.payload?.message || error?.message || 'Falha ao confirmar pagamento no Stripe.');
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  }, [access?.userId, location.pathname, location.search, navigate, paymentStatus, plan, sessionId]);
+  }, [location.pathname, plan]);
 
   useEffect(() => {
     if (!plan) return undefined;
@@ -150,8 +80,8 @@ export default function CheckoutPlanPage() {
     const bodyClassesToAdd = ['h-full', 'gradient-bg', 'text-white', 'overflow-auto', 'landing-body'];
     const createdMetas = [];
     const previousMetaContents = [];
-    const checkoutTitle = `${plan.name} | Checkout InsightDISC`;
-    const checkoutDescription = `Finalizar pagamento do plano ${plan.name} no InsightDISC com opção Pix ou Cartão.`;
+    const checkoutTitle = `${plan.name} | Checkout Público InsightDISC`;
+    const checkoutDescription = `Página pública de checkout para o plano ${plan.name} no InsightDISC.`;
 
     document.title = checkoutTitle;
     htmlEl.lang = 'pt-BR';
@@ -171,7 +101,9 @@ export default function CheckoutPlanPage() {
       observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting) entry.target.classList.add('visible');
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
           });
         },
         { threshold: 0.1, rootMargin: '0px 0px -80px 0px' }
@@ -214,64 +146,27 @@ export default function CheckoutPlanPage() {
 
   const handleSelectMethod = (method) => {
     setSelectedMethod(method);
-    trackEvent('checkout_plan_payment_method_selected', {
+    trackEvent('checkout_public_payment_method_selected', {
       planKey: plan.key,
       paymentMethod: method,
       path: location.pathname,
-      tier: tier || undefined,
     });
   };
 
   const handleFinalizePayment = () => {
-    const loginRedirectUrl = buildLoginRedirectUrl({
-      pathname: location.pathname,
-      search: location.search || '',
-    });
-    const isAuthenticated = Boolean(access?.userId) || Boolean(getApiToken());
-    if (!isAuthenticated) {
-      navigate(loginRedirectUrl, { replace: true });
-      return;
-    }
-
     setIsSubmitting(true);
     setFeedback('');
-    trackEvent('checkout_plan_finalize_click', {
+
+    trackEvent('checkout_public_finalize_click', {
       planKey: plan.key,
       paymentMethod: selectedMethod,
       path: location.pathname,
-      tier: tier || undefined,
     });
 
-    apiRequest('/billing/create-checkout-session', {
-      method: 'POST',
-      requireAuth: true,
-      body: {
-        planCode: plan.enginePlanCode || plan.key,
-        paymentMethod: selectedMethod,
-      },
-    })
-      .then((payload) => {
-        const checkoutUrl = String(payload?.checkoutUrl || '').trim();
-        if (!checkoutUrl) {
-          setFeedback('Não foi possível iniciar checkout Stripe agora.');
-          setIsSubmitting(false);
-          return;
-        }
-        window.location.href = checkoutUrl;
-      })
-      .catch((error) => {
-        const status = Number(error?.status || 0);
-        if (status === 401 || status === 403) {
-          navigate(loginRedirectUrl, { replace: true });
-          return;
-        }
-        setFeedback(error?.payload?.message || error?.message || 'Falha ao finalizar pagamento.');
-      })
-      .finally(() => {
-        if (document.visibilityState !== 'hidden') {
-          setIsSubmitting(false);
-        }
-      });
+    window.setTimeout(() => {
+      setIsSubmitting(false);
+      setFeedback('Checkout público pronto no frontend. Integração de pagamento real será conectada na próxima etapa.');
+    }, 700);
   };
 
   return (
@@ -289,7 +184,11 @@ export default function CheckoutPlanPage() {
 
               <div className="hidden lg:flex items-center gap-5 text-sm">
                 {HOME_SECTION_LINKS.map((item) => (
-                  <Link key={item.label} to={item.href} className="text-slate-300 hover:text-white transition-colors">
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
+                  >
                     {item.label}
                   </Link>
                 ))}
@@ -302,7 +201,7 @@ export default function CheckoutPlanPage() {
 
               <div className="flex items-center gap-3">
                 <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-                <Link to="/StartFree" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Criar conta</Link>
+                <Link to="/planos" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Ver planos</Link>
                 <button
                   type="button"
                   className="lg:hidden text-slate-300 hover:text-white"
@@ -322,7 +221,11 @@ export default function CheckoutPlanPage() {
                   key={item.label}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block py-2 text-slate-300 hover:text-white transition-colors"
+                  className={`block py-2 transition-colors ${
+                    item.featured
+                      ? 'planos-nav-link-mobile'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -350,10 +253,10 @@ export default function CheckoutPlanPage() {
             <div className="max-w-4xl">
               <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-7">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                <span className="text-sm text-slate-300">Checkout seguro InsightDISC</span>
+                <span className="text-sm text-slate-300">Checkout público InsightDISC</span>
               </div>
               <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-5" style={{ animationDelay: '.1s' }}>
-                Finalizar {plan.name}
+                Finalizar <span className="headline-accent">{plan.name}</span>
               </h1>
               <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed mb-4" style={{ animationDelay: '.2s' }}>
                 {plan.description}
@@ -369,8 +272,8 @@ export default function CheckoutPlanPage() {
         <section className="pb-24 px-6">
           <div className="max-w-7xl mx-auto grid xl:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
             <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
-              <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Escolha de pagamento</p>
-              <h2 className="text-2xl md:text-3xl font-extrabold mb-6">Selecione como deseja pagar</h2>
+              <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Forma de pagamento</p>
+              <h2 className="text-2xl md:text-3xl font-extrabold mb-6">Escolha Pix ou Cartão</h2>
               <div className="grid sm:grid-cols-2 gap-4 mb-7">
                 {PAYMENT_OPTIONS.map((method) => {
                   const isActive = selectedMethod === method.key;
@@ -393,7 +296,7 @@ export default function CheckoutPlanPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
-                <p className="text-sm uppercase tracking-[0.14em] text-slate-400 mb-2">Benefícios inclusos</p>
+                <p className="text-sm uppercase tracking-[0.14em] text-slate-400 mb-2">O que você recebe</p>
                 <ul className="grid gap-2 text-slate-200">
                   {plan.benefits.map((benefit) => (
                     <li key={benefit} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
@@ -411,10 +314,7 @@ export default function CheckoutPlanPage() {
               >
                 {isSubmitting ? 'Processando...' : 'Finalizar pagamento'}
               </button>
-              <p className="text-sm text-slate-400 mt-4">
-                Checkout Stripe em ambiente de teste, com ativação automática do plano após confirmação.
-              </p>
-              {feedback ? <p className="text-sm text-blue-200 mt-2">{feedback}</p> : null}
+              {feedback ? <p className="text-sm text-blue-200 mt-3">{feedback}</p> : null}
             </article>
 
             <div className="grid gap-6">
@@ -426,17 +326,11 @@ export default function CheckoutPlanPage() {
                   <p className="text-3xl font-extrabold mb-2">{plan.price}</p>
                   <p className="text-slate-400">{plan.billingLabel}</p>
                 </div>
-                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-sm text-slate-400 mb-2">Método selecionado</p>
-                  <p className="text-lg font-semibold">
-                    {selectedMethod === 'pix' ? 'Pix' : 'Cartão'}
-                  </p>
-                </div>
               </article>
 
               <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
                 <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Confiança</p>
-                <h3 className="text-2xl font-extrabold mb-4">Compra segura e ativação rápida</h3>
+                <h3 className="text-2xl font-extrabold mb-4">Fluxo público pronto para venda</h3>
                 <div className="grid gap-2 text-slate-300">
                   {TRUST_ITEMS.map((item) => (
                     <div key={item} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
