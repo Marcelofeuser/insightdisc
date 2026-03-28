@@ -24,7 +24,6 @@ jobs:
       FRONTEND_URL: http://127.0.0.1:5173
       VITE_API_URL: http://127.0.0.1:4000
       E2E_API_URL: http://127.0.0.1:4000
-      VITE_ENABLE_DEV_LOGIN_SHORTCUTS: "true"
       SUPER_ADMIN_MASTER_KEY: example_master_key
       SUPER_ADMIN_EMAIL: admin@insightdisc.app
       SUPER_ADMIN_PASSWORD: example_password
