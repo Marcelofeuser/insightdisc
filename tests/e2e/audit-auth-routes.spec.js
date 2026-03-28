@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loginSuperAdminWithAutoSeed } from './helpers/super-admin-login.js';
+import { loginSuperAdminWithAutoSeed, resolveSuperAdminCredentials } from './helpers/super-admin-login.js';
 
 const API_BASE_URL = (
   process.env.LIVE_API_BASE_URL ||
@@ -8,11 +8,11 @@ const API_BASE_URL = (
   'http://localhost:4000'
 ).replace(/\/+$/, '');
 
-const SUPER_ADMIN = {
+const SUPER_ADMIN = resolveSuperAdminCredentials({
   email: process.env.SUPER_ADMIN_EMAIL || 'admin@insightdisc.app',
   password: process.env.SUPER_ADMIN_PASSWORD || 'change_me_in_tests',
   masterKey: process.env.SUPER_ADMIN_MASTER_KEY || 'example_master_key',
-};
+});
 
 function uniqueEmail(prefix = 'audit-user') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@example.com`;

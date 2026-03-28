@@ -8,7 +8,11 @@ import {
   waitForReportRender,
 } from './helpers/report';
 import { publicReportUrl } from './fixtures/publicReport';
-import { loginSuperAdminWithAutoSeed } from './helpers/super-admin-login.js';
+import {
+  hasResolvableSuperAdminCredentials,
+  loginSuperAdminWithAutoSeed,
+  resolveSuperAdminCredentials,
+} from './helpers/super-admin-login.js';
 
 const IS_API_MODE = String(process.env.PW_ENABLE_API_MODE || '')
   .trim()
@@ -21,14 +25,14 @@ const API_BASE_URL = (
   'http://127.0.0.1:4000'
 ).replace(/\/+$/, '');
 
-const SUPER_ADMIN = {
+const SUPER_ADMIN = resolveSuperAdminCredentials({
   email: process.env.SUPER_ADMIN_EMAIL || 'admin@insightdisc.app',
   password: process.env.SUPER_ADMIN_PASSWORD || 'change_me_in_tests',
   masterKey: process.env.SUPER_ADMIN_MASTER_KEY || 'example_master_key',
-};
+});
 
 function hasSuperAdminCreds() {
-  return Boolean(SUPER_ADMIN.email && SUPER_ADMIN.password && SUPER_ADMIN.masterKey);
+  return hasResolvableSuperAdminCredentials(SUPER_ADMIN);
 }
 
 function buildSubmitAnswers() {

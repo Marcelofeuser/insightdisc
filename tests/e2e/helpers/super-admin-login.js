@@ -1,21 +1,92 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import dotenv from 'dotenv';
 
 const RETRYABLE_LOGIN_STATUSES = new Set([401, 404]);
+const PLACEHOLDER_PASSWORDS = new Set(['', 'change_me_in_tests']);
+const PLACEHOLDER_MASTER_KEYS = new Set(['', 'example_master_key']);
 
 let hasAttemptedSeed = false;
+let cachedEnvFallbacks = null;
 
 function normalizeApiBaseUrl(value = '') {
   const normalized = String(value || '').trim();
   return normalized ? normalized.replace(/\/+$/, '') : 'http://localhost:4000';
 }
 
-function normalizeSuperAdminCredentials(credentials = {}) {
+function normalizeEmail(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function readEnvFile(envFilePath) {
+  try {
+    if (!fs.existsSync(envFilePath)) return {};
+    const raw = fs.readFileSync(envFilePath, 'utf8');
+    return dotenv.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function readEnvFallbacks() {
+  if (cachedEnvFallbacks) return cachedEnvFallbacks;
+
+  const root = process.cwd();
+  const candidates = [
+    path.resolve(root, '.env.local'),
+    path.resolve(root, '.env'),
+    path.resolve(root, 'server/.env.local'),
+    path.resolve(root, 'server/.env'),
+  ];
+
+  cachedEnvFallbacks = candidates.reduce((acc, envPath) => {
+    return { ...acc, ...readEnvFile(envPath) };
+  }, {});
+  return cachedEnvFallbacks;
+}
+
+function pickValue(key) {
+  const fromProcess = String(process.env[key] || '').trim();
+  if (fromProcess) return fromProcess;
+
+  const fallbackMap = readEnvFallbacks();
+  return String(fallbackMap?.[key] || '').trim();
+}
+
+function pickCredentialValue(rawValue, fallbackValue, placeholders) {
+  if (!placeholders) return rawValue || fallbackValue;
+  if (rawValue && !placeholders.has(rawValue)) return rawValue;
+  return fallbackValue || rawValue;
+}
+
+export function resolveSuperAdminCredentials(credentials = {}) {
+  const rawEmail = normalizeEmail(credentials.email);
+  const rawPassword = String(credentials.password || '');
+  const rawMasterKey = String(credentials.masterKey || '').trim();
+
+  const fallbackEmail = normalizeEmail(pickValue('SUPER_ADMIN_EMAIL') || pickValue('SUPER_ADMIN_SEED_EMAIL'));
+  const fallbackPassword = pickValue('SUPER_ADMIN_PASSWORD') || pickValue('SUPER_ADMIN_SEED_PASSWORD');
+  const fallbackMasterKey = pickValue('SUPER_ADMIN_MASTER_KEY');
+
   return {
-    email: String(credentials.email || '').trim().toLowerCase(),
-    password: String(credentials.password || ''),
-    masterKey: String(credentials.masterKey || ''),
+    email: rawEmail || fallbackEmail || 'admin@insightdisc.app',
+    password: pickCredentialValue(rawPassword, fallbackPassword, PLACEHOLDER_PASSWORDS),
+    masterKey: pickCredentialValue(rawMasterKey, fallbackMasterKey, PLACEHOLDER_MASTER_KEYS),
   };
+}
+
+export function hasResolvableSuperAdminCredentials(credentials = {}) {
+  const resolved = resolveSuperAdminCredentials(credentials);
+  const resolvedPassword = String(resolved.password || '');
+  const resolvedMasterKey = String(resolved.masterKey || '').trim();
+  return Boolean(
+    String(resolved.email || '').trim() &&
+      resolvedPassword &&
+      resolvedMasterKey &&
+      !PLACEHOLDER_PASSWORDS.has(resolvedPassword) &&
+      !PLACEHOLDER_MASTER_KEYS.has(resolvedMasterKey),
+  );
 }
 
 async function requestSuperAdminLogin(request, { apiBaseUrl, credentials }) {
@@ -49,8 +120,9 @@ function formatSeedError(error) {
 }
 
 function buildSeedEnv(credentials = {}) {
-  const normalizedEmail = String(credentials.email || '').trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(credentials.email);
   const normalizedPassword = String(credentials.password || '');
+  const normalizedMasterKey = String(credentials.masterKey || '').trim();
 
   return {
     ...process.env,
@@ -58,6 +130,7 @@ function buildSeedEnv(credentials = {}) {
     ...(normalizedEmail ? { SUPER_ADMIN_SEED_EMAIL: normalizedEmail } : {}),
     ...(normalizedPassword ? { SUPER_ADMIN_PASSWORD: normalizedPassword } : {}),
     ...(normalizedPassword ? { SUPER_ADMIN_SEED_PASSWORD: normalizedPassword } : {}),
+    ...(normalizedMasterKey ? { SUPER_ADMIN_MASTER_KEY: normalizedMasterKey } : {}),
   };
 }
 
@@ -83,29 +156,49 @@ export async function loginSuperAdminWithAutoSeed(
   { apiBaseUrl = 'http://localhost:4000', credentials = {} } = {},
 ) {
   const resolvedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl);
-  const resolvedCredentials = normalizeSuperAdminCredentials(credentials);
+  const resolvedCredentials = resolveSuperAdminCredentials(credentials);
+  const envResolvedCredentials = resolveSuperAdminCredentials({});
 
   let { response, payload } = await requestSuperAdminLogin(request, {
     apiBaseUrl: resolvedApiBaseUrl,
     credentials: resolvedCredentials,
   });
+  let effectiveCredentials = { ...resolvedCredentials };
+
+  if (
+    response.status() === 403 &&
+    String(payload?.error || '').toUpperCase() === 'INVALID_MASTER_KEY'
+  ) {
+    const fallbackMasterKey = String(envResolvedCredentials.masterKey || '').trim();
+    if (
+      fallbackMasterKey &&
+      !PLACEHOLDER_MASTER_KEYS.has(fallbackMasterKey) &&
+      fallbackMasterKey !== effectiveCredentials.masterKey
+    ) {
+      effectiveCredentials = { ...effectiveCredentials, masterKey: fallbackMasterKey };
+      ({ response, payload } = await requestSuperAdminLogin(request, {
+        apiBaseUrl: resolvedApiBaseUrl,
+        credentials: effectiveCredentials,
+      }));
+    }
+  }
 
   if (!RETRYABLE_LOGIN_STATUSES.has(response.status())) {
     return {
       response,
       payload,
-      credentials: resolvedCredentials,
+      credentials: effectiveCredentials,
       seedAttempted: false,
       seedError: '',
     };
   }
 
-  const seedError = seedSuperAdminUser(resolvedCredentials);
+  const seedError = seedSuperAdminUser(effectiveCredentials);
   if (seedError) {
     return {
       response,
       payload,
-      credentials: resolvedCredentials,
+      credentials: effectiveCredentials,
       seedAttempted: true,
       seedError,
     };
@@ -113,13 +206,13 @@ export async function loginSuperAdminWithAutoSeed(
 
   ({ response, payload } = await requestSuperAdminLogin(request, {
     apiBaseUrl: resolvedApiBaseUrl,
-    credentials: resolvedCredentials,
+    credentials: effectiveCredentials,
   }));
 
   return {
     response,
     payload,
-    credentials: resolvedCredentials,
+    credentials: effectiveCredentials,
     seedAttempted: true,
     seedError: '',
   };
