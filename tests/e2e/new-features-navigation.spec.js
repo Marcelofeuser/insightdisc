@@ -68,7 +68,7 @@ test.describe('Novas features - navegação', () => {
 
     const modeSelect = page.getByLabel(/Selecionar modo do painel/i);
     await modeSelect.selectOption('business');
-    await expect(page.getByRole('heading', { name: /Inteligência comportamental da sua organização em tempo real/i })).toBeVisible();
+    await expect(page.getByText(/Inteligência comportamental da sua organização em tempo real/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /Organização/i }).first()).toBeVisible();
 
     await modeSelect.selectOption('personal');

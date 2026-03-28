@@ -302,12 +302,12 @@ export default function Home() {
      <div className="grid lg:grid-cols-2 gap-14 xl:gap-16 items-center">
       <div className="lg:pr-3 xl:pr-6">
        <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-8">
-        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> <span className="text-sm text-slate-300">Muito além de um teste DISC</span>
+        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> <span className="text-sm text-slate-300">Plataforma premium para uso pessoal, profissional e empresarial</span>
        </div>
-       <h1 className="fade-up text-5xl md:text-6xl xl:text-7xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>Plataforma de <span className="block disc-gradient bg-clip-text text-transparent hero-gradient-text"> inteligência comportamental </span> para pessoas, líderes e empresas</h1>
-       <p className="fade-up text-xl md:text-2xl text-slate-400 leading-relaxed max-w-2xl mb-8" style={{ animationDelay: '.2s' }}>Avaliação individual, relatório premium, comparação de perfis, aderência candidato x cargo e mapa comportamental de equipes em uma única plataforma.</p>
+       <h1 className="fade-up text-5xl md:text-6xl xl:text-7xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s' }}>Plataforma de <span className="block disc-gradient bg-clip-text text-transparent hero-gradient-text"> inteligência comportamental </span> com assinatura para pessoas, líderes e empresas</h1>
+       <p className="fade-up text-xl md:text-2xl text-slate-400 leading-relaxed max-w-2xl mb-8" style={{ animationDelay: '.2s' }}>Análise DISC aprofundada, dossiê técnico, comparação de perfis e inteligência de equipe em um fluxo comercial claro e escalável.</p>
        <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s' }}>
-        <Link to="/avaliacoes" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Fazer minha avaliação </Link> <a href="#plataforma" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10"> Ver demonstração </a>
+        <Link to="/planos" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Escolher meu plano </Link> <a href="#plataforma" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10" data-testid="home-cta-secondary"> Ver demonstração </a>
        </div>
        <div className="fade-up hero-highlight-grid" style={{ animationDelay: '.4s' }}>
         {HERO_HIGHLIGHTS.map((item) => (
@@ -689,7 +689,7 @@ export default function Home() {
        <div className="flex flex-col sm:flex-row justify-center gap-4">
         <Link to="/planos" className="btn-primary cta-pulse px-10 py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all"> Escolher plano ideal </Link> <Link to="/empresa" className="glass-card px-10 py-5 rounded-2xl font-bold text-lg text-slate-200 border border-white/10 hover:border-white/20 transition-all"> Agendar demonstração </Link>
        </div>
-       <p className="mt-8 text-sm text-slate-500">Sem cartão de crédito • Teste inicial • Evolua conforme o uso</p>
+       <p className="mt-8 text-sm text-slate-500">Assinaturas por perfil de uso • Recursos progressivos • Evolução conforme a operação</p>
       </div>
      </div>
     </div>
