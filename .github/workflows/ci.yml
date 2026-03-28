@@ -27,8 +27,8 @@ jobs:
       SUPER_ADMIN_MASTER_KEY: ${{ secrets.SUPER_ADMIN_MASTER_KEY }}
       SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
       SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
-      SUPER_ADMIN_SEED_EMAIL: admin@insightdisc.app
-      SUPER_ADMIN_SEED_PASSWORD: example_password
+      SUPER_ADMIN_SEED_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
+      SUPER_ADMIN_SEED_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
     services:
       postgres:
         image: postgres:16-alpine
