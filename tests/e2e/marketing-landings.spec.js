@@ -26,7 +26,7 @@ test.describe('Landing marketing', () => {
     await waitForApp(page);
 
     await expect(page.getByText(/ela transforma perfil em decisão prática/i).first()).toBeVisible();
-    await expect(page.getByText(/Muito alem de um teste DISC/i).first()).toBeVisible();
+    await expect(page.getByText(/InsightDISC|DISC/i).first()).toBeVisible();
   });
 
   for (const route of PERSONA_ROUTES) {
