@@ -48,7 +48,20 @@ function formatSeedError(error) {
   return [message, stderr, stdout].filter(Boolean).join(' :: ');
 }
 
-function seedSuperAdminUser() {
+function buildSeedEnv(credentials = {}) {
+  const normalizedEmail = String(credentials.email || '').trim().toLowerCase();
+  const normalizedPassword = String(credentials.password || '');
+
+  return {
+    ...process.env,
+    ...(normalizedEmail ? { SUPER_ADMIN_EMAIL: normalizedEmail } : {}),
+    ...(normalizedEmail ? { SUPER_ADMIN_SEED_EMAIL: normalizedEmail } : {}),
+    ...(normalizedPassword ? { SUPER_ADMIN_PASSWORD: normalizedPassword } : {}),
+    ...(normalizedPassword ? { SUPER_ADMIN_SEED_PASSWORD: normalizedPassword } : {}),
+  };
+}
+
+function seedSuperAdminUser(credentials = {}) {
   if (hasAttemptedSeed) return null;
   hasAttemptedSeed = true;
 
@@ -56,7 +69,7 @@ function seedSuperAdminUser() {
   try {
     execFileSync(process.execPath, [seedScriptPath], {
       cwd: process.cwd(),
-      env: process.env,
+      env: buildSeedEnv(credentials),
       stdio: 'pipe',
     });
     return null;
@@ -87,7 +100,7 @@ export async function loginSuperAdminWithAutoSeed(
     };
   }
 
-  const seedError = seedSuperAdminUser();
+  const seedError = seedSuperAdminUser(resolvedCredentials);
   if (seedError) {
     return {
       response,
