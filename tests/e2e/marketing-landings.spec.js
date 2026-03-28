@@ -25,7 +25,7 @@ test.describe('Landing marketing', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
 
-    await expect(page.getByRole('heading', { name: /Transforme perfil comportamental em decisao pratica/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /ela transforma perfil em decisão prática/i })).toBeVisible();
     await expect(page.getByText(/Muito alem de um teste DISC/i).first()).toBeVisible();
   });
 

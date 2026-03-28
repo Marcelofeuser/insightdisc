@@ -10,7 +10,7 @@ test('Visitante público não acessa dashboard premium', async ({ page }) => {
 
 test('Home CTA leva para StartFree', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /Fazer Teste Grátis|Começar Gratuitamente/i }).first().click();
+  await page.getByRole('link', { name: /Escolher meu plano/i }).first().click();
   await expect(page).toHaveURL(/\/StartFree(?:\?|$)/);
 });
 
