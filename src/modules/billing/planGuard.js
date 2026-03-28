@@ -42,7 +42,6 @@ export const FEATURE_KEYS = Object.freeze({
   BEHAVIOR_ANALYTICS: 'behaviorAnalytics',
   BENCHMARK: 'benchmark',
   HISTORY_EVOLUTION: 'historyEvolution',
-  COACH: 'coach',
   ORGANIZATIONAL_REPORT: 'organizationalReport',
 });
 
@@ -55,7 +54,6 @@ const FEATURE_META = Object.freeze({
   [FEATURE_KEYS.BEHAVIOR_ANALYTICS]: { label: 'Analytics Comportamental', minPlan: 'business' },
   [FEATURE_KEYS.BENCHMARK]: { label: 'Benchmark Organizacional', minPlan: 'business' },
   [FEATURE_KEYS.HISTORY_EVOLUTION]: { label: 'Histórico Comportamental', minPlan: 'personal' },
-  [FEATURE_KEYS.COACH]: { label: 'Coach Comportamental', minPlan: 'personal' },
   [FEATURE_KEYS.ORGANIZATIONAL_REPORT]: { label: 'Relatório Executivo', minPlan: 'business' },
 });
 

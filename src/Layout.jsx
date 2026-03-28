@@ -57,10 +57,6 @@ const PAGE_TITLES = {
     title: 'Relatório Organizacional',
     subtitle: 'Leitura executiva de cultura comportamental, benchmark e recomendações estratégicas',
   },
-  Coach: {
-    title: 'Coach Comportamental',
-    subtitle: 'Perguntas práticas e recomendações baseadas no DISC Engine',
-  },
   Demo: {
     title: 'Modo Demo',
     subtitle: 'Explore a plataforma com dados de demonstração sem cadastro',

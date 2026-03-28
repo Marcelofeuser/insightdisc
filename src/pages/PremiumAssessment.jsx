@@ -23,6 +23,7 @@ import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { buildAssessmentReportPath } from '@/modules/reports';
+import { resolveSelfAssessmentStartErrorMessage } from '@/utils/assessmentFlow';
 
 const DRAFT_KEY = (id) => `disc_draft_${id}`;
 const QUICK_CONTEXT_STEP_KEY = (id) => `disc_quick_context_done_${id}`;
@@ -422,8 +423,12 @@ export default function PremiumAssessment() {
         started_at: new Date().toISOString(),
       });
       setAssessmentId(assessment.id);
-    } catch {
-      setInitError('Não foi possível iniciar a avaliação. Verifique sua conexão.');
+    } catch (error) {
+      setInitError(
+        resolveSelfAssessmentStartErrorMessage(error, {
+          apiBaseUrl,
+        }),
+      );
     }
   };
 

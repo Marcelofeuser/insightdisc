@@ -31,7 +31,6 @@ import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
 import AssessmentResult from '@/pages/AssessmentResult';
 import AssessmentReport from '@/pages/AssessmentReport';
 import DemoMode from '@/pages/DemoMode';
-import Coach from '@/pages/Coach';
 import OrganizationalReport from '@/pages/OrganizationalReport';
 import SalesPersonaLanding from '@/pages/SalesPersonaLanding';
 import MarketingUseCaseLanding from '@/pages/MarketingUseCaseLanding';
@@ -304,16 +303,7 @@ const AuthenticatedApp = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/coach"
-        element={
-          <ProtectedRoute pageName="Coach" policy={getPagePolicy('Coach')}>
-            <LayoutWrapper currentPageName="Coach">
-              <Coach />
-            </LayoutWrapper>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/coach" element={<Navigate to="/painel" replace />} />
 
       <Route
         path="/assessments/:id/result"

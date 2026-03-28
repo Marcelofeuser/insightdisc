@@ -26,7 +26,7 @@ const TRUST_ITEMS = Object.freeze([
 
 const PLAN_CONTEXT_NOTES = Object.freeze({
   disc: 'Entrega pontual com acesso imediato ao relatório completo, sem assinatura da plataforma.',
-  personal: 'Inclui Coach DISC e acompanhamento de evolução para uso pessoal com recorrência leve.',
+  personal: 'Inclui direcionamentos de desenvolvimento e acompanhamento de evolução para uso pessoal com recorrência leve.',
   profissional:
     'Inclui dossiê técnico, AI Lab (preview), Biblioteca DISC, Arquétipos em evolução e 10 créditos mensais.',
   business:

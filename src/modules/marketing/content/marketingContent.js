@@ -359,7 +359,7 @@ export const PERSONA_CONTENT = Object.freeze({
       'Comparacao de perfil para reduzir atritos recorrentes',
       'Recomendacoes praticas para colaboracao e decisao',
     ],
-    modules: ['leadership', 'comparison', 'coach', 'teamMap'],
+    modules: ['leadership', 'comparison', 'reports', 'teamMap'],
     primaryCta: { label: 'Explorar para lideres', to: '/analise-comportamental-para-lideres' },
     secondaryCta: { label: 'Ver demonstracao', to: '/demo' },
   },
@@ -383,7 +383,7 @@ export const PERSONA_CONTENT = Object.freeze({
       'Relatorios premium com exportacao PDF comercial',
       'Comparador avancado para sessoes de devolutiva',
     ],
-    modules: ['reports', 'comparison', 'coach', 'jobFit'],
+    modules: ['reports', 'comparison', 'leadership', 'jobFit'],
     primaryCta: { label: 'Conhecer plano Professional', to: '/Pricing' },
     secondaryCta: { label: 'Ver relatorio demo', to: '/r/demo' },
   },
@@ -407,7 +407,7 @@ export const PERSONA_CONTENT = Object.freeze({
       'Resumo executivo e pontos de desenvolvimento',
       'Recomendacoes praticas por contexto profissional',
     ],
-    modules: ['result', 'reports', 'development', 'coach'],
+    modules: ['result', 'reports', 'development', 'comparison'],
     primaryCta: { label: 'Fazer minha avaliacao', to: '/avaliacoes' },
     secondaryCta: { label: 'Explorar demonstracao', to: '/demo' },
   },
@@ -529,7 +529,7 @@ export const USE_CASE_CONTENT = Object.freeze({
     subtitle:
       'Use DISC aplicado para ajustar decisao, ritmo de trabalho e colaboracao entre perfis diferentes.',
     primaryCta: { label: 'Explorar para lideres', to: '/lideres' },
-    secondaryCta: { label: 'Abrir coach comportamental', to: '/coach' },
+    secondaryCta: { label: 'Abrir comparador de perfis', to: '/compare-profiles' },
     metaTitle: 'Analise Comportamental para Lideres | InsightDISC',
     metaDescription:
       'Ferramenta de inteligencia comportamental para lideres com comparacao DISC e orientacoes praticas.',
@@ -607,10 +607,6 @@ export const MARKETING_MODULE_LABELS = Object.freeze({
   development: {
     title: 'Plano de desenvolvimento',
     description: 'Recomendacoes praticas de evolucao para os proximos ciclos de crescimento.',
-  },
-  coach: {
-    title: 'Coach comportamental',
-    description: 'Orientacoes contextuais para perguntas de lideranca e colaboracao.',
   },
   organizationReport: {
     title: 'Relatorio organizacional',

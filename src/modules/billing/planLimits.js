@@ -9,7 +9,6 @@ export const PLAN_LIMITS = Object.freeze({
     behaviorAnalytics: false,
     benchmark: false,
     historyEvolution: true,
-    coach: true,
     organizationalReport: false,
   }),
   professional: Object.freeze({
@@ -22,7 +21,6 @@ export const PLAN_LIMITS = Object.freeze({
     behaviorAnalytics: false,
     benchmark: false,
     historyEvolution: true,
-    coach: true,
     organizationalReport: false,
   }),
   business: Object.freeze({
@@ -35,7 +33,6 @@ export const PLAN_LIMITS = Object.freeze({
     behaviorAnalytics: true,
     benchmark: true,
     historyEvolution: true,
-    coach: true,
     organizationalReport: true,
   }),
 });

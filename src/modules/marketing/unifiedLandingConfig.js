@@ -8,17 +8,17 @@ const DEFAULT_USE_CASE_MODULES = Object.freeze(['result', 'comparison', 'jobFit'
 const MODULE_HINTS_BY_SLUG = Object.freeze({
   empresa: ['teamMap', 'organizationReport', 'leadership', 'comparison', 'reports'],
   rh: ['jobFit', 'comparison', 'reports', 'teamMap'],
-  lideres: ['leadership', 'comparison', 'coach', 'teamMap'],
+  lideres: ['leadership', 'comparison', 'teamMap', 'reports'],
   vendas: ['jobFit', 'comparison', 'leadership', 'reports'],
-  consultores: ['reports', 'comparison', 'coach', 'jobFit'],
-  autoconhecimento: ['result', 'reports', 'development', 'coach'],
+  consultores: ['reports', 'comparison', 'jobFit', 'leadership'],
+  autoconhecimento: ['result', 'reports', 'development', 'comparison'],
   recrutamento: ['jobFit', 'comparison', 'reports', 'teamMap'],
   'disc-para-empresas': ['teamMap', 'organizationReport', 'leadership', 'comparison', 'reports'],
   'analise-disc-para-rh': ['jobFit', 'comparison', 'reports', 'teamMap'],
   'teste-disc-com-relatorio': ['result', 'reports', 'comparison', 'development'],
-  'comparacao-de-perfis-disc': ['comparison', 'leadership', 'reports', 'coach'],
+  'comparacao-de-perfis-disc': ['comparison', 'leadership', 'reports', 'teamMap'],
   'mapa-comportamental-de-equipe': ['teamMap', 'organizationReport', 'leadership', 'comparison'],
-  'analise-comportamental-para-lideres': ['leadership', 'comparison', 'coach', 'teamMap'],
+  'analise-comportamental-para-lideres': ['leadership', 'comparison', 'teamMap', 'reports'],
   'disc-para-recrutamento': ['jobFit', 'comparison', 'reports', 'teamMap'],
 });
 

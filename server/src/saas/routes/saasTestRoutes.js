@@ -34,8 +34,8 @@ router.post('/test/use-assessment', (req, res) => {
 router.get('/test/get-usage', (req, res) => {
   const { accountId } = req.query;
   if (!accountId) return res.status(400).json({ ok: false, error: 'ACCOUNT_ID_REQUIRED' });
-  const used = checkUsage(accountId);
-  return res.json({ ok: true, used });
+  const usage = checkUsage(accountId, 'assessment');
+  return res.json({ ok: true, ...usage });
 });
 
 // GET /saas/test/get-plan

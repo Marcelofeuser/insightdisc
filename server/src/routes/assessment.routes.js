@@ -440,7 +440,12 @@ router.post('/self/start', requireAuth, attachUser, async (req, res) => {
     }
 
     if (String(user.role || '').toUpperCase() === 'CANDIDATE') {
-      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
+      return res.status(403).json({
+        ok: false,
+        error: 'FORBIDDEN',
+        message:
+          'Perfil CANDIDATE não pode iniciar autoavaliação interna. Use uma conta Professional/Business.',
+      });
     }
 
     const isSuperAdmin = isSuperAdminUser(user);

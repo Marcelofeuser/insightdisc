@@ -4,7 +4,7 @@ const PROFISSIONAL_CONFIG = {
   slug: 'profissional',
   metaTitle: 'InsightDISC Profissional: análise comportamental para especialistas',
   metaDescription:
-    'A versão Profissional do InsightDISC foi criada para RH, consultores, analistas e coaches que precisam de leitura técnica consistente e produtividade.',
+    'A versão Profissional do InsightDISC foi criada para RH, consultores e analistas que precisam de leitura técnica consistente e produtividade.',
   hero: {
     badge: 'Camada técnica para atuação profissional com DISC',
     title: 'InsightDISC Profissional: leitura técnica para decisões comportamentais consistentes',

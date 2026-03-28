@@ -377,49 +377,91 @@ router.post('/claim', claimReport);
 router.post('/claim-report', claimReport);
 
 async function listCandidateReports(req, res) {
-  try {
+  const appBaseUrl = getPublicAppBaseUrl(req);
+
+  const toReportItem = (assessment) => {
+    if (!assessment?.report) return null;
+
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: assessment.id,
+      accountId: assessment.organizationId,
+      reportType: resolveStoredReportType(assessment, 'business'),
+      appBaseUrl,
+    });
+
+    return {
+      assessmentId: assessment.id,
+      candidateName: assessment.candidateName,
+      candidateEmail: assessment.candidateEmail,
+      createdAt: assessment.createdAt,
+      completedAt: assessment.completedAt,
+      reportId: assessment.report?.id || null,
+      pdfUrl: publicAccess.publicPdfUrl,
+      reportType: publicAccess.reportType,
+      publicToken: publicAccess.token,
+      publicReportUrl: publicAccess.publicReportUrl,
+      publicPdfUrl: publicAccess.publicPdfUrl,
+      discProfile: assessment.report?.discProfile || null,
+    };
+  };
+
+  const resolveWhereScope = async () => {
     const role = String(req.user?.role || '').toUpperCase();
     const isSuperAdmin = isSuperAdminUser(req.user || {});
     const userEmail = String(req.user?.email || '').trim().toLowerCase();
 
-    let where = {};
     if (isSuperAdmin) {
-      where = {};
-    } else if (role === 'CANDIDATE' || role === 'USER') {
-      where = {
-        OR: [
-          { candidateUserId: req.user.id },
-          ...(userEmail ? [{ candidateEmail: userEmail }] : []),
-        ],
+      return { where: {}, canList: true };
+    }
+
+    if (role === 'CANDIDATE' || role === 'USER') {
+      return {
+        where: {
+          OR: [
+            { candidateUserId: req.user.id },
+            ...(userEmail ? [{ candidateEmail: userEmail }] : []),
+          ],
+        },
+        canList: true,
       };
-    } else {
-      const [ownedOrganizations, memberships] = await Promise.all([
-        prisma.organization.findMany({
-          where: { ownerId: req.user.id },
-          select: { id: true },
-        }),
-        prisma.organizationMember.findMany({
-          where: { userId: req.user.id },
-          select: { organizationId: true },
-        }),
-      ]);
+    }
 
-      const allowedOrganizationIds = Array.from(
-        new Set([
-          ...ownedOrganizations.map((item) => item.id),
-          ...memberships.map((item) => item.organizationId),
-        ]),
-      ).filter(Boolean);
+    const [ownedOrganizations, memberships] = await Promise.all([
+      prisma.organization.findMany({
+        where: { ownerId: req.user.id },
+        select: { id: true },
+      }),
+      prisma.organizationMember.findMany({
+        where: { userId: req.user.id },
+        select: { organizationId: true },
+      }),
+    ]);
 
-      if (!allowedOrganizationIds.length) {
-        return res.status(200).json({ ok: true, reports: [] });
-      }
+    const allowedOrganizationIds = Array.from(
+      new Set([
+        ...ownedOrganizations.map((item) => item.id),
+        ...memberships.map((item) => item.organizationId),
+      ]),
+    ).filter(Boolean);
 
-      where = {
+    if (!allowedOrganizationIds.length) {
+      return { where: {}, canList: false };
+    }
+
+    return {
+      where: {
         organizationId: {
           in: allowedOrganizationIds,
         },
-      };
+      },
+      canList: true,
+    };
+  };
+
+  try {
+    const { where, canList } = await resolveWhereScope();
+    if (!canList) {
+      return res.status(200).json({ ok: true, reports: [] });
     }
 
     const assessments = await prisma.assessment.findMany({
@@ -428,38 +470,130 @@ async function listCandidateReports(req, res) {
       include: { report: true },
       take: 100,
     });
-    const appBaseUrl = getPublicAppBaseUrl(req);
 
     return res.status(200).json({
       ok: true,
       reports: assessments
-        .filter((assessment) => Boolean(assessment.report))
-        .map((assessment) => {
-          const publicAccess = issuePublicReportAccess({
-            assessmentId: assessment.id,
-            accountId: assessment.organizationId,
-            reportType: resolveStoredReportType(assessment, 'business'),
-            appBaseUrl,
-          });
-
-          return {
-            assessmentId: assessment.id,
-            candidateName: assessment.candidateName,
-            candidateEmail: assessment.candidateEmail,
-            createdAt: assessment.createdAt,
-            completedAt: assessment.completedAt,
-            reportId: assessment.report?.id || null,
-            pdfUrl: publicAccess.publicPdfUrl,
-            reportType: publicAccess.reportType,
-            publicToken: publicAccess.token,
-            publicReportUrl: publicAccess.publicReportUrl,
-            publicPdfUrl: publicAccess.publicPdfUrl,
-            discProfile: assessment.report?.discProfile || null,
-          };
-        }),
+        .map(toReportItem)
+        .filter(Boolean),
     });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error?.message || 'CANDIDATE_REPORTS_FAILED' });
+  }
+}
+
+async function listCandidateAssessments(req, res) {
+  const appBaseUrl = getPublicAppBaseUrl(req);
+
+  const toReportItem = (assessment) => {
+    if (!assessment?.report) return null;
+
+    const publicAccess = issuePublicReportAccess({
+      assessmentId: assessment.id,
+      accountId: assessment.organizationId,
+      reportType: resolveStoredReportType(assessment, 'business'),
+      appBaseUrl,
+    });
+
+    return {
+      reportType: publicAccess.reportType,
+      publicToken: publicAccess.token,
+      publicReportUrl: publicAccess.publicReportUrl,
+      publicPdfUrl: publicAccess.publicPdfUrl,
+    };
+  };
+
+  const resolveWhereScope = async () => {
+    const role = String(req.user?.role || '').toUpperCase();
+    const isSuperAdmin = isSuperAdminUser(req.user || {});
+    const userEmail = String(req.user?.email || '').trim().toLowerCase();
+
+    if (isSuperAdmin) {
+      return { where: {}, canList: true };
+    }
+
+    if (role === 'CANDIDATE' || role === 'USER') {
+      return {
+        where: {
+          OR: [
+            { candidateUserId: req.user.id },
+            ...(userEmail ? [{ candidateEmail: userEmail }] : []),
+          ],
+        },
+        canList: true,
+      };
+    }
+
+    const [ownedOrganizations, memberships] = await Promise.all([
+      prisma.organization.findMany({
+        where: { ownerId: req.user.id },
+        select: { id: true },
+      }),
+      prisma.organizationMember.findMany({
+        where: { userId: req.user.id },
+        select: { organizationId: true },
+      }),
+    ]);
+
+    const allowedOrganizationIds = Array.from(
+      new Set([
+        ...ownedOrganizations.map((item) => item.id),
+        ...memberships.map((item) => item.organizationId),
+      ]),
+    ).filter(Boolean);
+
+    if (!allowedOrganizationIds.length) {
+      return { where: {}, canList: false };
+    }
+
+    return {
+      where: {
+        organizationId: {
+          in: allowedOrganizationIds,
+        },
+      },
+      canList: true,
+    };
+  };
+
+  try {
+    const { where, canList } = await resolveWhereScope();
+    if (!canList) {
+      return res.status(200).json({ ok: true, assessments: [] });
+    }
+
+    const assessments = await prisma.assessment.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: { report: true },
+      take: 200,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      assessments: assessments.map((assessment) => {
+        const reportEntry = toReportItem(assessment);
+        return {
+          id: assessment.id,
+          assessmentId: assessment.id,
+          organizationId: assessment.organizationId,
+          status: String(assessment.status || '').trim().toLowerCase(),
+          candidateName: assessment.candidateName || '',
+          candidateEmail: assessment.candidateEmail || '',
+          createdAt: assessment.createdAt,
+          completedAt: assessment.completedAt,
+          reportId: assessment.report?.id || null,
+          hasReport: Boolean(assessment.report),
+          reportType: reportEntry?.reportType || resolveStoredReportType(assessment, 'business'),
+          publicToken: reportEntry?.publicToken || '',
+          publicReportUrl: reportEntry?.publicReportUrl || '',
+          publicPdfUrl: reportEntry?.publicPdfUrl || '',
+          discProfile: assessment.report?.discProfile || null,
+        };
+      }),
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error?.message || 'CANDIDATE_ASSESSMENTS_FAILED' });
   }
 }
 
@@ -476,6 +610,20 @@ router.get(
   attachUser,
   requireRole('CANDIDATE', 'USER', 'ADMIN', 'PRO', 'SUPER_ADMIN'),
   listCandidateReports,
+);
+router.get(
+  '/me/assessments',
+  requireAuth,
+  attachUser,
+  requireRole('CANDIDATE', 'USER', 'ADMIN', 'PRO', 'SUPER_ADMIN'),
+  listCandidateAssessments,
+);
+router.get(
+  '/assessments',
+  requireAuth,
+  attachUser,
+  requireRole('CANDIDATE', 'USER', 'ADMIN', 'PRO', 'SUPER_ADMIN'),
+  listCandidateAssessments,
 );
 
 export default router;

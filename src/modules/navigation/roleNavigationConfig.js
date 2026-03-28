@@ -101,9 +101,6 @@ function buildBusinessNavigation(capabilities) {
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canViewAssessments
-      ? makeItem(Brain, 'Coach DISC', 'Coach', '/coach', 'Análises')
-      : null,
     makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises'),
     makeItem(BookOpen, 'Biblioteca DISC', 'PanelBibliotecaDisc', '/painel/biblioteca-disc', 'Conhecimento'),
     makeItem(Sparkles, 'AI Lab', 'AiDiscLab', '/AiDiscLab', 'Inovação'),
@@ -173,9 +170,6 @@ function buildProfessionalNavigation(capabilities) {
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canViewAssessments
-      ? makeItem(Brain, 'Coach DISC', 'Coach', '/coach', 'Análises')
-      : null,
     makeItem(Sparkles, 'AI Lab', 'AiDiscLab', '/AiDiscLab', 'Inovação'),
     makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises'),
     makeItem(BookOpen, 'Biblioteca DISC', 'PanelBibliotecaDisc', '/painel/biblioteca-disc', 'Conhecimento'),
@@ -204,7 +198,6 @@ function buildPersonalNavigation(capabilities) {
       '/painel/meu-desenvolvimento',
       'Minha Jornada',
     ),
-    makeItem(Brain, 'Coach DISC', 'Coach', '/coach', 'Minha Jornada'),
     makeItem(Users, 'Histórico', 'PanelHistorico', '/painel/historico', 'Minha Jornada'),
   ].filter(Boolean);
 }

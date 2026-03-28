@@ -17,7 +17,6 @@ const KNOWN_TOP_LEVEL_SEGMENTS = new Set([
   'candidateonboarding',
   'checkout',
   'checkoutsuccess',
-  'coach',
   'compare-profiles',
   'comparacao-de-perfis-disc',
   'consultores',

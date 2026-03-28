@@ -25,7 +25,7 @@ export const PANEL_MODE_META = Object.freeze({
     label: 'Professional',
     title: 'Professional Mode',
     description:
-      'Para analistas, consultores e coaches com foco em interpretação DISC e profundidade técnica.',
+      'Para analistas e consultores com foco em interpretação DISC e profundidade técnica.',
   },
   [PANEL_MODE.PERSONAL]: {
     label: 'Personal',

@@ -49,7 +49,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
   {
     feature: 'Principal diferencial',
     disc: 'Relatório completo imediato em PDF',
-    personal: 'Coach DISC e evolução pessoal guiada',
+    personal: 'Direcionamento prático e evolução pessoal guiada',
     profissional: 'Dossiê técnico e AI Lab para análise',
     business: 'Team Map com gestão comportamental de equipe',
     diamond: 'Uso ilimitado para operação em escala',
@@ -64,7 +64,7 @@ const DETAILED_COMPARISON_ROWS = Object.freeze([
   { feature: 'Comparação inteligente de perfis comportamentais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Dossiê comportamental completo', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Relatórios técnicos avançados', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Coach DISC contextual por relatório', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Direcionamentos de desenvolvimento por relatório', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'AI Lab para aprofundamento analítico (preview)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Biblioteca DISC aplicada (conteúdo em expansão contínua)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
   { feature: 'Arquétipos comportamentais (evolução contínua)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },

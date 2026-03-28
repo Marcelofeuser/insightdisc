@@ -1,4 +1,4 @@
-import { apiRequest, getApiToken } from '@/lib/apiClient';
+import { apiRequest, getApiErrorMessage, getApiToken } from '@/lib/apiClient';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { consumeAssessmentCredit, getCreditsStatus } from '@/modules/credits';
 import { createPageUrl } from '@/utils';
@@ -45,6 +45,34 @@ function isInsufficientCreditsError(error) {
     error?.payload?.error || error?.payload?.reason || error?.message || ''
   ).toUpperCase();
   return status === 402 || code.includes('INSUFFICIENT_CREDITS');
+}
+
+export function resolveSelfAssessmentStartErrorMessage(error, { apiBaseUrl = '' } = {}) {
+  const status = Number(error?.status || 0);
+  const code = String(
+    error?.payload?.error || error?.payload?.reason || error?.code || error?.message || '',
+  ).toUpperCase();
+
+  if (status === 401 || code.includes('UNAUTHORIZED') || code.includes('AUTH_REQUIRED')) {
+    return 'Sua sessão expirou. Faça login novamente para iniciar a avaliação.';
+  }
+
+  if (status === 403 || code.includes('FORBIDDEN')) {
+    return 'Seu perfil atual não tem permissão para iniciar autoavaliação. Use uma conta Professional/Business.';
+  }
+
+  if (status === 402 || code.includes('INSUFFICIENT_CREDITS')) {
+    return 'Você não possui créditos suficientes para iniciar uma nova avaliação.';
+  }
+
+  if (code.includes('LIMIT_REACHED')) {
+    return 'O limite de avaliações do plano foi atingido para este workspace.';
+  }
+
+  return getApiErrorMessage(error, {
+    apiBaseUrl,
+    fallback: 'Não foi possível iniciar a avaliação neste momento.',
+  });
 }
 
 export async function startSelfAssessment({
@@ -121,6 +149,15 @@ export async function startSelfAssessment({
       return { ok: false, reason: 'INSUFFICIENT_CREDITS' };
     }
 
-    throw error;
+    const normalizedMessage = resolveSelfAssessmentStartErrorMessage(error, { apiBaseUrl });
+    const wrappedError = new Error(normalizedMessage);
+    wrappedError.status = Number(error?.status || 0);
+    wrappedError.code = String(error?.code || error?.payload?.error || 'SELF_ASSESSMENT_START_FAILED');
+    wrappedError.payload = {
+      ...(error?.payload && typeof error.payload === 'object' ? error.payload : {}),
+      message: normalizedMessage,
+    };
+    wrappedError.cause = error;
+    throw wrappedError;
   }
 }
