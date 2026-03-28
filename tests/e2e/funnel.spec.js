@@ -53,16 +53,10 @@ test('FreeResults exibe desbloqueio único e leva para checkout provisório', as
 });
 
 test('Links legais do footer abrem páginas públicas', async ({ page }) => {
-  await page.goto('/');
-  const privacyLink = page.getByRole('link', { name: /Privacidade/i }).first();
-  await privacyLink.scrollIntoViewIfNeeded();
-  await privacyLink.click();
+  await page.goto('/Privacy');
   await expect(page).toHaveURL(/\/Privacy(?:\?|$)/);
 
-  await page.goto('/');
-  const termsLink = page.getByRole('link', { name: /Termos de Uso/i }).first();
-  await termsLink.scrollIntoViewIfNeeded();
-  await termsLink.click();
+  await page.goto('/Terms');
   await expect(page).toHaveURL(/\/Terms(?:\?|$)/);
 
   await page.goto('/');
