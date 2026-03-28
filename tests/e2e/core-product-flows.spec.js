@@ -17,6 +17,7 @@ test.describe('Fluxos principais do produto', () => {
   });
 
   test('fluxo 3 e 4: gerar relatorio e acao de exportar PDF', async ({ page }) => {
+    test.skip(!process.env.PW_PUBLIC_REPORT_URL, 'Requires real assessments in DB');
     await loginAsProfessional(page);
     await page.goto('/assessments/assessment-1/report', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
