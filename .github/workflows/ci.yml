@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      DATABASE_URL: postgresql://neondb_owner:npg_kBuDGKwR8E6L@ep-aged-silence-acnwduie-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
-      DIRECT_URL: postgresql://neondb_owner:npg_kBuDGKwR8E6L@ep-aged-silence-acnwduie.sa-east-1.aws.neon.tech/neondb?sslmode=require
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
       SERVER_PORT: 4000
       APP_URL: http://127.0.0.1:5173
       FRONTEND_URL: http://127.0.0.1:5173
