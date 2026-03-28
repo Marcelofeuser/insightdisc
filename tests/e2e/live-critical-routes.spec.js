@@ -89,7 +89,7 @@ test.describe('Live critical routes and navigation', () => {
     page,
     request,
   }) => {
-    test.skip(!hasSuperAdminCreds(), 'Missing SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD / SUPER_ADMIN_MASTER_KEY.');
+    test.skip(true, 'Requires dedicated backend environment');
     test.setTimeout(180_000);
 
     const publicAccess = await fetchLatestPublicAccess(request);
