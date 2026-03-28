@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  BookOpen,
   CalendarClock,
   CheckCircle2,
   Clock3,
