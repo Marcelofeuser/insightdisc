@@ -50,7 +50,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const nextPath = useMemo(() => sanitizeNextPath(searchParams.get('next')), [searchParams]);
+  const nextPath = useMemo(
+    () => sanitizeNextPath(searchParams.get('next'), ''),
+    [searchParams]
+  );
 
   useEffect(() => {
     if (!isDev) return;

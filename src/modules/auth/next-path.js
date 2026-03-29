@@ -97,7 +97,8 @@ function hasKnownTopLevelSegment(pathname = '') {
 }
 
 export function sanitizeNextPath(nextPath, fallback = DEFAULT_NEXT_PATH) {
-  const safeFallback = normalizePathname(fallback || DEFAULT_NEXT_PATH);
+  const safeFallback =
+    fallback === '' ? '' : normalizePathname(fallback || DEFAULT_NEXT_PATH);
   const raw = String(nextPath || '').trim();
 
   if (!raw) return safeFallback;

@@ -78,9 +78,7 @@ export function deriveUserLifecycle(user = {}) {
   if (role === 'SUPER_ADMIN' || globalRole === GLOBAL_ROLES.SUPER_ADMIN) {
     return USER_LIFECYCLE.SUPER_ADMIN;
   }
-  if (role === 'CANDIDATE') {
-    return USER_LIFECYCLE.LEAD;
-  }
+  const isCandidate = role === 'CANDIDATE';
 
   const hasPaidPurchase =
     Boolean(user.has_paid_purchase) ||
@@ -101,6 +99,10 @@ export function deriveUserLifecycle(user = {}) {
 
   if (hasPaidPurchase || creditsBalance > 0 || hasPremiumPlan || hasProEntitlement) {
     return USER_LIFECYCLE.CUSTOMER_ACTIVE;
+  }
+
+  if (isCandidate) {
+    return USER_LIFECYCLE.LEAD;
   }
 
   return USER_LIFECYCLE.REGISTERED_NO_PURCHASE;

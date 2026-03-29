@@ -116,10 +116,10 @@ function normalizeUserPayload(user = {}) {
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
     ? 'super_admin'
-    : isCandidate
-      ? 'lead'
-      : isCustomerActive
-        ? 'customer_active'
+    : isCustomerActive
+      ? 'customer_active'
+      : isCandidate
+        ? 'lead'
         : 'registered_no_purchase';
 
   return {
