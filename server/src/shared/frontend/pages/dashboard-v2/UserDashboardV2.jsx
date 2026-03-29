@@ -35,7 +35,7 @@ export default function UserDashboardV2() {
         icon: Sparkles,
       },
       {
-        title: 'Meu relatório',
+        title: 'Minhas Avaliações',
         value: `${data.kpis.reportsGenerated} relatório${data.kpis.reportsGenerated === 1 ? '' : 's'} disponível${data.kpis.reportsGenerated === 1 ? '' : 'is'}`,
         icon: FileText,
       },
@@ -98,7 +98,7 @@ export default function UserDashboardV2() {
             </h3>
             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
               <CreditCard className="h-3.5 w-3.5" />
-              Saldo atual: {Number(data.creditsBalance || 0)} créditos
+              Créditos disponíveis: {Number(data.creditsBalance || 0)}
             </div>
           </div>
 

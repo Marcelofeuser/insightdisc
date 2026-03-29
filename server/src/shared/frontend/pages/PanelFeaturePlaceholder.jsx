@@ -3,16 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const FEATURE_COPY = {
-  arquetipos: {
-    title: 'Arquétipos DISC',
-    description:
-      'Esta área será o hub de arquétipos comportamentais com leitura técnica e recomendações acionáveis.',
-  },
-  'biblioteca-disc': {
-    title: 'Biblioteca DISC',
-    description:
-      'Conteúdo de referência para interpretação avançada, comunicação e aplicação prática do modelo DISC.',
-  },
   'meu-desenvolvimento': {
     title: 'Meu Desenvolvimento',
     description:

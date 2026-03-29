@@ -307,7 +307,7 @@ export default function DashboardV2() {
           {canCreateAssessment && (
             <QuickActionBtn
               icon={Send}
-              label="Enviar avaliação"
+              label="Enviar convite"
               onClick={() => navigate(createPageUrl('SendAssessment'))}
             />
           )}
@@ -377,7 +377,7 @@ export default function DashboardV2() {
                   className="mt-4 bg-indigo-600 hover:bg-indigo-700"
                   onClick={() => navigate(createPageUrl('SendAssessment'))}
                 >
-                  Enviar avaliação
+                  Enviar convite
                 </Button>
               )}
             </div>

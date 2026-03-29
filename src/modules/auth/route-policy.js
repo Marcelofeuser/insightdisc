@@ -57,6 +57,27 @@ const PAGE_POLICIES = Object.freeze({
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',
   },
+  PanelAiLab: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  PanelCoach: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
+  PanelArquetipos: {
+    allowedLifecycle: PREMIUM_LIFECYCLE,
+    redirectTo: '/Pricing?unlock=1',
+    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
+    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
+    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+  },
   JobMatching: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
     redirectTo: '/Pricing?unlock=1',

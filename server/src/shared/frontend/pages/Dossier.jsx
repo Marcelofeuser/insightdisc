@@ -24,7 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { buildDossierPath, resolveDossierRouteContext } from '@/modules/dossier/routes';
-import { createPageUrl } from '@/utils';
 
 const LOCAL_DOSSIER_KEY = 'insightdisc_behavioral_dossiers';
 const LOCAL_DOSSIER_ANAMNESIS_KEY = 'insightdisc_dossier_anamnesis';
@@ -1025,17 +1024,6 @@ export default function Dossier() {
             <p className="text-sm text-slate-600">
               Abra um relatório ou selecione um avaliado para visualizar o dossiê comportamental.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => navigate(createPageUrl('Dashboard'))}
-              >
-                Ir para Dashboard
-              </Button>
-              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
-                Minhas Avaliações
-              </Button>
-            </div>
             {historyQuery.isLoading ? (
               <div className="space-y-2">
                 <div className="h-10 rounded-md bg-slate-100 animate-pulse" />
@@ -1126,17 +1114,6 @@ export default function Dossier() {
                   ? 'Backend com Prisma desatualizado. Execute prisma generate.'
                   : 'Falha ao buscar os dados do dossiê.'}
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => navigate(createPageUrl('Dashboard'))}
-              >
-                Voltar ao Dashboard
-              </Button>
-              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
-                Minhas Avaliações
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -1160,17 +1137,6 @@ export default function Dossier() {
             <p className="text-sm text-slate-600">
               Não encontramos dados para os parâmetros informados.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => navigate(createPageUrl('Dashboard'))}
-              >
-                Voltar ao Dashboard
-              </Button>
-              <Button variant="outline" onClick={() => navigate(createPageUrl('MyAssessments'))}>
-                Minhas Avaliações
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>

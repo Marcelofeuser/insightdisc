@@ -78,3 +78,58 @@ export async function generateGroqDiscInsights(payload = {}, options = {}) {
 }
 
 export { generateGroqDiscInsights as generateStructuredDiscInsights };
+
+export async function generateGroqCoachAnswer(
+  {
+    systemInstruction = '',
+    userPrompt = '',
+    temperature = 0.45,
+    maxTokens = 900,
+  } = {},
+) {
+  const client = getGroqClient();
+  const timeoutMs = 12_000;
+  let timeoutId = null;
+
+  try {
+    const completion = await Promise.race([
+      client.chat.completions.create({
+        model: env.groqModel,
+        temperature,
+        max_tokens: maxTokens,
+        messages: [
+          {
+            role: 'system',
+            content: String(systemInstruction || ''),
+          },
+          {
+            role: 'user',
+            content: String(userPrompt || ''),
+          },
+        ],
+      }),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('GROQ_COACH_TIMEOUT')), timeoutMs);
+      }),
+    ]);
+
+    const text = String(completion?.choices?.[0]?.message?.content || '').trim();
+    if (!text) {
+      throw new Error('GROQ_EMPTY_COACH_RESPONSE');
+    }
+
+    if (text.length > MAX_RAW_RESPONSE_LENGTH) {
+      throw new Error('GROQ_COACH_RESPONSE_TOO_LONG');
+    }
+
+    return {
+      provider: 'groq',
+      model: env.groqModel,
+      text,
+    };
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}

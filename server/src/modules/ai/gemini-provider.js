@@ -70,3 +70,53 @@ export async function generateStructuredDiscInsights(payload = {}, options = {})
     clearTimeout(timeout);
   }
 }
+
+export async function generateGeminiCoachAnswer(
+  {
+    systemInstruction = '',
+    userPrompt = '',
+    temperature = 0.45,
+    maxOutputTokens = 900,
+  } = {},
+) {
+  const client = getGeminiClient();
+  const abortController = new AbortController();
+  const timeoutMs = 12_000;
+  const timeout = setTimeout(() => abortController.abort(), timeoutMs);
+
+  try {
+    const response = await client.models.generateContent({
+      model: env.geminiModel,
+      contents: String(userPrompt || ''),
+      config: {
+        abortSignal: abortController.signal,
+        systemInstruction: String(systemInstruction || ''),
+        temperature,
+        topP: 0.9,
+        maxOutputTokens,
+      },
+    });
+
+    const text = String(response?.text || '').trim();
+    if (!text) {
+      throw new Error('GEMINI_EMPTY_COACH_RESPONSE');
+    }
+
+    if (text.length > MAX_RAW_RESPONSE_LENGTH) {
+      throw new Error('GEMINI_COACH_RESPONSE_TOO_LONG');
+    }
+
+    return {
+      provider: 'gemini',
+      model: env.geminiModel,
+      text,
+    };
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('GEMINI_COACH_TIMEOUT');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

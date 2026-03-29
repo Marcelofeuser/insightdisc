@@ -28,7 +28,9 @@ import CompareProfiles from '@/pages/CompareProfiles';
 import TeamMap from '@/pages/TeamMap';
 import RoleDashboardHome from '@/pages/RoleDashboardHome';
 import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
-import BibliotecaDisc from '@/pages/BibliotecaDisc';
+import PanelArchetypes from '@/pages/PanelArchetypes';
+import PanelCoach from '@/pages/PanelCoach';
+import PanelAiLab from '@/pages/PanelAiLab';
 import AssessmentResult from '@/pages/AssessmentResult';
 import AssessmentReport from '@/pages/AssessmentReport';
 import DemoMode from '@/pages/DemoMode';
@@ -304,7 +306,11 @@ const AuthenticatedApp = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/coach" element={<Navigate to="/painel" replace />} />
+      <Route path="/coach" element={<Navigate to="/painel/coach" replace />} />
+      <Route
+        path="/archetypes"
+        element={<Navigate to="/painel/arquetipos" replace />}
+      />
 
       <Route
         path="/assessments/:id/result"
@@ -334,11 +340,31 @@ const AuthenticatedApp = () => {
       <Route path="/painel" element={DashboardHomeRouteElement} />
       <Route path="/Dashboard" element={DashboardHomeRouteElement} />
       <Route
-        path="/painel/biblioteca-disc"
+        path="/painel/ai-lab"
         element={
-          <ProtectedRoute pageName="Dashboard" policy={getPagePolicy('Dashboard')}>
-            <LayoutWrapper currentPageName="Dashboard">
-              <BibliotecaDisc />
+          <ProtectedRoute pageName="PanelAiLab" policy={getPagePolicy('PanelAiLab')}>
+            <LayoutWrapper currentPageName="PanelAiLab">
+              <PanelAiLab />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/painel/coach"
+        element={
+          <ProtectedRoute pageName="PanelCoach" policy={getPagePolicy('PanelCoach')}>
+            <LayoutWrapper currentPageName="PanelCoach">
+              <PanelCoach />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/painel/arquetipos"
+        element={
+          <ProtectedRoute pageName="PanelArquetipos" policy={getPagePolicy('PanelArquetipos')}>
+            <LayoutWrapper currentPageName="PanelArquetipos">
+              <PanelArchetypes />
             </LayoutWrapper>
           </ProtectedRoute>
         }

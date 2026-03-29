@@ -1,6 +1,8 @@
 import { env } from '../../config/env.js';
 import { generateStructuredDiscInsights as generateStructuredDiscInsightsWithGemini } from './gemini-provider.js';
+import { generateGeminiCoachAnswer } from './gemini-provider.js';
 import { generateGroqDiscInsights as generateStructuredDiscInsightsWithGroq } from './groq-provider.js';
+import { generateGroqCoachAnswer } from './groq-provider.js';
 
 const PROVIDERS = {
   groq: {
@@ -9,6 +11,7 @@ const PROVIDERS = {
       return env.groqModel;
     },
     generateStructuredDiscInsights: generateStructuredDiscInsightsWithGroq,
+    generateCoachAnswer: generateGroqCoachAnswer,
   },
   gemini: {
     name: 'gemini',
@@ -16,6 +19,7 @@ const PROVIDERS = {
       return env.geminiModel;
     },
     generateStructuredDiscInsights: generateStructuredDiscInsightsWithGemini,
+    generateCoachAnswer: generateGeminiCoachAnswer,
   },
 };
 

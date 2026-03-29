@@ -12,6 +12,7 @@ import {
   canAccessPremiumSaas,
   PERMISSIONS,
   hasPermission,
+  isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import { buildRoleNavigation, getDashboardHeaderByRole } from '@/modules/navigation/roleNavigationConfig';
 import {
@@ -46,13 +47,17 @@ const PUBLIC_PAGES = [
 
 const PAGE_TITLES = {
   Dashboard: { title: 'Dashboard', subtitle: 'Visão geral da sua conta e atividades recentes' },
-  MyAssessments: { title: 'Minhas Avaliações', subtitle: 'Acompanhe status, resultados e relatórios' },
+  MyAssessments: { title: 'Minhas Avaliações', subtitle: 'Operação de avaliações e histórico de entregas finais' },
   Credits: { title: 'Créditos', subtitle: 'Saldo atual e histórico de consumo' },
   BrandingSettings: { title: 'Marca', subtitle: 'Configuração white-label do workspace' },
   AdminDashboard: { title: 'Admin Console', subtitle: 'Gestão global da plataforma' },
   TeamMapping: { title: 'Mapeamento de Equipes', subtitle: 'Dinâmica e distribuição comportamental' },
   CompareProfiles: { title: 'Comparar Perfis', subtitle: 'Comparação DISC entre avaliações selecionadas' },
   TeamMap: { title: 'Mapa de Equipes', subtitle: 'Distribuição coletiva dos fatores comportamentais' },
+  JobMatching: {
+    title: 'Criador de Vagas',
+    subtitle: 'Definição comportamental de vaga e compatibilidade com perfis avaliados',
+  },
   OrganizationalReport: {
     title: 'Relatório Organizacional',
     subtitle: 'Leitura executiva de cultura comportamental, benchmark e recomendações estratégicas',
@@ -62,10 +67,21 @@ const PAGE_TITLES = {
     subtitle: 'Explore a plataforma com dados de demonstração sem cadastro',
   },
   Checkout: { title: 'Checkout', subtitle: 'Compra de créditos e gerenciamento de pacotes' },
-  JobMatching: { title: 'Job Matching', subtitle: 'Compatibilidade entre perfis e vagas' },
   LeadsDashboard: { title: 'Leads', subtitle: 'Gestão comercial e captação do chatbot' },
-  SendAssessment: { title: 'Enviar Avaliação', subtitle: 'Convites e disparos de testes DISC' },
+  SendAssessment: { title: 'Convites', subtitle: 'Envio e gestão operacional de convites de avaliação DISC' },
   Dossier: { title: 'Dossiê Comportamental', subtitle: 'Histórico comportamental completo dos avaliados' },
+  PanelAiLab: {
+    title: 'AI Lab',
+    subtitle: 'Laboratório de prompts e hipóteses aplicado aos seus relatórios DISC',
+  },
+  PanelCoach: {
+    title: 'Coach',
+    subtitle: 'Assistente com IA contextualizado em relatórios reais selecionados',
+  },
+  PanelArquetipos: {
+    title: 'Arquétipos',
+    subtitle: 'Leitura de arquétipos por relatório com resumo prático e PDF',
+  },
   AssessmentResult: {
     title: 'Resultado da Avaliação DISC',
     subtitle: 'Leitura oficial do perfil comportamental com interpretação estruturada',
@@ -308,6 +324,7 @@ export default function Layout({ children, currentPageName }) {
   const canAccessPremium = canAccessPremiumSaas(access);
   const canManageAssessments =
     canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+  const isSuperAdminUser = isSuperAdminAccess(access);
   const navItems = buildRoleNavigation(access, { panelMode });
 
   const dashboardTitle = getDashboardHeaderByRole(access, { panelMode });
@@ -322,12 +339,12 @@ export default function Layout({ children, currentPageName }) {
   const primaryAction =
     currentPageName === 'Dashboard' && canManageAssessments ? (
       <Link to={createPageUrl('SendAssessment')}>
-        <Button className="bg-indigo-600 hover:bg-indigo-700">Enviar avaliação</Button>
+        <Button className="bg-indigo-600 hover:bg-indigo-700">Enviar convite</Button>
       </Link>
     ) : null;
 
   const panelModeSwitcher =
-    isAuthenticated && !PUBLIC_PAGES.includes(currentPageName) ? (
+    isAuthenticated && isSuperAdminUser && !PUBLIC_PAGES.includes(currentPageName) ? (
       <PanelModeSwitcher value={panelMode} onChange={handlePanelModeChange} />
     ) : null;
 
@@ -352,7 +369,7 @@ export default function Layout({ children, currentPageName }) {
         title={pageTitle.title}
         subtitle={pageTitle.subtitle}
         actions={topbarActions}
-        modeLabel={PANEL_MODE_META[panelMode]?.label}
+        modeLabel={isSuperAdminUser ? PANEL_MODE_META[panelMode]?.label : undefined}
       >
         {children}
       </AppShell>

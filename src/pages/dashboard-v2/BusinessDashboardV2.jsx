@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  BookOpen,
-  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -114,7 +112,9 @@ export default function BusinessDashboardV2() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isSuperAdmin && <Badge className="bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-3">Super Admin</Badge>}
-          <Badge variant="outline" className="rounded-full px-3 text-xs">Modo organizacional</Badge>
+          <Badge variant="outline" className="rounded-full px-3 text-xs">
+            Créditos disponíveis: {credits}
+          </Badge>
           <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl" onClick={handleStart} disabled={isStarting}>
             {isStarting ? 'Iniciando...' : canCreateAssessment ? 'Nova avaliação' : 'Fazer minha avaliação'}
           </Button>
@@ -173,12 +173,12 @@ export default function BusinessDashboardV2() {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 flex flex-col gap-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Navegar para</p>
           <QuickLink icon={ClipboardList} label="Avaliações"      to="/MyAssessments"    />
-          <QuickLink icon={BookOpen}      label="Dossiê"           to={dossierPath}       />
-          <QuickLink icon={Users}         label="Mapa de equipes"  to="/team-map"         />
-          <QuickLink icon={Radar}         label="Comparar perfis"  to="/compare-profiles" />
-          <QuickLink icon={FileBarChart2} label="Relatórios"       to="/MyAssessments"    />
-          <QuickLink icon={Building2}     label="Configurações"    to="/app/branding"     />
-          <QuickLink icon={Send}          label="Enviar avaliação" to="/SendAssessment"   />
+          <QuickLink icon={FileBarChart2} label="Relatórios"       to="/MyAssessments#reports" />
+          <QuickLink icon={Users}         label="Equipe"           to="/team-map"         />
+          <QuickLink icon={Sparkles}      label="Arquétipos"       to="/painel/arquetipos" />
+          <QuickLink icon={Radar}         label="Comparador"       to="/compare-profiles" />
+          <QuickLink icon={Send}          label="Enviar convite"   to="/SendAssessment"   />
+          <QuickLink icon={ClipboardList} label="Dossiê"           to={dossierPath}       />
         </div>
       </div>
 

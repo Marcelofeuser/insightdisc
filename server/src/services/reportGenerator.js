@@ -39,13 +39,31 @@ function resolveProjectRoot() {
   return path.resolve(__dirname, '../..');
 }
 
+function resolveTemplateApprovedRoot() {
+  const candidates = [
+    path.resolve(__dirname, '../../..', 'server/report-templates/approved'),
+    path.resolve(__dirname, '../..', 'report-templates/approved'),
+    path.resolve(process.cwd(), 'server/report-templates/approved'),
+    path.resolve(process.cwd(), 'report-templates/approved'),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      existsSync(path.join(candidate, 'html')) &&
+      existsSync(path.join(candidate, 'engine'))
+    ) {
+      return candidate;
+    }
+  }
+
+  return path.resolve(__dirname, '../../..', 'server/report-templates/approved');
+}
+
 const PROJECT_ROOT = resolveProjectRoot();
-const basePath = path.join(PROJECT_ROOT, 'server/report-templates/approved/html');
+const REPORT_TEMPLATE_APPROVED_ROOT = resolveTemplateApprovedRoot();
+const basePath = path.join(REPORT_TEMPLATE_APPROVED_ROOT, 'html');
 const MASTER_TEMPLATE_PATH = path.join(basePath, 'relatorio_disc_business.html');
-const DISC_ENGINE_RUNTIME_PATH = path.join(
-  PROJECT_ROOT,
-  'server/report-templates/approved/engine/disc_engine.js',
-);
+const DISC_ENGINE_RUNTIME_PATH = path.join(REPORT_TEMPLATE_APPROVED_ROOT, 'engine/disc_engine.js');
 const REPORT_PLACEHOLDER_KEYS = Object.freeze([
   'name',
   'profile',
@@ -1973,10 +1991,34 @@ async function loadTemplateSource({
   templateHtml = '',
   templatePath = '',
 } = {}) {
+  const resolveTemplatePath = (rawPath = '') => {
+    const normalized = toText(rawPath);
+    if (!normalized) {
+      return MASTER_TEMPLATE_PATH;
+    }
+
+    if (path.isAbsolute(normalized)) {
+      return normalized;
+    }
+
+    const candidates = [
+      path.resolve(PROJECT_ROOT, normalized),
+      path.resolve(PROJECT_ROOT, '..', normalized),
+      path.resolve(process.cwd(), normalized),
+      path.resolve(process.cwd(), '..', normalized),
+    ];
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return path.resolve(PROJECT_ROOT, normalized);
+  };
+
   const inlineTemplate = String(templateHtml || '');
-  const resolvedTemplatePath = templatePath
-    ? path.resolve(PROJECT_ROOT, templatePath)
-    : MASTER_TEMPLATE_PATH;
+  const resolvedTemplatePath = resolveTemplatePath(templatePath);
 
   if (inlineTemplate) {
     return {
@@ -2065,8 +2107,10 @@ function invalidateTemplateCache() {
 }
 
 function resolveOfficialTemplatePath(reportType = 'business') {
-  normalizeMode(reportType);
-  return MASTER_TEMPLATE_PATH;
+  const normalizedReportType = normalizeMode(reportType);
+  const templateFileName =
+    OFFICIAL_TEMPLATE_PATHS[normalizedReportType] || OFFICIAL_TEMPLATE_PATHS.business;
+  return path.join(basePath, templateFileName);
 }
 
 async function buildReportHtmlPreview({

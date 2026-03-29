@@ -11,12 +11,13 @@ test.describe('Fase 5-9 - rotas principais', () => {
     await expect(page.getByText('Demo comercial da InsightDISC')).toBeVisible();
   });
 
-  test('profissional não acessa /coach e recebe gating em /organization-report', async ({ page }) => {
+  test('profissional acessa /coach e recebe gating em /organization-report', async ({ page }) => {
     await loginAsProfessional(page);
 
     await page.goto('/coach');
     await waitForApp(page);
-    await expect(page).toHaveURL(/\/painel(?:\?|#|$)/);
+    await expect(page).toHaveURL(/\/painel\/coach(?:\?|#|$)/);
+    await expect(page.getByRole('heading', { name: /Coach contextual por relatório/i })).toBeVisible();
 
     await page.goto('/organization-report');
     await waitForApp(page);

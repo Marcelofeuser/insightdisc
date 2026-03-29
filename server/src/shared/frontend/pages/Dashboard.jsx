@@ -315,7 +315,7 @@ export default function Dashboard() {
 
             {canManageAssessments ? (
               <Link to="/sendAssessment">
-                <Button className="w-full bg-indigo-600 hover:bg-indigo-700">Enviar avaliação</Button>
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-700">Enviar convite</Button>
               </Link>
             ) : null}
 
@@ -439,7 +439,7 @@ export default function Dashboard() {
             icon={Users}
             title="Sem avaliações concluídas"
             description="Quando alguém finalizar uma avaliação, ela aparecerá aqui."
-            ctaLabel={canManageAssessments ? 'Enviar avaliação' : undefined}
+            ctaLabel={canManageAssessments ? 'Enviar convite' : undefined}
             onCtaClick={canManageAssessments ? () => (window.location.href = '/sendAssessment') : undefined}
           />
         ) : (

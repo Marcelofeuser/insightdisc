@@ -1,6 +1,5 @@
 import {
   BookOpen,
-  Brain,
   Briefcase,
   Building2,
   LayoutDashboard,
@@ -16,6 +15,7 @@ import {
   canAccessPremiumSaas,
   hasAnyGlobalRole,
   hasPermission,
+  isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import { FEATURE_KEYS, hasFeatureAccess } from '@/modules/billing/planGuard';
 import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
@@ -40,24 +40,11 @@ function resolveCapabilities(access) {
   const canViewOwnData =
     canAccessPremium &&
     (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF) || canViewAssessments);
-  const canManageOrganization =
-    canAccessPremium &&
-    (hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE) ||
-      hasPermission(access, PERMISSIONS.CREDIT_MANAGE) ||
-      hasPermission(access, PERMISSIONS.CREDIT_VIEW));
-  const canAccessPlatformAdmin = hasAnyGlobalRole(access, [
-    GLOBAL_ROLES.SUPER_ADMIN,
-    GLOBAL_ROLES.PLATFORM_ADMIN,
-  ]);
   const canAccessSuperAdminConsole = hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]);
   const canUseAdvancedComparison =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ADVANCED_COMPARISON, { plan });
-  const canUseJobMatching =
-    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.JOB_MATCHING, { plan });
   const canUseTeamMap =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.TEAM_MAP, { plan });
-  const canUseOrganizationalReport =
-    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ORGANIZATIONAL_REPORT, { plan });
   const canUseDossier = canViewTenantData && canAccessDossier(access);
 
   return {
@@ -67,23 +54,20 @@ function resolveCapabilities(access) {
     canViewAssessments,
     canViewTenantData,
     canViewOwnData,
-    canManageOrganization,
-    canAccessPlatformAdmin,
     canAccessSuperAdminConsole,
     canUseAdvancedComparison,
-    canUseJobMatching,
     canUseTeamMap,
-    canUseOrganizationalReport,
     canUseDossier,
   };
 }
 
 function buildBusinessNavigation(capabilities) {
   const items = [
-    makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
+    makeItem(LayoutDashboard, 'Dashboard Business', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
           activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if onMyAssessments AND NO #reports hash
             return (
               currentPageName === 'MyAssessments' &&
               !String(currentPath || '').includes('#reports')
@@ -91,21 +75,16 @@ function buildBusinessNavigation(capabilities) {
           },
         })
       : null,
+    capabilities.canViewTenantData
+      ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
+      : null,
     capabilities.canUseDossier
       ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
       : null,
-    capabilities.canViewTenantData && capabilities.canUseTeamMap
-      ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
-      : null,
-    capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
-      ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
-      : null,
-    capabilities.canViewTenantData && capabilities.canUseJobMatching
-      ? makeItem(Sparkles, 'Insights', 'JobMatching', '/JobMatching', 'Análises')
-      : null,
     capabilities.canViewAssessments
-      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Análises', {
+      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Resultado', {
           activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if onMyAssessments AND #reports hash is present
             return (
               currentPageName === 'MyAssessments' &&
               String(currentPath || '').includes('#reports')
@@ -113,11 +92,20 @@ function buildBusinessNavigation(capabilities) {
           },
         })
       : null,
-    capabilities.canViewTenantData && capabilities.canUseOrganizationalReport
-      ? makeItem(Brain, 'Relatório Org', 'OrganizationalReport', '/organization-report', 'Análises')
+    capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
+      ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canManageOrganization
-      ? makeItem(Building2, 'Organização', 'BrandingSettings', '/app/branding', 'Configurações')
+    capabilities.canViewTenantData
+      ? makeItem(Building2, 'Criador de Vagas', 'JobMatching', '/app/job-matching', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(Sparkles, 'AI Lab', 'PanelAiLab', '/painel/ai-lab', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(BookOpen, 'Coach', 'PanelCoach', '/painel/coach', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises')
       : null,
   ].filter(Boolean);
 
@@ -133,10 +121,11 @@ function buildBusinessNavigation(capabilities) {
 
 function buildProfessionalNavigation(capabilities) {
   const items = [
-    makeItem(LayoutDashboard, 'Dashboard', 'Dashboard', '/painel', 'Visão Geral'),
+    makeItem(LayoutDashboard, 'Dashboard Profissional', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
           activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if on MyAssessments AND NO #reports hash
             return (
               currentPageName === 'MyAssessments' &&
               !String(currentPath || '').includes('#reports')
@@ -145,14 +134,15 @@ function buildProfessionalNavigation(capabilities) {
         })
       : null,
     capabilities.canManageAssessments
-      ? makeItem(Building2, 'Clientes', 'SendAssessment', '/SendAssessment', 'Operação')
+      ? makeItem(Building2, 'Convites', 'SendAssessment', '/SendAssessment', 'Operação')
       : null,
     capabilities.canUseDossier
       ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
       : null,
     capabilities.canViewAssessments
-      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Operação', {
+      ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Resultado', {
           activeMatch: ({ currentPageName, currentPath }) => {
+            // CRITICAL FIX: Only match if on MyAssessments AND #reports hash is present
             return (
               currentPageName === 'MyAssessments' &&
               String(currentPath || '').includes('#reports')
@@ -163,8 +153,15 @@ function buildProfessionalNavigation(capabilities) {
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises'),
-    makeItem(BookOpen, 'Biblioteca DISC', 'PanelBibliotecaDisc', '/painel/biblioteca-disc', 'Conhecimento'),
+    capabilities.canViewAssessments
+      ? makeItem(Sparkles, 'AI Lab', 'PanelAiLab', '/painel/ai-lab', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(BookOpen, 'Coach', 'PanelCoach', '/painel/coach', 'Análises')
+      : null,
+    capabilities.canViewAssessments
+      ? makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises')
+      : null,
   ].filter(Boolean);
 
   if (capabilities.canAccessSuperAdminConsole) {
@@ -197,7 +194,8 @@ function buildPersonalNavigation(capabilities) {
 export function buildRoleNavigation(access, options = {}) {
   const capabilities = resolveCapabilities(access);
   const requestedMode = normalizePanelMode(options?.panelMode);
-  const mode = requestedMode || resolveAutoPanelMode(access);
+  const autoMode = resolveAutoPanelMode(access);
+  const mode = isSuperAdminAccess(access) ? requestedMode || autoMode : autoMode;
 
   if (mode === PANEL_MODE.BUSINESS) {
     return buildBusinessNavigation(capabilities);
@@ -215,14 +213,14 @@ export function getDashboardHeaderByPanelMode(panelMode) {
 
   if (mode === PANEL_MODE.BUSINESS) {
     return {
-      title: 'Painel Business',
+      title: 'Dashboard Business',
       subtitle: 'Empresas, equipes e decisões de liderança com base em dados DISC',
     };
   }
 
   if (mode === PANEL_MODE.PROFESSIONAL) {
     return {
-      title: 'Painel Professional',
+      title: 'Dashboard Profissional',
       subtitle: 'Interpretação técnica, relatórios e operação avançada de avaliações DISC',
     };
   }
@@ -235,6 +233,7 @@ export function getDashboardHeaderByPanelMode(panelMode) {
 
 export function getDashboardHeaderByRole(access, options = {}) {
   const requestedMode = normalizePanelMode(options?.panelMode);
-  const mode = requestedMode || resolveAutoPanelMode(access);
+  const autoMode = resolveAutoPanelMode(access);
+  const mode = isSuperAdminAccess(access) ? requestedMode || autoMode : autoMode;
   return getDashboardHeaderByPanelMode(mode);
 }

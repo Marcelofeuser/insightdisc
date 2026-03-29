@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  BookOpen,
   ClipboardList,
   FileBarChart2,
   Radar,
@@ -9,6 +8,7 @@ import {
   UserCircle2,
   Users,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import StatsGrid from '@/components/ui/StatsGrid';
 import { getApiBaseUrl } from '@/lib/apiClient';
@@ -26,17 +26,20 @@ import {
 } from '@/modules/analytics/components';
 import { DashboardErrorState, DashboardLoadingState } from '@/modules/dashboard/components/DashboardStates';
 import { dashboardFactorLabels, useDashboardData } from '@/modules/dashboard/useDashboardData';
+import { buildDossierPath } from '@/modules/dossier/routes';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 export default function ProfessionalDashboardV2() {
   const navigate = useNavigate();
   const { access, user } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
+  const dossierPath = buildDossierPath();
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const data = useDashboardData({ access, user });
   const canCreateAssessment = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+  const creditsAvailable = Number(data.creditsBalance || 0);
 
   const stats = useMemo(
     () => [
@@ -91,19 +94,25 @@ export default function ProfessionalDashboardV2() {
       label: 'Avaliações',
       to: '/MyAssessments',
       icon: ClipboardList,
-      description: 'Visualize status, conclusão e materiais já emitidos.',
+      description: 'Acompanhe convites enviados, status e andamento operacional.',
     },
     {
-      label: 'Clientes',
+      label: 'Convites',
       to: '/SendAssessment',
       icon: Users,
-      description: 'Gerencie convites e jornadas de clientes avaliados.',
+      description: 'Envie convites e opere a base de respondentes.',
+    },
+    {
+      label: 'Dossiê',
+      to: dossierPath,
+      icon: Sparkles,
+      description: 'Acesse leitura aprofundada por avaliado para devolutiva.',
     },
     {
       label: 'Relatórios',
-      to: '/MyAssessments',
+      to: '/MyAssessments#reports',
       icon: FileBarChart2,
-      description: 'Acesse os relatórios disponíveis por participante.',
+      description: 'Consulte entregas finais e histórico concluído.',
     },
     {
       label: 'Comparador',
@@ -121,13 +130,7 @@ export default function ProfessionalDashboardV2() {
       label: 'Arquétipos',
       to: '/painel/arquetipos',
       icon: Sparkles,
-      description: 'Consulte narrativas de arquétipos DISC da V2.',
-    },
-    {
-      label: 'Biblioteca DISC',
-      to: '/painel/biblioteca-disc',
-      icon: BookOpen,
-      description: 'Materiais de apoio para interpretação técnica.',
+      description: 'Interprete arquétipos com base em relatórios concluídos.',
     },
   ];
 
@@ -167,21 +170,26 @@ export default function ProfessionalDashboardV2() {
         label="Dashboard Professional"
         title="Produtividade analítica para especialistas DISC"
         subtitle="Organize atendimento, interpretação comportamental e entrega de relatórios com visão técnica clara."
+        badge={(
+          <Badge variant="outline" className="rounded-full">
+            Créditos disponíveis: {creditsAvailable}
+          </Badge>
+        )}
         actions={(
           <>
             <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleStart} disabled={isStarting}>
               {isStarting ? 'Iniciando...' : 'Nova avaliação'}
             </Button>
             <Link to="/SendAssessment">
-              <Button variant="outline">Clientes</Button>
+              <Button variant="outline">Convites</Button>
+            </Link>
+            <Link to={dossierPath}>
+              <Button variant="outline">Dossiê</Button>
             </Link>
             <Link to="/compare-profiles">
               <Button variant="outline">Comparador</Button>
             </Link>
-            <Link to="/painel/biblioteca-disc">
-              <Button variant="outline">Biblioteca DISC</Button>
-            </Link>
-            <Link to="/MyAssessments">
+            <Link to="/MyAssessments#reports">
               <Button variant="outline">Relatórios</Button>
             </Link>
           </>
@@ -274,12 +282,12 @@ export default function ProfessionalDashboardV2() {
             </section>
 
             <InsightPanel
-              title="Biblioteca e leitura técnica"
-              subtitle="Conteúdo de apoio para reforçar consistência interpretativa e decisões de devolutiva."
+              title="Leitura técnica aplicada"
+              subtitle="Diretrizes para devolutiva, priorização de risco comportamental e tomada de decisão."
               items={[
-                'Arquétipos DISC com foco em aplicação prática para devolutivas e sessões.',
-                'Referências de comunicação por perfil para melhorar entendimento do cliente.',
-                'Guia de sinais de atenção para leitura de risco comportamental em contexto profissional.',
+                'Arquétipos DISC conectados aos relatórios concluídos para contexto prático.',
+                'Referências objetivas de comunicação por perfil para devolutivas mais claras.',
+                'Checklist de sinais de atenção para sessões técnicas e planos de desenvolvimento.',
               ]}
             />
           </section>

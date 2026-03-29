@@ -514,7 +514,7 @@ export default function MyAssessments() {
           onClick={() => navigate('/SendAssessment')}
         >
           <SendHorizonal className="mr-2 h-4 w-4" />
-          Enviar link
+          Enviar convite
         </Button>
       ) : null}
 
@@ -702,13 +702,21 @@ export default function MyAssessments() {
             <TableBody>
               {filteredReports.map((report) => {
                 const assessmentId = report.assessmentId || report.id;
-                const resultHref = assessmentId ? buildAssessmentResultPath(assessmentId) : '';
+                const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
                 const pdfHref = report.publicPdfUrl || '';
 
                 return (
                   <TableRow key={report.id} className="border-slate-100 hover:bg-slate-50/70">
                     <TableCell className="text-slate-700">{formatDate(report.completedAt || report.createdAt)}</TableCell>
-                    <TableCell className="max-w-xs truncate">{report.respondentName}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {assessmentId ? (
+                        <Link to={resultHref} className="font-medium text-slate-900 hover:text-indigo-700 hover:underline">
+                          {report.respondentName}
+                        </Link>
+                      ) : (
+                        report.respondentName
+                      )}
+                    </TableCell>
                     <TableCell>{formatType(report.type)}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{report.dominantFactor || '-'}</Badge>
@@ -716,10 +724,14 @@ export default function MyAssessments() {
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
                         {assessmentId ? (
-                          <Link to={resultHref}>
-                            <Button variant="outline" size="sm">Resultado</Button>
+                          <Link to={reportHref}>
+                            <Button variant="outline" size="sm">Relatório</Button>
                           </Link>
-                        ) : null}
+                        ) : (
+                          <Button variant="outline" size="sm" disabled>
+                            Relatório
+                          </Button>
+                        )}
                         {pdfHref ? (
                           <a href={pdfHref} target="_blank" rel="noreferrer">
                             <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">PDF</Button>

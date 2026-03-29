@@ -240,7 +240,7 @@ export default function SendAssessment() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Enviar Avaliação</h1>
+              <h1 className="text-xl font-bold text-slate-900">Enviar Convite</h1>
               <p className="text-sm text-slate-500">
                 Créditos disponíveis:{' '}
                 <span className="font-semibold text-indigo-600">

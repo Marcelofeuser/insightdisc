@@ -28,7 +28,7 @@ const PLAN_CONTEXT_NOTES = Object.freeze({
   disc: 'Entrega pontual com acesso imediato ao relatório completo, sem assinatura da plataforma.',
   personal: 'Inclui direcionamentos de desenvolvimento e acompanhamento de evolução para uso pessoal com recorrência leve.',
   profissional:
-    'Inclui dossiê técnico, AI Lab (preview), Biblioteca DISC, Arquétipos em evolução e 10 créditos mensais.',
+    'Inclui dossiê técnico, comparador avançado, arquétipos por relatório e 10 créditos mensais.',
   business:
     'Herda integralmente o Profissional e adiciona Team Map, visão estratégica de equipe e recursos para gestão de pessoas.',
   diamond:

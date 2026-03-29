@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCcw, Search, Shuffle } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCcw, Search, Shuffle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelShell from '@/components/ui/PanelShell';
@@ -150,6 +150,92 @@ function normalizeCompareProfilesError(error, fallback = 'Não foi possível car
   return rawMessage;
 }
 
+function normalizePdfFileName(value = '') {
+  const normalized = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .toLowerCase();
+  return normalized || 'comparativo-disc';
+}
+
+async function exportComparisonPdf({ comparison, profileA, profileB, modeLabel }) {
+  if (!comparison || !profileA || !profileB) {
+    throw new Error('Comparação indisponível para exportação.');
+  }
+
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  const margin = 44;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
+  let cursorY = margin;
+
+  const ensureSpace = (extra = 18) => {
+    if (cursorY + extra <= pageHeight - margin) return;
+    doc.addPage();
+    cursorY = margin;
+  };
+
+  const write = ({ text, size = 11, weight = 'normal', gap = 16 }) => {
+    const safeText = String(text || '').trim();
+    if (!safeText) return;
+    doc.setFont('helvetica', weight);
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(safeText, maxWidth);
+    lines.forEach((line) => {
+      ensureSpace(size + 8);
+      doc.text(line, margin, cursorY);
+      cursorY += size + 5;
+    });
+    cursorY += gap - 5;
+  };
+
+  const addList = (title, items = []) => {
+    write({ text: title, size: 12, weight: 'bold', gap: 8 });
+    if (!Array.isArray(items) || !items.length) {
+      write({ text: 'Sem pontos adicionais para este bloco.', size: 11, gap: 10 });
+      return;
+    }
+    items.forEach((item) => {
+      write({ text: `• ${item}`, size: 11, gap: 6 });
+    });
+    cursorY += 4;
+  };
+
+  write({ text: 'Relatório Comparativo DISC', size: 20, weight: 'bold', gap: 10 });
+  write({
+    text: `${profileA.name || 'Perfil A'} x ${profileB.name || 'Perfil B'} • ${modeLabel || comparison.modeLabel || 'Pessoa x pessoa'}`,
+    size: 10,
+    gap: 8,
+  });
+  write({
+    text: `Compatibilidade: ${Number(comparison.compatibilityScore || 0).toFixed(1)}% (${comparison.compatibilityLevel || 'Moderada'})`,
+    size: 11,
+    weight: 'bold',
+    gap: 14,
+  });
+  write({
+    text: comparison.summaryMedium || comparison.summaryShort || 'Resumo comparativo indisponível.',
+    size: 11,
+    gap: 14,
+  });
+
+  addList('Sinergias principais', comparison.synergyPoints);
+  addList('Tensões potenciais', comparison.tensionPoints);
+  addList('Recomendações práticas', comparison.practicalRecommendations);
+
+  write({ text: 'Leitura executiva aplicada', size: 12, weight: 'bold', gap: 8 });
+  write({ text: `Comunicação: ${comparison.communicationDynamics || '-'}`, size: 11, gap: 8 });
+  write({ text: `Decisão: ${comparison.decisionDynamics || '-'}`, size: 11, gap: 8 });
+  write({ text: `Ritmo: ${comparison.workRhythmDynamics || '-'}`, size: 11, gap: 8 });
+  write({ text: `Pressão e conflito: ${comparison.pressureDynamics || '-'}`, size: 11, gap: 8 });
+
+  const fileName = `${normalizePdfFileName(profileA.name)}-vs-${normalizePdfFileName(profileB.name)}.pdf`;
+  doc.save(fileName);
+}
+
 async function loadLocalAssessments(access = {}) {
   if (access?.tenantId) {
     return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 500);
@@ -218,6 +304,8 @@ export default function CompareProfiles() {
   const [selectedProfileAId, setSelectedProfileAId] = useState('');
   const [selectedProfileBId, setSelectedProfileBId] = useState('');
   const [didApplyQuerySelection, setDidApplyQuerySelection] = useState(false);
+  const [isExportingComparisonPdf, setIsExportingComparisonPdf] = useState(false);
+  const [comparisonPdfError, setComparisonPdfError] = useState('');
 
   const queryPreferredA = useMemo(
     () =>
@@ -503,6 +591,26 @@ export default function CompareProfiles() {
     setSelectedProfileBId(selectedProfileAId);
   };
 
+  const handleExportComparisonPdf = async () => {
+    if (!comparison || !selectedProfileA || !selectedProfileB) return;
+    setIsExportingComparisonPdf(true);
+    setComparisonPdfError('');
+    try {
+      await exportComparisonPdf({
+        comparison,
+        profileA: selectedProfileA,
+        profileB: selectedProfileB,
+        modeLabel: modeMeta.label,
+      });
+    } catch (error) {
+      setComparisonPdfError(
+        error?.message || 'Não foi possível gerar o PDF comparativo neste momento.',
+      );
+    } finally {
+      setIsExportingComparisonPdf(false);
+    }
+  };
+
   const selectedCount = requiresManualProfileB
     ? [selectedProfileAId, selectedProfileBId].filter(Boolean).length
     : [selectedProfileAId].filter(Boolean).length;
@@ -555,9 +663,23 @@ export default function CompareProfiles() {
             >
               Relatorio comparativo
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportComparisonPdf}
+              disabled={!comparison || isExportingComparisonPdf}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isExportingComparisonPdf ? 'Gerando PDF...' : 'PDF comparativo'}
+            </Button>
           </>
         )}
       />
+
+      {comparisonPdfError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          {comparisonPdfError}
+        </div>
+      ) : null}
 
       <PanelShell>
         <SectionHeader
