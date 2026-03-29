@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Compass, FileText, Sparkles, Target, TrendingUp } from 'lucide-react';
+import { BookOpen, Compass, CreditCard, FileText, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DashboardHero from '@/modules/dashboard/components/DashboardHero';
 import ActivityFeedPanel from '@/modules/dashboard/components/ActivityFeedPanel';
@@ -19,7 +19,7 @@ export default function UserDashboardV2() {
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const data = useDashboardData({ access, user });
+  const data = useDashboardData({ access, user, scope: 'self' });
   const personalProfile = data.latestIndividualSummary || data.distribution || {};
   const interpretation = useMemo(
     () => buildDiscInterpretation(personalProfile, { context: 'personal_dashboard', detailLevel: 'long' }),
@@ -87,20 +87,31 @@ export default function UserDashboardV2() {
         label="Meu Painel"
         title="Autoconhecimento com clareza e próximos passos"
         subtitle="Acompanhe seu perfil DISC, consulte seu relatório e avance com recomendações práticas de desenvolvimento."
-        actions={(
-          <>
-            <Link to="/MyAssessments">
-              <Button className="bg-indigo-600 hover:bg-indigo-700">Ver meu perfil</Button>
-            </Link>
-            <Link to="/MyAssessments">
-              <Button variant="outline">Meu relatório</Button>
-            </Link>
-            <Link to="/painel/meu-desenvolvimento">
-              <Button variant="outline">Meu desenvolvimento</Button>
-            </Link>
-          </>
-        )}
       />
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-slate-500">Minhas Avaliações</p>
+            <h3 className="mt-1 text-xl font-semibold text-slate-900">
+              Inicie avaliações e acompanhe seu histórico pessoal
+            </h3>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+              <CreditCard className="h-3.5 w-3.5" />
+              Saldo atual: {Number(data.creditsBalance || 0)} créditos
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleStart} disabled={isStarting}>
+              {isStarting ? 'Iniciando...' : 'Nova avaliação'}
+            </Button>
+            <Link to="/checkout">
+              <Button variant="outline">Comprar créditos</Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -111,10 +122,6 @@ export default function UserDashboardV2() {
             </h3>
             <p className="mt-2 text-sm text-slate-600">{interpretation?.summaryShort || 'Leitura comportamental em consolidação.'}</p>
           </div>
-
-          <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleStart} disabled={isStarting}>
-            {isStarting ? 'Iniciando...' : 'Nova avaliação'}
-          </Button>
         </div>
 
       {errorMessage ? (

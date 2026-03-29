@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarClock } from 'lucide-react';
 import PanelShell from '@/components/ui/PanelShell';
 import PanelState from '@/components/ui/PanelState';
@@ -18,8 +19,20 @@ export default function ActivityFeedPanel({ title, subtitle, items = [] }) {
         {items.length ? (
           items.map((item) => (
             <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/40 p-3.5">
-              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-              <p className="mt-1 text-xs text-slate-600">{item.description}</p>
+              {item?.reportPath ? (
+                <Link to={item.reportPath} className="text-sm font-semibold text-slate-900 hover:text-indigo-700 hover:underline">
+                  {item.title}
+                </Link>
+              ) : (
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+              )}
+              {item?.reportPath ? (
+                <Link to={item.reportPath} className="mt-1 block text-xs text-slate-600 hover:text-slate-900">
+                  {item.description}
+                </Link>
+              ) : (
+                <p className="mt-1 text-xs text-slate-600">{item.description}</p>
+              )}
               <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-slate-500">
                 <CalendarClock className="h-3.5 w-3.5" />
                 {item.date}

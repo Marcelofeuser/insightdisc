@@ -1,9 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import BusinessDashboardV2 from '@/pages/dashboard-v2/BusinessDashboardV2';
 import ProfessionalDashboardV2 from '@/pages/dashboard-v2/ProfessionalDashboardV2';
 import UserDashboardV2 from '@/pages/dashboard-v2/UserDashboardV2';
-import { Button } from '@/components/ui/button';
 import {
   PANEL_MODE,
   PANEL_MODE_META,
@@ -73,17 +71,6 @@ export default function RoleDashboardHome() {
             A navegação lateral e os atalhos se ajustam ao contexto de uso: business, professional ou
             personal. O modo pode ser alterado a qualquer momento.
           </p>
-
-          <div className="mt-5">
-            <Link to="/PremiumAssessment">
-              <Button
-                data-testid="dashboard-self-assessment-btn"
-                className="bg-indigo-600 hover:bg-indigo-700"
-              >
-                Fazer minha avaliação
-              </Button>
-            </Link>
-          </div>
 
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {PANEL_MODE_ORDER.map((mode) => (

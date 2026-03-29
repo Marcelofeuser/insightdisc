@@ -447,21 +447,21 @@ export default function Dashboard() {
             {recentCompleted.map((assessment) => (
               <div
                 key={assessment.id}
-                className="rounded-xl border border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                className="rounded-xl border border-slate-200 px-4 py-3 flex flex-col gap-3"
               >
                 <div>
-                  <p className="font-medium text-slate-900">{getRespondentLabel(assessment)}</p>
+                  <Link
+                    to={buildAssessmentReportPath(assessment?.assessmentId || assessment?.id || '')}
+                    className="font-medium text-slate-900 hover:text-indigo-700 hover:underline"
+                  >
+                    {getRespondentLabel(assessment)}
+                  </Link>
                   <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                     <CalendarClock className="w-4 h-4" />
                     <span>{formatDate(assessment?.completed_at || assessment?.created_date)}</span>
                     <Badge variant="secondary">{assessment?.type || 'disc'}</Badge>
                   </div>
                 </div>
-                <Link
-                  to={buildAssessmentReportPath(assessment?.assessmentId || assessment?.id || '')}
-                >
-                  <Button variant="outline" size="sm">Abrir relatório</Button>
-                </Link>
               </div>
             ))}
           </div>

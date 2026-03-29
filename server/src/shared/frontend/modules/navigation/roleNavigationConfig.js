@@ -181,7 +181,7 @@ function buildPersonalNavigation(capabilities) {
   return [
     makeItem(LayoutDashboard, 'Meu Perfil', 'Dashboard', '/painel', 'Minha Jornada'),
     capabilities.canViewOwnData
-      ? makeItem(Briefcase, 'Meu Relatório', 'MyAssessments', '/MyAssessments', 'Minha Jornada')
+      ? makeItem(Briefcase, 'Minhas Avaliações', 'MyAssessments', '/MyAssessments', 'Minha Jornada')
       : null,
     makeItem(
       Sparkles,

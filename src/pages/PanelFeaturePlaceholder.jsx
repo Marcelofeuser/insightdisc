@@ -43,9 +43,6 @@ export default function PanelFeaturePlaceholder() {
         <p className="mt-3 text-sm text-slate-600">{content.description}</p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/painel">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">Voltar para o painel</Button>
-          </Link>
           <Link to="/MyAssessments">
             <Button variant="outline">Abrir avaliações</Button>
           </Link>

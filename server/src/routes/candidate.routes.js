@@ -391,6 +391,7 @@ async function listCandidateReports(req, res) {
 
     return {
       assessmentId: assessment.id,
+      candidateUserId: assessment.candidateUserId || '',
       candidateName: assessment.candidateName,
       candidateEmail: assessment.candidateEmail,
       createdAt: assessment.createdAt,
@@ -576,6 +577,7 @@ async function listCandidateAssessments(req, res) {
         return {
           id: assessment.id,
           assessmentId: assessment.id,
+          candidateUserId: assessment.candidateUserId || '',
           organizationId: assessment.organizationId,
           status: String(assessment.status || '').trim().toLowerCase(),
           candidateName: assessment.candidateName || '',

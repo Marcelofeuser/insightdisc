@@ -5,6 +5,7 @@ import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import { buildBehaviorInsights } from '@/modules/analytics/insights';
+import { buildAssessmentReportPath } from '@/modules/reports/routes';
 
 const FACTORS = ['D', 'I', 'S', 'C'];
 const FACTOR_LABELS = {
@@ -17,6 +18,10 @@ const FACTOR_LABELS = {
 function toNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function formatDate(value) {
@@ -128,16 +133,51 @@ function resolveDate(record = {}) {
 
 function normalizeAssessmentRecord(record = {}) {
   const summary = readSummaryProfile(record);
+  const assessmentId = String(
+    record?.assessmentId || record?.id || record?.reportId || '',
+  ).trim();
+  const candidateUserId = String(
+    record?.candidateUserId || record?.candidate_user_id || record?.user_id || '',
+  ).trim();
+
   return {
-    id: String(record?.id || record?.assessmentId || record?.reportId || '').trim(),
+    id: assessmentId,
+    assessmentId,
     status: normalizeStatus(record?.status),
     candidateName: resolveCandidateName(record),
     candidateEmail: resolveCandidateEmail(record),
+    candidateUserId,
     date: resolveDate(record),
     summary,
     dominantFactor: resolveDominantFactor(summary),
     profileKey: resolveProfileKey(summary),
   };
+}
+
+function isSelfScopeRecord(record = {}, identity = {}) {
+  const userId = String(identity?.userId || '').trim();
+  const email = normalizeEmail(identity?.email || identity?.userEmail || '');
+  const candidateUserId = String(
+    record?.candidateUserId || record?.candidate_user_id || record?.user_id || '',
+  ).trim();
+  const candidateEmail = normalizeEmail(
+    record?.candidateEmail ||
+      record?.candidate_email ||
+      record?.lead_email ||
+      record?.user_email ||
+      record?.email ||
+      '',
+  );
+
+  if (userId && candidateUserId && userId === candidateUserId) {
+    return true;
+  }
+
+  if (email && candidateEmail && email === candidateEmail) {
+    return true;
+  }
+
+  return false;
 }
 
 function loadLocalDossierSummary(workspaceId = '') {
@@ -219,7 +259,7 @@ function buildTrendSeries(records = []) {
     }));
 }
 
-export function useDashboardData({ access, user }) {
+export function useDashboardData({ access, user, scope = 'tenant' }) {
   const apiBaseUrl = getApiBaseUrl();
   const workspaceId =
     user?.active_workspace_id ||
@@ -227,9 +267,17 @@ export function useDashboardData({ access, user }) {
     access?.tenantId ||
     '';
   const identityKey = access?.userId || access?.email || user?.id || user?.email || 'anonymous';
+  const normalizedScope = String(scope || 'tenant').trim().toLowerCase();
+  const isSelfScope = normalizedScope === 'self';
+  const selfUserId = access?.userId || user?.id || '';
+  const selfEmail = access?.email || user?.email || '';
+  const selfIdentity = {
+    userId: selfUserId,
+    email: selfEmail,
+  };
 
   const assessmentsQuery = useQuery({
-    queryKey: ['dashboard-v2-assessments', apiBaseUrl, workspaceId, identityKey],
+    queryKey: ['dashboard-v2-assessments', apiBaseUrl, workspaceId, identityKey, normalizedScope],
     enabled: Boolean(identityKey),
     queryFn: async () => {
       if (apiBaseUrl) {
@@ -240,23 +288,30 @@ export function useDashboardData({ access, user }) {
           method: 'GET',
           requireAuth: true,
         });
-        return mapCandidateReports(payload?.reports || []);
+        const mapped = mapCandidateReports(payload?.reports || []);
+        return isSelfScope
+          ? mapped.filter((item) => isSelfScopeRecord(item, selfIdentity))
+          : mapped;
       }
 
-      if (access?.tenantId) {
+      if (!isSelfScope && access?.tenantId) {
         return base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 500);
       }
 
-      if (access?.email) {
-        const byEmail = await base44.entities.Assessment.filter({ user_id: access.email }, '-created_date', 300);
-        if (Array.isArray(byEmail) && byEmail.length) return byEmail;
-      }
+      const byUserId = access?.userId
+        ? await base44.entities.Assessment.filter({ user_id: access.userId }, '-created_date', 300)
+        : [];
+      const byEmail = access?.email
+        ? await base44.entities.Assessment.filter({ user_id: access.email }, '-created_date', 300)
+        : [];
+      const byRespondentEmail = access?.email
+        ? await base44.entities.Assessment.filter({ respondent_email: access.email }, '-created_date', 300)
+        : [];
+      const byLeadEmail = access?.email
+        ? await base44.entities.Assessment.filter({ lead_email: access.email }, '-created_date', 300)
+        : [];
 
-      if (access?.userId) {
-        return base44.entities.Assessment.filter({ user_id: access.userId }, '-created_date', 300);
-      }
-
-      return [];
+      return [...byUserId, ...byEmail, ...byRespondentEmail, ...byLeadEmail];
     },
   });
 
@@ -288,10 +343,16 @@ export function useDashboardData({ access, user }) {
 
   const normalizedAssessments = useMemo(() => {
     const source = Array.isArray(assessmentsQuery.data) ? assessmentsQuery.data : [];
-    return source
+    const normalized = source
       .map((item) => normalizeAssessmentRecord(item))
       .filter((item) => item.id || item.candidateName);
-  }, [assessmentsQuery.data]);
+
+    if (!isSelfScope) {
+      return normalized;
+    }
+
+    return normalized.filter((item) => isSelfScopeRecord(item, selfIdentity));
+  }, [assessmentsQuery.data, isSelfScope, selfUserId, selfEmail]);
 
   const snapshot = useMemo(() => {
     const completed = normalizedAssessments.filter((item) => item.status === 'completed');
@@ -364,6 +425,10 @@ export function useDashboardData({ access, user }) {
         title: item.status === 'completed' ? 'Relatório gerado' : 'Avaliação em andamento',
         description: `${item.candidateName}${item.dominantFactor ? ` • Perfil ${item.dominantFactor}` : ''}`,
         date: formatDate(item.date),
+        reportPath:
+          item.status === 'completed' && item.assessmentId
+            ? buildAssessmentReportPath(item.assessmentId)
+            : '',
       }));
 
     const now = Date.now();

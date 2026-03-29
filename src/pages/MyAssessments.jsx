@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Search, SendHorizonal } from 'lucide-react';
+import { CreditCard, FileText, Search, SendHorizonal } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -17,6 +17,8 @@ import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports';
+import { usePanelMode } from '@/modules/navigation/panelModeContext';
+import { PANEL_MODE, normalizePanelMode } from '@/modules/navigation/panelMode';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 const STATUS_LABELS = {
@@ -107,6 +109,9 @@ function mapOperationalAssessmentItem(item = {}, index = 0) {
   const status = normalizeStatus(item?.status);
   const type = normalizeType(item?.type || item?.reportType || item?.report_type);
   const reportId = String(item?.reportId || item?.report_id || '').trim();
+  const candidateUserId = String(
+    item?.candidateUserId || item?.candidate_user_id || item?.user_id || '',
+  ).trim();
   const hasReport = Boolean(item?.hasReport || reportId || item?.publicPdfUrl || item?.pdfUrl);
 
   return {
@@ -116,6 +121,7 @@ function mapOperationalAssessmentItem(item = {}, index = 0) {
     completedAt,
     respondentName: getRespondent(item),
     candidateEmail: String(item?.candidateEmail || item?.candidate_email || item?.lead_email || '').trim(),
+    candidateUserId,
     status,
     type,
     reportId,
@@ -136,6 +142,7 @@ function mapReportItem(item = {}, index = 0) {
     createdAt: item?.createdAt || item?.created_date || null,
     respondentName: getRespondent(item),
     candidateEmail: String(item?.candidateEmail || item?.candidate_email || item?.lead_email || '').trim(),
+    candidateUserId: String(item?.candidateUserId || item?.candidate_user_id || item?.user_id || '').trim(),
     type: normalizeType(item?.reportType || item?.report_type || item?.type),
     dominantFactor: resolveDominantFactor(item),
     publicReportUrl: String(item?.publicReportUrl || item?.public_report_url || '').trim(),
@@ -169,11 +176,42 @@ function matchesSearch(item, query = '') {
   return haystack.includes(needle);
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isOwnRespondentRecord(item = {}, identity = {}) {
+  const userId = String(identity?.userId || '').trim();
+  const email = normalizeEmail(identity?.email || '');
+  const candidateUserId = String(
+    item?.candidateUserId || item?.candidate_user_id || item?.user_id || '',
+  ).trim();
+  const candidateEmail = normalizeEmail(
+    item?.candidateEmail ||
+      item?.candidate_email ||
+      item?.lead_email ||
+      item?.user_email ||
+      item?.email ||
+      '',
+  );
+
+  if (userId && candidateUserId && userId === candidateUserId) {
+    return true;
+  }
+
+  if (email && candidateEmail && email === candidateEmail) {
+    return true;
+  }
+
+  return false;
+}
+
 export default function MyAssessments() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { access: authAccess } = useAuth();
+  const { panelMode, autoPanelMode } = usePanelMode();
   const apiBaseUrl = getApiBaseUrl();
 
   const [user, setUser] = useState(null);
@@ -187,6 +225,8 @@ export default function MyAssessments() {
   const [actionError, setActionError] = useState('');
 
   const isReportsView = String(location.hash || '').toLowerCase().includes('reports');
+  const activePanelMode = normalizePanelMode(panelMode, autoPanelMode || PANEL_MODE.BUSINESS);
+  const isPersonalMode = activePanelMode === PANEL_MODE.PERSONAL;
 
   useEffect(() => {
     let mounted = true;
@@ -219,9 +259,13 @@ export default function MyAssessments() {
   const canTenantView = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
   const canSelfView = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF);
   const canCreateAssessment = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+  const selfIdentity = {
+    userId: access?.userId || '',
+    email: access?.email || '',
+  };
 
   const loadLocalAssessments = async () => {
-    if (canTenantView && access?.tenantId) {
+    if (!isPersonalMode && canTenantView && access?.tenantId) {
       const tenantItems = await base44.entities.Assessment.filter(
         { workspace_id: access.tenantId },
         '-created_date',
@@ -249,11 +293,17 @@ export default function MyAssessments() {
       .map(mapOperationalAssessmentItem);
 
     const seen = new Set();
-    return merged.filter((item) => {
+    const deduped = merged.filter((item) => {
       if (!item?.id || seen.has(item.id)) return false;
       seen.add(item.id);
       return true;
     });
+
+    if (isPersonalMode) {
+      return deduped.filter((item) => isOwnRespondentRecord(item, selfIdentity));
+    }
+
+    return deduped;
   };
 
   const {
@@ -268,6 +318,9 @@ export default function MyAssessments() {
       access?.email,
       canTenantView,
       canSelfView,
+      isPersonalMode,
+      selfIdentity.userId,
+      selfIdentity.email,
     ],
     queryFn: async () => {
       if (apiBaseUrl) {
@@ -282,9 +335,12 @@ export default function MyAssessments() {
             const mapped = Array.isArray(payload?.assessments)
               ? payload.assessments.map(mapOperationalAssessmentItem)
               : [];
+            const scoped = isPersonalMode
+              ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
+              : mapped;
 
-            if (mapped.length > 0 || !base44?.__isMock) {
-              return mapped;
+            if (scoped.length > 0 || !base44?.__isMock) {
+              return scoped;
             }
           } catch (error) {
             console.warn('[MyAssessments] API assessments unavailable, fallback local mode', error);
@@ -307,7 +363,16 @@ export default function MyAssessments() {
     data: reports = [],
     isLoading: isLoadingReports,
   } = useQuery({
-    queryKey: ['my-assessments-reports', apiBaseUrl, access?.tenantId, access?.userId, access?.email],
+    queryKey: [
+      'my-assessments-reports',
+      apiBaseUrl,
+      access?.tenantId,
+      access?.userId,
+      access?.email,
+      isPersonalMode,
+      selfIdentity.userId,
+      selfIdentity.email,
+    ],
     queryFn: async () => {
       if (apiBaseUrl) {
         const token = getApiToken();
@@ -318,8 +383,11 @@ export default function MyAssessments() {
               requireAuth: true,
             });
             const mapped = mapCandidateReports(payload?.reports || []).map(mapReportItem);
-            if (mapped.length > 0 || !base44?.__isMock) {
-              return mapped;
+            const scoped = isPersonalMode
+              ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
+              : mapped;
+            if (scoped.length > 0 || !base44?.__isMock) {
+              return scoped;
             }
           } catch (error) {
             console.warn('[MyAssessments] API reports unavailable, fallback local mode', error);
@@ -328,14 +396,20 @@ export default function MyAssessments() {
 
         if (base44?.__isMock) {
           const local = await loadLocalAssessments();
-          return local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+          const mapped = local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+          return isPersonalMode
+            ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
+            : mapped;
         }
 
         return [];
       }
 
       const local = await loadLocalAssessments();
-      return local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+      const mapped = local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+      return isPersonalMode
+        ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
+        : mapped;
     },
     enabled: Boolean(access?.userId || access?.email),
   });
@@ -420,7 +494,19 @@ export default function MyAssessments() {
         {isStartingSelfAssessment ? 'Iniciando...' : 'Nova Avaliação'}
       </Button>
 
-      {canCreateAssessment ? (
+      {isPersonalMode ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10"
+          onClick={() => navigate('/checkout')}
+        >
+          <CreditCard className="mr-2 h-4 w-4" />
+          Comprar créditos
+        </Button>
+      ) : null}
+
+      {!isPersonalMode && canCreateAssessment ? (
         <Button
           type="button"
           variant="outline"
@@ -594,9 +680,11 @@ export default function MyAssessments() {
                 ? 'Ajuste os filtros por data, tipo ou perfil para localizar os relatórios concluídos.'
                 : 'Ajuste os filtros ou inicie uma nova avaliação.'
             }
-            ctaLabel={isReportsView ? undefined : 'Nova Avaliação'}
+            ctaLabel={isReportsView || isPersonalMode ? undefined : 'Nova Avaliação'}
             onCtaClick={
-              isReportsView ? undefined : () => handleStartSelfAssessment('my-assessments-empty')
+              isReportsView || isPersonalMode
+                ? undefined
+                : () => handleStartSelfAssessment('my-assessments-empty')
             }
             tone="soft"
           />
