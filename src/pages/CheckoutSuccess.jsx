@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
@@ -25,6 +23,7 @@ import {
   resolveGiftPayload,
   saveGiftOrder,
 } from '@/modules/billing/gift-utils';
+import '@/styles/checkout-approved.css';
 
 const DEFAULT_GIFT_MESSAGE =
   'Você recebeu uma avaliação DISC do InsightDISC. Aproveite para descobrir seu perfil comportamental completo.';
@@ -570,102 +569,168 @@ export default function CheckoutSuccess() {
     setShowDownsell(false);
   };
 
+  const upsellPrice = (() => {
+    const baseKey = upsellOffer?.key || '';
+    if (baseKey.includes('diamond')) {
+      return showDownsell
+        ? { from: 'R$ 697', to: 'R$ 547' }
+        : { from: 'R$ 697', to: 'R$ 597' };
+    }
+    return showDownsell
+      ? { from: 'R$ 397', to: 'R$ 277' }
+      : { from: 'R$ 397', to: 'R$ 297' };
+  })();
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl">
-        <CardContent className="p-8 space-y-5">
+    <div className="checkout-approved-page">
+      <div className="container success-wrap">
+        <div className="success-card">
           {isLoading ? (
-            <div className="flex items-center gap-3 text-slate-700">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Processando confirmação do pagamento...</span>
+            <div className="success-header">
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div className="success-bubble">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
+                <div>
+                  <div className="badge success">Processando</div>
+                  <h1 style={{ margin: '10px 0 8px', color: '#0f172a' }}>Confirmando seu pagamento</h1>
+                  <p className="subcopy" style={{ margin: 0 }}>
+                    Estamos consultando o Stripe e validando o webhook para liberar seu acesso com segurança.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : error ? (
             <>
-              <h1 className="text-xl font-bold text-slate-900">Não foi possível confirmar o pagamento</h1>
-              <p className="text-sm text-slate-600">{error}</p>
-              <div className="flex gap-3">
-                <Link to={createPageUrl('Pricing')}>
-                  <Button>Voltar para preços</Button>
+              <div className="success-header">
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div className="success-bubble" style={{ background: 'rgba(220,38,38,.14)', color: '#dc2626' }}>!</div>
+                  <div>
+                    <div className="badge" style={{ background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>Falha na confirmação</div>
+                    <h1 style={{ margin: '10px 0 8px', color: '#0f172a' }}>Não foi possível confirmar o pagamento</h1>
+                    <p className="subcopy" style={{ margin: 0 }}>{error}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="cta-row">
+                <Link to={createPageUrl('Pricing')} className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                  Voltar para preços
                 </Link>
               </div>
             </>
           ) : !paymentConfirmed ? (
             <>
-              <div className="flex items-center gap-2 text-amber-600">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="font-semibold">Pagamento em processamento</span>
+              <div className="success-header">
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div className="success-bubble" style={{ background: 'rgba(245,158,11,.14)', color: '#f59e0b' }}>
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                  <div>
+                    <div className="badge" style={{ background: 'rgba(245,158,11,.12)', color: '#b45309' }}>
+                      Pagamento em processamento
+                    </div>
+                    <h1 style={{ margin: '10px 0 8px', color: '#0f172a' }}>Aguardando confirmação do Stripe</h1>
+                    <p className="subcopy" style={{ margin: 0 }}>
+                      {processingMessage || 'Seu pagamento foi recebido e está em validação. Tente atualizar em alguns instantes.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="panel checkout-inline-panel">
+                  <div className="label">Plano comprado</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{checkoutItemLabel}</div>
+                  <div className="fine" style={{ marginTop: 8 }}>Status: Em processamento</div>
+                </div>
               </div>
-
-              <h1 className="text-2xl font-bold text-slate-900">Aguardando confirmação do Stripe</h1>
-
-              <p className="text-sm text-slate-600">
-                {processingMessage || 'Seu pagamento foi recebido e está em validação. Tente atualizar em alguns instantes.'}
-              </p>
-
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-1">
-                <p>
-                  <strong>Plano/Produto:</strong> {checkoutItemLabel}
-                </p>
-                <p>
-                  <strong>Status:</strong> Em processamento
-                </p>
-                <p>
-                  Próximo passo: aguarde a confirmação do webhook. O acesso só é liberado no backend.
-                </p>
+              <div className="mini-grid">
+                <div className="mini-card">
+                  <strong>Status do pagamento</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Em processamento</div>
+                </div>
+                <div className="mini-card">
+                  <strong>Próximo passo</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Aguarde o webhook confirmar no backend.</div>
+                </div>
+                <div className="mini-card">
+                  <strong>Segurança</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Acesso só é liberado após confirmação real.</div>
+                </div>
               </div>
-
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => window.location.reload()}>
+              <div className="cta-row">
+                <button className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }} onClick={() => window.location.reload()}>
                   Atualizar status
-                </Button>
-                <Link to={createPageUrl('Pricing')}>
-                  <Button>Voltar para preços</Button>
+                </button>
+                <Link to={createPageUrl('Pricing')} className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                  Voltar para preços
                 </Link>
               </div>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="font-semibold">Pagamento confirmado</span>
+              <div className="success-header">
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div className="success-bubble">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="badge success">Pagamento recebido</div>
+                    <h1 style={{ margin: '10px 0 8px', color: '#0f172a' }}>
+                      {isGiftFlow ? 'Presente DISC confirmado' : 'Seu acesso está sendo ativado'}
+                    </h1>
+                    <p className="subcopy" style={{ margin: 0 }}>
+                      {isGiftFlow
+                        ? 'Agora personalize o presente e gere o link exclusivo para compartilhar.'
+                        : 'A ativação final depende da confirmação do webhook Stripe. Se o pagamento foi por Pix, ele pode aparecer primeiro como processamento.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="panel checkout-inline-panel">
+                  <div className="label">Plano comprado</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{checkoutItemLabel}</div>
+                  <div className="fine" style={{ marginTop: 8 }}>
+                    {confirmedCredits > 0
+                      ? `${confirmedCredits} créditos adicionados. Saldo atual: ${balanceAfterCheckout}.`
+                      : 'Pagamento confirmado e benefícios aplicados.'}
+                  </div>
+                </div>
               </div>
 
-              <h1 className="text-2xl font-bold text-slate-900">
-                {isGiftFlow ? 'Presente DISC confirmado' : assessmentId ? 'Relatório liberado' : 'Acesso liberado'}
-              </h1>
-
-              <p className="text-sm text-slate-600">
-                {isGiftFlow
-                  ? 'Agora personalize o presente e gere o link exclusivo para compartilhar.'
-                  : assessmentId
-                    ? 'Seu acesso PRO foi liberado com sucesso.'
-                    : 'Pagamento confirmado e benefícios aplicados com sucesso.'}
-              </p>
-
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 space-y-1">
-                <p>
-                  <strong>Obrigado pela sua compra.</strong>
-                </p>
-                <p>
-                  <strong>Plano/Produto:</strong> {checkoutItemLabel}
-                </p>
-                <p>
-                  <strong>Status:</strong> Confirmado
-                </p>
-                <p>
-                  Próximos passos: acesse seu painel, acompanhe avaliações e consulte os relatórios liberados.
-                </p>
+              <div className="cta-row">
+                <Link to={openReportHref} className="btn primary" style={{ width: 'auto', padding: '14px 22px' }}>
+                  {assessmentId || candidateToken ? 'Ir para meu relatório' : 'Ir para meu painel'}
+                </Link>
+                <Link to={createPageUrl('MyAssessments')} className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                  Ver minhas avaliações
+                </Link>
+                {canOpenPdf ? (
+                  <a href={availablePdfUrl} target="_blank" rel="noreferrer" className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                    Abrir PDF
+                  </a>
+                ) : null}
+                {publicToken ? (
+                  <Link to={`/r/${encodeURIComponent(publicToken)}`} className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                    Link público assinado
+                  </Link>
+                ) : null}
               </div>
 
-              {confirmedCredits > 0 ? (
-                <p className="text-sm text-emerald-700">
-                  {confirmedCredits} créditos adicionados. Saldo atual: {balanceAfterCheckout} créditos.
-                </p>
-              ) : null}
+              <div className="mini-grid">
+                <div className="mini-card">
+                  <strong>Status do pagamento</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Confirmado</div>
+                </div>
+                <div className="mini-card">
+                  <strong>Próximo passo</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Entrar no painel e continuar de onde parou.</div>
+                </div>
+                <div className="mini-card">
+                  <strong>Suporte</strong>
+                  <div className="fine" style={{ marginTop: 8 }}>Se demorar, atualize a página em alguns instantes.</div>
+                </div>
+              </div>
 
               {isGiftFlow ? (
                 <>
-                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
+                  <div className="mini-card" style={{ marginTop: 22 }}>
                     Personalização pós-compra: informe os nomes e, opcionalmente, ajuste mensagem e e-mails.
                   </div>
 
@@ -721,9 +786,9 @@ export default function CheckoutSuccess() {
                       <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{giftFormError}</div>
                     ) : null}
 
-                    <Button onClick={generateGiftLink} className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700">
+                    <button onClick={generateGiftLink} className="btn primary">
                       Gerar link do presente
-                    </Button>
+                    </button>
                   </div>
 
                   {giftLandingUrl ? (
@@ -734,90 +799,97 @@ export default function CheckoutSuccess() {
 
                       <div className="flex flex-wrap gap-3">
                         <a href={giftLandingUrl} target="_blank" rel="noreferrer">
-                          <Button className="bg-indigo-600 hover:bg-indigo-700">Abrir landing do presente</Button>
+                          <span className="btn primary" style={{ width: 'auto', padding: '12px 18px' }}>Abrir landing do presente</span>
                         </a>
-                        <Button variant="outline" onClick={copyGiftLinkToClipboard}>
+                        <button className="btn secondary" style={{ width: 'auto', padding: '12px 18px' }} onClick={copyGiftLinkToClipboard}>
                           {copiedGiftLink ? 'Link copiado' : 'Copiar link de presente'}
-                        </Button>
-                        <Button variant="outline" onClick={shareGiftOnWhatsapp}>
+                        </button>
+                        <button className="btn secondary" style={{ width: 'auto', padding: '12px 18px' }} onClick={shareGiftOnWhatsapp}>
                           Compartilhar no WhatsApp
-                        </Button>
+                        </button>
                       </div>
                     </>
                   ) : null}
 
-                  <Link to={createPageUrl('Pricing')}>
-                    <Button variant="outline">Voltar para preços</Button>
+                  <Link to={createPageUrl('Pricing')} className="btn secondary" style={{ width: 'auto', padding: '12px 18px', marginTop: 12 }}>
+                    Voltar para preços
                   </Link>
                 </>
               ) : (
                 <>
-                  {showUpsell && upsellOffer ? (
-                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-                      <p className="text-xs uppercase tracking-[0.08em] font-semibold text-indigo-700">
-                        Oferta especial pós-compra
-                      </p>
-                      <h3 className="text-lg font-bold text-indigo-950">{upsellOffer.title}</h3>
-                      <p className="text-sm text-indigo-900">{upsellOffer.copy}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleUpsellAccept} className="bg-indigo-600 hover:bg-indigo-700">
-                          {upsellOffer.ctaLabel}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleUpsellDismiss}>
-                          Agora não
-                        </Button>
+                  {(showUpsell && upsellOffer) || (showDownsell && upsellOffer?.downsell) ? (
+                    <div className="upsell">
+                      <div className="upsell-grid">
+                        <div>
+                          <div className="badge light">
+                            {showDownsell ? 'Oferta de recuperação' : 'Oferta exclusiva liberada'}
+                          </div>
+                          <h2 style={{ fontSize: 34, margin: '14px 0 10px' }}>
+                            {showDownsell ? upsellOffer.downsell.title : upsellOffer.title}
+                          </h2>
+                          <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.7 }}>
+                            {showDownsell ? upsellOffer.downsell.copy : upsellOffer.copy}
+                          </p>
+                          <ul className="feature-list" style={{ marginTop: 18 }}>
+                            <li className="feature-item">
+                              <span className="check">✓</span>
+                              <div>
+                                <strong>Team Map</strong>
+                                <div className="fine">Mapa comportamental consolidado para equipes.</div>
+                              </div>
+                            </li>
+                            <li className="feature-item">
+                              <span className="check">✓</span>
+                              <div>
+                                <strong>Visão de liderança</strong>
+                                <div className="fine">Mais contexto para decisões de gestão e RH.</div>
+                              </div>
+                            </li>
+                            <li className="feature-item">
+                              <span className="check">✓</span>
+                              <div>
+                                <strong>Escala operacional</strong>
+                                <div className="fine">Mais avaliações e mais profundidade para uso empresarial.</div>
+                              </div>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="panel" style={{ borderRadius: 28 }}>
+                          <div className="label">Hoje apenas</div>
+                          <div style={{ marginTop: 14 }} className="strike">{upsellPrice.from}</div>
+                          <div className="highlight-price">{upsellPrice.to}</div>
+                          <div className="fine" style={{ marginTop: 8 }}>Upgrade imediato com desconto de ativação.</div>
+                          <div className="cta-row" style={{ marginTop: 18 }}>
+                            {showDownsell ? (
+                              <>
+                                <button className="btn primary" onClick={handleDownsellAccept}>
+                                  {upsellOffer.downsell.ctaLabel}
+                                </button>
+                                <button className="btn secondary" onClick={handleDownsellDismiss}>
+                                  Continuar com meu plano atual
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button className="btn primary" onClick={handleUpsellAccept}>
+                                  {upsellOffer.ctaLabel}
+                                </button>
+                                <button className="btn secondary" onClick={handleUpsellDismiss}>
+                                  Continuar com meu plano atual
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
-
-                  {showDownsell && upsellOffer?.downsell ? (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-                      <p className="text-xs uppercase tracking-[0.08em] font-semibold text-amber-700">
-                        Oferta de recuperação
-                      </p>
-                      <h3 className="text-lg font-bold text-amber-950">{upsellOffer.downsell.title}</h3>
-                      <p className="text-sm text-amber-900">{upsellOffer.downsell.copy}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleDownsellAccept} className="bg-amber-600 hover:bg-amber-700">
-                          {upsellOffer.downsell.ctaLabel}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleDownsellDismiss}>
-                          Fechar oferta
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <p className="text-xs text-slate-500">Clique em um dos botões abaixo para continuar.</p>
-                  <div className="flex flex-wrap gap-3">
-                    <Link to={openReportHref}>
-                      <Button className="bg-indigo-600 hover:bg-indigo-700">
-                        {assessmentId || candidateToken ? 'Abrir relatório' : 'Ir para painel'}
-                      </Button>
-                    </Link>
-                    <Link to={createPageUrl('MyAssessments')}>
-                      <Button variant="outline">Ver minhas avaliações</Button>
-                    </Link>
-                    {canOpenPdf ? (
-                      <a href={availablePdfUrl} target="_blank" rel="noreferrer">
-                        <Button variant="outline">Abrir PDF</Button>
-                      </a>
-                    ) : null}
-                    {publicToken ? (
-                      <Link to={`/r/${encodeURIComponent(publicToken)}`}>
-                        <Button variant="outline">Link público assinado</Button>
-                      </Link>
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Dúvidas? Fale com o suporte InsightDISC para acompanhamento do seu pós-compra.
-                  </p>
                 </>
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

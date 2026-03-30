@@ -1,129 +1,182 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { apiRequest } from '@/lib/apiClient';
-import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
 import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
 import { useAuth } from '@/lib/AuthContext';
-import {
-  getCheckoutPreviewState,
-  requiresCheckoutPreview,
-} from '@/modules/checkout/funnel';
-import '../styles/landing.css';
+import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
+import '@/styles/checkout-approved.css';
+
+const PLAN_UI = Object.freeze({
+  personal: {
+    badge: 'Plano individual',
+    title: 'Personal',
+    subtitle:
+      'Acesso individual com recorrência leve, relatório completo e histórico pessoal para evolução contínua.',
+    price: 'R$ 79,90',
+    billing: 'mensal',
+    summary:
+      'Mais profundidade e acompanhamento contínuo em comparação ao DISC individual.',
+    features: [
+      {
+        title: 'Relatório DISC completo',
+        description: 'Leitura comportamental clara, direta e aplicada ao uso pessoal.',
+      },
+      {
+        title: 'Histórico de acesso',
+        description: 'Guarda seus relatórios e evolução no mesmo ambiente.',
+      },
+      {
+        title: 'Direcionamentos de desenvolvimento',
+        description: 'Sugestões práticas para autoconhecimento e crescimento.',
+      },
+      {
+        title: 'Fluxo simples e rápido',
+        description: 'Ideal para entrar com baixo atrito e começar logo.',
+      },
+    ],
+  },
+  professional: {
+    badge: 'Plano mais escolhido',
+    title: 'Professional',
+    subtitle:
+      'Plano principal para consultores, analistas e profissionais que precisam operar avaliações DISC com frequência e qualidade.',
+    price: 'R$ 197',
+    billing: 'mensal',
+    summary:
+      'Inclui dossiê técnico, comparador, IA e operação recorrente acima do Personal.',
+    features: [
+      {
+        title: '10 avaliações por mês',
+        description: 'Operação recorrente com volume inicial validado para profissionais.',
+      },
+      {
+        title: 'Coach AI incluído',
+        description: 'Orientação contextual por relatório real selecionado.',
+      },
+      {
+        title: 'AI Lab incluído',
+        description: 'Leituras avançadas e hipóteses mais estratégicas.',
+      },
+      {
+        title: 'Comparador e arquétipos',
+        description: 'Profundidade analítica para devolutivas e apresentações.',
+      },
+    ],
+  },
+  business: {
+    badge: 'Para equipes e RH',
+    title: 'Business',
+    subtitle:
+      'Solução para equipes e empresas que precisam de análise comportamental aplicada à gestão, liderança e decisões estratégicas.',
+    price: 'R$ 397',
+    billing: 'mensal',
+    summary:
+      'Adiciona Team Map e visão estratégica de equipe acima do Professional.',
+    features: [
+      {
+        title: '25 avaliações por mês',
+        description: 'Escala inicial para operação recorrente em equipe.',
+      },
+      {
+        title: 'Tudo do Professional',
+        description: 'Herda integralmente o plano profissional.',
+      },
+      {
+        title: 'Team Map',
+        description: 'Mapa comportamental de equipe com leitura consolidada.',
+      },
+      {
+        title: 'Visão estratégica de gestão',
+        description: 'Insights para liderança, RH e evolução organizacional.',
+      },
+    ],
+  },
+  diamond: {
+    badge: 'Escala avançada',
+    title: 'Diamond',
+    subtitle:
+      'Topo do SaaS automático para operações intensivas, consultorias em escala e times que precisam de uso contínuo com prioridade.',
+    price: 'R$ 697',
+    billing: 'mensal • uso justo',
+    summary: 'Escala ilimitada e operação intensiva acima do Business.',
+    features: [
+      {
+        title: 'Avaliações ilimitadas',
+        description: 'Uso justo para operação contínua sem gargalo comercial.',
+      },
+      {
+        title: 'Tudo do Business',
+        description: 'Mantém todos os recursos de equipe e inteligência organizacional.',
+      },
+      {
+        title: 'Prioridade de processamento',
+        description: 'Experiência mais fluida em ambientes de alto volume.',
+      },
+      {
+        title: 'Ideal para escala',
+        description: 'Posicionamento acima do Business e abaixo do Enterprise consultivo.',
+      },
+    ],
+  },
+});
 
 const PAYMENT_OPTIONS = Object.freeze([
   {
     key: 'pix',
     title: 'Pix',
-    copy: 'Confirmação rápida e fluxo otimizado para compra direta.',
+    copy: 'Confirmação rápida e fluxo otimizado.',
+    icon: '⚡',
   },
   {
     key: 'card',
     title: 'Cartão',
-    copy: 'Pagamento seguro com opção de parcelamento conforme emissor.',
+    copy: 'Pagamento seguro com possibilidade de parcelamento conforme emissor.',
+    icon: '💳',
   },
 ]);
 
-const TRUST_ITEMS = Object.freeze([
-  'Checkout seguro com Stripe + Pix',
-  'Ativação automática somente via webhook confirmado',
-  'Pagamento vinculado à sua conta InsightDISC',
-]);
-
-const PLAN_CONTEXT_NOTES = Object.freeze({
-  disc: 'Entrega pontual com acesso imediato ao relatório completo, sem assinatura da plataforma.',
-  personal: 'Inclui direcionamentos de desenvolvimento e acompanhamento de evolução para uso pessoal com recorrência leve.',
-  professional:
-    'Inclui dossiê técnico, comparador avançado, arquétipos por relatório e 10 créditos mensais.',
-  profissional:
-    'Inclui dossiê técnico, comparador avançado, arquétipos por relatório e 10 créditos mensais.',
-  business:
-    'Herda integralmente o Profissional e adiciona Team Map, visão estratégica de equipe e recursos para gestão de pessoas.',
-  diamond:
-    'Herda integralmente o Business com uso ilimitado para operação em escala empresarial.',
-});
-
-const ORDER_BUMP_PRICE_LABEL = 'R$ 19';
-
-const PLAN_VALUE_COMPARISON = Object.freeze({
-  personal: 'Mais profundidade e histórico contínuo versus o DISC avulso.',
-  professional: 'Inclui dossiê, comparador e operação recorrente acima do Personal.',
-  profissional: 'Inclui dossiê, comparador e operação recorrente acima do Personal.',
-  business: 'Adiciona Team Map e visão estratégica de equipe acima do Profissional.',
-  diamond: 'Escala ilimitada e operação enterprise acima do Business.',
-});
-
-const PLAN_PRICE_LABELS = Object.freeze({
-  personal: 'R$ 79,90',
-  professional: 'R$ 197',
-  business: 'R$ 397',
-  diamond: 'R$ 697',
-});
-
-function resolveCheckoutPlanKey(plan, planSlug = '') {
+function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
   const normalizedSlug = String(planSlug || '').trim().toLowerCase();
   if (normalizedSlug === 'professional' || normalizedSlug === 'profissional' || normalizedSlug === 'pro') {
     return 'professional';
   }
   if (normalizedSlug === 'business') return 'business';
-  if (normalizedSlug === 'personal') return 'personal';
   if (normalizedSlug === 'diamond') return 'diamond';
+  if (normalizedSlug === 'personal') return 'personal';
 
-  const normalizedKey = String(plan?.key || '').trim().toLowerCase();
-  if (normalizedKey === 'profissional') return 'professional';
-  if (normalizedKey === 'professional') return 'professional';
-  if (normalizedKey === 'business') return 'business';
-  if (normalizedKey === 'diamond') return 'diamond';
+  const normalizedPlanKey = String(fallbackPlanKey || '').trim().toLowerCase();
+  if (normalizedPlanKey === 'profissional') return 'professional';
+  if (normalizedPlanKey === 'professional') return 'professional';
+  if (normalizedPlanKey === 'business') return 'business';
+  if (normalizedPlanKey === 'diamond') return 'diamond';
   return 'personal';
 }
 
-function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
-  let tag = document.head.querySelector(selector);
-  let created = false;
-
-  if (!tag) {
-    tag = document.createElement('meta');
-    Object.entries(attrs).forEach(([key, value]) => {
-      tag.setAttribute(key, value);
-    });
-    document.head.appendChild(tag);
-    created = true;
-  }
-
-  previousMetaContents.push([tag, tag.getAttribute('content')]);
-  tag.setAttribute('content', content);
-
-  if (created) {
-    createdMetas.push(tag);
-  }
-}
-
 export default function CheckoutPlanPage() {
-  const rootRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { planSlug } = useParams();
   const { access, user } = useAuth();
   const plan = resolveCheckoutPlan(planSlug);
-  const checkoutPlanKey = useMemo(() => resolveCheckoutPlanKey(plan, planSlug), [plan, planSlug]);
-  const startTrackRef = useRef('');
+  const checkoutPlanKey = useMemo(
+    () => resolveCheckoutPlanKey(planSlug, plan?.key),
+    [plan?.key, planSlug],
+  );
+  const planUi = useMemo(
+    () => PLAN_UI[checkoutPlanKey] || PLAN_UI.personal,
+    [checkoutPlanKey],
+  );
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isNavSticky, setIsNavSticky] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('pix');
-  const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
+  const [orderBumpEnabled, setOrderBumpEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [previewState, setPreviewState] = useState(() => getCheckoutPreviewState());
 
   const previewRequired = requiresCheckoutPreview(access);
   const canProceedToPayment = !previewRequired || previewState.hasPreview;
-  const planComparisonText = useMemo(() => PLAN_VALUE_COMPARISON[checkoutPlanKey] || '', [checkoutPlanKey]);
-  const planPriceLabel = useMemo(
-    () => PLAN_PRICE_LABELS[checkoutPlanKey] || plan?.price || '',
-    [checkoutPlanKey, plan?.price],
-  );
 
   useEffect(() => {
     const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
@@ -136,138 +189,37 @@ export default function CheckoutPlanPage() {
   }, []);
 
   useEffect(() => {
-    if (!plan) return undefined;
+    if (!planUi?.title) return;
     trackEvent('checkout_public_view', {
       planKey: checkoutPlanKey,
       path: location.pathname,
     });
-    return undefined;
-  }, [checkoutPlanKey, location.pathname, plan]);
+  }, [checkoutPlanKey, location.pathname, planUi?.title]);
 
   useEffect(() => {
-    if (!plan) return;
-
-    const trackKey = [
-      checkoutPlanKey,
-      previewRequired ? 'preview-required' : 'preview-not-required',
-      canProceedToPayment ? 'preview-ok' : 'preview-missing',
-    ].join(':');
-
-    if (startTrackRef.current === trackKey) return;
-    startTrackRef.current = trackKey;
-
+    if (!planUi?.title) return;
     trackEvent('checkout_started', {
       planKey: checkoutPlanKey,
       path: location.pathname,
       previewRequired,
       previewReady: canProceedToPayment,
     });
-  }, [canProceedToPayment, checkoutPlanKey, location.pathname, plan, previewRequired]);
-
-  useEffect(() => {
-    if (!plan) return undefined;
-
-    const root = rootRef.current;
-    if (!root) return undefined;
-
-    const htmlEl = document.documentElement;
-    const bodyEl = document.body;
-    const previousTitle = document.title;
-    const previousLang = htmlEl.lang;
-    const htmlClassesToAdd = ['h-full', 'scroll-smooth', 'landing-html'];
-    const bodyClassesToAdd = ['h-full', 'gradient-bg', 'text-white', 'overflow-auto', 'landing-body'];
-    const createdMetas = [];
-    const previousMetaContents = [];
-    const checkoutTitle = `${plan.name} | Checkout Público InsightDISC`;
-    const checkoutDescription = `Página pública de checkout para o plano ${plan.name} no InsightDISC.`;
-
-    document.title = checkoutTitle;
-    htmlEl.lang = 'pt-BR';
-    htmlClassesToAdd.forEach((className) => htmlEl.classList.add(className));
-    bodyClassesToAdd.forEach((className) => bodyEl.classList.add(className));
-
-    upsertMetaTag('meta[name="description"]', { name: 'description' }, checkoutDescription, createdMetas, previousMetaContents);
-    upsertMetaTag('meta[property="og:title"]', { property: 'og:title' }, checkoutTitle, createdMetas, previousMetaContents);
-    upsertMetaTag('meta[property="og:description"]', { property: 'og:description' }, checkoutDescription, createdMetas, previousMetaContents);
-    upsertMetaTag('meta[property="og:type"]', { property: 'og:type' }, 'website', createdMetas, previousMetaContents);
-    upsertMetaTag('meta[property="og:image"]', { property: 'og:image' }, '/brand/og.svg', createdMetas, previousMetaContents);
-    upsertMetaTag('meta[name="twitter:card"]', { name: 'twitter:card' }, 'summary_large_image', createdMetas, previousMetaContents);
-
-    const revealTargets = root.querySelectorAll('.scroll-reveal');
-    let observer;
-    if ('IntersectionObserver' in window) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('visible');
-            }
-          });
-        },
-        { threshold: 0.1, rootMargin: '0px 0px -80px 0px' }
-      );
-      revealTargets.forEach((target) => observer.observe(target));
-    } else {
-      revealTargets.forEach((target) => target.classList.add('visible'));
-    }
-
-    const handleScroll = () => setIsNavSticky(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (observer) observer.disconnect();
-
-      previousMetaContents.forEach(([tag, previousContent]) => {
-        if (!tag.isConnected) return;
-        if (previousContent === null) {
-          tag.removeAttribute('content');
-        } else {
-          tag.setAttribute('content', previousContent);
-        }
-      });
-      createdMetas.forEach((tag) => {
-        if (tag.isConnected) tag.remove();
-      });
-
-      document.title = previousTitle;
-      htmlEl.lang = previousLang;
-      htmlClassesToAdd.forEach((className) => htmlEl.classList.remove(className));
-      bodyClassesToAdd.forEach((className) => bodyEl.classList.remove(className));
-    };
-  }, [plan]);
+  }, [canProceedToPayment, checkoutPlanKey, location.pathname, planUi?.title, previewRequired]);
 
   if (!plan) {
     return <Navigate to="/planos" replace />;
   }
 
-  const handleSelectMethod = (method) => {
-    setSelectedMethod(method);
-    trackEvent('checkout_public_payment_method_selected', {
-      planKey: checkoutPlanKey,
-      paymentMethod: method,
-      path: location.pathname,
-    });
-  };
-
-  const handleToggleOrderBump = () => {
-    setOrderBumpEnabled((prev) => {
-      const nextValue = !prev;
-      if (nextValue) {
-        trackEvent('order_bump_added', {
-          planKey: plan?.key,
-          bumpType: 'advanced_analysis',
-          amount: 19,
-          currency: 'BRL',
-          path: location.pathname,
-        });
-      }
-      return nextValue;
-    });
-  };
-
   const handleFinalizePayment = async () => {
+    if (!user?.id) {
+      const loginRedirectUrl = buildLoginRedirectUrl({
+        pathname: location.pathname,
+        search: location.search || '',
+      });
+      navigate(loginRedirectUrl);
+      return;
+    }
+
     if (!canProceedToPayment) {
       setFeedback('Antes de pagar, veja um preview do relatório para liberar o checkout.');
       return;
@@ -284,15 +236,6 @@ export default function CheckoutPlanPage() {
     });
 
     try {
-      if (!user?.id) {
-        const loginRedirectUrl = buildLoginRedirectUrl({
-          pathname: location.pathname,
-          search: location.search || '',
-        });
-        navigate(loginRedirectUrl);
-        return;
-      }
-
       const response = await apiRequest('/payments/create-checkout', {
         method: 'POST',
         requireAuth: true,
@@ -320,241 +263,154 @@ export default function CheckoutPlanPage() {
         return;
       }
 
-      const message = error?.message || 'Não foi possível iniciar o checkout agora.';
-      setFeedback(message);
+      setFeedback(error?.message || 'Não foi possível iniciar o checkout agora.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div ref={rootRef} className="landing-page dossie-landing h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
-      <div className="min-h-full w-full">
-        <nav id="navbar" className={`fixed left-0 right-0 top-0 z-50 glass-card transition-all duration-300 ${isNavSticky ? 'nav-sticky' : ''}`}>
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
-                  <span className="text-white text-lg font-extrabold">ID</span>
-                </div>
-                <span className="text-xl font-bold">InsightDISC</span>
-              </Link>
-
-              <div className="hidden lg:flex items-center gap-5 text-sm">
-                {HOME_SECTION_LINKS.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                {PRODUCT_TABS.map((tab) => (
-                  <Link key={tab.to} to={tab.to} className="text-slate-300 hover:text-white transition-colors">
-                    {tab.label}
-                  </Link>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-                <Link to="/planos" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Ver planos</Link>
-                <button
-                  type="button"
-                  className="lg:hidden text-slate-300 hover:text-white"
-                  onClick={() => setMobileMenuOpen((prev) => !prev)}
-                  aria-label="Abrir menu"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={mobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4`}>
-              {HOME_SECTION_LINKS.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 transition-colors ${
-                    item.featured
-                      ? 'planos-nav-link-mobile'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {PRODUCT_TABS.map((tab) => (
-                <Link
-                  key={tab.to}
-                  to={tab.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-2 text-slate-300 hover:text-white transition-colors"
-                >
-                  {tab.label}
-                </Link>
-              ))}
-            </div>
+    <div className="checkout-approved-page">
+      <div className="container">
+        <div className="header">
+          <div className="brand">
+            <div className="eyebrow">InsightDISC</div>
+            <h1>Checkout do plano</h1>
+            <p>Fluxo individual por plano, com login obrigatório e ativação automática via webhook.</p>
           </div>
-        </nav>
+          <div className="nav-pill">🔒 Checkout seguro com Stripe + Pix</div>
+        </div>
 
-        <section className="relative pt-28 px-6 pb-14 overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute top-36 right-16 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl"></div>
-          </div>
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="max-w-4xl">
-              <div className="fade-up inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-7">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                <span className="text-sm text-slate-300">Checkout público InsightDISC</span>
-              </div>
-              <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-5" style={{ animationDelay: '.1s' }}>
-                Finalizar <span className="headline-accent">{plan.name}</span>
-              </h1>
-              {plan.highlight ? (
-                <div className="fade-up inline-flex items-center rounded-full border border-amber-300/40 bg-amber-400/10 px-3 py-1 mb-4 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200" style={{ animationDelay: '.18s' }}>
-                  {plan.highlight}
+        <div className="hero-card">
+          <div className="checkout-grid">
+            <section className="panel">
+              <span className="badge primary">{planUi.badge}</span>
+              <div className="plan-title">
+                <div>
+                  <h2>{planUi.title}</h2>
+                  <p className="subcopy">{planUi.subtitle}</p>
                 </div>
-              ) : null}
-              <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed mb-4" style={{ animationDelay: '.2s' }}>
-                {plan.description}
-              </p>
-              <div className="fade-up inline-flex items-end gap-3" style={{ animationDelay: '.28s' }}>
-                <p className="text-4xl md:text-5xl font-extrabold">{planPriceLabel}</p>
-                <p className="text-slate-400 pb-2">{plan.billingLabel}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="pb-24 px-6">
-          <div className="max-w-7xl mx-auto grid xl:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
-            <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
-              <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Forma de pagamento</p>
-              <h2 className="text-2xl md:text-3xl font-extrabold mb-6">Escolha Pix ou Cartão</h2>
-              {!canProceedToPayment ? (
-                <div className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 mb-6">
-                  <p className="text-sm text-amber-100 font-semibold mb-2">Etapa obrigatória antes do pagamento</p>
-                  <p className="text-sm text-slate-200">
-                    Para manter o checkout orientado a valor, veja primeiro um preview do relatório comportamental.
-                  </p>
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <Link to={previewState.assessmentId ? `/assessment/${encodeURIComponent(previewState.assessmentId)}/result` : '/StartFree'} className="btn-primary px-4 py-2 rounded-xl text-sm font-semibold">
-                      Ver preview agora
-                    </Link>
-                    <Link to="/avaliacoes" className="btn-secondary glass-card border border-white/10 px-4 py-2 rounded-xl text-sm font-semibold">
-                      Ir para avaliações
-                    </Link>
-                  </div>
+                <div className="price">
+                  {planUi.price}
+                  <br />
+                  <small>{planUi.billing}</small>
                 </div>
-              ) : null}
-              <div className="grid sm:grid-cols-2 gap-4 mb-7">
-                {PAYMENT_OPTIONS.map((method) => {
-                  const isActive = selectedMethod === method.key;
-                  return (
-                    <button
-                      key={method.key}
-                      type="button"
-                      onClick={() => handleSelectMethod(method.key)}
-                      className={`text-left rounded-2xl border px-4 py-4 transition-all ${
-                        isActive
-                          ? 'border-blue-400/55 bg-blue-500/15 shadow-[0_0_0_1px_rgba(96,165,250,0.2)]'
-                          : 'border-white/10 bg-white/5 hover:border-white/25'
-                      }`}
-                    >
-                      <p className="font-bold mb-1">{method.title}</p>
-                      <p className="text-sm text-slate-300">{method.copy}</p>
-                    </button>
-                  );
-                })}
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
-                <p className="text-sm uppercase tracking-[0.14em] text-slate-400 mb-2">O que você recebe</p>
-                <ul className="grid gap-2 text-slate-200">
-                  {plan.benefits.map((benefit) => (
-                    <li key={benefit} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                      <span className="inline-flex items-start gap-2">
-                        <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 text-[11px] font-bold">
-                          ✓
-                        </span>
-                        <span>{benefit}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <label className="flex items-start gap-3 rounded-2xl border border-violet-300/35 bg-violet-500/10 p-4 mb-6 cursor-pointer">
+              <label className="toggle">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
                   checked={orderBumpEnabled}
-                  onChange={handleToggleOrderBump}
+                  onChange={(event) => setOrderBumpEnabled(event.target.checked)}
                   disabled={isSubmitting}
                 />
-                <span>
-                  <span className="block text-sm font-semibold text-violet-100">
-                    Adicionar análise avançada por {ORDER_BUMP_PRICE_LABEL}
-                  </span>
-                  <span className="block text-sm text-slate-300 mt-1">
-                    Inclui leitura estratégica extra para liderança, comunicação e decisões críticas.
-                  </span>
-                </span>
+                <div>
+                  <strong>Adicionar análise avançada com IA por R$ 19,90</strong>
+                  <div className="fine">
+                    Order bump opcional para aprofundar insights, recomendações e leitura estratégica.
+                  </div>
+                </div>
               </label>
 
-              <button
-                type="button"
-                onClick={handleFinalizePayment}
-                className="btn-primary w-full px-6 py-4 rounded-2xl font-bold text-lg"
-                disabled={isSubmitting || !canProceedToPayment}
-              >
-                {isSubmitting ? 'Processando...' : canProceedToPayment ? 'Finalizar pagamento' : 'Veja o preview para liberar'}
-              </button>
-              {feedback ? <p className="text-sm text-blue-200 mt-3">{feedback}</p> : null}
-            </article>
-
-            <div className="grid gap-6">
-              <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
-                <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Resumo</p>
-                <h3 className="text-2xl font-extrabold mb-4">{plan.name}</h3>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-sm text-slate-400 mb-1">Valor do plano</p>
-                  <p className="text-3xl font-extrabold mb-2">{planPriceLabel}</p>
-                  <p className="text-slate-400">{plan.billingLabel}</p>
-                  {PLAN_CONTEXT_NOTES[checkoutPlanKey] ? (
-                    <p className="mt-3 text-sm text-slate-300 leading-relaxed">{PLAN_CONTEXT_NOTES[checkoutPlanKey]}</p>
-                  ) : null}
-                  {planComparisonText ? (
-                    <p className="mt-3 text-sm text-emerald-200 leading-relaxed">
-                      {planComparisonText}
-                    </p>
-                  ) : null}
-                </div>
-              </article>
-
-              <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
-                <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Confiança</p>
-                <h3 className="text-2xl font-extrabold mb-4">Fluxo público pronto para venda</h3>
-                <div className="grid gap-2 text-slate-300">
-                  {TRUST_ITEMS.map((item) => (
-                    <div key={item} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                      {item}
+              <ul className="feature-list">
+                {planUi.features.map((feature) => (
+                  <li key={feature.title} className="feature-item">
+                    <span className="check">✓</span>
+                    <div>
+                      <strong>{feature.title}</strong>
+                      <div className="fine">{feature.description}</div>
                     </div>
-                  ))}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <aside className="panel dark">
+              <div className="sidebar-section">
+                <div className="label">Resumo do pedido</div>
+                <div style={{ marginTop: 12, fontSize: 18, fontWeight: 700 }}>{planUi.title}</div>
+                <div className="fine" style={{ marginTop: 8 }}>{planUi.summary}</div>
+              </div>
+
+              <div className="sidebar-section">
+                <div className="label">Método de pagamento</div>
+                <div className="method-grid">
+                  {PAYMENT_OPTIONS.map((method) => {
+                    const selected = method.key === selectedMethod;
+                    return (
+                      <button
+                        key={method.key}
+                        type="button"
+                        className={`method ${selected ? 'selected' : ''}`}
+                        onClick={() => setSelectedMethod(method.key)}
+                        disabled={isSubmitting}
+                      >
+                        <div>
+                          <strong>{method.title}</strong>
+                          <div className="fine">{method.copy}</div>
+                        </div>
+                        <div>{method.icon}</div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <Link to="/planos" className="btn-secondary glass-card border border-white/10 rounded-xl px-4 py-3 font-semibold text-center mt-5">
-                  Voltar para planos
-                </Link>
-              </article>
-            </div>
+              </div>
+
+              <div className="sidebar-section">
+                <div className="label">Garantias e segurança</div>
+                <div className="kpis">
+                  <div className="kpi">
+                    <strong>Webhook</strong>
+                    <span className="fine">Ativação só após confirmação</span>
+                  </div>
+                  <div className="kpi">
+                    <strong>Stripe</strong>
+                    <span className="fine">Checkout protegido</span>
+                  </div>
+                  <div className="kpi">
+                    <strong>Login</strong>
+                    <span className="fine">Compra vinculada à conta</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sidebar-section">
+                {!canProceedToPayment ? (
+                  <div className="checkout-preview-alert">
+                    <strong>Prévia obrigatória antes do pagamento.</strong>
+                    <div className="fine" style={{ color: '#fde68a', marginTop: 4 }}>
+                      Para liberar o checkout, veja antes o preview do relatório comportamental.
+                    </div>
+                    <div className="cta-row" style={{ marginTop: 10 }}>
+                      <Link
+                        className="btn secondary"
+                        style={{ width: 'auto', padding: '10px 14px' }}
+                        to={previewState.assessmentId ? `/assessment/${encodeURIComponent(previewState.assessmentId)}/result` : '/StartFree'}
+                      >
+                        Ver preview agora
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={handleFinalizePayment}
+                  disabled={isSubmitting || !canProceedToPayment}
+                >
+                  {isSubmitting ? 'Processando...' : 'Finalizar pagamento'}
+                </button>
+
+                {feedback ? <div className="checkout-feedback-error">{feedback}</div> : null}
+
+                <div className="footer-note">
+                  Ao continuar, o usuário segue para o checkout Stripe. A página de sucesso não libera acesso sozinha.
+                </div>
+              </div>
+            </aside>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );

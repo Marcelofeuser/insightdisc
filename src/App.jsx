@@ -201,26 +201,20 @@ const AuthenticatedApp = () => {
         path="/checkout"
         element={
           <ProtectedRoute pageName="Checkout">
-            <LayoutWrapper currentPageName="Checkout">
-              <Checkout />
-            </LayoutWrapper>
+            <Checkout />
           </ProtectedRoute>
         }
       />
       <Route
         path="/checkout/success"
         element={
-          <LayoutWrapper currentPageName="CheckoutSuccess">
-            <Pages.CheckoutSuccess />
-          </LayoutWrapper>
+          <Pages.CheckoutSuccess />
         }
       />
       <Route
         path="/checkout/cancel"
         element={
-          <LayoutWrapper currentPageName="CheckoutCancel">
-            <CheckoutCancel />
-          </LayoutWrapper>
+          <CheckoutCancel />
         }
       />
       <Route
@@ -235,9 +229,7 @@ const AuthenticatedApp = () => {
         path="/checkout/plan/:planSlug"
         element={
           <ProtectedRoute pageName="CheckoutPlan" policy={getPagePolicy('CheckoutPlan')}>
-            <LayoutWrapper currentPageName="CheckoutPlan">
-              <CheckoutPlanPage />
-            </LayoutWrapper>
+            <CheckoutPlanPage />
           </ProtectedRoute>
         }
       />
