@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -83,11 +84,37 @@ export default function BusinessDashboardV2() {
     ? `${data.predominantFactor} — ${dashboardFactorLabels[data.predominantFactor]}`
     : '—';
   const credits = isSuperAdmin ? 'Ilimitado' : (data.creditsBalance ?? 0);
+  const intelligentActions = [
+    {
+      label: 'Plano de desenvolvimento',
+      description: 'Plano por horizonte de tempo com foco, ação e indicador de progresso.',
+      to: '/painel/ai-lab?module=development_plan&segment=development',
+    },
+    {
+      label: 'Feedback pronto',
+      description: 'Texto aplicado para gestores conduzirem feedback por perfil DISC.',
+      to: '/painel/ai-lab?module=manager_feedback&segment=leadership',
+    },
+    {
+      label: 'Riscos',
+      description: 'Leitura de conflito, comunicação, pressão e desalinhamento da equipe.',
+      to: '/painel/ai-lab?module=behavioral_risk&segment=communication',
+    },
+    {
+      label: 'Compatibilidade',
+      description: 'Fit entre dois perfis com sinergias, conflitos e guia de convivência.',
+      to: '/painel/ai-lab?module=profile_fit&segment=leadership',
+    },
+    {
+      label: 'Sugestões de ação',
+      description: 'Alocação e colaboração recomendadas para aumentar performance.',
+      to: '/painel/ai-lab?module=team_allocation&segment=development',
+    },
+  ];
 
   const handleStart = async () => {
     if (isStarting) return;
     setErrorMessage('');
-    if (canCreateAssessment) { navigate('/SendAssessment'); return; }
     setIsStarting(true);
     try {
       await startSelfAssessment({ apiBaseUrl, navigate, access, source: 'dashboard-business-v2' });
@@ -115,8 +142,13 @@ export default function BusinessDashboardV2() {
           <Badge variant="outline" className="rounded-full px-3 text-xs">
             Créditos disponíveis: {credits}
           </Badge>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl" onClick={handleStart} disabled={isStarting}>
-            {isStarting ? 'Iniciando...' : canCreateAssessment ? 'Nova avaliação' : 'Fazer minha avaliação'}
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+            onClick={handleStart}
+            disabled={isStarting}
+            data-testid="dashboard-self-assessment-btn"
+          >
+            {isStarting ? 'Iniciando...' : 'Fazer minha avaliação'}
           </Button>
         </div>
       </div>
@@ -147,6 +179,32 @@ export default function BusinessDashboardV2() {
         <DominantProfilesPanel title="Perfis predominantes" subtitle="Combinações DISC mais frequentes na base." profiles={data.profileFrequencies} />
       </div>
 
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Insights Inteligentes</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              IA de decisão e ação para liderança, desenvolvimento e alocação com base em relatórios reais.
+            </p>
+          </div>
+          <Link to="/painel/ai-lab">
+            <Button variant="outline" size="sm" className="rounded-xl">Abrir AI Lab</Button>
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {intelligentActions.map((item) => (
+            <Link
+              key={item.label}
+              to={item.to}
+              className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-indigo-50/40"
+            >
+              <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">Resumo executivo</p>
@@ -175,6 +233,7 @@ export default function BusinessDashboardV2() {
           <QuickLink icon={ClipboardList} label="Avaliações"      to="/MyAssessments"    />
           <QuickLink icon={FileBarChart2} label="Relatórios"       to="/MyAssessments#reports" />
           <QuickLink icon={Users}         label="Equipe"           to="/team-map"         />
+          <QuickLink icon={Building2}      label="Organização"      to="/organization-report" />
           <QuickLink icon={Sparkles}      label="Arquétipos"       to="/painel/arquetipos" />
           <QuickLink icon={Radar}         label="Comparador"       to="/compare-profiles" />
           <QuickLink icon={Send}          label="Enviar convite"   to="/SendAssessment"   />

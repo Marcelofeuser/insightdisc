@@ -15,7 +15,6 @@ import {
   canAccessPremiumSaas,
   hasAnyGlobalRole,
   hasPermission,
-  isSuperAdminAccess,
 } from '@/modules/auth/access-control';
 import {
   FEATURE_KEYS,
@@ -117,6 +116,9 @@ function buildBusinessNavigation(capabilities) {
     capabilities.canViewAssessments
       ? makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises')
       : null,
+    capabilities.canViewAssessments
+      ? makeItem(BookOpen, 'Biblioteca DISC', 'DiscLibrary', '/disc-library', 'Análises')
+      : null,
   ].filter(Boolean);
 
   if (capabilities.canAccessSuperAdminConsole) {
@@ -172,6 +174,9 @@ function buildProfessionalNavigation(capabilities) {
     capabilities.canViewAssessments
       ? makeItem(Sparkles, 'Arquétipos', 'PanelArquetipos', '/painel/arquetipos', 'Análises')
       : null,
+    capabilities.canViewAssessments
+      ? makeItem(BookOpen, 'Biblioteca DISC', 'DiscLibrary', '/disc-library', 'Análises')
+      : null,
   ].filter(Boolean);
 
   if (capabilities.canAccessSuperAdminConsole) {
@@ -205,7 +210,7 @@ export function buildRoleNavigation(access, options = {}) {
   const capabilities = resolveCapabilities(access);
   const requestedMode = normalizePanelMode(options?.panelMode);
   const autoMode = resolveAutoPanelMode(access);
-  const mode = isSuperAdminAccess(access) ? requestedMode || autoMode : autoMode;
+  const mode = requestedMode || autoMode;
 
   if (mode === PANEL_MODE.BUSINESS) {
     return buildBusinessNavigation(capabilities);
@@ -244,6 +249,6 @@ export function getDashboardHeaderByPanelMode(panelMode) {
 export function getDashboardHeaderByRole(access, options = {}) {
   const requestedMode = normalizePanelMode(options?.panelMode);
   const autoMode = resolveAutoPanelMode(access);
-  const mode = isSuperAdminAccess(access) ? requestedMode || autoMode : autoMode;
+  const mode = requestedMode || autoMode;
   return getDashboardHeaderByPanelMode(mode);
 }

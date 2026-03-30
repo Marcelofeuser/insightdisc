@@ -103,11 +103,19 @@ export default function UserDashboardV2() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleStart} disabled={isStarting}>
-              {isStarting ? 'Iniciando...' : 'Nova avaliação'}
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleStart}
+              disabled={isStarting}
+              data-testid="dashboard-self-assessment-btn"
+            >
+              {isStarting ? 'Iniciando...' : 'Fazer minha avaliação'}
             </Button>
             <Link to="/checkout">
               <Button variant="outline">Comprar créditos</Button>
+            </Link>
+            <Link to="/painel/meu-desenvolvimento">
+              <Button variant="outline">Meu Desenvolvimento</Button>
             </Link>
           </div>
         </div>

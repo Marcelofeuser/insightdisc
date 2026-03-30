@@ -40,6 +40,7 @@ import RoleDashboardHome from '@/pages/RoleDashboardHome';
 import PanelFeaturePlaceholder from '@/pages/PanelFeaturePlaceholder';
 import AssessmentResult from '@/pages/AssessmentResult';
 import AssessmentReport from '@/pages/AssessmentReport';
+import DiscLibrary from '@/pages/DiscLibrary';
 import DemoMode from '@/pages/DemoMode';
 import OrganizationalReport from '@/pages/OrganizationalReport';
 import SalesPersonaLanding from '@/pages/SalesPersonaLanding';
@@ -319,6 +320,16 @@ const AuthenticatedApp = () => {
           <ProtectedRoute pageName="CompareProfiles" policy={getPagePolicy('CompareProfiles')}>
             <LayoutWrapper currentPageName="CompareProfiles">
               <CompareProfiles />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/disc-library"
+        element={
+          <ProtectedRoute pageName="DiscLibrary" policy={getPagePolicy('DiscLibrary')}>
+            <LayoutWrapper currentPageName="DiscLibrary">
+              <DiscLibrary />
             </LayoutWrapper>
           </ProtectedRoute>
         }

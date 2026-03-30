@@ -134,6 +134,34 @@ export default function ProfessionalDashboardV2() {
     },
   ];
 
+  const intelligentActions = [
+    {
+      label: 'Plano de desenvolvimento',
+      description: 'Trilha em curto, medio e longo prazo com acoes e indicador de progresso.',
+      to: '/painel/ai-lab?module=development_plan&segment=development',
+    },
+    {
+      label: 'Feedback pronto',
+      description: 'Texto para gestor com abertura, positivos, atencoes e direcionamento claro.',
+      to: '/painel/ai-lab?module=manager_feedback&segment=leadership',
+    },
+    {
+      label: 'Riscos',
+      description: 'Mapa de conflito, comunicacao, pressao e mitigacoes para o perfil selecionado.',
+      to: '/painel/ai-lab?module=behavioral_risk&segment=communication',
+    },
+    {
+      label: 'Compatibilidade',
+      description: 'Analise de fit entre dois perfis com sinergias e pontos de tensao.',
+      to: '/painel/ai-lab?module=profile_fit&segment=leadership',
+    },
+    {
+      label: 'Sugestoes de acao',
+      description: 'Recomendacoes de alocacao e colaboracao com foco em resultado.',
+      to: '/painel/ai-lab?module=team_allocation&segment=development',
+    },
+  ];
+
   const recentProfiles = data.reportsRecent.slice(0, 5).map((item, index) => ({
     id: item.id || `profile-${index}`,
     name: item.candidateName || 'Participante',
@@ -143,12 +171,6 @@ export default function ProfessionalDashboardV2() {
   const handleStart = async () => {
     if (isStarting) return;
     setErrorMessage('');
-
-    if (canCreateAssessment) {
-      navigate('/SendAssessment');
-      return;
-    }
-
     setIsStarting(true);
     try {
       await startSelfAssessment({
@@ -177,8 +199,13 @@ export default function ProfessionalDashboardV2() {
         )}
         actions={(
           <>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleStart} disabled={isStarting}>
-              {isStarting ? 'Iniciando...' : 'Nova avaliação'}
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleStart}
+              disabled={isStarting}
+              data-testid="dashboard-self-assessment-btn"
+            >
+              {isStarting ? 'Iniciando...' : 'Fazer minha avaliação'}
             </Button>
             <Link to="/SendAssessment">
               <Button variant="outline">Convites</Button>
@@ -236,6 +263,33 @@ export default function ProfessionalDashboardV2() {
             subtitle="Acesse rapidamente os módulos mais usados na rotina profissional de análise DISC."
             actions={toolActions}
           />
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Insights Inteligentes</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  IA estratégica conectada a relatórios reais para orientar decisões de gestão e desenvolvimento.
+                </p>
+              </div>
+              <Link to="/painel/ai-lab">
+                <Button variant="outline" size="sm">Abrir AI Lab</Button>
+              </Link>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {intelligentActions.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-indigo-300 hover:bg-indigo-50/40"
+                >
+                  <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <section className="grid gap-4 lg:grid-cols-2">
             <DiscTrendsChart

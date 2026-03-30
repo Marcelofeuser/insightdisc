@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -92,6 +92,8 @@ function buildRangeProfileFromScores(scores = {}) {
 }
 
 export default function JobMatching() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { access, plan, user: authUser } = useAuth();
   const resolvedPlan = String(plan || access?.plan || '').trim().toLowerCase() || 'personal';
   const canUseJobs = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.JOBS);
@@ -113,6 +115,13 @@ export default function JobMatching() {
     key_competencies: []
   });
   const [newCompetency, setNewCompetency] = useState('');
+
+  useEffect(() => {
+    const isLegacyRoute = String(location?.pathname || '').trim().toLowerCase() === '/jobmatching';
+    if (isLegacyRoute && resolvedPlan === 'personal') {
+      navigate('/Pricing?unlock=1', { replace: true });
+    }
+  }, [location?.pathname, navigate, resolvedPlan]);
 
   const { data: positions = [], refetch: refetchPositions } = useQuery({
     queryKey: ['job-positions'],

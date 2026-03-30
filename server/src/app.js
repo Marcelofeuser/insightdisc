@@ -26,6 +26,7 @@ import profileComparisonRoutes from './routes/profile-comparison.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import campaignsRoutes from './routes/campaigns.routes.js';
 import anamnesisRoutes from './routes/anamnesis.routes.js';
+import { handleStripeWebhook } from './routes/stripe-webhooks.routes.js';
 import saasRouter from './saas/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,11 @@ const __dirname = path.dirname(__filename);
 
 export function createApp() {
   const app = express();
+  const stripeWebhookRawParser = express.raw({
+    type: (req) => String(req.headers['content-type'] || '')
+      .toLowerCase()
+      .startsWith('application/json'),
+  });
   const authLimiter = createIpRateLimiter({
     keyPrefix: 'auth',
     windowMs: 15 * 60 * 1000,
@@ -132,6 +138,17 @@ export function createApp() {
     return reportConcurrencyLimiter(req, res, next);
   });
 
+  // Stripe webhook must receive raw body before express.json()
+  app.post(
+    '/webhooks/stripe',
+    stripeWebhookRawParser,
+    (_req, _res, next) => {
+      // eslint-disable-next-line no-console
+      console.log('[STRIPE WEBHOOK] event recebido');
+      next();
+    },
+    handleStripeWebhook,
+  );
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
 
@@ -170,9 +187,11 @@ export function createApp() {
       env: env.nodeEnv,
       docs: {
         login: 'POST /auth/login',
+        oauthExchange: 'POST /auth/oauth/exchange',
         aiDiscInsights: 'POST /ai/disc-insights',
         aiReportPreview: 'POST /ai/report-preview',
         aiCoach: 'POST /ai/coach',
+        aiStrategicInsights: 'POST /ai/strategic-insights',
         register: 'POST /auth/register',
         createAssessment: 'POST /assessments/create',
         generateLink: 'POST /assessments/generate-link',
@@ -200,6 +219,9 @@ export function createApp() {
         getReport: 'GET /report/:id',
         createCheckout: 'POST /payments/create-checkout',
         confirmCheckout: 'POST /payments/confirm',
+        createBillingCheckout: 'POST /billing/create-checkout-session',
+        checkoutStatus: 'GET /billing/checkout-session/:sessionId/status',
+        stripeWebhook: 'POST /webhooks/stripe',
         billingPlans: 'GET /billing/plans',
         billingPortal: 'POST /billing/portal',
         billingChangePlan: 'POST /billing/change-plan',

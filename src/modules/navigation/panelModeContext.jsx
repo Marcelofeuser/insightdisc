@@ -1,6 +1,5 @@
 import React, { createContext, useContext } from 'react';
 import { PANEL_MODE, PANEL_MODE_ORDER, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
-import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 const defaultContext = {
   panelMode: PANEL_MODE.BUSINESS,
@@ -22,12 +21,11 @@ export function usePanelMode() {
 
 export function buildPanelModeContext(access, panelMode, setPanelMode) {
   const autoPanelMode = resolveAutoPanelMode(access);
-  const isSuperAdmin = isSuperAdminAccess(access);
-  const effectivePanelMode = isSuperAdmin ? panelMode || autoPanelMode : autoPanelMode;
+  const effectivePanelMode = panelMode || autoPanelMode;
   return {
     panelMode: effectivePanelMode,
     autoPanelMode,
-    setPanelMode: isSuperAdmin ? setPanelMode : () => {},
+    setPanelMode: setPanelMode || (() => {}),
     availableModes: PANEL_MODE_ORDER,
   };
 }
