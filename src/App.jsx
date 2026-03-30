@@ -26,7 +26,7 @@ import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
-import AuthCallback from '@/pages/AuthCallback';
+import AuthCallback from './pages/AuthCallback.jsx';
 import CheckoutPlanPage from '@/pages/CheckoutPlanPage';
 import CheckoutCancel from '@/pages/CheckoutCancel';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
