@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, RefreshCcw, Search, Shuffle } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCcw, Search, Shuffle, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelShell from '@/components/ui/PanelShell';
@@ -285,6 +285,57 @@ const COMPARISON_MODE_OPTIONS = [
 });
 
 const IDEAL_ROLE_OPTIONS = listIdealRoleProfiles();
+const AI_FIT_SEGMENTS = [
+  { value: 'leadership', label: 'Liderança' },
+  { value: 'rh', label: 'RH' },
+  { value: 'sales', label: 'Vendas' },
+  { value: 'communication', label: 'Comunicação' },
+  { value: 'development', label: 'Desenvolvimento' },
+];
+
+function toText(value = '') {
+  return String(value || '').trim();
+}
+
+function normalizeAiList(items = [], maxItems = 10) {
+  if (!Array.isArray(items)) return [];
+  return [...new Set(items.map((item) => toText(item)).filter(Boolean))].slice(0, maxItems);
+}
+
+function isRealAssessmentProfile(profile = {}) {
+  const assessmentId = toText(profile?.assessmentId || profile?.id);
+  if (!assessmentId) return false;
+  if (assessmentId.startsWith('ideal-role-')) return false;
+  if (assessmentId.startsWith('team-benchmark-')) return false;
+  return true;
+}
+
+function buildStrategicContextFromComparableProfile(profile = {}) {
+  return {
+    assessmentId: toText(profile?.assessmentId || profile?.id),
+    reportId: toText(profile?.reportId),
+    reportType: 'business',
+    profileCode: toText(profile?.profileCode),
+    dominantFactor: toText(profile?.primaryFactor),
+    secondaryFactor: toText(profile?.secondaryFactor),
+    respondentName: toText(profile?.name),
+    candidateEmail: toText(profile?.email),
+  };
+}
+
+function normalizeAiFitPayload(raw = {}) {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    summary: toText(source.summary),
+    compatibilityScore: Number.isFinite(Number(source.compatibilityScore))
+      ? Math.max(0, Math.min(100, Number(source.compatibilityScore)))
+      : null,
+    synergies: normalizeAiList(source.synergies, 8),
+    potentialConflicts: normalizeAiList(source.potentialConflicts, 8),
+    coexistenceRecommendations: normalizeAiList(source.coexistenceRecommendations, 8),
+    leadershipGuidance: toText(source.leadershipGuidance),
+  };
+}
 
 export default function CompareProfiles() {
   const navigate = useNavigate();
@@ -306,6 +357,10 @@ export default function CompareProfiles() {
   const [didApplyQuerySelection, setDidApplyQuerySelection] = useState(false);
   const [isExportingComparisonPdf, setIsExportingComparisonPdf] = useState(false);
   const [comparisonPdfError, setComparisonPdfError] = useState('');
+  const [aiFitSegment, setAiFitSegment] = useState('leadership');
+  const [aiFitResult, setAiFitResult] = useState(null);
+  const [aiFitError, setAiFitError] = useState('');
+  const [isGeneratingAiFit, setIsGeneratingAiFit] = useState(false);
 
   const queryPreferredA = useMemo(
     () =>
@@ -535,6 +590,17 @@ export default function CompareProfiles() {
   const hasIncompleteScores =
     Boolean(selectedProfileA && !selectedProfileA.hasValidScores) ||
     Boolean(selectedProfileB && !selectedProfileB.hasValidScores);
+  const canGenerateAiFit = Boolean(
+    hasSelection &&
+      !isSameAssessmentSelected &&
+      isRealAssessmentProfile(selectedProfileA) &&
+      isRealAssessmentProfile(selectedProfileB),
+  );
+
+  useEffect(() => {
+    setAiFitResult(null);
+    setAiFitError('');
+  }, [selectedProfileAId, selectedProfileBId, comparisonMode]);
 
   const comparison = useMemo(() => {
     if (!selectedProfileA || !selectedProfileB || isSameAssessmentSelected) return null;
@@ -608,6 +674,41 @@ export default function CompareProfiles() {
       );
     } finally {
       setIsExportingComparisonPdf(false);
+    }
+  };
+
+  const handleGenerateAiFit = async () => {
+    if (!canGenerateAiFit || isGeneratingAiFit || !selectedProfileA || !selectedProfileB) return;
+
+    setIsGeneratingAiFit(true);
+    setAiFitError('');
+    setAiFitResult(null);
+
+    try {
+      const payload = await apiRequest('/ai/strategic-insights', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          module: 'profile_fit',
+          segment: aiFitSegment,
+          context: buildStrategicContextFromComparableProfile(selectedProfileA),
+          compareContext: buildStrategicContextFromComparableProfile(selectedProfileB),
+          history: [],
+        },
+      });
+
+      setAiFitResult({
+        data: normalizeAiFitPayload(payload?.data),
+        provider: toText(payload?.provider || 'groq'),
+        model: toText(payload?.model),
+        durationMs: Number(payload?.durationMs) || null,
+      });
+    } catch (error) {
+      setAiFitError(
+        error?.message || 'Não foi possível gerar o insight agora. Tente novamente.',
+      );
+    } finally {
+      setIsGeneratingAiFit(false);
     }
   };
 
@@ -957,6 +1058,149 @@ export default function CompareProfiles() {
           />
 
           <ComparisonInsightsGrid comparison={comparison} />
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Compatibilidade com IA (Groq)</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Orientação estratégica baseada em dois relatórios reais selecionados no comparador.
+                </p>
+              </div>
+              <Badge variant="outline" className="rounded-full">
+                {selectedProfileA?.name || 'Perfil A'} x {selectedProfileB?.name || 'Perfil B'}
+              </Badge>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[220px,1fr]">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <label
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500"
+                  htmlFor="ai-fit-segment-select"
+                >
+                  Segmento
+                </label>
+                <select
+                  id="ai-fit-segment-select"
+                  value={aiFitSegment}
+                  onChange={(event) => setAiFitSegment(event.target.value)}
+                  className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                >
+                  {AI_FIT_SEGMENTS.map((segment) => (
+                    <option key={segment.value} value={segment.value}>
+                      {segment.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700"
+                  onClick={handleGenerateAiFit}
+                  disabled={!canGenerateAiFit || isGeneratingAiFit}
+                >
+                  {isGeneratingAiFit ? (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Gerar insight IA
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                {!canGenerateAiFit ? (
+                  <p className="text-sm text-slate-600">
+                    A análise de compatibilidade com IA exige dois relatórios reais.
+                    Modos com baseline sintético (cargo ideal ou equipe) não habilitam este bloco.
+                  </p>
+                ) : null}
+
+                {aiFitError ? (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                    {aiFitError}
+                  </div>
+                ) : null}
+
+                {aiFitResult?.data ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        Leitura executiva
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700">
+                        {aiFitResult.data.summary || 'Sem resumo retornado.'}
+                      </p>
+                    </div>
+
+                    {Number.isFinite(aiFitResult.data.compatibilityScore) ? (
+                      <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-600">
+                          Score de compatibilidade
+                        </p>
+                        <p className="mt-1 text-2xl font-semibold text-indigo-700">
+                          {Math.round(aiFitResult.data.compatibilityScore)}%
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">Sinergias</p>
+                        <ul className="mt-2 space-y-1 text-sm text-emerald-900">
+                          {normalizeAiList(aiFitResult.data.synergies, 6).map((item, index) => (
+                            <li key={`ai-synergy-${index}`}>• {item}</li>
+                          ))}
+                          {!normalizeAiList(aiFitResult.data.synergies, 6).length ? <li>• Sem itens.</li> : null}
+                        </ul>
+                      </div>
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Conflitos</p>
+                        <ul className="mt-2 space-y-1 text-sm text-amber-900">
+                          {normalizeAiList(aiFitResult.data.potentialConflicts, 6).map((item, index) => (
+                            <li key={`ai-conflict-${index}`}>• {item}</li>
+                          ))}
+                          {!normalizeAiList(aiFitResult.data.potentialConflicts, 6).length ? <li>• Sem itens.</li> : null}
+                        </ul>
+                      </div>
+                      <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">Recomendacoes</p>
+                        <ul className="mt-2 space-y-1 text-sm text-sky-900">
+                          {normalizeAiList(aiFitResult.data.coexistenceRecommendations, 6).map((item, index) => (
+                            <li key={`ai-guidance-${index}`}>• {item}</li>
+                          ))}
+                          {!normalizeAiList(aiFitResult.data.coexistenceRecommendations, 6).length ? <li>• Sem itens.</li> : null}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {aiFitResult.data.leadershipGuidance ? (
+                      <div className="rounded-lg border border-slate-200 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                          Guia de liderança aplicado
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">{aiFitResult.data.leadershipGuidance}</p>
+                      </div>
+                    ) : null}
+
+                    <p className="text-xs text-slate-500">
+                      Fonte: {aiFitResult.provider}{aiFitResult.model ? ` · ${aiFitResult.model}` : ''}
+                      {Number(aiFitResult.durationMs) > 0 ? ` · ${Math.round(aiFitResult.durationMs)}ms` : ''}
+                    </p>
+                  </div>
+                ) : canGenerateAiFit && !aiFitError ? (
+                  <p className="text-sm text-slate-600">
+                    Clique em <strong>Gerar insight IA</strong> para obter leitura de sinergia, riscos e recomendações de convivência.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
           <ComparativeReportSection comparison={comparison} />
 
           <ComparisonRecommendationsPanel

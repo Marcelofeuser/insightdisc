@@ -8,6 +8,7 @@ const KNOWN_TOP_LEVEL_SEGMENTS = new Set([
   'analyticsdashboard',
   'app',
   'archetypes',
+  'auth',
   'assessment',
   'assessments',
   'autoconhecimento',
@@ -85,6 +86,8 @@ export function isAuthEntryPath(pathname = '') {
   return (
     normalized === '/login' ||
     normalized.startsWith('/login/') ||
+    normalized === '/auth/callback' ||
+    normalized.startsWith('/auth/callback/') ||
     normalized === '/signup' ||
     normalized.startsWith('/signup/')
   );

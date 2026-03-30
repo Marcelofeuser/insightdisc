@@ -1,7 +1,7 @@
 import { apiRequest } from '@/lib/apiClient';
 
 export async function createStripeCheckoutSession(payload = {}) {
-  const response = await apiRequest('/payments/create-checkout', {
+  const response = await apiRequest('/billing/create-checkout-session', {
     method: 'POST',
     requireAuth: true,
     body: payload,
@@ -53,8 +53,7 @@ export async function upgradePlan(targetPlan = 'business') {
     };
   } catch {
     const checkout = await createStripeCheckoutSession({
-      productType: 'business_subscription',
-      product: 'business-monthly',
+      planId: 'business',
       mode: 'subscription',
     });
     return {

@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
-import { createCheckoutSession, listCheckoutProducts } from '../modules/checkout/checkout.service.js';
+import { listCheckoutProducts } from '../modules/checkout/checkout.service.js';
+import { createBillingCheckoutSession } from '../modules/billing/stripe-billing.service.js';
 
 const router = Router();
 
@@ -22,6 +23,8 @@ const ERROR_STATUS = Object.freeze({
   INVALID_CHECKOUT_PRODUCT: 400,
   INVALID_CREDITS_AMOUNT: 400,
   INVALID_PAYLOAD: 400,
+  BILLING_PRICE_NOT_CONFIGURED: 400,
+  STRIPE_NOT_CONFIGURED: 503,
 });
 
 function resolveErrorCode(error, fallback = 'CHECKOUT_CREATE_FAILED') {
@@ -68,11 +71,15 @@ router.post('/create', async (req, res) => {
       });
     }
 
-    const payload = await createCheckoutSession({
+    const payload = await createBillingCheckoutSession({
       userId: req.auth.userId,
-      auth: req.auth,
-      packageId: input.packageId || '',
-      credits: input.credits || 0,
+      user: req.user,
+      input: {
+        creditsPackageId: input.packageId || '',
+        packageId: input.packageId || '',
+        credits: input.credits || undefined,
+        mode: 'payment',
+      },
     });
 
     return res.status(200).json({
@@ -80,8 +87,8 @@ router.post('/create', async (req, res) => {
       checkoutUrl: payload.checkoutUrl,
       sessionId: payload.sessionId,
       provider: payload.provider,
-      mocked: payload.mocked,
-      package: payload.package,
+      mocked: false,
+      package: payload.item,
     });
   } catch (error) {
     return sendError(res, error, 'CHECKOUT_CREATE_FAILED');

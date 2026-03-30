@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import {
   isTransientPrismaConnectionError,
@@ -29,6 +30,11 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+const oauthExchangeSchema = z.object({
+  accessToken: z.string().min(20),
+  provider: z.enum(['google', 'apple']).optional(),
 });
 
 const superAdminLoginSchema = z.object({
@@ -177,6 +183,117 @@ function normalizeUserPayload(user = {}) {
     plan,
     credits: creditsBalance,
   };
+}
+
+function normalizeOAuthProvider(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'google') return 'google';
+  if (normalized === 'apple') return 'apple';
+  return '';
+}
+
+function resolveDisplayNameFromOAuthProfile(profile = {}) {
+  const metadata = profile?.user_metadata || {};
+  const fullName = String(
+    metadata?.full_name
+      || metadata?.name
+      || profile?.name
+      || '',
+  ).trim();
+  if (fullName) return fullName.slice(0, 120);
+
+  const email = String(profile?.email || '').trim().toLowerCase();
+  if (!email.includes('@')) return 'Usuário InsightDISC';
+  return email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Usuário InsightDISC';
+}
+
+async function fetchSupabaseOAuthProfile({ accessToken = '', provider = '' } = {}) {
+  const supabaseUrl = String(env.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const supabaseApiKey =
+    String(env.supabaseServiceRoleKey || '').trim()
+    || String(env.supabaseAnonKey || '').trim();
+
+  if (!supabaseUrl || !supabaseApiKey) {
+    const error = new Error('SUPABASE_OAUTH_NOT_CONFIGURED');
+    error.code = 'SUPABASE_OAUTH_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      apikey: supabaseApiKey,
+      Authorization: `Bearer ${String(accessToken || '').trim()}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload?.email) {
+    const error = new Error('SUPABASE_OAUTH_INVALID_TOKEN');
+    error.code = 'SUPABASE_OAUTH_INVALID_TOKEN';
+    throw error;
+  }
+
+  const claimedProvider = normalizeOAuthProvider(provider);
+  const profileProvider = normalizeOAuthProvider(payload?.app_metadata?.provider || '');
+  if (claimedProvider && profileProvider && claimedProvider !== profileProvider) {
+    const error = new Error('SUPABASE_OAUTH_PROVIDER_MISMATCH');
+    error.code = 'SUPABASE_OAUTH_PROVIDER_MISMATCH';
+    throw error;
+  }
+
+  return payload;
+}
+
+async function createUserWithDefaultWorkspace(tx, { email = '', name = '' } = {}) {
+  const passwordHash = await hashPassword(`oauth:${crypto.randomUUID()}`);
+  const createdUser = await tx.user.create({
+    data: {
+      email,
+      name,
+      passwordHash,
+      credits: { create: { balance: 0 } },
+    },
+  });
+
+  const organization = await tx.organization.create({
+    data: {
+      name: `${name} Workspace`,
+      companyName: name,
+      logoUrl: '/brand/insightdisc-report-logo.png',
+      brandPrimaryColor: '#0b1f3b',
+      brandSecondaryColor: '#f7b500',
+      reportFooterText: 'InsightDISC - Plataforma de Análise Comportamental',
+      ownerId: createdUser.id,
+    },
+  });
+
+  await tx.organizationMember.create({
+    data: {
+      organizationId: organization.id,
+      userId: createdUser.id,
+      role: 'OWNER',
+    },
+  });
+
+  return createdUser.id;
+}
+
+async function loadAuthUserById(userId = '') {
+  if (!userId) return null;
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      credits: true,
+      memberships: true,
+      organizationsOwned: true,
+      payments: {
+        where: { status: 'PAID' },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
 }
 
 router.post('/register', async (req, res) => {
@@ -344,6 +461,135 @@ router.post('/login', async (req, res) => {
       status: 500,
       error: 'AUTH_SERVER_ERROR',
       message: 'Não foi possível concluir o login agora. Tente novamente.',
+    });
+  }
+});
+
+router.post('/oauth/exchange', async (req, res) => {
+  try {
+    const input = oauthExchangeSchema.parse(req.body || {});
+    const oauthProfile = await fetchSupabaseOAuthProfile({
+      accessToken: input.accessToken,
+      provider: input.provider,
+    });
+
+    const email = String(oauthProfile?.email || '').trim().toLowerCase();
+    if (!email) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'OAUTH_EMAIL_REQUIRED',
+        message: 'Conta OAuth sem e-mail válido.',
+      });
+    }
+
+    const displayName = resolveDisplayNameFromOAuthProfile(oauthProfile);
+    let user = await withPrismaRetry(
+      () =>
+        prisma.user.findUnique({
+          where: { email },
+          include: {
+            credits: true,
+            memberships: true,
+            organizationsOwned: true,
+            payments: {
+              where: { status: 'PAID' },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        }),
+      { retries: 1 },
+    );
+
+    if (!user) {
+      try {
+        const createdUserId = await prisma.$transaction((tx) =>
+          createUserWithDefaultWorkspace(tx, {
+            email,
+            name: displayName,
+          }),
+        );
+        user = await loadAuthUserById(createdUserId);
+      } catch (createError) {
+        const fallbackUser = await withPrismaRetry(
+          () =>
+            prisma.user.findUnique({
+              where: { email },
+              include: {
+                credits: true,
+                memberships: true,
+                organizationsOwned: true,
+                payments: {
+                  where: { status: 'PAID' },
+                  select: { id: true },
+                  take: 1,
+                },
+              },
+            }),
+          { retries: 1 },
+        );
+        user = fallbackUser;
+        if (!user) {
+          throw createError;
+        }
+      }
+    }
+
+    if (!user) {
+      return sendSafeJsonError(res, {
+        status: 500,
+        error: 'OAUTH_USER_CREATION_FAILED',
+        message: 'Não foi possível concluir o login OAuth.',
+      });
+    }
+
+    try {
+      await markPromoAccountActivated(user.id);
+    } catch (activationError) {
+      // eslint-disable-next-line no-console
+      console.warn('[auth/oauth-exchange] promo account activation skipped:', activationError?.message || activationError);
+    }
+
+    const token = signJwt({ sub: user.id, email: user.email, role: user.role });
+    return res.status(200).json({
+      ok: true,
+      token,
+      user: normalizeUserPayload(user),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'INVALID_OAUTH_EXCHANGE_PAYLOAD',
+        message: 'Payload inválido para login OAuth.',
+      });
+    }
+
+    const code = String(error?.code || '').toUpperCase();
+    if (
+      code === 'SUPABASE_OAUTH_NOT_CONFIGURED'
+      || code === 'SUPABASE_OAUTH_INVALID_TOKEN'
+      || code === 'SUPABASE_OAUTH_PROVIDER_MISMATCH'
+    ) {
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: code,
+        message: 'Não foi possível validar o login social.',
+      });
+    }
+
+    if (isTransientPrismaConnectionError(error)) {
+      return sendSafeJsonError(res, {
+        status: 503,
+        error: 'AUTH_TEMPORARILY_UNAVAILABLE',
+        message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
+      });
+    }
+
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: 'OAUTH_EXCHANGE_FAILED',
+      message: 'Falha ao concluir login social.',
     });
   }
 });
