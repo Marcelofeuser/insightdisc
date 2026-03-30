@@ -363,7 +363,7 @@ export default function Pricing() {
 
   const startCheckout = (planSlug) => {
     const normalizedPlanSlug = String(planSlug || '').trim().toLowerCase();
-    const allowedPlans = new Set(['personal', 'insider', 'professional', 'business', 'diamond']);
+    const allowedPlans = new Set(['personal', 'insider', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium'])
     if (!allowedPlans.has(normalizedPlanSlug)) {
       setCheckoutError('Plano inválido para checkout.');
       return;
@@ -415,7 +415,7 @@ export default function Pricing() {
     const normalizedPlan = String(access?.plan || authUser?.plan || '').trim().toLowerCase();
     const hasActivePlan =
       Boolean(authUser?.hasActivePlan || authUser?.has_active_plan || access?.hasPaidPurchase)
-      || ['personal', 'insider', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium'].includes(normalizedPlan);
+      || ['personal', 'insider', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium']
 
     if (!hasActivePlan) {
       setCheckoutError('Compra de créditos disponível somente dentro do painel para contas com plano ativo.');
