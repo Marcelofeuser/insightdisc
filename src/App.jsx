@@ -28,7 +28,7 @@ import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
 import AuthCallback from './pages/AuthCallback.jsx';
 import CheckoutPlanPage from '@/pages/CheckoutPlanPage';
-import CheckoutCancel from '@/pages/CheckoutCancel';
+import CheckoutCancel from './pages/CheckoutCancel.jsx';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 import PersonalLandingPage from '@/pages/PersonalLanding';
 import ProfissionalLandingPage from '@/pages/ProfissionalLanding';
