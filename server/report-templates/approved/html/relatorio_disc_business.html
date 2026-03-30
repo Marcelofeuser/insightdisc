@@ -220,8 +220,14 @@ p{font-size:13px;line-height:1.6;color:var(--t2);}
 #s7 .ind-desc{font-size:12px;color:var(--t3);line-height:1.5;}
 
 /* SG-RADAR / SG-BARS */
+#sg-radar,
+#sg-bars{
+  height:auto;
+  min-height:720px;
+  overflow:visible;
+}
 #sg-radar .slide-content,
-#sg-bars .slide-content{gap:40px !important;padding:4px 0 !important;align-items:flex-start !important;}
+#sg-bars .slide-content{height:auto;min-height:calc(720px - 44px);gap:40px !important;padding:4px 0 !important;align-items:flex-start !important;}
 #sg-radar .slide-content > div:last-child,
 #sg-bars .slide-content > div:last-child{gap:14px !important;}
 #sg-radar .slide-content > div:last-child p{line-height:1.45;}
