@@ -43,6 +43,7 @@ function resolveStatusCodeByError(code = '') {
 }
 
 function buildCheckoutInputFromLegacyPayload(input = {}) {
+  const normalizedPlan = String(input.planId || input.plan || '').trim();
   const resolvedProduct = String(
     input.product
     || resolveProductIdFromPayload(input.productType, input.credits)
@@ -51,7 +52,7 @@ function buildCheckoutInputFromLegacyPayload(input = {}) {
   const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
 
   return {
-    planId: input.planId,
+    planId: normalizedPlan,
     product: resolvedProduct,
     productType: input.productType,
     creditsPackageId: input.creditsPackageId || input.packageId,
@@ -76,7 +77,10 @@ router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
       assessmentId: z.string().optional(),
       token: z.string().optional(),
       flow: z.string().optional(),
+      plan: z.string().trim().optional(),
       planId: z.string().optional(),
+      billing: z.enum(['monthly', 'yearly', 'one_time']).optional(),
+      provider: z.enum(['STRIPE']).optional(),
       productType: z
         .enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription', 'report_unlock'])
         .optional(),

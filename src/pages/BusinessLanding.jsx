@@ -13,7 +13,7 @@ const BUSINESS_CONFIG = {
       'Conecte comportamento, cultura e performance com uma visão estruturada da equipe para liderar com mais precisão e escalar com consistência.',
     primaryCta: {
       label: 'Quero estruturar minha equipe com inteligência',
-      to: '/checkout/business',
+      to: '/checkout/plan/business',
       source: 'hero_checkout_business',
     },
     secondaryCta: {
@@ -213,7 +213,7 @@ const BUSINESS_CONFIG = {
       'Ative o Business para consolidar visão de equipe, apoiar decisões estratégicas e escalar gestão de pessoas com segurança.',
     primaryCta: {
       label: 'Quero estruturar minha equipe com inteligência',
-      to: '/checkout/business',
+      to: '/checkout/plan/business',
       source: 'cta_checkout_business',
     },
   },

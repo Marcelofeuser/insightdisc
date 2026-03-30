@@ -244,7 +244,7 @@ export default function PlanosPage() {
 
               <div className="flex items-center gap-3">
                 <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
-                <Link to="/checkout/profissional" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Assinar agora</Link>
+                <Link to="/checkout/plan/professional" className="btn-primary px-5 py-2.5 rounded-xl font-semibold text-sm">Assinar agora</Link>
                 <button
                   type="button"
                   className="lg:hidden text-slate-300 hover:text-white"
@@ -307,7 +307,7 @@ export default function PlanosPage() {
                 Do uso individual à operação empresarial, cada assinatura entrega funcionalidades concretas para aplicação real no dia a dia.
               </p>
               <div className="fade-up flex flex-col sm:flex-row gap-4 mb-8" style={{ animationDelay: '.3s' }}>
-                <Link to="/checkout/profissional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'hero_profissional')}>
+                <Link to="/checkout/plan/professional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'hero_profissional')}>
                   Quero analisar perfis com profundidade
                 </Link>
                 <a href="#comparativo-planos" className="btn-secondary glass-card px-8 py-4 rounded-2xl font-bold text-lg text-slate-200 border border-white/10">
@@ -513,7 +513,7 @@ export default function PlanosPage() {
                 Escolha a assinatura que combina com seu momento e evolua com recursos claros, comparáveis e escaláveis.
               </p>
               <div className="flex justify-center">
-                <Link to="/checkout/profissional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'final_cta_profissional')}>
+                <Link to="/checkout/plan/professional" className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg" onClick={() => trackPlanClick('profissional', 'final_cta_profissional')}>
                   Escolher meu plano
                 </Link>
               </div>

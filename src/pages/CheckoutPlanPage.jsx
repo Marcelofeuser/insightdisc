@@ -34,6 +34,8 @@ const TRUST_ITEMS = Object.freeze([
 const PLAN_CONTEXT_NOTES = Object.freeze({
   disc: 'Entrega pontual com acesso imediato ao relatório completo, sem assinatura da plataforma.',
   personal: 'Inclui direcionamentos de desenvolvimento e acompanhamento de evolução para uso pessoal com recorrência leve.',
+  professional:
+    'Inclui dossiê técnico, comparador avançado, arquétipos por relatório e 10 créditos mensais.',
   profissional:
     'Inclui dossiê técnico, comparador avançado, arquétipos por relatório e 10 créditos mensais.',
   business:
@@ -46,19 +48,34 @@ const ORDER_BUMP_PRICE_LABEL = 'R$ 19';
 
 const PLAN_VALUE_COMPARISON = Object.freeze({
   personal: 'Mais profundidade e histórico contínuo versus o DISC avulso.',
+  professional: 'Inclui dossiê, comparador e operação recorrente acima do Personal.',
   profissional: 'Inclui dossiê, comparador e operação recorrente acima do Personal.',
   business: 'Adiciona Team Map e visão estratégica de equipe acima do Profissional.',
   diamond: 'Escala ilimitada e operação enterprise acima do Business.',
 });
 
-function resolveBillingPlanId(planKey = '') {
-  const normalized = String(planKey || '').trim().toLowerCase();
-  if (normalized === 'profissional') return 'professional';
-  if (normalized === 'business') return 'business';
-  if (normalized === 'personal') return 'personal';
-  if (normalized === 'disc') return 'disc';
-  if (normalized === 'diamond') return 'business';
-  return normalized;
+const PLAN_PRICE_LABELS = Object.freeze({
+  personal: 'R$ 79,90',
+  professional: 'R$ 197',
+  business: 'R$ 397',
+  diamond: 'R$ 697',
+});
+
+function resolveCheckoutPlanKey(plan, planSlug = '') {
+  const normalizedSlug = String(planSlug || '').trim().toLowerCase();
+  if (normalizedSlug === 'professional' || normalizedSlug === 'profissional' || normalizedSlug === 'pro') {
+    return 'professional';
+  }
+  if (normalizedSlug === 'business') return 'business';
+  if (normalizedSlug === 'personal') return 'personal';
+  if (normalizedSlug === 'diamond') return 'diamond';
+
+  const normalizedKey = String(plan?.key || '').trim().toLowerCase();
+  if (normalizedKey === 'profissional') return 'professional';
+  if (normalizedKey === 'professional') return 'professional';
+  if (normalizedKey === 'business') return 'business';
+  if (normalizedKey === 'diamond') return 'diamond';
+  return 'personal';
 }
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
@@ -87,8 +104,9 @@ export default function CheckoutPlanPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { planSlug } = useParams();
-  const { access } = useAuth();
+  const { access, user } = useAuth();
   const plan = resolveCheckoutPlan(planSlug);
+  const checkoutPlanKey = useMemo(() => resolveCheckoutPlanKey(plan, planSlug), [plan, planSlug]);
   const startTrackRef = useRef('');
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -101,7 +119,11 @@ export default function CheckoutPlanPage() {
 
   const previewRequired = requiresCheckoutPreview(access);
   const canProceedToPayment = !previewRequired || previewState.hasPreview;
-  const planComparisonText = useMemo(() => PLAN_VALUE_COMPARISON[plan?.key] || '', [plan?.key]);
+  const planComparisonText = useMemo(() => PLAN_VALUE_COMPARISON[checkoutPlanKey] || '', [checkoutPlanKey]);
+  const planPriceLabel = useMemo(
+    () => PLAN_PRICE_LABELS[checkoutPlanKey] || plan?.price || '',
+    [checkoutPlanKey, plan?.price],
+  );
 
   useEffect(() => {
     const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
@@ -116,17 +138,17 @@ export default function CheckoutPlanPage() {
   useEffect(() => {
     if (!plan) return undefined;
     trackEvent('checkout_public_view', {
-      planKey: plan.key,
+      planKey: checkoutPlanKey,
       path: location.pathname,
     });
     return undefined;
-  }, [location.pathname, plan]);
+  }, [checkoutPlanKey, location.pathname, plan]);
 
   useEffect(() => {
     if (!plan) return;
 
     const trackKey = [
-      plan.key,
+      checkoutPlanKey,
       previewRequired ? 'preview-required' : 'preview-not-required',
       canProceedToPayment ? 'preview-ok' : 'preview-missing',
     ].join(':');
@@ -135,12 +157,12 @@ export default function CheckoutPlanPage() {
     startTrackRef.current = trackKey;
 
     trackEvent('checkout_started', {
-      planKey: plan.key,
+      planKey: checkoutPlanKey,
       path: location.pathname,
       previewRequired,
       previewReady: canProceedToPayment,
     });
-  }, [canProceedToPayment, location.pathname, plan, previewRequired]);
+  }, [canProceedToPayment, checkoutPlanKey, location.pathname, plan, previewRequired]);
 
   useEffect(() => {
     if (!plan) return undefined;
@@ -223,7 +245,7 @@ export default function CheckoutPlanPage() {
   const handleSelectMethod = (method) => {
     setSelectedMethod(method);
     trackEvent('checkout_public_payment_method_selected', {
-      planKey: plan.key,
+      planKey: checkoutPlanKey,
       paymentMethod: method,
       path: location.pathname,
     });
@@ -255,22 +277,29 @@ export default function CheckoutPlanPage() {
     setFeedback('');
 
     trackEvent('checkout_public_finalize_click', {
-      planKey: plan.key,
+      planKey: checkoutPlanKey,
       paymentMethod: selectedMethod,
       orderBumpEnabled,
       path: location.pathname,
     });
 
     try {
-      const planId = resolveBillingPlanId(plan.key);
-      const mode = planId === 'professional' || planId === 'business' ? 'subscription' : 'payment';
+      if (!user?.id) {
+        const loginRedirectUrl = buildLoginRedirectUrl({
+          pathname: location.pathname,
+          search: location.search || '',
+        });
+        navigate(loginRedirectUrl);
+        return;
+      }
 
-      const response = await apiRequest('/billing/create-checkout-session', {
+      const response = await apiRequest('/payments/create-checkout', {
         method: 'POST',
         requireAuth: true,
         body: {
-          planId,
-          mode,
+          plan: checkoutPlanKey,
+          billing: 'monthly',
+          provider: 'STRIPE',
           orderBumpAdvancedAnalysis: orderBumpEnabled,
         },
       });
@@ -396,7 +425,7 @@ export default function CheckoutPlanPage() {
                 {plan.description}
               </p>
               <div className="fade-up inline-flex items-end gap-3" style={{ animationDelay: '.28s' }}>
-                <p className="text-4xl md:text-5xl font-extrabold">{plan.price}</p>
+                <p className="text-4xl md:text-5xl font-extrabold">{planPriceLabel}</p>
                 <p className="text-slate-400 pb-2">{plan.billingLabel}</p>
               </div>
             </div>
@@ -496,10 +525,10 @@ export default function CheckoutPlanPage() {
                 <h3 className="text-2xl font-extrabold mb-4">{plan.name}</h3>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <p className="text-sm text-slate-400 mb-1">Valor do plano</p>
-                  <p className="text-3xl font-extrabold mb-2">{plan.price}</p>
+                  <p className="text-3xl font-extrabold mb-2">{planPriceLabel}</p>
                   <p className="text-slate-400">{plan.billingLabel}</p>
-                  {PLAN_CONTEXT_NOTES[plan.key] ? (
-                    <p className="mt-3 text-sm text-slate-300 leading-relaxed">{PLAN_CONTEXT_NOTES[plan.key]}</p>
+                  {PLAN_CONTEXT_NOTES[checkoutPlanKey] ? (
+                    <p className="mt-3 text-sm text-slate-300 leading-relaxed">{PLAN_CONTEXT_NOTES[checkoutPlanKey]}</p>
                   ) : null}
                   {planComparisonText ? (
                     <p className="mt-3 text-sm text-emerald-200 leading-relaxed">

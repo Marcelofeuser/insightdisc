@@ -68,7 +68,6 @@ const FACTOR_INFO = {
 function buildCandidateReportUnlockUrl({ assessmentId = '', token = '' } = {}) {
   const params = new URLSearchParams();
 
-  params.set('product', 'report-unlock');
   params.set('flow', 'candidate');
 
   if (assessmentId) {
@@ -79,7 +78,7 @@ function buildCandidateReportUnlockUrl({ assessmentId = '', token = '' } = {}) {
     params.set('token', token);
   }
 
-  return '/checkout?' + params.toString();
+  return '/checkout/plan/personal?' + params.toString();
 }
 
 export default function FreeResults() {

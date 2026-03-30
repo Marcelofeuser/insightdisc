@@ -13,7 +13,7 @@ const PROFISSIONAL_CONFIG = {
       'Estruture devolutivas, recrutamento e desenvolvimento com uma base analítica confiável, reduzindo subjetividade e aumentando precisão.',
     primaryCta: {
       label: 'Quero analisar perfis com profundidade',
-      to: '/checkout/profissional',
+      to: '/checkout/plan/professional',
       source: 'hero_checkout_profissional',
     },
     secondaryCta: {
@@ -209,7 +209,7 @@ const PROFISSIONAL_CONFIG = {
       'Ative o Profissional para estruturar devolutivas, reduzir viés e ampliar seu valor entregue em cada análise.',
     primaryCta: {
       label: 'Quero analisar perfis com profundidade',
-      to: '/checkout/profissional',
+      to: '/checkout/plan/professional',
       source: 'cta_checkout_profissional',
     },
   },

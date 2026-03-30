@@ -109,6 +109,15 @@ function AssessmentReportAliasRedirect() {
   return <Navigate to={buildAssessmentReportPath(id)} replace />;
 }
 
+function CheckoutPlanLegacyRedirect() {
+  const { planSlug } = useParams();
+  const normalized = String(planSlug || '').trim().toLowerCase();
+  if (!normalized || normalized === 'plan') {
+    return <Navigate to="/planos" replace />;
+  }
+  return <Navigate to={`/checkout/plan/${encodeURIComponent(normalized)}`} replace />;
+}
+
 function renderProtectedPage(path, pageName, PageComponent) {
   if (!PageComponent) return null;
 
@@ -223,7 +232,7 @@ const AuthenticatedApp = () => {
         }
       />
       <Route
-        path="/checkout/:planSlug"
+        path="/checkout/plan/:planSlug"
         element={
           <ProtectedRoute pageName="CheckoutPlan" policy={getPagePolicy('CheckoutPlan')}>
             <LayoutWrapper currentPageName="CheckoutPlan">
@@ -232,6 +241,7 @@ const AuthenticatedApp = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/checkout/:planSlug" element={<CheckoutPlanLegacyRedirect />} />
       <Route
         path="/empresa"
         element={

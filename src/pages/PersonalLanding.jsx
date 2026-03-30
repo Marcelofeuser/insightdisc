@@ -13,7 +13,7 @@ const PERSONAL_CONFIG = {
       'Uma jornada simples e estruturada para entender seu perfil, melhorar sua comunicação e tomar decisões com mais consciência emocional.',
     primaryCta: {
       label: 'Quero acessar meu perfil completo',
-      to: '/checkout/personal',
+      to: '/checkout/plan/personal',
       source: 'hero_checkout_personal',
     },
     secondaryCta: {
@@ -210,7 +210,7 @@ const PERSONAL_CONFIG = {
       'Ative o Personal para acompanhar seu perfil, receber orientação prática e evoluir com consistência.',
     primaryCta: {
       label: 'Quero acessar meu perfil completo',
-      to: '/checkout/personal',
+      to: '/checkout/plan/personal',
       source: 'cta_checkout_personal',
     },
   },

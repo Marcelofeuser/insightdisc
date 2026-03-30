@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { PRODUCTS, formatPriceBRL, getProductById } from '@/config/pricing';
+import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { apiRequest, getApiToken } from '@/lib/apiClient';
 import { createPageUrl } from '@/utils';
 import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
@@ -44,69 +44,19 @@ const SIMPLE_PACKAGES = Object.freeze([
   },
 ]);
 
-function mapLegacyProductPayload(rawProductKey = '', params = new URLSearchParams()) {
-  const resolvedProduct = getProductById(rawProductKey || '') || null;
-
-  if (!resolvedProduct) {
-    return null;
-  }
-
-  const productTypeById = {
-    single: 'single_assessment',
-    gift: 'gift_assessment',
-    'pack-10': 'credit_pack',
-    'pack-50': 'credit_pack',
-    'pack-100': 'credit_pack',
-    'business-monthly': 'business_subscription',
-    'report-unlock': 'report_unlock',
-  };
-
-  const payload = {
-    product: resolvedProduct.id,
-    productType: productTypeById[resolvedProduct.id] || undefined,
-    credits: Number(resolvedProduct.credits || 0) || undefined,
-    flow: params.get('flow') || undefined,
-    assessmentId: params.get('assessmentId') || undefined,
-    token: params.get('token') || undefined,
-    giftToken: params.get('giftToken') || undefined,
-  };
-
-  if (resolvedProduct.id === 'business-monthly') {
-    payload.mode = 'subscription';
-  }
-
-  return payload;
-}
-
-function buildLegacyProductView(rawProductKey = '') {
-  const fallbackProduct = PRODUCTS.SINGLE_PRO;
-  const resolvedProduct = getProductById(rawProductKey) || fallbackProduct;
-
-  const basePrice = formatPriceBRL(resolvedProduct.price);
-  const price = resolvedProduct.billingPeriod ? `${basePrice} / ${resolvedProduct.billingPeriod}` : basePrice;
-
-  return {
-    title: resolvedProduct.name,
-    summary: resolvedProduct.description,
-    price,
-    productId: resolvedProduct.id,
-  };
-}
-
 export default function Checkout() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { access } = useAuth();
-  const [searchParams] = useSearchParams();
+  const { access, user } = useAuth();
   const [loadingPackage, setLoadingPackage] = useState('');
-
-  const rawProductKey = String(searchParams.get('product') || searchParams.get('produto') || '').trim();
-
-  const legacyProduct = useMemo(() => {
-    if (!rawProductKey) return null;
-    return buildLegacyProductView(rawProductKey);
-  }, [rawProductKey]);
+  const hasActivePlan = useMemo(() => {
+    const normalizedPlan = String(access?.plan || user?.plan || '').trim().toLowerCase();
+    return (
+      Boolean(user?.hasActivePlan || user?.has_active_plan || access?.hasPaidPurchase) ||
+      ['personal', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium'].includes(normalizedPlan)
+    );
+  }, [access?.hasPaidPurchase, access?.plan, user?.hasActivePlan, user?.has_active_plan, user?.plan]);
 
   const redirectToLogin = () => {
     const loginRedirectUrl = buildLoginRedirectUrl({
@@ -150,11 +100,12 @@ export default function Checkout() {
     });
 
     try {
-      const payload = await apiRequest('/api/checkout/create', {
+      const payload = await apiRequest('/payments/create-checkout', {
         method: 'POST',
         requireAuth: true,
         body: {
           packageId: checkoutPackage.id,
+          productType: 'credit_pack',
           credits: checkoutPackage.credits,
           provider: 'STRIPE',
         },
@@ -186,73 +137,30 @@ export default function Checkout() {
     }
   };
 
-  const startLegacyCheckout = async () => {
-    const payload = mapLegacyProductPayload(rawProductKey, searchParams);
-    if (!payload) {
-      toast({
-        title: 'Produto inválido',
-        description: 'O produto selecionado não é válido para checkout.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const isReportUnlock = payload.product === 'report-unlock';
-    const hasCheckoutContext = Boolean(payload.assessmentId && payload.token);
-    const bypassPreviewGate = isReportUnlock && hasCheckoutContext;
-
-    if (!enforcePreviewGate({ allowBypass: bypassPreviewGate })) {
-      return;
-    }
-
-    if (isReportUnlock && !hasCheckoutContext) {
-      toast({
-        title: 'Contexto insuficiente',
-        description: 'Não foi possível identificar a avaliação para liberar o relatório. Solicite um novo link.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!getApiToken()) {
-      redirectToLogin();
-      return;
-    }
-
-    setLoadingPackage(`legacy-${payload.product}`);
-    trackEvent('checkout_started', {
-      flow: payload.flow || 'legacy',
-      product: payload.product,
-      path: location.pathname,
-    });
-    try {
-      const response = await apiRequest('/payments/create-checkout', {
-        method: 'POST',
-        requireAuth: true,
-        body: payload,
-      });
-
-      const checkoutUrl = String(response?.url || '').trim();
-      if (!checkoutUrl) {
-        throw new Error('CHECKOUT_URL_NOT_FOUND');
-      }
-
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      let fallbackMessage = error?.message || 'Falha ao iniciar checkout para este produto.';
-      if (error?.message === 'API_AUTH_MISSING') {
-        fallbackMessage = 'Redirecionando para login...';
-        redirectToLogin();
-      }
-      toast({
-        title: 'Falha no checkout',
-        description: fallbackMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingPackage('');
-    }
-  };
+  if (!user?.id || !hasActivePlan) {
+    return (
+      <div className="min-h-screen bg-slate-50 px-4 py-8">
+        <div className="mx-auto max-w-3xl">
+          <Card className="border border-amber-200 shadow-sm">
+            <CardContent className="space-y-4 p-7">
+              <h1 className="text-2xl font-black text-slate-900">Compra de créditos disponível apenas no painel ativo</h1>
+              <p className="text-slate-600">
+                Para manter o fluxo de checkout limpo, pacotes de créditos ficam restritos a contas autenticadas com plano ativo.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => navigate(createPageUrl('Dashboard'))} className="rounded-xl">
+                  Ir para meu painel
+                </Button>
+                <Button variant="outline" onClick={() => navigate(createPageUrl('Pricing'))} className="rounded-xl">
+                  Ver planos
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -263,38 +171,6 @@ export default function Checkout() {
             Voltar para preços
           </Button>
         </Link>
-
-        {legacyProduct ? (
-          <Card className="border border-slate-200 shadow-sm">
-            <CardContent className="space-y-5 p-7">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-indigo-700">
-                <CreditCard className="h-3.5 w-3.5" />
-                Produto selecionado
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-black text-slate-900">{legacyProduct.title}</h1>
-                <p className="mt-2 text-slate-600">{legacyProduct.summary}</p>
-                <p className="mt-3 text-3xl font-black text-indigo-700">{legacyProduct.price}</p>
-              </div>
-
-              <Button
-                className="h-12 rounded-2xl bg-slate-900 px-8 hover:bg-slate-950"
-                onClick={startLegacyCheckout}
-                disabled={loadingPackage === `legacy-${legacyProduct.productId}`}
-              >
-                {loadingPackage === `legacy-${legacyProduct.productId}` ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Iniciando checkout...
-                  </>
-                ) : (
-                  'Continuar compra deste produto'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
 
         <Card className="border border-slate-200 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
           <CardContent className="space-y-6 p-7">

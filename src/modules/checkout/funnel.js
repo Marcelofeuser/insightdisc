@@ -105,14 +105,14 @@ export function resolveCheckoutUpsellOffer(checkoutItemKey = '') {
       copy:
         'Ative Team Map, Coach e AI Lab avançado com condição exclusiva pós-compra.',
       ctaLabel: 'Quero Business com desconto',
-      ctaPath: '/checkout/business?offer=upsell_business',
+      ctaPath: '/checkout/plan/business?offer=upsell_business',
       downsell: {
         key: 'downsell_business',
         title: 'Oferta de recuperação',
         copy:
           'Última chance: Business com desconto maior apenas nesta etapa.',
         ctaLabel: 'Ativar Business (downsell)',
-        ctaPath: '/checkout/business?offer=downsell_business',
+        ctaPath: '/checkout/plan/business?offer=downsell_business',
       },
     };
   }
@@ -124,14 +124,14 @@ export function resolveCheckoutUpsellOffer(checkoutItemKey = '') {
       copy:
         'Escala ilimitada para operação enterprise com prioridade máxima.',
       ctaLabel: 'Quero Diamond com desconto',
-      ctaPath: '/checkout/diamond?offer=upsell_diamond',
+      ctaPath: '/checkout/plan/diamond?offer=upsell_diamond',
       downsell: {
         key: 'downsell_diamond',
         title: 'Oferta final Diamond',
         copy:
           'Condição especial de recuperação para subir ao Diamond agora.',
         ctaLabel: 'Ativar Diamond (downsell)',
-        ctaPath: '/checkout/diamond?offer=downsell_diamond',
+        ctaPath: '/checkout/plan/diamond?offer=downsell_diamond',
       },
     };
   }

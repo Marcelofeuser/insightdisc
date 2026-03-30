@@ -361,25 +361,16 @@ export default function Pricing() {
     window.open(SALES_WHATSAPP_URL, '_blank', 'noopener,noreferrer');
   };
 
-  const buildCheckoutUrl = (product, payload = {}) => {
-    const params = new URLSearchParams();
-    params.set('product', product);
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.set(key, String(value));
-      }
-    });
-    return `/checkout?${params.toString()}`;
-  };
-
-  const startCheckout = (checkoutKey, product, payload = {}) => {
-    if (!product) {
-      setCheckoutError('Produto inválido para checkout.');
+  const startCheckout = (planSlug) => {
+    const normalizedPlanSlug = String(planSlug || '').trim().toLowerCase();
+    const allowedPlans = new Set(['personal', 'professional', 'business', 'diamond']);
+    if (!allowedPlans.has(normalizedPlanSlug)) {
+      setCheckoutError('Plano inválido para checkout.');
       return;
     }
 
     if (!authUser?.id) {
-      const nextUrl = buildCheckoutUrl(product, payload);
+      const nextUrl = `/checkout/plan/${normalizedPlanSlug}`;
       const loginRedirectUrl = buildLoginRedirectUrl({
         pathname: nextUrl,
         search: '',
@@ -398,35 +389,46 @@ export default function Pricing() {
       }
     }
 
-    setCheckoutLoading(checkoutKey || product);
+    setCheckoutLoading(normalizedPlanSlug);
     setCheckoutError('');
-    navigate(buildCheckoutUrl(product, payload));
+    navigate(`/checkout/plan/${normalizedPlanSlug}`);
   };
 
   const handleBuySingleAssessment = () => {
-    startCheckout('single_assessment', 'single', {
-      flow: checkoutFlow || (isCandidateUnlock ? 'candidate' : 'single_assessment'),
-      assessmentId: isCandidateUnlock ? assessmentId : '',
-      token: isCandidateUnlock ? candidateToken : '',
-    });
+    startCheckout('professional');
   };
 
   const handleGiftPurchase = () => {
-    startCheckout('gift_assessment', 'gift', {
-      flow: 'gift',
-    });
+    startCheckout('personal');
   };
 
   const handleCreditPackPurchase = (pack) => {
-    startCheckout(pack.id, pack.checkoutProduct, {
-      flow: 'credit_pack',
-    });
+    if (!authUser?.id) {
+      const loginRedirectUrl = buildLoginRedirectUrl({
+        pathname: createPageUrl('Credits'),
+        search: '',
+      });
+      navigate(loginRedirectUrl);
+      return;
+    }
+
+    const normalizedPlan = String(access?.plan || authUser?.plan || '').trim().toLowerCase();
+    const hasActivePlan =
+      Boolean(authUser?.hasActivePlan || authUser?.has_active_plan || access?.hasPaidPurchase)
+      || ['personal', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium'].includes(normalizedPlan);
+
+    if (!hasActivePlan) {
+      setCheckoutError('Compra de créditos disponível somente dentro do painel para contas com plano ativo.');
+      return;
+    }
+
+    setCheckoutLoading(pack?.id || 'credits');
+    setCheckoutError('');
+    navigate(createPageUrl('Credits'));
   };
 
   const handleBusinessSubscription = () => {
-    startCheckout('business_monthly', 'business-monthly', {
-      flow: 'business_subscription',
-    });
+    startCheckout('business');
   };
 
   const user = authUser || null;
@@ -609,7 +611,7 @@ export default function Pricing() {
                   disabled={Boolean(checkoutLoading)}
                   className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {checkoutLoading === 'single_assessment' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
+                  {checkoutLoading === 'professional' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
                 </Button>
               </CardContent>
             </Card>
@@ -650,7 +652,7 @@ export default function Pricing() {
                   disabled={Boolean(checkoutLoading)}
                   className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
                 >
-                  {checkoutLoading === 'gift_assessment' ? 'Abrindo checkout...' : 'Comprar presente'}
+                  {checkoutLoading === 'personal' ? 'Abrindo checkout...' : 'Comprar presente'}
                 </Button>
               </CardContent>
             </Card>
@@ -778,7 +780,7 @@ export default function Pricing() {
                       disabled={Boolean(checkoutLoading)}
                       className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
                     >
-                      {checkoutLoading === 'business_monthly' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
+                      {checkoutLoading === 'business' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
                     </Button>
                   ) : (
                     <Button
