@@ -213,7 +213,7 @@ model Payment {
   stripeSubscriptionId String?            @map("stripe_subscription_id")
   metadata            Json?
   createdAt           DateTime            @default(now()) @map("created_at")
-  updatedAt           DateTime            @updatedAt @map("updated_at")
+  updated_at          DateTime            @updatedAt @default(now())
   ledgerEntries       CreditLedgerEntry[]
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
