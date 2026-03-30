@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { mapAuthRequestError, submitAuthRequest } from '@/modules/auth/authApi';
 import { deriveUserLifecycle, USER_LIFECYCLE } from '@/modules/auth/access-control';
 import { sanitizeNextPath } from '@/modules/auth/next-path';
+import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient';
 
 const DEV_MOCK_ACCOUNTS = Object.freeze([
   { email: 'admin@example.com', label: 'Entrar como Admin' },
@@ -22,16 +23,22 @@ const ENABLE_DEV_LOGIN_SHORTCUTS =
   String(import.meta.env.VITE_ENABLE_DEV_LOGIN_SHORTCUTS || '').toLowerCase() === 'true';
 
 function resolvePostLoginPath(user, nextPath = '') {
+  const normalizedNextPath = sanitizeNextPath(nextPath, '');
+  const isCheckoutNext = normalizedNextPath.startsWith('/checkout');
   const lifecycleStatus = deriveUserLifecycle(user || {});
   if (lifecycleStatus === USER_LIFECYCLE.SUPER_ADMIN) {
     return '/super-admin';
+  }
+
+  if (isCheckoutNext) {
+    return normalizedNextPath;
   }
 
   if (lifecycleStatus !== USER_LIFECYCLE.CUSTOMER_ACTIVE) {
     return `${createPageUrl('Pricing')}?unlock=1`;
   }
 
-  return nextPath || createPageUrl('Dashboard');
+  return normalizedNextPath || createPageUrl('Dashboard');
 }
 
 export default function Login() {
@@ -48,6 +55,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoadingProvider, setOauthLoadingProvider] = useState('');
   const [error, setError] = useState('');
 
   const nextPath = useMemo(
@@ -110,6 +118,39 @@ export default function Login() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider) => {
+    setError('');
+
+    if (!isSupabaseConfigured || !supabase) {
+      setError('Login social não configurado neste ambiente.');
+      return;
+    }
+
+    setOauthLoadingProvider(provider);
+
+    try {
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      if (nextPath) {
+        callbackUrl.searchParams.set('next', nextPath);
+      }
+      callbackUrl.searchParams.set('provider', provider);
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callbackUrl.toString(),
+        },
+      });
+
+      if (oauthError) {
+        throw oauthError;
+      }
+    } catch (oauthError) {
+      setOauthLoadingProvider('');
+      setError(oauthError?.message || 'Não foi possível iniciar login social.');
     }
   };
 
@@ -181,7 +222,7 @@ export default function Login() {
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold text-slate-900">Entrar</h1>
             <p className="text-slate-600 text-sm">
-              Acesse sua conta para usar os recursos premium e comprar créditos.
+              Entrar em 1 clique com Google ou Apple. E-mail e senha continuam disponíveis.
             </p>
           </div>
 
@@ -220,12 +261,43 @@ export default function Login() {
 
             <Button
               type="submit"
-              disabled={loading || !email.trim() || !password}
+              disabled={loading || Boolean(oauthLoadingProvider) || !email.trim() || !password}
               className="w-full bg-indigo-600 hover:bg-indigo-700"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
+
+          <div className="space-y-3">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                <span className="bg-white px-2 text-slate-500">entrar em 1 clique</span>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading || Boolean(oauthLoadingProvider)}
+                onClick={() => handleSocialLogin('google')}
+                className="h-11"
+              >
+                {oauthLoadingProvider === 'google' ? 'Conectando...' : 'Continuar com Google'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading || Boolean(oauthLoadingProvider)}
+                onClick={() => handleSocialLogin('apple')}
+                className="h-11"
+              >
+                {oauthLoadingProvider === 'apple' ? 'Conectando...' : 'Continuar com Apple'}
+              </Button>
+            </div>
+          </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <Link to={createPageUrl('Signup')} className="text-indigo-600 hover:text-indigo-700">

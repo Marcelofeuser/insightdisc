@@ -33,6 +33,7 @@ import { buildDiscInterpretation } from '@/modules/discEngine';
 import { buildDevelopmentPlan3090, DevelopmentPlanPanel } from '@/modules/developmentPlan';
 import { buildLeadershipInsights } from '@/modules/leadershipInsights';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports';
+import { markCheckoutPreviewSeen } from '@/modules/checkout/funnel';
 
 const RESULT_STATE = Object.freeze({
   LOADING: 'loading',
@@ -243,6 +244,17 @@ export default function AssessmentResult() {
     interpretation?.profileCode,
     loadState.status,
   ]);
+
+  useEffect(() => {
+    if (loadState.status !== RESULT_STATE.READY) return;
+    if (!identity?.id || !discSnapshot?.hasValidScores) return;
+
+    markCheckoutPreviewSeen({
+      source: 'assessment_result',
+      assessmentId: String(identity.id || '').trim(),
+      reportType: 'premium',
+    });
+  }, [discSnapshot?.hasValidScores, identity?.id, loadState.status]);
 
   const reportHref = identity.id ? buildAssessmentReportPath(identity.id) : '/MyAssessments';
   const compareHref = identity.id

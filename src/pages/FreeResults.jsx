@@ -21,6 +21,7 @@ import { calculateProfileCompatibility } from '@/modules/disc/compatibility';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { findCandidateReportByIdentifier, mapCandidateReports } from '@/modules/report/backendReports.js';
 import { buildAssessmentReportPath, ReportValueLadderCard } from '@/modules/reports';
+import { markCheckoutPreviewSeen } from '@/modules/checkout/funnel';
 
 const RELATION_LABELS = Object.freeze({
   friend: 'amigo',
@@ -184,6 +185,16 @@ export default function FreeResults() {
     };
     run();
   }, [loadAssessment]);
+
+  useEffect(() => {
+    if (!assessment?.results) return;
+
+    markCheckoutPreviewSeen({
+      source: 'free_results',
+      assessmentId: String(assessment?.id || requestedAssessmentId || '').trim(),
+      reportType: 'preview',
+    });
+  }, [assessment?.id, assessment?.results, requestedAssessmentId]);
 
   if (isLoading) {
     return (

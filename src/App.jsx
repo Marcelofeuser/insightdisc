@@ -26,7 +26,9 @@ import SuperAdminRoute from '@/modules/auth/SuperAdminRoute';
 import ScrollToTopOnRouteChange from '@/components/ScrollToTopOnRouteChange';
 import GiftLanding from '@/pages/GiftLanding';
 import Checkout from '@/pages/Checkout';
+import AuthCallback from '@/pages/AuthCallback';
 import CheckoutPlanPage from '@/pages/CheckoutPlanPage';
+import CheckoutCancel from '@/pages/CheckoutCancel';
 import DossieComportamentalLandingPage from '@/pages/DossieComportamental';
 import PersonalLandingPage from '@/pages/PersonalLanding';
 import ProfissionalLandingPage from '@/pages/ProfissionalLanding';
@@ -188,12 +190,47 @@ const AuthenticatedApp = () => {
       <Route
         path="/checkout"
         element={
-          <LayoutWrapper currentPageName="Checkout">
-            <Checkout />
+          <ProtectedRoute pageName="Checkout">
+            <LayoutWrapper currentPageName="Checkout">
+              <Checkout />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkout/success"
+        element={
+          <LayoutWrapper currentPageName="CheckoutSuccess">
+            <Pages.CheckoutSuccess />
           </LayoutWrapper>
         }
       />
-      <Route path="/checkout/:planSlug" element={<CheckoutPlanPage />} />
+      <Route
+        path="/checkout/cancel"
+        element={
+          <LayoutWrapper currentPageName="CheckoutCancel">
+            <CheckoutCancel />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/auth/callback"
+        element={
+          <LayoutWrapper currentPageName="AuthCallback">
+            <AuthCallback />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/checkout/:planSlug"
+        element={
+          <ProtectedRoute pageName="CheckoutPlan" policy={getPagePolicy('CheckoutPlan')}>
+            <LayoutWrapper currentPageName="CheckoutPlan">
+              <CheckoutPlanPage />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/empresa"
         element={

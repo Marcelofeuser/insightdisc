@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { PRODUCTS, formatPriceBRL, getProductById } from '@/config/pricing';
-import { apiRequest } from '@/lib/apiClient';
+import { apiRequest, getApiToken } from '@/lib/apiClient';
 import { createPageUrl } from '@/utils';
+import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
+import { useAuth } from '@/lib/AuthContext';
+import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
+import { trackEvent } from '@/lib/analytics';
 
 const SIMPLE_PACKAGES = Object.freeze([
   {
@@ -91,6 +95,9 @@ function buildLegacyProductView(rawProductKey = '') {
 
 export default function Checkout() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { access } = useAuth();
   const [searchParams] = useSearchParams();
   const [loadingPackage, setLoadingPackage] = useState('');
 
@@ -101,10 +108,46 @@ export default function Checkout() {
     return buildLegacyProductView(rawProductKey);
   }, [rawProductKey]);
 
+  const redirectToLogin = () => {
+    const loginRedirectUrl = buildLoginRedirectUrl({
+      pathname: location.pathname,
+      search: location.search || '',
+    });
+    navigate(loginRedirectUrl);
+  };
+
+  const enforcePreviewGate = ({ allowBypass = false } = {}) => {
+    if (!requiresCheckoutPreview(access)) return true;
+    if (allowBypass) return true;
+
+    const previewState = getCheckoutPreviewState();
+    if (previewState.hasPreview) return true;
+
+    toast({
+      title: 'Veja o preview antes do pagamento',
+      description: 'Para liberar o checkout, primeiro conclua a etapa de preview do relatório.',
+      variant: 'destructive',
+    });
+    navigate('/StartFree');
+    return false;
+  };
+
   const startSimpleCheckout = async (checkoutPackage) => {
     if (!checkoutPackage?.id) return;
+    if (!enforcePreviewGate()) return;
+
+    if (!getApiToken()) {
+      redirectToLogin();
+      return;
+    }
 
     setLoadingPackage(checkoutPackage.id);
+    trackEvent('checkout_started', {
+      flow: 'simple_credits',
+      product: checkoutPackage.id,
+      credits: checkoutPackage.credits,
+      path: location.pathname,
+    });
 
     try {
       const payload = await apiRequest('/api/checkout/create', {
@@ -126,8 +169,12 @@ export default function Checkout() {
     } catch (error) {
       const fallbackMessage =
         error?.message === 'API_AUTH_MISSING'
-          ? 'Faça login para iniciar a compra de créditos.'
+          ? 'Redirecionando para login...'
           : error?.message || 'Falha ao iniciar checkout.';
+
+      if (error?.message === 'API_AUTH_MISSING') {
+        redirectToLogin();
+      }
 
       toast({
         title: 'Checkout indisponível',
@@ -150,15 +197,15 @@ export default function Checkout() {
       return;
     }
 
-    // Detecta fluxo público/candidato para report-unlock
-    const isCandidateFlow = searchParams.get('flow') === 'candidate';
     const isReportUnlock = payload.product === 'report-unlock';
-    const hasPublicContext = Boolean(payload.assessmentId && payload.token);
+    const hasCheckoutContext = Boolean(payload.assessmentId && payload.token);
+    const bypassPreviewGate = isReportUnlock && hasCheckoutContext;
 
-    // Se for fluxo público/candidato de report-unlock com contexto válido, não exige auth
-    const requireAuth = !(isCandidateFlow && isReportUnlock && hasPublicContext);
+    if (!enforcePreviewGate({ allowBypass: bypassPreviewGate })) {
+      return;
+    }
 
-    if (isCandidateFlow && isReportUnlock && !hasPublicContext) {
+    if (isReportUnlock && !hasCheckoutContext) {
       toast({
         title: 'Contexto insuficiente',
         description: 'Não foi possível identificar a avaliação para liberar o relatório. Solicite um novo link.',
@@ -167,11 +214,21 @@ export default function Checkout() {
       return;
     }
 
+    if (!getApiToken()) {
+      redirectToLogin();
+      return;
+    }
+
     setLoadingPackage(`legacy-${payload.product}`);
+    trackEvent('checkout_started', {
+      flow: payload.flow || 'legacy',
+      product: payload.product,
+      path: location.pathname,
+    });
     try {
       const response = await apiRequest('/payments/create-checkout', {
         method: 'POST',
-        requireAuth,
+        requireAuth: true,
         body: payload,
       });
 
@@ -183,8 +240,9 @@ export default function Checkout() {
       window.location.href = checkoutUrl;
     } catch (error) {
       let fallbackMessage = error?.message || 'Falha ao iniciar checkout para este produto.';
-      if (!requireAuth && error?.message === 'API_AUTH_MISSING') {
-        fallbackMessage = 'Não foi possível iniciar o checkout público. Tente novamente ou solicite suporte.';
+      if (error?.message === 'API_AUTH_MISSING') {
+        fallbackMessage = 'Redirecionando para login...';
+        redirectToLogin();
       }
       toast({
         title: 'Falha no checkout',
@@ -248,7 +306,7 @@ export default function Checkout() {
                 </p>
               </div>
               <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                Stripe/MercadoPago (fase inicial Stripe)
+                Stripe Checkout + Pix
               </Badge>
             </div>
 

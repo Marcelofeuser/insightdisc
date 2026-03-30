@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
+import { apiRequest } from '@/lib/apiClient';
 import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
+import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
+import { useAuth } from '@/lib/AuthContext';
+import {
+  getCheckoutPreviewState,
+  requiresCheckoutPreview,
+} from '@/modules/checkout/funnel';
 import '../styles/landing.css';
 
 const PAYMENT_OPTIONS = Object.freeze([
@@ -19,9 +26,9 @@ const PAYMENT_OPTIONS = Object.freeze([
 ]);
 
 const TRUST_ITEMS = Object.freeze([
-  'Checkout público fora do painel',
-  'Fluxo preparado para integração de gateway',
-  'Ativação simples após confirmação de pagamento',
+  'Checkout seguro com Stripe + Pix',
+  'Ativação automática somente via webhook confirmado',
+  'Pagamento vinculado à sua conta InsightDISC',
 ]);
 
 const PLAN_CONTEXT_NOTES = Object.freeze({
@@ -34,6 +41,25 @@ const PLAN_CONTEXT_NOTES = Object.freeze({
   diamond:
     'Herda integralmente o Business com uso ilimitado para operação em escala empresarial.',
 });
+
+const ORDER_BUMP_PRICE_LABEL = 'R$ 19';
+
+const PLAN_VALUE_COMPARISON = Object.freeze({
+  personal: 'Mais profundidade e histórico contínuo versus o DISC avulso.',
+  profissional: 'Inclui dossiê, comparador e operação recorrente acima do Personal.',
+  business: 'Adiciona Team Map e visão estratégica de equipe acima do Profissional.',
+  diamond: 'Escala ilimitada e operação enterprise acima do Business.',
+});
+
+function resolveBillingPlanId(planKey = '') {
+  const normalized = String(planKey || '').trim().toLowerCase();
+  if (normalized === 'profissional') return 'professional';
+  if (normalized === 'business') return 'business';
+  if (normalized === 'personal') return 'personal';
+  if (normalized === 'disc') return 'disc';
+  if (normalized === 'diamond') return 'business';
+  return normalized;
+}
 
 function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaContents) {
   let tag = document.head.querySelector(selector);
@@ -58,15 +84,34 @@ function upsertMetaTag(selector, attrs, content, createdMetas, previousMetaConte
 
 export default function CheckoutPlanPage() {
   const rootRef = useRef(null);
+  const navigate = useNavigate();
   const location = useLocation();
   const { planSlug } = useParams();
+  const { access } = useAuth();
   const plan = resolveCheckoutPlan(planSlug);
+  const startTrackRef = useRef('');
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('pix');
+  const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [previewState, setPreviewState] = useState(() => getCheckoutPreviewState());
+
+  const previewRequired = requiresCheckoutPreview(access);
+  const canProceedToPayment = !previewRequired || previewState.hasPreview;
+  const planComparisonText = useMemo(() => PLAN_VALUE_COMPARISON[plan?.key] || '', [plan?.key]);
+
+  useEffect(() => {
+    const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
+    window.addEventListener('focus', refreshPreviewState);
+    window.addEventListener('visibilitychange', refreshPreviewState);
+    return () => {
+      window.removeEventListener('focus', refreshPreviewState);
+      window.removeEventListener('visibilitychange', refreshPreviewState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!plan) return undefined;
@@ -76,6 +121,26 @@ export default function CheckoutPlanPage() {
     });
     return undefined;
   }, [location.pathname, plan]);
+
+  useEffect(() => {
+    if (!plan) return;
+
+    const trackKey = [
+      plan.key,
+      previewRequired ? 'preview-required' : 'preview-not-required',
+      canProceedToPayment ? 'preview-ok' : 'preview-missing',
+    ].join(':');
+
+    if (startTrackRef.current === trackKey) return;
+    startTrackRef.current = trackKey;
+
+    trackEvent('checkout_started', {
+      planKey: plan.key,
+      path: location.pathname,
+      previewRequired,
+      previewReady: canProceedToPayment,
+    });
+  }, [canProceedToPayment, location.pathname, plan, previewRequired]);
 
   useEffect(() => {
     if (!plan) return undefined;
@@ -164,20 +229,73 @@ export default function CheckoutPlanPage() {
     });
   };
 
-  const handleFinalizePayment = () => {
+  const handleToggleOrderBump = () => {
+    setOrderBumpEnabled((prev) => {
+      const nextValue = !prev;
+      if (nextValue) {
+        trackEvent('order_bump_added', {
+          planKey: plan?.key,
+          bumpType: 'advanced_analysis',
+          amount: 19,
+          currency: 'BRL',
+          path: location.pathname,
+        });
+      }
+      return nextValue;
+    });
+  };
+
+  const handleFinalizePayment = async () => {
+    if (!canProceedToPayment) {
+      setFeedback('Antes de pagar, veja um preview do relatório para liberar o checkout.');
+      return;
+    }
+
     setIsSubmitting(true);
     setFeedback('');
 
     trackEvent('checkout_public_finalize_click', {
       planKey: plan.key,
       paymentMethod: selectedMethod,
+      orderBumpEnabled,
       path: location.pathname,
     });
 
-    window.setTimeout(() => {
+    try {
+      const planId = resolveBillingPlanId(plan.key);
+      const mode = planId === 'professional' || planId === 'business' ? 'subscription' : 'payment';
+
+      const response = await apiRequest('/billing/create-checkout-session', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          planId,
+          mode,
+          orderBumpAdvancedAnalysis: orderBumpEnabled,
+        },
+      });
+
+      const checkoutUrl = String(response?.checkoutUrl || response?.url || '').trim();
+      if (!checkoutUrl) {
+        throw new Error('CHECKOUT_URL_NOT_FOUND');
+      }
+
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      if (error?.message === 'API_AUTH_MISSING') {
+        const loginRedirectUrl = buildLoginRedirectUrl({
+          pathname: location.pathname,
+          search: location.search || '',
+        });
+        navigate(loginRedirectUrl);
+        return;
+      }
+
+      const message = error?.message || 'Não foi possível iniciar o checkout agora.';
+      setFeedback(message);
+    } finally {
       setIsSubmitting(false);
-      setFeedback('Checkout público pronto no frontend. Integração de pagamento real será conectada na próxima etapa.');
-    }, 700);
+    }
   };
 
   return (
@@ -269,6 +387,11 @@ export default function CheckoutPlanPage() {
               <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-5" style={{ animationDelay: '.1s' }}>
                 Finalizar <span className="headline-accent">{plan.name}</span>
               </h1>
+              {plan.highlight ? (
+                <div className="fade-up inline-flex items-center rounded-full border border-amber-300/40 bg-amber-400/10 px-3 py-1 mb-4 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200" style={{ animationDelay: '.18s' }}>
+                  {plan.highlight}
+                </div>
+              ) : null}
               <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed mb-4" style={{ animationDelay: '.2s' }}>
                 {plan.description}
               </p>
@@ -285,6 +408,22 @@ export default function CheckoutPlanPage() {
             <article className="scroll-reveal dossie-card glass-card rounded-3xl p-7 md:p-8">
               <p className="text-xs uppercase tracking-[0.16em] text-blue-300 mb-3">Forma de pagamento</p>
               <h2 className="text-2xl md:text-3xl font-extrabold mb-6">Escolha Pix ou Cartão</h2>
+              {!canProceedToPayment ? (
+                <div className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 mb-6">
+                  <p className="text-sm text-amber-100 font-semibold mb-2">Etapa obrigatória antes do pagamento</p>
+                  <p className="text-sm text-slate-200">
+                    Para manter o checkout orientado a valor, veja primeiro um preview do relatório comportamental.
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <Link to={previewState.assessmentId ? `/assessment/${encodeURIComponent(previewState.assessmentId)}/result` : '/StartFree'} className="btn-primary px-4 py-2 rounded-xl text-sm font-semibold">
+                      Ver preview agora
+                    </Link>
+                    <Link to="/avaliacoes" className="btn-secondary glass-card border border-white/10 px-4 py-2 rounded-xl text-sm font-semibold">
+                      Ir para avaliações
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
               <div className="grid sm:grid-cols-2 gap-4 mb-7">
                 {PAYMENT_OPTIONS.map((method) => {
                   const isActive = selectedMethod === method.key;
@@ -322,13 +461,31 @@ export default function CheckoutPlanPage() {
                 </ul>
               </div>
 
+              <label className="flex items-start gap-3 rounded-2xl border border-violet-300/35 bg-violet-500/10 p-4 mb-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+                  checked={orderBumpEnabled}
+                  onChange={handleToggleOrderBump}
+                  disabled={isSubmitting}
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-violet-100">
+                    Adicionar análise avançada por {ORDER_BUMP_PRICE_LABEL}
+                  </span>
+                  <span className="block text-sm text-slate-300 mt-1">
+                    Inclui leitura estratégica extra para liderança, comunicação e decisões críticas.
+                  </span>
+                </span>
+              </label>
+
               <button
                 type="button"
                 onClick={handleFinalizePayment}
                 className="btn-primary w-full px-6 py-4 rounded-2xl font-bold text-lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !canProceedToPayment}
               >
-                {isSubmitting ? 'Processando...' : 'Finalizar pagamento'}
+                {isSubmitting ? 'Processando...' : canProceedToPayment ? 'Finalizar pagamento' : 'Veja o preview para liberar'}
               </button>
               {feedback ? <p className="text-sm text-blue-200 mt-3">{feedback}</p> : null}
             </article>
@@ -343,6 +500,11 @@ export default function CheckoutPlanPage() {
                   <p className="text-slate-400">{plan.billingLabel}</p>
                   {PLAN_CONTEXT_NOTES[plan.key] ? (
                     <p className="mt-3 text-sm text-slate-300 leading-relaxed">{PLAN_CONTEXT_NOTES[plan.key]}</p>
+                  ) : null}
+                  {planComparisonText ? (
+                    <p className="mt-3 text-sm text-emerald-200 leading-relaxed">
+                      {planComparisonText}
+                    </p>
                   ) : null}
                 </div>
               </article>

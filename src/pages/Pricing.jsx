@@ -17,6 +17,8 @@ import { PRODUCTS, formatPriceBRL } from '@/config/pricing';
 import { createPageUrl } from '@/utils';
 import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
+import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
 
 const SALES_WHATSAPP_URL =
   'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
@@ -374,6 +376,26 @@ export default function Pricing() {
     if (!product) {
       setCheckoutError('Produto inválido para checkout.');
       return;
+    }
+
+    if (!authUser?.id) {
+      const nextUrl = buildCheckoutUrl(product, payload);
+      const loginRedirectUrl = buildLoginRedirectUrl({
+        pathname: nextUrl,
+        search: '',
+      });
+      navigate(loginRedirectUrl);
+      return;
+    }
+
+    const shouldGateByPreview = requiresCheckoutPreview(access) && !isCandidateUnlock;
+    if (shouldGateByPreview) {
+      const previewState = getCheckoutPreviewState();
+      if (!previewState.hasPreview) {
+        setCheckoutError('Antes do checkout, veja um preview do relatório para liberar a compra.');
+        navigate('/StartFree');
+        return;
+      }
     }
 
     setCheckoutLoading(checkoutKey || product);

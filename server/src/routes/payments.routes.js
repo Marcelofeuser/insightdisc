@@ -1,28 +1,16 @@
 import { Router } from 'express';
-import Stripe from 'stripe';
 import { z } from 'zod';
 import { env } from '../config/env.js';
-import { PRODUCTS, getProductById, resolveProductId as resolveCatalogProductId } from '../config/pricing.js';
+import { PRODUCTS } from '../config/pricing.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachUser } from '../middleware/rbac.js';
 import { prisma } from '../lib/prisma.js';
-import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
+import {
+  createBillingCheckoutSession,
+  getCheckoutSessionStatusForUser,
+} from '../modules/billing/stripe-billing.service.js';
 
 const router = Router();
-
-function appendQuery(urlValue, params = {}) {
-  const url = new URL(urlValue);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, String(value));
-    }
-  });
-  return url.toString();
-}
-
-function getStripeClient() {
-  if (!env.stripeSecretKey) return null;
-  return new Stripe(env.stripeSecretKey, { apiVersion: '2024-12-18.acacia' });
-}
 
 function resolveProductIdFromPayload(productType, credits) {
   if (productType === 'single_assessment') return PRODUCTS.SINGLE_PRO.id;
@@ -38,136 +26,104 @@ function resolveProductIdFromPayload(productType, credits) {
   return '';
 }
 
-router.post('/create-checkout', requireAuth, async (req, res) => {
+function resolveStatusCodeByError(code = '') {
+  const normalized = String(code || '').trim().toUpperCase();
+  if (normalized === 'AUTH_REQUIRED') return 401;
+  if (normalized === 'FORBIDDEN') return 403;
+  if (
+    normalized === 'INVALID_CHECKOUT_PRODUCT'
+    || normalized === 'BILLING_PRICE_NOT_CONFIGURED'
+    || normalized === 'INVALID_PRICE_FOR_PRODUCT'
+    || normalized === 'CHECKOUT_SESSION_REQUIRED'
+  ) {
+    return 400;
+  }
+  if (normalized === 'STRIPE_NOT_CONFIGURED') return 503;
+  return 500;
+}
+
+function buildCheckoutInputFromLegacyPayload(input = {}) {
+  const resolvedProduct = String(
+    input.product
+    || resolveProductIdFromPayload(input.productType, input.credits)
+    || '',
+  ).trim();
+  const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
+
+  return {
+    planId: input.planId,
+    product: resolvedProduct,
+    productType: input.productType,
+    creditsPackageId: input.creditsPackageId || input.packageId,
+    packageId: input.packageId,
+    credits: input.credits,
+    mode: input.mode,
+    priceId: explicitPriceId || input.priceId,
+    flow: input.flow,
+    assessmentId: input.assessmentId,
+    token: input.token,
+    giftToken: input.giftToken,
+    successUrl: input.successUrl,
+    cancelUrl: input.cancelUrl,
+    workspaceId: input.workspaceId,
+    orderBumpAdvancedAnalysis: input.orderBumpAdvancedAnalysis,
+  };
+}
+
+router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
   try {
     const schema = z.object({
       assessmentId: z.string().optional(),
       token: z.string().optional(),
       flow: z.string().optional(),
+      planId: z.string().optional(),
       productType: z
         .enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription', 'report_unlock'])
         .optional(),
       product: z.string().trim().optional(),
       credits: z.number().int().positive().optional(),
       mode: z.enum(['payment', 'subscription']).optional(),
+      priceId: z.string().trim().optional(),
       priceEnvKey: z.string().trim().min(1).optional(),
+      creditsPackageId: z.string().trim().optional(),
+      packageId: z.string().trim().optional(),
+      workspaceId: z.string().trim().optional(),
+      orderBumpAdvancedAnalysis: z.boolean().optional(),
       giftToken: z.string().optional(),
       successUrl: z.string().url().optional(),
       cancelUrl: z.string().url().optional(),
     });
 
     const input = schema.parse(req.body || {});
-    const resolvedProductId = resolveCatalogProductId(
-      input.product || resolveProductIdFromPayload(input.productType, input.credits)
-    );
-    const resolvedProduct = getProductById(resolvedProductId);
-    const hasSuperAdminBypass = isSuperAdminUser({
-      role: req.auth?.role,
-      globalRole: req.auth?.globalRole,
-      global_role: req.auth?.global_role,
-    });
+    const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
 
-    const resolvedMode =
-      input.mode
-      || (input.productType === 'business_subscription' || resolvedProductId === PRODUCTS.BUSINESS_MONTHLY.id
-        ? 'subscription'
-        : 'payment');
-
-    const resolvedCredits = Number(
-      input.credits
-      || resolvedProduct?.credits
-      || (input.productType === 'business_subscription' || resolvedProductId === PRODUCTS.BUSINESS_MONTHLY.id ? 5 : 1)
-    );
-    const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
-    const resolvedPriceId = explicitPriceId || env.stripePriceCredits;
-    const resolvedSuccessUrl = appendQuery(
-      input.successUrl || `${env.appUrl}/CheckoutSuccess?session_id={CHECKOUT_SESSION_ID}`,
-      {
-        assessmentId: input.assessmentId || '',
-        token: input.token || '',
-        flow: input.flow || '',
-        giftToken: input.giftToken || '',
-      }
-    );
-    if (hasSuperAdminBypass) {
-      const mockSessionId = `superadmin_${Date.now()}`;
-      const url = appendQuery(`${env.appUrl}/CheckoutSuccess?session_id=${mockSessionId}`, {
-        assessmentId: input.assessmentId || '',
-        token: input.token || '',
-        flow: input.flow || '',
-        giftToken: input.giftToken || '',
-        credits: 0,
-        superAdminBypass: 1,
-      });
-      return res.status(200).json({
-        ok: true,
-        mocked: true,
-        bypassed: true,
-        id: mockSessionId,
-        url,
-        product: resolvedProductId || '',
-        amount: 0,
-        currency: resolvedProduct?.currency || 'BRL',
-      });
-    }
-
-    const stripe = getStripeClient();
-    if (!stripe || !resolvedPriceId) {
-      const mockSessionId = `mock_${Date.now()}`;
-      const url = appendQuery(`${env.appUrl}/CheckoutSuccess?session_id=${mockSessionId}`, {
-        assessmentId: input.assessmentId || '',
-        token: input.token || '',
-        flow: input.flow || '',
-        giftToken: input.giftToken || '',
-        credits: resolvedCredits,
-      });
-      return res.status(200).json({
-        ok: true,
-        mocked: true,
-        id: mockSessionId,
-        url,
-        product: resolvedProductId || '',
-        amount: Number(resolvedProduct?.price || 0),
-        currency: resolvedProduct?.currency || 'BRL',
-      });
-    }
-
-    if (resolvedMode === 'subscription' && !explicitPriceId) {
-      return res.status(400).json({
-        ok: false,
-        error: 'BUSINESS_PRICE_NOT_CONFIGURED',
-        message: 'Preço da assinatura Business não configurado no backend.',
-      });
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: resolvedMode,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: resolvedPriceId,
-          quantity: explicitPriceId ? 1 : resolvedCredits,
-        },
-      ],
-      success_url: resolvedSuccessUrl,
-      cancel_url: input.cancelUrl || `${env.appUrl}/Pricing`,
-      metadata: {
-        userId: req.auth.userId,
-        assessmentId: input.assessmentId || '',
-        token: input.token || '',
-        flow: input.flow || '',
-        giftToken: input.giftToken || '',
-        productType: input.productType || '',
-        product: resolvedProductId || '',
-        productName: resolvedProduct?.name || '',
-        priceEnvKey: input.priceEnvKey || '',
-        credits: String(resolvedCredits),
+    const payload = await createBillingCheckoutSession({
+      userId: req.auth?.userId,
+      user: req.user,
+      input: {
+        ...checkoutInput,
+        flow: input.flow,
       },
     });
 
-    return res.status(200).json({ ok: true, id: session.id, url: session.url });
+    return res.status(200).json({
+      ok: true,
+      id: payload.sessionId,
+      sessionId: payload.sessionId,
+      url: payload.checkoutUrl,
+      checkoutUrl: payload.checkoutUrl,
+      provider: payload.provider,
+      mode: payload.mode,
+      item: payload.item,
+      paymentMethods: payload.paymentMethods,
+    });
   } catch (error) {
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao criar checkout.' });
+    const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_CREATE_FAILED').toUpperCase();
+    return res.status(resolveStatusCodeByError(code)).json({
+      ok: false,
+      error: code,
+      message: error?.message || 'Falha ao criar checkout Stripe.',
+    });
   }
 });
 
@@ -177,104 +133,92 @@ router.post('/confirm', requireAuth, async (req, res) => {
       sessionId: z.string().min(1),
       credits: z.number().int().positive().optional(),
     });
+
     const input = schema.parse(req.body || {});
-    const hasSuperAdminBypass = isSuperAdminUser({
-      role: req.auth?.role,
-      globalRole: req.auth?.globalRole,
-      global_role: req.auth?.global_role,
-    });
+    const isLegacyMockAllowed =
+      env.nodeEnv !== 'production'
+      && String(input.sessionId || '').startsWith('mock_');
 
-    if (hasSuperAdminBypass) {
+    if (isLegacyMockAllowed) {
+      const creditsAdded = Number(input.credits || 1);
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.payment.upsert({
+          where: { stripeSession: input.sessionId },
+          create: {
+            userId: req.auth.userId,
+            creditsAdded,
+            amount: 0,
+            stripeSession: input.sessionId,
+            status: 'PAID',
+            productId: 'mock',
+            mode: 'payment',
+            currency: 'BRL',
+          },
+          update: {
+            userId: req.auth.userId,
+            creditsAdded,
+            status: 'PAID',
+          },
+        });
+
+        const credit = await tx.credit.upsert({
+          where: { userId: req.auth.userId },
+          create: { userId: req.auth.userId, balance: creditsAdded },
+          update: { balance: { increment: creditsAdded } },
+        });
+
+        return {
+          creditsAdded,
+          balance: Number(credit?.balance || 0),
+        };
+      });
+
       return res.status(200).json({
         ok: true,
-        bypassed: true,
-        creditsAdded: 0,
-        balance: 999999,
+        mocked: true,
+        creditsAdded: result.creditsAdded,
+        balance: result.balance,
       });
     }
 
-    const existingPayment = await prisma.payment.findUnique({
-      where: { stripeSession: input.sessionId },
+    const status = await getCheckoutSessionStatusForUser({
+      sessionId: input.sessionId,
+      userId: req.auth.userId,
     });
 
-    if (existingPayment && existingPayment.userId !== req.auth.userId) {
-      return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
-    }
-
-    if (existingPayment?.status === 'PAID') {
-      const currentCredit = await prisma.credit.findUnique({ where: { userId: req.auth.userId } });
+    if (status.status === 'paid') {
       return res.status(200).json({
         ok: true,
-        alreadyProcessed: true,
-        creditsAdded: existingPayment.creditsAdded,
-        balance: Number(currentCredit?.balance || 0),
+        creditsAdded: Number(status.creditsAdded || 0),
+        balance: Number(status.balance || 0),
+        plan: status.plan,
+        paymentStatus: status.paymentStatus,
       });
     }
 
-    const stripe = getStripeClient();
-    let creditsAdded = Number(input.credits || 0);
-    let amount = 0;
-    let paid = false;
-
-    if (stripe && !String(input.sessionId).startsWith('mock_')) {
-      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-      paid = session?.payment_status === 'paid';
-      creditsAdded = Number(session?.metadata?.credits || creditsAdded || 0);
-      amount = Number(session?.amount_total || 0);
-    } else {
-      paid = true;
-      creditsAdded = Number(input.credits || 1);
-    }
-
-    if (!paid) {
-      return res.status(400).json({ ok: false, error: 'PAYMENT_NOT_CONFIRMED' });
-    }
-
-    if (!creditsAdded || creditsAdded < 1) {
-      return res.status(400).json({ ok: false, error: 'INVALID_CREDITS_AMOUNT' });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      await tx.payment.upsert({
-        where: { stripeSession: input.sessionId },
-        create: {
-          userId: req.auth.userId,
-          creditsAdded,
-          amount,
-          stripeSession: input.sessionId,
-          status: 'PAID',
-        },
-        update: {
-          userId: req.auth.userId,
-          creditsAdded,
-          amount,
-          status: 'PAID',
-        },
+    if (status.status === 'pending') {
+      return res.status(409).json({
+        ok: false,
+        error: 'PAYMENT_PENDING_WEBHOOK',
+        message: 'Pagamento em processamento. Aguarde a confirmação do webhook Stripe.',
       });
+    }
 
-      const credit = await tx.credit.upsert({
-        where: { userId: req.auth.userId },
-        create: { userId: req.auth.userId, balance: creditsAdded },
-        update: { balance: { increment: creditsAdded } },
-      });
-
-      return {
-        creditsAdded,
-        balance: Number(credit?.balance || 0),
-      };
-    });
-
-    return res.status(200).json({
-      ok: true,
-      creditsAdded: result.creditsAdded,
-      balance: result.balance,
+    return res.status(400).json({
+      ok: false,
+      error: 'PAYMENT_NOT_CONFIRMED',
+      message: 'Pagamento não confirmado.',
     });
   } catch (error) {
-    const message = String(error?.message || '').toUpperCase();
-    if (message.includes('FORBIDDEN')) {
+    const code = String(error?.code || error?.message || 'PAYMENTS_CONFIRM_FAILED').toUpperCase();
+    if (code.includes('FORBIDDEN')) {
       return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
-    return res.status(400).json({ ok: false, error: error?.message || 'Falha ao confirmar pagamento.' });
+    return res.status(resolveStatusCodeByError(code)).json({
+      ok: false,
+      error: code,
+      message: error?.message || 'Falha ao confirmar pagamento.',
+    });
   }
 });
 

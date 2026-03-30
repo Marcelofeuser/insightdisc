@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,15 @@ import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import { buildAssessmentReportPath } from '@/modules/reports';
+import { trackEvent } from '@/lib/analytics';
+import {
+  hasCheckoutUpsellBeenDismissed,
+  hasCheckoutUpsellBeenSeen,
+  markCheckoutUpsellConverted,
+  markCheckoutUpsellDismissed,
+  markCheckoutUpsellSeen,
+  resolveCheckoutUpsellOffer,
+} from '@/modules/checkout/funnel';
 import {
   buildGiftLink,
   markGiftOrderPaid,
@@ -33,9 +42,48 @@ function normalizeReportType(value = '', fallback = '') {
   return fallback ? normalizeReportType(fallback) : '';
 }
 
+const CHECKOUT_ITEM_LABELS = Object.freeze({
+  personal: 'Plano Personal',
+  professional: 'Plano Profissional',
+  business: 'Plano Business',
+  disc: 'DISC Individual',
+  'business-monthly': 'Assinatura Business',
+  single: '1 Avaliação Professional',
+  gift: 'Gift DISC',
+  'pack-10': 'Pacote 10 avaliações',
+  'pack-50': 'Pacote 50 avaliações',
+  'pack-100': 'Pacote 100 avaliações',
+  'report-unlock': 'Desbloqueio de relatório',
+});
+
+function resolveCheckoutItemLabel(searchParams) {
+  const rawKey = String(
+    searchParams.get('planId')
+      || searchParams.get('product')
+      || searchParams.get('item')
+      || '',
+  )
+    .trim()
+    .toLowerCase();
+  if (!rawKey) return 'Compra InsightDISC';
+  return CHECKOUT_ITEM_LABELS[rawKey] || rawKey;
+}
+
+function resolveCheckoutItemKey(searchParams) {
+  return String(
+    searchParams.get('planId')
+      || searchParams.get('product')
+      || searchParams.get('item')
+      || '',
+  )
+    .trim()
+    .toLowerCase();
+}
+
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const { access: authAccess } = useAuth();
+  const checkoutCompletedTrackRef = useRef('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,11 +94,15 @@ export default function CheckoutSuccess() {
   const [availablePdfUrl, setAvailablePdfUrl] = useState(searchParams.get('pdfUrl') || '');
   const [confirmedCredits, setConfirmedCredits] = useState(0);
   const [balanceAfterCheckout, setBalanceAfterCheckout] = useState(0);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
 
   const [giftPayload, setGiftPayload] = useState(null);
   const [giftLink, setGiftLink] = useState('');
   const [giftFormError, setGiftFormError] = useState('');
   const [copiedGiftLink, setCopiedGiftLink] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
+  const [showDownsell, setShowDownsell] = useState(false);
   const [giftForm, setGiftForm] = useState({
     senderName: '',
     senderEmail: '',
@@ -68,6 +120,10 @@ export default function CheckoutSuccess() {
     searchParams.get('type') || searchParams.get('reportType') || '',
   );
   const isGiftFlow = flow === 'gift' || Boolean(queryGiftToken);
+  const checkoutItemKey = useMemo(() => resolveCheckoutItemKey(searchParams), [searchParams]);
+  const checkoutItemLabel = useMemo(() => resolveCheckoutItemLabel(searchParams), [searchParams]);
+  const upsellOffer = useMemo(() => resolveCheckoutUpsellOffer(checkoutItemKey), [checkoutItemKey]);
+  const sessionId = String(searchParams.get('session_id') || '').trim();
 
   const giftLandingUrl = useMemo(() => {
     if (!queryGiftToken) return '';
@@ -86,13 +142,14 @@ export default function CheckoutSuccess() {
       const fallbackAssessmentId = searchParams.get('assessmentId') || '';
       const fallbackToken = searchParams.get('token') || '';
       const fallbackFlow = searchParams.get('flow') || '';
-      const fallbackCredits = Number(searchParams.get('credits') || 0);
       const fallbackEmail = searchParams.get('email') || '';
       const fallbackName = searchParams.get('name') || '';
       const fallbackGiftToken = searchParams.get('giftToken') || '';
       const isGiftContext = fallbackFlow === 'gift' || Boolean(fallbackGiftToken);
       const isMock = String(sessionId).startsWith('mock_');
       const isDev = import.meta.env.DEV;
+      setPaymentConfirmed(false);
+      setProcessingMessage('');
 
       const isCandidateContext =
         Boolean(fallbackAssessmentId)
@@ -169,6 +226,7 @@ export default function CheckoutSuccess() {
       if ((isMock || isDev) && fallbackAssessmentId) {
         setAssessmentId(fallbackAssessmentId);
         setPublicToken('');
+        setPaymentConfirmed(true);
         try {
           await base44.entities.Assessment.update(fallbackAssessmentId, {
             report_unlocked: true,
@@ -194,28 +252,63 @@ export default function CheckoutSuccess() {
         return;
       }
 
-      if (apiBaseUrl && !isCandidateContext && getApiToken()) {
-        try {
-          const payload = await apiRequest('/payments/confirm', {
-            method: 'POST',
-            requireAuth: true,
-            body: {
-              sessionId,
-              credits: fallbackCredits || undefined,
-            },
-          });
-
-          setConfirmedCredits(Number(payload?.creditsAdded || 0));
-          setBalanceAfterCheckout(Number(payload?.balance || 0));
-          if (isGiftContext && fallbackGiftToken) {
-            markGiftOrderPaid(fallbackGiftToken, sessionId);
-          }
+      if (apiBaseUrl && !isCandidateContext) {
+        if (!getApiToken()) {
+          setPaymentConfirmed(false);
+          setProcessingMessage('Faça login para visualizar o status final do pagamento.');
           setError('');
           setIsLoading(false);
           return;
-        } catch (confirmError) {
-          console.warn('[CheckoutSuccess] backend confirm failed, using fallback verify', confirmError);
         }
+
+        try {
+          const payload = await apiRequest(`/billing/checkout-session/${encodeURIComponent(sessionId)}/status`, {
+            method: 'GET',
+            requireAuth: true,
+          });
+
+          const status = String(payload?.status || '').toLowerCase();
+
+          if (status === 'paid') {
+            setPaymentConfirmed(true);
+            setConfirmedCredits(Number(payload?.creditsAdded || 0));
+            setBalanceAfterCheckout(Number(payload?.balance || 0));
+            if (isGiftContext && fallbackGiftToken) {
+              markGiftOrderPaid(fallbackGiftToken, sessionId);
+            }
+            setError('');
+            setIsLoading(false);
+            return;
+          }
+
+          if (status === 'pending') {
+            setPaymentConfirmed(false);
+            setProcessingMessage(
+              'Pagamento em processamento. Assim que o Stripe confirmar, os créditos/plano serão liberados automaticamente.',
+            );
+            setError('');
+            setIsLoading(false);
+            return;
+          }
+
+          setPaymentConfirmed(false);
+          setError(payload?.message || 'Pagamento não confirmado.');
+          setIsLoading(false);
+          return;
+        } catch (statusError) {
+          setPaymentConfirmed(false);
+          setError(statusError?.message || 'Não foi possível consultar o status do pagamento.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (!isCandidateContext) {
+        setPaymentConfirmed(false);
+        setProcessingMessage('Pagamento em processamento. Recarregue esta página em instantes.');
+        setError('');
+        setIsLoading(false);
+        return;
       }
 
       try {
@@ -242,6 +335,7 @@ export default function CheckoutSuccess() {
         const resolvedAssessmentId = data.assessmentId || fallbackAssessmentId || '';
         setAssessmentId(resolvedAssessmentId);
         setPublicToken(data.publicToken || '');
+        setPaymentConfirmed(Boolean(data?.ok));
         setCandidateToken(data.token || fallbackToken || '');
         setFlow(
           data.flow
@@ -280,6 +374,7 @@ export default function CheckoutSuccess() {
             }
             setPublicToken('');
             setAssessmentId(fallbackAssessmentId);
+            setPaymentConfirmed(true);
             setCandidateToken(fallbackToken || '');
             setFlow(
               fallbackFlow
@@ -290,6 +385,7 @@ export default function CheckoutSuccess() {
           } catch {
             setAssessmentId(fallbackAssessmentId);
             setPublicToken('');
+            setPaymentConfirmed(true);
             setCandidateToken(fallbackToken || '');
             setFlow(
               fallbackFlow
@@ -398,6 +494,82 @@ export default function CheckoutSuccess() {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  useEffect(() => {
+    if (!paymentConfirmed) return;
+
+    const trackKey = `${sessionId || 'no_session'}:${checkoutItemKey || 'unknown'}`;
+    if (checkoutCompletedTrackRef.current === trackKey) return;
+    checkoutCompletedTrackRef.current = trackKey;
+
+    trackEvent('checkout_completed', {
+      sessionId,
+      item: checkoutItemKey || checkoutItemLabel,
+      flow: isGiftFlow ? 'gift' : 'default',
+    });
+  }, [checkoutItemKey, checkoutItemLabel, isGiftFlow, paymentConfirmed, sessionId]);
+
+  useEffect(() => {
+    if (!paymentConfirmed || isGiftFlow || !upsellOffer?.key) {
+      setShowUpsell(false);
+      setShowDownsell(false);
+      return;
+    }
+
+    const alreadySeen = hasCheckoutUpsellBeenSeen(upsellOffer.key);
+    const alreadyDismissed = hasCheckoutUpsellBeenDismissed(upsellOffer.key);
+    if (alreadySeen || alreadyDismissed) {
+      setShowUpsell(false);
+      return;
+    }
+
+    markCheckoutUpsellSeen(upsellOffer.key);
+    trackEvent('upsell_viewed', {
+      offerKey: upsellOffer.key,
+      sourceItem: checkoutItemKey,
+      sessionId,
+    });
+    setShowUpsell(true);
+    setShowDownsell(false);
+  }, [checkoutItemKey, isGiftFlow, paymentConfirmed, sessionId, upsellOffer]);
+
+  const handleUpsellAccept = () => {
+    if (!upsellOffer?.key) return;
+    markCheckoutUpsellConverted(upsellOffer.key);
+    trackEvent('upsell_converted', {
+      offerKey: upsellOffer.key,
+      sourceItem: checkoutItemKey,
+      sessionId,
+    });
+    window.location.assign(upsellOffer.ctaPath);
+  };
+
+  const handleUpsellDismiss = () => {
+    if (!upsellOffer?.key) return;
+    markCheckoutUpsellDismissed(upsellOffer.key);
+    setShowUpsell(false);
+
+    if (upsellOffer.downsell?.key && !hasCheckoutUpsellBeenDismissed(upsellOffer.downsell.key)) {
+      setShowDownsell(true);
+    }
+  };
+
+  const handleDownsellAccept = () => {
+    if (!upsellOffer?.downsell?.key) return;
+    markCheckoutUpsellConverted(upsellOffer.downsell.key);
+    trackEvent('downsell_converted', {
+      offerKey: upsellOffer.downsell.key,
+      sourceItem: checkoutItemKey,
+      sessionId,
+    });
+    window.location.assign(upsellOffer.downsell.ctaPath);
+  };
+
+  const handleDownsellDismiss = () => {
+    if (!upsellOffer?.downsell?.key) return;
+    markCheckoutUpsellDismissed(upsellOffer.downsell.key);
+    setShowDownsell(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <Card className="w-full max-w-2xl">
@@ -417,6 +589,40 @@ export default function CheckoutSuccess() {
                 </Link>
               </div>
             </>
+          ) : !paymentConfirmed ? (
+            <>
+              <div className="flex items-center gap-2 text-amber-600">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="font-semibold">Pagamento em processamento</span>
+              </div>
+
+              <h1 className="text-2xl font-bold text-slate-900">Aguardando confirmação do Stripe</h1>
+
+              <p className="text-sm text-slate-600">
+                {processingMessage || 'Seu pagamento foi recebido e está em validação. Tente atualizar em alguns instantes.'}
+              </p>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-1">
+                <p>
+                  <strong>Plano/Produto:</strong> {checkoutItemLabel}
+                </p>
+                <p>
+                  <strong>Status:</strong> Em processamento
+                </p>
+                <p>
+                  Próximo passo: aguarde a confirmação do webhook. O acesso só é liberado no backend.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  Atualizar status
+                </Button>
+                <Link to={createPageUrl('Pricing')}>
+                  <Button>Voltar para preços</Button>
+                </Link>
+              </div>
+            </>
           ) : (
             <>
               <div className="flex items-center gap-2 text-emerald-600">
@@ -425,14 +631,31 @@ export default function CheckoutSuccess() {
               </div>
 
               <h1 className="text-2xl font-bold text-slate-900">
-                {isGiftFlow ? 'Presente DISC confirmado' : 'Relatório liberado'}
+                {isGiftFlow ? 'Presente DISC confirmado' : assessmentId ? 'Relatório liberado' : 'Acesso liberado'}
               </h1>
 
               <p className="text-sm text-slate-600">
                 {isGiftFlow
                   ? 'Agora personalize o presente e gere o link exclusivo para compartilhar.'
-                  : 'Seu acesso PRO foi liberado com sucesso.'}
+                  : assessmentId
+                    ? 'Seu acesso PRO foi liberado com sucesso.'
+                    : 'Pagamento confirmado e benefícios aplicados com sucesso.'}
               </p>
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 space-y-1">
+                <p>
+                  <strong>Obrigado pela sua compra.</strong>
+                </p>
+                <p>
+                  <strong>Plano/Produto:</strong> {checkoutItemLabel}
+                </p>
+                <p>
+                  <strong>Status:</strong> Confirmado
+                </p>
+                <p>
+                  Próximos passos: acesse seu painel, acompanhe avaliações e consulte os relatórios liberados.
+                </p>
+              </div>
 
               {confirmedCredits > 0 ? (
                 <p className="text-sm text-emerald-700">
@@ -529,10 +752,51 @@ export default function CheckoutSuccess() {
                 </>
               ) : (
                 <>
+                  {showUpsell && upsellOffer ? (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+                      <p className="text-xs uppercase tracking-[0.08em] font-semibold text-indigo-700">
+                        Oferta especial pós-compra
+                      </p>
+                      <h3 className="text-lg font-bold text-indigo-950">{upsellOffer.title}</h3>
+                      <p className="text-sm text-indigo-900">{upsellOffer.copy}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={handleUpsellAccept} className="bg-indigo-600 hover:bg-indigo-700">
+                          {upsellOffer.ctaLabel}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleUpsellDismiss}>
+                          Agora não
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {showDownsell && upsellOffer?.downsell ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+                      <p className="text-xs uppercase tracking-[0.08em] font-semibold text-amber-700">
+                        Oferta de recuperação
+                      </p>
+                      <h3 className="text-lg font-bold text-amber-950">{upsellOffer.downsell.title}</h3>
+                      <p className="text-sm text-amber-900">{upsellOffer.downsell.copy}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={handleDownsellAccept} className="bg-amber-600 hover:bg-amber-700">
+                          {upsellOffer.downsell.ctaLabel}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleDownsellDismiss}>
+                          Fechar oferta
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <p className="text-xs text-slate-500">Clique em um dos botões abaixo para continuar.</p>
                   <div className="flex flex-wrap gap-3">
                     <Link to={openReportHref}>
-                      <Button className="bg-indigo-600 hover:bg-indigo-700">Abrir relatório</Button>
+                      <Button className="bg-indigo-600 hover:bg-indigo-700">
+                        {assessmentId || candidateToken ? 'Abrir relatório' : 'Ir para painel'}
+                      </Button>
+                    </Link>
+                    <Link to={createPageUrl('MyAssessments')}>
+                      <Button variant="outline">Ver minhas avaliações</Button>
                     </Link>
                     {canOpenPdf ? (
                       <a href={availablePdfUrl} target="_blank" rel="noreferrer">
@@ -545,6 +809,9 @@ export default function CheckoutSuccess() {
                       </Link>
                     ) : null}
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Dúvidas? Fale com o suporte InsightDISC para acompanhamento do seu pós-compra.
+                  </p>
                 </>
               )}
             </>

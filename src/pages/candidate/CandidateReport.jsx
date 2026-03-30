@@ -13,6 +13,7 @@ import { PLANS, isPlanAtLeast, resolvePlanFromAccess } from '@/modules/billing';
 import { buildDiscReportModel } from '@/modules/disc/discReportBuilder';
 import { renderReportHtml } from '@/reports/renderers/renderReportHtml';
 import { createPageUrl } from '@/utils';
+import { markCheckoutPreviewSeen } from '@/modules/checkout/funnel';
 
 const CANDIDATE_JWT_KEY = 'candidate_jwt';
 
@@ -186,6 +187,27 @@ export default function CandidateReport() {
   const [claimPassword, setClaimPassword] = useState('');
   const [claimError, setClaimError] = useState('');
   const [claiming, setClaiming] = useState(false);
+
+  useEffect(() => {
+    if (loading || loadError || !assessment?.results) return;
+
+    markCheckoutPreviewSeen({
+      source: 'candidate_report',
+      assessmentId: String(assessment?.id || assessmentId || '').trim(),
+      reportType: normalizeReportType(
+        assessment?.report_type || assessment?.reportType || urlReportType || 'business',
+      ),
+    });
+  }, [
+    assessment?.id,
+    assessment?.reportType,
+    assessment?.report_type,
+    assessment?.results,
+    assessmentId,
+    loadError,
+    loading,
+    urlReportType,
+  ]);
 
   const resolvePdfUrl = (rawPdfUrl) => {
     const raw = String(rawPdfUrl || '').trim();
