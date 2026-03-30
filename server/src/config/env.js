@@ -9,15 +9,15 @@ const allowDevEmailAuth =
   String(process.env.ALLOW_DEV_EMAIL_AUTH || '')
     .trim()
     .toLowerCase() === 'true';
-const aiProvider = String(process.env.AI_PROVIDER || 'gemini')
+const aiProvider = String(process.env.AI_PROVIDER || 'groq')
   .trim()
   .toLowerCase();
 const groqApiKey = String(process.env.GROQ_API_KEY || '').trim();
-const groqModel = String(process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').trim();
-const aiFallback1 = String(process.env.AI_FALLBACK_1 || 'gemini')
+const groqModel = String(process.env.GROQ_MODEL || 'llama3-70b-8192').trim();
+const aiFallback1 = String(process.env.AI_FALLBACK_1 || '')
   .trim()
   .toLowerCase();
-const aiFallback2 = String(process.env.AI_FALLBACK_2 || 'deterministic_engine')
+const aiFallback2 = String(process.env.AI_FALLBACK_2 || '')
   .trim()
   .toLowerCase();
 const geminiApiKey = String(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();

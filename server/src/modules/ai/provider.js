@@ -1,6 +1,4 @@
 import { env } from '../../config/env.js';
-import { generateStructuredDiscInsights as generateStructuredDiscInsightsWithGemini } from './gemini-provider.js';
-import { generateGeminiCoachAnswer } from './gemini-provider.js';
 import { generateGroqDiscInsights as generateStructuredDiscInsightsWithGroq } from './groq-provider.js';
 import { generateGroqCoachAnswer } from './groq-provider.js';
 
@@ -12,14 +10,6 @@ const PROVIDERS = {
     },
     generateStructuredDiscInsights: generateStructuredDiscInsightsWithGroq,
     generateCoachAnswer: generateGroqCoachAnswer,
-  },
-  gemini: {
-    name: 'gemini',
-    getModel() {
-      return env.geminiModel;
-    },
-    generateStructuredDiscInsights: generateStructuredDiscInsightsWithGemini,
-    generateCoachAnswer: generateGeminiCoachAnswer,
   },
 };
 
@@ -37,7 +27,7 @@ export function resolveAiProvider(providerName = env.aiProvider) {
 }
 
 export function buildAiProviderChain(
-  providerNames = [env.aiProvider, env.aiFallback1, env.aiFallback2].filter(Boolean),
+  providerNames = [env.aiProvider].filter(Boolean),
 ) {
   const uniqueNames = [...new Set(providerNames.map((value) => String(value || '').trim().toLowerCase()))];
 

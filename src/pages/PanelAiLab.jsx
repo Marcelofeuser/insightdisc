@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { mapCandidateReports } from '@/modules/report/backendReports';
@@ -11,12 +10,11 @@ import {
 } from '@/modules/coach/reportContext';
 
 const ANALYSIS_TYPES = [
-  { value: 'arquetipos', label: 'Arquétipos do perfil' },
-  { value: 'risco_pressao', label: 'Risco sob pressão' },
-  { value: 'lideranca', label: 'Estilo de liderança' },
-  { value: 'comunicacao', label: 'Padrão de comunicação' },
-  { value: 'desenvolvimento', label: 'Plano de desenvolvimento' },
-  { value: 'vendas', label: 'Perfil de vendas' },
+  { value: 'leadership', label: 'Liderança' },
+  { value: 'communication', label: 'Comunicação' },
+  { value: 'risks', label: 'Riscos' },
+  { value: 'development', label: 'Desenvolvimento' },
+  { value: 'performance', label: 'Performance' },
 ];
 
 const PROFILE_COLORS = {
@@ -25,34 +23,6 @@ const PROFILE_COLORS = {
   S: { bg: '#10b981', text: '#fff' },
   C: { bg: '#8b5cf6', text: '#fff' },
 };
-
-const ARCHETYPE_BY_FACTOR = {
-  D: {
-    nome: 'O Conquistador',
-    descricao:
-      'Move decisões com assertividade, foco em resultado e alta iniciativa para destravar execução.',
-  },
-  I: {
-    nome: 'O Mobilizador',
-    descricao:
-      'Gera adesão por influência, comunicação expressiva e capacidade de engajar pessoas rapidamente.',
-  },
-  S: {
-    nome: 'O Guardião',
-    descricao:
-      'Sustenta estabilidade, confiança e continuidade operacional, preservando ritmo e cooperação.',
-  },
-  C: {
-    nome: 'O Analista',
-    descricao:
-      'Eleva qualidade por método, critério e precisão, reduzindo risco por análise estruturada.',
-  },
-};
-
-function toNumber(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
 
 function formatDate(value) {
   if (!value) return '-';
@@ -66,80 +36,57 @@ function normalizeList(value = [], maxItems = 8) {
   return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, maxItems);
 }
 
-function resolveTopFactors(scores = {}) {
-  return ['D', 'I', 'S', 'C']
-    .map((factor) => ({ factor, value: Math.max(0, toNumber(scores?.[factor], 0)) }))
-    .sort((left, right) => right.value - left.value);
-}
-
-function buildArchetypes(scores = {}) {
-  const topFactors = resolveTopFactors(scores).slice(0, 3);
-  return topFactors.map((item) => {
-    const preset = ARCHETYPE_BY_FACTOR[item.factor] || ARCHETYPE_BY_FACTOR.S;
-    const color = PROFILE_COLORS[item.factor]?.bg || '#10b981';
-    return {
-      nome: preset.nome,
-      descricao: preset.descricao,
-      intensidade: Math.max(1, Math.min(100, Math.round(item.value))),
-      cor: color,
-    };
-  });
-}
-
 function analysisDescription(type = '') {
-  if (type === 'arquetipos') {
-    return 'Identifica os arquétipos comportamentais dominantes no perfil e como eles se manifestam no contexto profissional.';
+  if (type === 'risks') {
+    return 'Antecipa gatilhos de estresse e riscos sob pressão para reduzir ruído de execução.';
   }
-  if (type === 'risco_pressao') {
-    return 'Antecipa gatilhos de estresse e estratégias de prevenção no contexto real.';
+  if (type === 'leadership') {
+    return 'Mapeia estilo de liderança, delegação, alinhamento e cobrança no contexto real do relatório.';
   }
-  if (type === 'lideranca') {
-    return 'Mapeia o estilo natural de liderança e como ele impacta decisões e execução.';
+  if (type === 'communication') {
+    return 'Analisa padrão de linguagem e como ajustar comunicação para gerar adesão com menos conflito.';
   }
-  if (type === 'comunicacao') {
-    return 'Analisa padrões de comunicação e como ajustar linguagem para maior adesão.';
-  }
-  if (type === 'desenvolvimento') {
+  if (type === 'development') {
     return 'Gera prioridades práticas de desenvolvimento comportamental orientadas por contexto.';
   }
-  if (type === 'vendas') {
-    return 'Consolida sinais de persuasão, ritmo comercial e pontos de melhoria em conversão.';
+  if (type === 'performance') {
+    return 'Consolida sinais de performance, disciplina de execução e pontos de melhoria para consistência de resultado.';
   }
   return 'Análise contextual aplicada ao relatório selecionado.';
 }
 
 function buildTypeSummary(type = '', content = {}) {
-  if (type === 'risco_pressao') {
+  if (type === 'risks') {
     return String(content?.pressureBehavior || content?.summary || '').trim();
   }
-  if (type === 'lideranca') {
+  if (type === 'leadership') {
     return String(content?.leadershipStyle || content?.summary || '').trim();
   }
-  if (type === 'comunicacao') {
+  if (type === 'communication') {
     return String(content?.communicationStyle || content?.summary || '').trim();
   }
-  if (type === 'desenvolvimento') {
+  if (type === 'development') {
     const items = normalizeList(content?.developmentRecommendations, 3);
     if (items.length) {
       return `Prioridades de desenvolvimento: ${items.join(' · ')}`;
     }
   }
-  if (type === 'vendas') {
-    const business = normalizeList(content?.businessRecommendations, 3);
-    if (business.length) {
-      return `Foco comercial sugerido: ${business.join(' · ')}`;
+  if (type === 'performance') {
+    const performance = normalizeList(content?.performanceInsights, 3);
+    if (performance.length) {
+      return `Foco de performance: ${performance.join(' · ')}`;
     }
   }
 
   return String(content?.summary || content?.executiveSummary || '').trim();
 }
 
-function buildResultPayload({ analysisType, content, selectedContext }) {
+function buildResultPayload({ analysisType, content }) {
   return {
     resumo:
       buildTypeSummary(analysisType, content) ||
       'Não foi possível gerar um resumo detalhado para este contexto no momento.',
-    arquetipos: analysisType === 'arquetipos' ? buildArchetypes(selectedContext?.scores || {}) : [],
+    arquetipos: [],
     pontos_fortes: normalizeList(content?.strengths, 6),
     pontos_atencao: normalizeList(content?.limitations, 6),
     recomendacoes: normalizeList(content?.developmentRecommendations, 6),
@@ -293,37 +240,12 @@ function ResultSection({ title, items, accent }) {
   );
 }
 
-async function loadLocalReports(access = {}) {
-  if (access?.tenantId) {
-    const items = await base44.entities.Assessment.filter({ workspace_id: access.tenantId }, '-created_date', 240);
-    return items
-      .filter((item) => String(item?.status || '').toLowerCase() === 'completed' || item?.report_id || item?.hasReport)
-      .map(normalizeCoachReportItem);
-  }
-
-  const byUserId = access?.userId
-    ? await base44.entities.Assessment.filter({ user_id: access.userId }, '-created_date', 240)
-    : [];
-  const byEmail = access?.email
-    ? await base44.entities.Assessment.filter({ user_id: access.email }, '-created_date', 240)
-    : [];
-
-  const merged = [...byUserId, ...byEmail].map(normalizeCoachReportItem);
-  const seen = new Set();
-
-  return merged.filter((item) => {
-    if (!item.id || seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-}
-
 export default function PanelAiLab() {
   const { access } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
 
   const [selectedReportId, setSelectedReportId] = useState('');
-  const [analysisType, setAnalysisType] = useState('arquetipos');
+  const [analysisType, setAnalysisType] = useState('leadership');
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState(null);
@@ -336,19 +258,15 @@ export default function PanelAiLab() {
     queryKey: ['panel-ai-lab-reports', apiBaseUrl, access?.tenantId, access?.userId, access?.email],
     enabled: Boolean(access?.userId || access?.email),
     queryFn: async () => {
-      if (apiBaseUrl && getApiToken()) {
-        const payload = await apiRequest('/candidate/me/reports', {
-          method: 'GET',
-          requireAuth: true,
-        });
-        return mapCandidateReports(payload?.reports || []).map(normalizeCoachReportItem);
+      if (!apiBaseUrl || !getApiToken()) {
+        throw new Error('AI_LAB_API_MODE_REQUIRED');
       }
 
-      if (base44?.__isMock) {
-        return loadLocalReports(access);
-      }
-
-      return [];
+      const payload = await apiRequest('/candidate/me/reports', {
+        method: 'GET',
+        requireAuth: true,
+      });
+      return mapCandidateReports(payload?.reports || []).map(normalizeCoachReportItem);
     },
   });
 
@@ -407,6 +325,7 @@ export default function PanelAiLab() {
         requireAuth: true,
         body: {
           mode: selectedContext.reportType,
+          segment: analysisType,
           nome: selectedContext.respondentName,
           cargo: '',
           empresa: '',
@@ -415,6 +334,23 @@ export default function PanelAiLab() {
           S: selectedContext.scores.S,
           C: selectedContext.scores.C,
           includeMeta: true,
+          context: {
+            reportId: selectedContext.reportId,
+            assessmentId: selectedContext.assessmentId,
+            reportType: selectedContext.reportType,
+            profileCode: selectedContext.profileCode,
+            dominantFactor: selectedContext.dominantFactor,
+            secondaryFactor: selectedContext.secondaryFactor,
+            respondentName: selectedContext.respondentName,
+            candidateEmail: selectedContext.candidateEmail,
+            completedAt: selectedContext.completedAt,
+            summary: selectedContext.summary,
+            strengths: selectedContext.strengths,
+            limitations: selectedContext.limitations,
+            riskProfile: selectedContext.riskProfile,
+            riskSignals: selectedContext.riskSignals,
+            developmentRecommendations: selectedContext.developmentRecommendations,
+          },
         },
       });
 
@@ -427,7 +363,6 @@ export default function PanelAiLab() {
           model: payload?.model,
           source: payload?.source,
         },
-        selectedContext,
       });
 
       setResult({
@@ -441,7 +376,7 @@ export default function PanelAiLab() {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
     } catch (error) {
-      setErrorMessage(error?.message || 'Não foi possível gerar análise no AI Lab agora.');
+      setErrorMessage(error?.message || 'Não foi possível gerar o insight agora. Tente novamente.');
     } finally {
       setIsGenerating(false);
     }
@@ -554,7 +489,11 @@ export default function PanelAiLab() {
             {reportsQuery.isLoading ? (
               <div style={{ padding: '12px 8px', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Carregando...</div>
             ) : reportsQuery.isError ? (
-              <div style={{ padding: '12px 8px', fontSize: 12, color: '#fca5a5' }}>Falha ao carregar relatórios.</div>
+              <div style={{ padding: '12px 8px', fontSize: 12, color: '#fca5a5' }}>
+                {String(reportsQuery.error?.message || '').trim() === 'AI_LAB_API_MODE_REQUIRED'
+                  ? 'O AI Lab exige backend real autenticado (API mode).'
+                  : 'Falha ao carregar relatórios.'}
+              </div>
             ) : filteredReports.length === 0 ? (
               <div style={{ padding: '12px 8px', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Sem resultados.</div>
             ) : (

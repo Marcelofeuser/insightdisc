@@ -428,6 +428,20 @@ function formatFactorSnapshot(scores = {}) {
   );
 }
 
+function formatConciseFactorSnapshot(scores = {}) {
+  return buildOrderedFactors(scores)
+    .map((factor) => `${FACTOR_META[factor.key].name} ${getLevel(factor.value)} (${factor.value}%)`)
+    .join(' · ');
+}
+
+function hasEquivalentDiscScores(leftScores = {}, rightScores = {}) {
+  return DISC_FACTOR_KEYS.every(
+    (factor) =>
+      clampPercentage(getFactorValue(leftScores, factor)) ===
+      clampPercentage(getFactorValue(rightScores, factor)),
+  );
+}
+
 function getFactorNarrative(factor = 'D', value = 0) {
   const level = getLevel(value);
 
@@ -1412,19 +1426,19 @@ function buildBenchmarkCards(profile = {}) {
 }
 
 function buildNaturalSummaryText(scores = {}) {
-  const ordered = buildOrderedFactors(scores);
-  const primary = ordered[0] || { key: 'D', value: 0 };
-  const secondary = ordered[1] || { key: 'I', value: 0 };
-
-  return `Predomínio de ${FACTOR_META[primary.key].name} em nível ${getLevel(primary.value)}, com ${FACTOR_META[secondary.key].name} em nível ${getLevel(secondary.value)}. ${formatFactorSnapshot(scores)}.`;
+  return formatConciseFactorSnapshot(scores);
 }
 
-function buildAdaptedSummaryText(scores = {}) {
+function buildAdaptedSummaryText(scores = {}, naturalScores = {}) {
   const ordered = buildOrderedFactors(scores);
   const primary = ordered[0] || { key: 'D', value: 0 };
   const secondary = ordered[1] || { key: 'I', value: 0 };
 
-  return `No contexto adaptado, ${FACTOR_META[primary.key].name} permanece em destaque em nível ${getLevel(primary.value)}, seguida por ${FACTOR_META[secondary.key].name} em nível ${getLevel(secondary.value)}. ${formatFactorSnapshot(scores)}.`;
+  if (hasEquivalentDiscScores(scores, naturalScores)) {
+    return `Alta congruência com o perfil natural. ${FACTOR_META[primary.key].name} permanece como fator principal (${primary.value}%), seguida por ${FACTOR_META[secondary.key].name} (${secondary.value}%).`;
+  }
+
+  return formatConciseFactorSnapshot(scores);
 }
 
 function buildNaturalAdaptedInterpretation(profile = {}) {
@@ -3237,7 +3251,15 @@ function applyDynamicDiscHtmlAdjustments(html = '', profile = {}, options = {}) 
       renderRadarChartSvg(profile.scores),
     );
     updatedBlock = updatedBlock.replace(
-      /(<div style="display:flex;flex-direction:column;gap:10px;">)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/,
+      '<div style="flex:1;display:flex;flex-direction:column;gap:18px;">',
+      '<div style="flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;height:auto;overflow:visible;">',
+    );
+    updatedBlock = updatedBlock.replace(
+      '<div style="display:flex;flex-direction:column;gap:10px;">',
+      '<div style="display:flex;flex-direction:column;gap:8px;min-height:0;height:auto;overflow:visible;">',
+    );
+    updatedBlock = updatedBlock.replace(
+      /(<div style="display:flex;flex-direction:column;gap:[^"]*;">)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/,
       `$1${DISC_FACTOR_KEYS.map((factor) => renderRadarFactorCard(profile, factor)).join('')}$3`,
     );
 
@@ -3249,8 +3271,20 @@ function applyDynamicDiscHtmlAdjustments(html = '', profile = {}, options = {}) 
       /<svg viewBox="0 0 900 400"[\s\S]*?<\/svg>/,
       renderNaturalAdaptedChartSvg(profile.naturalScores, profile.adaptedScores),
     );
+    updatedBlock = updatedBlock.replace(
+      '<div style="flex:1;display:flex;flex-direction:column;gap:18px;">',
+      '<div style="flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;height:auto;overflow:visible;">',
+    );
+    updatedBlock = updatedBlock.replace(
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">',
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:flex-start;min-height:0;height:auto;overflow:visible;">',
+    );
     updatedBlock = replaceLabeledParagraph(updatedBlock, 'Perfil Natural', buildNaturalSummaryText(profile.naturalScores));
-    updatedBlock = replaceLabeledParagraph(updatedBlock, 'Perfil Adaptado', buildAdaptedSummaryText(profile.adaptedScores));
+    updatedBlock = replaceLabeledParagraph(
+      updatedBlock,
+      'Perfil Adaptado',
+      buildAdaptedSummaryText(profile.adaptedScores, profile.naturalScores),
+    );
     updatedBlock = replaceLabeledParagraph(
       updatedBlock,
       'Interpretação Técnica',
@@ -3912,17 +3946,20 @@ export function gerarRelatorio({
             scores,
           });
 
-          const hasProviderText = aiResult?.source === 'ai' && hasMeaningfulAiSourceContent(aiResult?.rawContent);
+          const source = toText(aiResult?.source).toLowerCase();
+          const hasProviderText =
+            (source === 'groq' || source === 'ai') &&
+            hasMeaningfulAiSourceContent(aiResult?.rawContent);
 
           if (!hasProviderText) {
             console.warn('[disc-report] AI skipped due to invalid content', {
               mode: normalizedMode,
-              reason: aiResult?.source === 'fallback' ? 'AI_FALLBACK_TRIGGERED' : 'NO_PROVIDER_TEXT_FIELDS',
+              reason: 'NO_PROVIDER_TEXT_FIELDS',
             });
             aiMeta = {
               ...aiMeta,
               skipped: true,
-              reason: aiResult?.source === 'fallback' ? 'AI_FALLBACK_TRIGGERED' : 'NO_PROVIDER_TEXT_FIELDS',
+              reason: 'NO_PROVIDER_TEXT_FIELDS',
             };
           } else {
             runtimePayload = mergeArtifactPayload(

@@ -172,6 +172,7 @@ export function createApp() {
         login: 'POST /auth/login',
         aiDiscInsights: 'POST /ai/disc-insights',
         aiReportPreview: 'POST /ai/report-preview',
+        aiCoach: 'POST /ai/coach',
         register: 'POST /auth/register',
         createAssessment: 'POST /assessments/create',
         generateLink: 'POST /assessments/generate-link',

@@ -47,7 +47,15 @@ function firstMap(candidates = []) {
   return null;
 }
 
-function resolveDominantFactor({ report = {}, discProfile = {}, scores = null } = {}) {
+function resolveRankedFactors(scores = null) {
+  if (!scores) return [];
+
+  return FACTORS
+    .map((factor) => ({ factor, value: toNumber(scores?.[factor]) }))
+    .sort((left, right) => right.value - left.value);
+}
+
+function resolveDominantFactor({ report = {}, discProfile = {}, scores = null, rankedFactors = [] } = {}) {
   const explicit = [
     report?.dominantFactor,
     report?.results?.dominant_factor,
@@ -61,9 +69,31 @@ function resolveDominantFactor({ report = {}, discProfile = {}, scores = null } 
   if (explicit) return explicit;
   if (!scores) return 'D';
 
-  return FACTORS
-    .map((factor) => ({ factor, value: toNumber(scores?.[factor]) }))
-    .sort((left, right) => right.value - left.value)?.[0]?.factor || 'D';
+  return rankedFactors?.[0]?.factor || 'D';
+}
+
+function resolveSecondaryFactor({
+  report = {},
+  discProfile = {},
+  scores = null,
+  rankedFactors = [],
+  dominantFactor = 'D',
+} = {}) {
+  const explicit = [
+    report?.secondaryFactor,
+    report?.results?.secondary_factor,
+    report?.disc_results?.secondary_factor,
+    discProfile?.secondary,
+    discProfile?.secondaryFactor,
+  ]
+    .map((value) => toUpper(value))
+    .find((value) => FACTORS.includes(value) && value !== dominantFactor);
+
+  if (explicit) return explicit;
+  if (!scores) return 'I';
+
+  const fallback = rankedFactors?.find((entry) => entry.factor !== dominantFactor)?.factor;
+  return fallback || 'I';
 }
 
 export function resolveDiscMode(reportType = '') {
@@ -93,25 +123,47 @@ export function buildCoachReportContext(report = {}) {
     discProfile?.scores?.natural,
   ]) || { D: 34, I: 32, S: 23, C: 11 };
 
-  const dominantFactor = resolveDominantFactor({ report, discProfile, scores });
+  const rankedFactors = resolveRankedFactors(scores);
+  const dominantFactor = resolveDominantFactor({ report, discProfile, scores, rankedFactors });
+  const secondaryFactor = resolveSecondaryFactor({
+    report,
+    discProfile,
+    scores,
+    rankedFactors,
+    dominantFactor,
+  });
   const profileCode = toUpper(
     report?.profileCode ||
       report?.profileKey ||
       discProfile?.code ||
       discProfile?.profileCode ||
-      dominantFactor,
+      `${dominantFactor}/${secondaryFactor}`,
   );
 
   const summary = toText(
     report?.summary ||
       discProfile?.summaryText ||
       aiContent?.summary ||
+      aiContent?.executiveSummary ||
       discProfile?.executiveSummary ||
       '',
   );
 
   const strengths = toList(report?.strengths || discProfile?.strengths || aiContent?.strengths);
   const limitations = toList(report?.limitations || discProfile?.limitations || aiContent?.limitations);
+  const riskProfile = toText(
+    report?.riskProfile ||
+      discProfile?.riskProfile ||
+      aiContent?.riskProfile ||
+      aiContent?.pressureBehavior ||
+      '',
+  );
+  const riskSignals = toList(
+    report?.riskSignals ||
+      discProfile?.riskSignals ||
+      aiContent?.riskSignals ||
+      (riskProfile ? [riskProfile] : []),
+  );
   const developmentRecommendations = toList(
     report?.developmentRecommendations ||
       discProfile?.developmentRecommendations ||
@@ -136,9 +188,12 @@ export function buildCoachReportContext(report = {}) {
     completedAt: report?.completedAt || report?.completed_at || report?.createdAt || report?.created_date || null,
     profileCode,
     dominantFactor,
+    secondaryFactor,
     summary,
     strengths,
     limitations,
+    riskProfile,
+    riskSignals,
     developmentRecommendations,
     scores,
     discProfile,
@@ -159,9 +214,12 @@ export function normalizeCoachReportItem(report = {}, index = 0) {
     reportType: context.reportType,
     profileCode: context.profileCode,
     dominantFactor: context.dominantFactor,
+    secondaryFactor: context.secondaryFactor,
     summary: context.summary,
     strengths: context.strengths,
     limitations: context.limitations,
+    riskProfile: context.riskProfile,
+    riskSignals: context.riskSignals,
     developmentRecommendations: context.developmentRecommendations,
     scores: context.scores,
     discProfile: context.discProfile,

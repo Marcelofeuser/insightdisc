@@ -6,7 +6,6 @@ import { resolveDiscProfile } from '../disc/report-profile-resolver.js';
 import {
   countMeaningfulAiDiscFields,
   extractAiDiscProviderContent,
-  normalizeAiDiscContentCandidate,
   safeValidateAiDiscContent,
 } from './schema.js';
 
@@ -161,7 +160,6 @@ function sanitizeValidationError(validationError) {
 async function callProviderWithValidation({
   provider,
   input,
-  fallbackContent,
   attemptNumber,
   strictJsonRetry,
 }) {
@@ -173,11 +171,7 @@ async function callProviderWithValidation({
     }),
   );
 
-  const normalizedContent = normalizeAiDiscContentCandidate(
-    providerResult.parsed,
-    fallbackContent,
-    input.mode,
-  );
+  const normalizedContent = extractAiDiscProviderContent(providerResult.parsed, input.mode);
   const meaningfulFieldCount = countMeaningfulAiDiscFields(providerResult.parsed);
 
   if (meaningfulFieldCount === 0) {
@@ -373,24 +367,6 @@ export function buildFallbackDiscContent(input = {}) {
   };
 }
 
-function mergeWithFallback(validatedContent, fallbackContent) {
-  return {
-    ...fallbackContent,
-    ...validatedContent,
-    strengths: uniqueList(validatedContent?.strengths || fallbackContent.strengths).slice(0, 6),
-    limitations: uniqueList(validatedContent?.limitations || fallbackContent.limitations).slice(0, 6),
-    developmentRecommendations: uniqueList(
-      validatedContent?.developmentRecommendations || fallbackContent.developmentRecommendations,
-    ).slice(0, 6),
-    careerRecommendations: uniqueList(
-      validatedContent?.careerRecommendations || fallbackContent.careerRecommendations,
-    ).slice(0, 6),
-    businessRecommendations: uniqueList(
-      validatedContent?.businessRecommendations || fallbackContent.businessRecommendations,
-    ).slice(0, 6),
-  };
-}
-
 function truncateSentence(value = '', maximumLength = 320) {
   const normalized = String(value || '').replaceAll(/\s+/g, ' ').trim();
   if (!normalized) return '';
@@ -467,7 +443,7 @@ function shouldUseRecommendationAi() {
   const flag = String(process.env.DISC_RECOMMENDATION_AI || '')
     .trim()
     .toLowerCase();
-  const hasCredentials = Boolean(env.geminiApiKey || env.groqApiKey);
+  const hasCredentials = Boolean(env.groqApiKey);
 
   return hasCredentials && ['1', 'true', 'yes', 'on'].includes(flag);
 }
@@ -579,23 +555,22 @@ export async function generateAiRecommendationRationale(input = {}) {
 
 export async function generateAiDiscContent(input = {}, options = {}) {
   const normalizedInput = normalizeAiDiscInput(input);
-  const fallbackContent = buildFallbackDiscContent(normalizedInput);
   const resolvedPrimaryName =
     options.providerOverride?.name ||
     options.providerChainOverride?.[0]?.name ||
     options.providerName ||
     env.aiProvider ||
-    'gemini';
+    'groq';
   const primaryProviderName = String(resolvedPrimaryName || '')
     .trim()
-    .toLowerCase() || 'gemini';
+    .toLowerCase() || 'groq';
 
   const providers = options.providerChainOverride
     ? options.providerChainOverride
     : options.providerOverride
       ? [options.providerOverride]
       : buildAiProviderChain([
-          primaryProviderName,
+        primaryProviderName,
           env.aiFallback1,
           env.aiFallback2,
         ]);
@@ -615,7 +590,6 @@ export async function generateAiDiscContent(input = {}, options = {}) {
         const attemptResult = await callProviderWithValidation({
           provider,
           input: normalizedInput,
-          fallbackContent,
           attemptNumber,
           strictJsonRetry,
         });
@@ -650,14 +624,14 @@ export async function generateAiDiscContent(input = {}, options = {}) {
           ok: true,
           provider: attemptResult.providerResult.provider,
           model: attemptResult.providerResult.model,
-          source: 'ai',
+          source: 'groq',
           usedFallback,
           attempts,
           rawContent: extractAiDiscProviderContent(
             attemptResult.providerResult.parsed,
             normalizedInput.mode,
           ),
-          content: mergeWithFallback(attemptResult.content, fallbackContent),
+          content: attemptResult.content,
           input: normalizedInput,
         };
       } catch (error) {
@@ -704,21 +678,15 @@ export async function generateAiDiscContent(input = {}, options = {}) {
     }
   }
 
-  console.info('[ai/disc] deterministic fallback triggered', {
-    provider: 'deterministic_engine',
-    model: 'deterministic_engine',
-    attempts: attempts.length,
+  console.warn('[ai/disc] groq failed without fallback', {
+    provider: 'groq',
+    model: env.groqModel || 'llama3-70b-8192',
+    attempts,
   });
 
-  return {
-    ok: true,
-    provider: 'deterministic_engine',
-    model: 'deterministic_engine',
-    source: 'fallback',
-    usedFallback: true,
-    attempts,
-    rawContent: {},
-    content: fallbackContent,
-    input: normalizedInput,
-  };
+  const error = new Error('AI_GROQ_PROVIDER_FAILED');
+  error.code = 'AI_GROQ_PROVIDER_FAILED';
+  error.attempts = attempts;
+  error.input = normalizedInput;
+  throw error;
 }
