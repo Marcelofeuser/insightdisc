@@ -12,6 +12,7 @@ import {
 } from '@/modules/navigation/panelMode';
 import { usePanelMode } from '@/modules/navigation/panelModeContext';
 import { OnboardingTour } from '@/modules/onboarding';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 function ModeCard({ mode, activeMode, onSelect }) {
   const isActive = activeMode === mode;
@@ -60,6 +61,7 @@ function renderDashboardByMode(mode) {
 export default function RoleDashboardHome() {
   const { access, isAuthenticated } = useAuth();
   const { panelMode, autoPanelMode, setPanelMode } = usePanelMode();
+  const canSwitchModes = isSuperAdminAccess(access);
   const activeMode = normalizePanelMode(
     panelMode,
     autoPanelMode || PANEL_MODE.BUSINESS,
@@ -67,7 +69,7 @@ export default function RoleDashboardHome() {
 
   return (
     <div className="w-full min-w-0 space-y-8 pb-8">
-      {isAuthenticated ? (
+      {isAuthenticated && canSwitchModes ? (
         <section className="w-full min-w-0 max-w-7xl mx-auto px-4 pt-6 sm:px-6 sm:pt-8">
           <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white via-white to-slate-50/70 p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">

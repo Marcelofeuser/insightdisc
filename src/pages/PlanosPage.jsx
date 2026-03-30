@@ -7,7 +7,7 @@ import '../styles/landing.css';
 
 const LANDING_TITLE = 'Planos InsightDISC';
 const LANDING_DESCRIPTION =
-  'Escolha o plano ideal no InsightDISC: individual, personal, profissional, business ou diamond.';
+  'Escolha o plano ideal no InsightDISC: individual, personal, insider, profissional, business ou diamond.';
 const CREDIBILITY_ITEMS = Object.freeze([
   'Usado por profissionais',
   'Aplicado em empresas',
@@ -18,6 +18,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
     feature: 'Preço',
     disc: PLANS.disc.price,
     personal: PLANS.personal.price,
+    insider: `${PLANS.insider.price}${PLANS.insider.billingLabel}`,
     profissional: `${PLANS.profissional.price}${PLANS.profissional.billingLabel}`,
     business: `${PLANS.business.price}${PLANS.business.billingLabel}`,
     diamond: `${PLANS.diamond.price}${PLANS.diamond.billingLabel}`,
@@ -26,6 +27,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
     feature: 'Duração / recorrência',
     disc: 'Pagamento único',
     personal: '2 meses',
+    insider: 'Assinatura mensal',
     profissional: 'Assinatura mensal',
     business: 'Assinatura mensal',
     diamond: 'Assinatura mensal',
@@ -34,6 +36,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
     feature: 'Para quem é',
     disc: PLANS.disc.indication,
     personal: PLANS.personal.indication,
+    insider: PLANS.insider.indication,
     profissional: PLANS.profissional.indication,
     business: PLANS.business.indication,
     diamond: PLANS.diamond.indication,
@@ -42,6 +45,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
     feature: 'Créditos mensais',
     disc: 'Não se aplica',
     personal: '1 relatório por ciclo',
+    insider: 'Acesso avançado mensal',
     profissional: '10 créditos/mês',
     business: '25 créditos/mês',
     diamond: 'Ilimitado',
@@ -50,6 +54,7 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
     feature: 'Principal diferencial',
     disc: 'Relatório completo imediato em PDF',
     personal: 'Direcionamento prático e evolução pessoal guiada',
+    insider: 'Leitura aprofundada com IA e comparação de evolução',
     profissional: 'Dossiê técnico e comparador avançado para análise',
     business: 'Team Map com gestão comportamental de equipe',
     diamond: 'Uso ilimitado para operação em escala',
@@ -57,31 +62,31 @@ const SUMMARY_COMPARISON_ROWS = Object.freeze([
 ]);
 
 const DETAILED_COMPARISON_ROWS = Object.freeze([
-  { feature: 'Acesso à plataforma', disc: '—', personal: '2 meses', profissional: 'Mensal', business: 'Mensal', diamond: 'Mensal' },
-  { feature: 'Relatórios DISC inclusos', disc: '1 relatório', personal: '1 por ciclo', profissional: '10 créditos/mês', business: '25 créditos/mês', diamond: 'Ilimitado' },
-  { feature: 'Acompanhamento contínuo do perfil', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Gestão completa de avaliações DISC', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Comparação inteligente de perfis comportamentais', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Dossiê comportamental completo', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Relatórios técnicos avançados', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Direcionamentos de desenvolvimento por relatório', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Leitura por arquétipos vinculada ao relatório', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Histórico operacional + histórico de entregas finais', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Arquétipos comportamentais (evolução contínua)', disc: '—', personal: '—', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Exportação profissional em PDF', disc: '✓', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Download em PDF', disc: '✓', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Histórico e evolução', disc: '—', personal: '✓', profissional: '✓', business: '✓', diamond: '✓' },
-  { feature: 'Herança completa do Profissional', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Team Map', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Análise de perfis em grupo', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Comparação entre colaboradores', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Apoio à liderança e tomada de decisão', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Visão estratégica para equipes e cultura', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Aplicação DISC em processos internos', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Estrutura para RH e gestão de pessoas', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Gestão de múltiplos usuários', disc: '—', personal: '—', profissional: '—', business: '✓', diamond: '✓' },
-  { feature: 'Operação em escala', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
-  { feature: 'Uso ilimitado', disc: '—', personal: '—', profissional: '—', business: '—', diamond: '✓' },
+  { feature: 'Acesso à plataforma', disc: '—', personal: '2 meses', insider: 'Mensal', profissional: 'Mensal', business: 'Mensal', diamond: 'Mensal' },
+  { feature: 'Relatórios DISC inclusos', disc: '1 relatório', personal: '1 por ciclo', insider: 'Acesso avançado mensal', profissional: '10 créditos/mês', business: '25 créditos/mês', diamond: 'Ilimitado' },
+  { feature: 'Acompanhamento contínuo do perfil', disc: '—', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Gestão completa de avaliações DISC', disc: '—', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Comparação inteligente de perfis comportamentais', disc: '—', personal: '—', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Dossiê comportamental completo', disc: '—', personal: '—', insider: '—', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Relatórios técnicos avançados', disc: '—', personal: '—', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Direcionamentos de desenvolvimento por relatório', disc: '—', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Leitura por arquétipos vinculada ao relatório', disc: '—', personal: '—', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Histórico operacional + histórico de entregas finais', disc: '—', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Arquétipos comportamentais (evolução contínua)', disc: '—', personal: '—', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Exportação profissional em PDF', disc: '✓', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Download em PDF', disc: '✓', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Histórico e evolução', disc: '—', personal: '✓', insider: '✓', profissional: '✓', business: '✓', diamond: '✓' },
+  { feature: 'Herança completa do Profissional', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Team Map', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Análise de perfis em grupo', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Comparação entre colaboradores', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Apoio à liderança e tomada de decisão', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Visão estratégica para equipes e cultura', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Aplicação DISC em processos internos', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Estrutura para RH e gestão de pessoas', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Gestão de múltiplos usuários', disc: '—', personal: '—', insider: '—', profissional: '—', business: '✓', diamond: '✓' },
+  { feature: 'Operação em escala', disc: '—', personal: '—', insider: '—', profissional: '—', business: '—', diamond: '✓' },
+  { feature: 'Uso ilimitado', disc: '—', personal: '—', insider: '—', profissional: '—', business: '—', diamond: '✓' },
 ]);
 
 function renderComparisonCell(value, isHighlightedColumn) {
@@ -438,6 +443,7 @@ export default function PlanosPage() {
                     <th className="planos-compare-head-cell planos-compare-sticky-col py-4 px-5 font-bold text-slate-200">Recurso</th>
                     <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">DISC Individual</th>
                     <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Personal</th>
+                    <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Insider</th>
                     <th className="planos-compare-head-cell planos-compare-head-prof py-4 px-5 text-center font-bold text-blue-200">Profissional</th>
                     <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Business</th>
                     <th className="planos-compare-head-cell py-4 px-5 text-center font-bold text-slate-200">Diamond</th>
@@ -449,6 +455,7 @@ export default function PlanosPage() {
                       <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-300">{row.feature}</td>
                       {renderComparisonCell(row.disc, false)}
                       {renderComparisonCell(row.personal, false)}
+                      {renderComparisonCell(row.insider, false)}
                       {renderComparisonCell(row.profissional, true)}
                       {renderComparisonCell(row.business, false)}
                       {renderComparisonCell(row.diamond, false)}
@@ -458,7 +465,7 @@ export default function PlanosPage() {
                     <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-200 font-semibold">
                       Comparação completa
                     </td>
-                    <td colSpan={5} className="planos-compare-toggle-cell py-4 px-5 text-center">
+                    <td colSpan={6} className="planos-compare-toggle-cell py-4 px-5 text-center">
                       <button
                         type="button"
                         onClick={toggleComparisonDetails}
@@ -476,6 +483,7 @@ export default function PlanosPage() {
                         <td className="planos-compare-sticky-col planos-compare-feature-cell py-4 px-5 text-slate-300">{row.feature}</td>
                         {renderComparisonCell(row.disc, false)}
                         {renderComparisonCell(row.personal, false)}
+                        {renderComparisonCell(row.insider, false)}
                         {renderComparisonCell(row.profissional, true)}
                         {renderComparisonCell(row.business, false)}
                         {renderComparisonCell(row.diamond, false)}

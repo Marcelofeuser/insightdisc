@@ -37,6 +37,34 @@ const PLAN_UI = Object.freeze({
       },
     ],
   },
+  insider: {
+    badge: 'Personal Pro',
+    title: 'Insider',
+    subtitle:
+      'Plano avançado para quem quer evoluir com mais profundidade, consistência e leitura comportamental mais estratégica.',
+    price: 'R$ 129,90',
+    billing: 'mensal',
+    summary:
+      'Inclui tudo do Personal com mais profundidade de leitura e recomendações estratégicas de evolução.',
+    features: [
+      {
+        title: 'Tudo do Personal incluso',
+        description: 'Mantém o histórico e a evolução comportamental no mesmo fluxo.',
+      },
+      {
+        title: 'Relatórios mais completos com IA',
+        description: 'Leitura aprofundada do perfil com suporte de análise inteligente.',
+      },
+      {
+        title: 'Comparação entre avaliações',
+        description: 'Facilita acompanhar mudanças de padrão ao longo do tempo.',
+      },
+      {
+        title: 'Insights estratégicos personalizados',
+        description: 'Direcionamentos práticos para decisão, comunicação e desenvolvimento.',
+      },
+    ],
+  },
   professional: {
     badge: 'Plano mais escolhido',
     title: 'Professional',
@@ -139,6 +167,9 @@ const PAYMENT_OPTIONS = Object.freeze([
 
 function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
   const normalizedSlug = String(planSlug || '').trim().toLowerCase();
+  if (normalizedSlug === 'insider') {
+    return 'insider';
+  }
   if (normalizedSlug === 'professional' || normalizedSlug === 'profissional' || normalizedSlug === 'pro') {
     return 'professional';
   }
@@ -147,6 +178,7 @@ function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
   if (normalizedSlug === 'personal') return 'personal';
 
   const normalizedPlanKey = String(fallbackPlanKey || '').trim().toLowerCase();
+  if (normalizedPlanKey === 'insider') return 'insider';
   if (normalizedPlanKey === 'profissional') return 'professional';
   if (normalizedPlanKey === 'professional') return 'professional';
   if (normalizedPlanKey === 'business') return 'business';

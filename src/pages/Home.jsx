@@ -552,11 +552,12 @@ export default function Home() {
       <p className="text-xl text-slate-400 max-w-3xl mx-auto">Do uso individual à gestão de equipes completas.</p>
      </div>
      <div className="scroll-reveal overflow-x-auto rounded-3xl glass-card border border-white/10">
-      <table className="w-full text-left min-w-[860px]">
+      <table className="w-full text-left min-w-[980px]">
        <thead>
         <tr className="border-b border-slate-700/70">
          <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200">Acesso</th>
          <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Personal</th>
+         <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Insider</th>
          <th className="py-4 px-6 font-bold text-base md:text-lg bg-blue-500/10 text-blue-300 text-center">Profissional</th>
          <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Business</th>
          <th className="py-4 px-6 font-bold text-base md:text-lg text-slate-200 text-center">Diamond</th>
@@ -566,6 +567,7 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Acesso à plataforma</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
@@ -573,12 +575,14 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Relatórios DISC</td>
          <td className="py-4 px-6 text-center text-slate-200">1 relatório/mês</td>
+         <td className="py-4 px-6 text-center text-slate-200">Acesso avançado mensal</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-100">10 créditos/mês</td>
          <td className="py-4 px-6 text-center text-slate-200">25 créditos/mês</td>
          <td className="py-4 px-6 text-center text-slate-100 font-semibold">Ilimitado</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Dossiê comportamental</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
@@ -587,12 +591,14 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Histórico de relatórios</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Team Map</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
@@ -601,6 +607,7 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Análise de equipe</td>
          <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
@@ -608,6 +615,7 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Uso profissional</td>
          <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
@@ -615,12 +623,14 @@ export default function Home() {
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Uso empresarial</td>
          <td className="py-4 px-6 text-center text-slate-500">—</td>
+         <td className="py-4 px-6 text-center text-slate-500">—</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-500">—</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
          <td className="py-4 px-6 text-center text-green-300 font-semibold">✓</td>
         </tr>
         <tr className="hover:bg-white/5 transition-colors">
          <td className="py-4 px-6 text-slate-300">Créditos adicionais</td>
+         <td className="py-4 px-6 text-center text-slate-200">No painel</td>
          <td className="py-4 px-6 text-center text-slate-200">No painel</td>
          <td className="py-4 px-6 text-center bg-blue-500/5 text-slate-100">No painel</td>
          <td className="py-4 px-6 text-center text-slate-200">No painel</td>

@@ -1,4 +1,5 @@
 import { EXPERIENCE_ROLE, resolveExperienceRole } from '@/modules/dashboard/experience-role';
+import { isSuperAdminAccess } from '@/modules/auth/access-control';
 
 export const PANEL_MODE = Object.freeze({
   BUSINESS: 'business',
@@ -75,6 +76,12 @@ export function resolveAutoPanelMode(access) {
 }
 
 export function resolvePanelMode(access, options = {}) {
+  const autoMode = resolveAutoPanelMode(access);
+  const canManuallySwitchModes = isSuperAdminAccess(access);
+  if (!canManuallySwitchModes) {
+    return autoMode;
+  }
+
   const scopeKey = options?.scopeKey || 'default';
   const preferred = normalizePanelMode(options?.preferredMode);
   if (preferred) return preferred;
@@ -82,5 +89,5 @@ export function resolvePanelMode(access, options = {}) {
   const stored = getStoredPanelMode(scopeKey);
   if (stored) return stored;
 
-  return resolveAutoPanelMode(access);
+  return autoMode;
 }

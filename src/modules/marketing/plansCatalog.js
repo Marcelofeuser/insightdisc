@@ -34,6 +34,26 @@ export const PLANS = Object.freeze({
     description: 'Para quem quer se conhecer melhor e acompanhar sua evolução comportamental ao longo do tempo.',
     indication: 'Autoconhecimento com acompanhamento',
   },
+  insider: {
+    key: 'insider',
+    enginePlanCode: 'insider',
+    name: 'INSIDER',
+    price: 'R$ 129,90',
+    billingLabel: '/mês',
+    ctaLabel: 'Assinar Insider',
+    checkoutPath: '/checkout/plan/insider',
+    benefits: [
+      'Tudo do Personal incluso',
+      'Relatórios mais completos com IA',
+      'Histórico e evolução comportamental',
+      'Comparação entre avaliações',
+      'Insights mais profundos de perfil',
+      'Recomendações estratégicas personalizadas',
+    ],
+    description: 'Plano avançado para usuários que desejam mais profundidade e consistência na análise DISC.',
+    indication: 'Uso individual avançado com foco em profundidade',
+    highlight: false,
+  },
   profissional: {
     key: 'profissional',
     enginePlanCode: 'professional',
@@ -96,13 +116,14 @@ export const PLANS = Object.freeze({
   },
 });
 
-export const PLAN_ORDER = Object.freeze(['disc', 'personal', 'profissional', 'business', 'diamond']);
+export const PLAN_ORDER = Object.freeze(['disc', 'personal', 'insider', 'profissional', 'business', 'diamond']);
 
 export function resolveCheckoutPlan(slug = '', tier = '') {
   const normalizedSlug = String(slug || '').toLowerCase();
   const normalizedTier = String(tier || '').toLowerCase();
   if (normalizedSlug === 'professional') return PLANS.profissional;
   if (normalizedSlug === 'profissional') return PLANS.profissional;
+  if (normalizedSlug === 'insider') return PLANS.insider;
 
   if (normalizedSlug === 'business' && normalizedTier === 'diamond') {
     return PLANS.diamond;

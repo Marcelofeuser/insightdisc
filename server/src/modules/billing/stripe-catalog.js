@@ -19,6 +19,15 @@ const SUPPORTED_PLANS = Object.freeze({
     currency: 'brl',
     priceEnvCandidates: Object.freeze(['STRIPE_PRICE_PROFESSIONAL']),
   }),
+  insider: Object.freeze({
+    id: 'insider',
+    type: 'plan',
+    mode: 'subscription',
+    planTarget: 'professional',
+    creditsToGrant: 10,
+    currency: 'brl',
+    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_INSIDER', 'STRIPE_PRICE_PROFESSIONAL']),
+  }),
   business: Object.freeze({
     id: 'business',
     type: 'plan',
@@ -132,6 +141,9 @@ const LEGACY_PRODUCTS = Object.freeze({
 const PLAN_ALIASES = Object.freeze({
   personal: 'personal',
   pessoa: 'personal',
+  insider: 'insider',
+  'personal-pro': 'insider',
+  personalpro: 'insider',
   profissional: 'professional',
   professional: 'professional',
   pro: 'professional',
@@ -319,6 +331,7 @@ export function resolveOrderBumpEntry(input = {}, options = {}) {
 export function getRecurringCreditsByPlan(plan = '') {
   const normalized = normalizePlanId(plan);
   if (normalized === 'business') return 25;
+  if (normalized === 'insider') return 10;
   if (normalized === 'professional') return 10;
   return 0;
 }

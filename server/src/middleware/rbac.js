@@ -1,32 +1,55 @@
-import { prisma } from '../lib/prisma.js'
+import { prisma, withPrismaRetry } from '../lib/prisma.js'
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js'
 
 async function loadUserWithRelations(userId) {
   if (!userId) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId }
-  })
+  const user = await withPrismaRetry(
+    () =>
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          plan: true,
+          createdAt: true,
+        },
+      }),
+    { retries: 1 }
+  )
 
   if (!user) return null
 
-  const latestCredit = await prisma.credit.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    select: { balance: true }
-  })
+  const latestCredit = await withPrismaRetry(
+    () =>
+      prisma.credit.findUnique({
+        where: { userId },
+        select: { balance: true }
+      }),
+    { retries: 1 }
+  )
 
-  const latestPaidPayment = await prisma.payment.findFirst({
-    where: {
-      userId,
-      status: 'PAID'
-    },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      status: true
-    }
-  })
+  const normalizedPlan = normalizeRole(user?.plan)
+  const shouldCheckPaidPayment = normalizedPlan === 'PERSONAL' || !normalizedPlan
+  const latestPaidPayment = shouldCheckPaidPayment
+    ? await withPrismaRetry(
+        () =>
+          prisma.payment.findFirst({
+            where: {
+              userId,
+              status: 'PAID'
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              status: true
+            }
+          }),
+        { retries: 1 }
+      )
+    : null
 
   return {
     ...user,
@@ -122,6 +145,10 @@ async function resolveOrganizationAccess(userId, organizationId) {
 function isActiveCustomerProfile(user = {}) {
   if (!user?.id) return false
   if (isPrivilegedRole(user)) return true
+  const normalizedPlan = normalizeRole(user?.plan)
+  if (normalizedPlan === 'PROFESSIONAL' || normalizedPlan === 'BUSINESS' || normalizedPlan === 'DIAMOND') {
+    return true
+  }
   if (getUserCreditsBalance(user) > 0) return true
   if (hasPaidPayment(user)) return true
   return false

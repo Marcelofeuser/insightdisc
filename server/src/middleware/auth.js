@@ -1,6 +1,6 @@
 import { verifyJwt } from '../lib/security.js';
 import { getSafeErrorCode, sendSafeJsonError } from '../lib/http-security.js';
-import { prisma } from '../lib/prisma.js';
+import { isTransientPrismaConnectionError, prisma, withPrismaRetry } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 
 function extractBearerToken(header = '') {
@@ -16,7 +16,14 @@ async function resolveAuthContext(req) {
     const email = String(req.headers['x-insight-user-email'] || '').trim().toLowerCase();
     if (!email) return null;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await withPrismaRetry(
+      () =>
+        prisma.user.findUnique({
+          where: { email },
+          select: { id: true, email: true, role: true },
+        }),
+      { retries: 1 }
+    );
     if (!user) {
       const error = new Error('UNAUTHORIZED');
       error.statusCode = 401;
@@ -35,7 +42,14 @@ async function resolveAuthContext(req) {
   if (!token) return null;
 
   const payload = verifyJwt(token);
-  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  const user = await withPrismaRetry(
+    () =>
+      prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, role: true },
+      }),
+    { retries: 1 }
+  );
   if (!user) {
     const error = new Error('INVALID_TOKEN');
     error.statusCode = 401;
@@ -65,6 +79,14 @@ export async function requireAuth(req, res, next) {
     req.auth = auth;
     return next();
   } catch (error) {
+    if (isTransientPrismaConnectionError(error)) {
+      return sendSafeJsonError(res, {
+        status: 503,
+        error: 'AUTH_SERVICE_UNAVAILABLE',
+        message: 'Serviço de autenticação temporariamente indisponível.',
+      });
+    }
+
     const errorCode = getSafeErrorCode(error, 'INVALID_TOKEN');
     const message = errorCode === 'TOKEN_EXPIRED' ? 'Token expirado.' : 'Token inválido ou expirado.';
     return sendSafeJsonError(res, {
@@ -83,6 +105,14 @@ export async function optionalAuth(req, res, next) {
     }
     return next();
   } catch (error) {
+    if (isTransientPrismaConnectionError(error)) {
+      return sendSafeJsonError(res, {
+        status: 503,
+        error: 'AUTH_SERVICE_UNAVAILABLE',
+        message: 'Serviço de autenticação temporariamente indisponível.',
+      });
+    }
+
     const errorCode = getSafeErrorCode(error, 'INVALID_TOKEN');
     const message = errorCode === 'TOKEN_EXPIRED' ? 'Token expirado.' : 'Token inválido ou expirado.';
     return sendSafeJsonError(res, {
