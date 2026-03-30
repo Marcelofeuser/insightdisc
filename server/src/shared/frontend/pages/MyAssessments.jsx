@@ -414,42 +414,47 @@ export default function MyAssessments() {
     enabled: Boolean(access?.userId || access?.email),
   });
 
+  const safeOperationalAssessments = Array.isArray(operationalAssessments)
+    ? operationalAssessments
+    : [];
+  const safeReports = Array.isArray(reports) ? reports : [];
+
   const assessmentTypeOptions = useMemo(() => {
-    return Array.from(new Set(operationalAssessments.map((item) => item.type).filter(Boolean))).sort();
-  }, [operationalAssessments]);
+    return Array.from(new Set(safeOperationalAssessments.map((item) => item.type).filter(Boolean))).sort();
+  }, [safeOperationalAssessments]);
 
   const reportTypeOptions = useMemo(() => {
-    return Array.from(new Set(reports.map((item) => item.type).filter(Boolean))).sort();
-  }, [reports]);
+    return Array.from(new Set(safeReports.map((item) => item.type).filter(Boolean))).sort();
+  }, [safeReports]);
 
   const profileOptions = useMemo(() => {
     return Array.from(
       new Set(
-        reports
-          .map((item) => String(item.dominantFactor || '').toUpperCase())
+        safeReports
+          .map((item) => String(item?.dominantFactor || '').toUpperCase())
           .filter((item) => ['D', 'I', 'S', 'C'].includes(item)),
       ),
     ).sort();
-  }, [reports]);
+  }, [safeReports]);
 
   const filteredAssessments = useMemo(() => {
-    return operationalAssessments.filter((item) => {
+    return safeOperationalAssessments.filter((item) => {
       if (!matchesSearch(item, search)) return false;
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
       if (assessmentTypeFilter !== 'all' && item.type !== assessmentTypeFilter) return false;
       return true;
     });
-  }, [operationalAssessments, search, statusFilter, assessmentTypeFilter]);
+  }, [safeOperationalAssessments, search, statusFilter, assessmentTypeFilter]);
 
   const filteredReports = useMemo(() => {
-    return reports.filter((item) => {
+    return safeReports.filter((item) => {
       if (!matchesSearch(item, search)) return false;
       if (reportTypeFilter !== 'all' && item.type !== reportTypeFilter) return false;
       if (profileFilter !== 'all' && item.dominantFactor !== profileFilter) return false;
-      if (!isDateInWindow(item.completedAt || item.createdAt, reportDateFilter)) return false;
+      if (!isDateInWindow(item?.completedAt || item?.createdAt || null, reportDateFilter)) return false;
       return true;
     });
-  }, [reports, search, reportTypeFilter, profileFilter, reportDateFilter]);
+  }, [safeReports, search, reportTypeFilter, profileFilter, reportDateFilter]);
 
   const isLoading = isReportsView ? isLoadingReports : isLoadingAssessments;
   const rows = isReportsView ? filteredReports : filteredAssessments;
@@ -689,6 +694,9 @@ export default function MyAssessments() {
             tone="soft"
           />
         ) : isReportsView ? (
+          !safeReports.length ? (
+            <div>Nenhum relatório disponível</div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-slate-200">
@@ -700,26 +708,30 @@ export default function MyAssessments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReports.map((report) => {
-                const assessmentId = report.assessmentId || report.id;
+              {(filteredReports || []).map((item, index) => {
+                const assessmentId = item?.assessmentId || item?.id;
+                const resultHref =
+                  item?.resultHref ||
+                  item?.reportPath ||
+                  (item?.assessmentId ? `/assessment/${item.assessmentId}/result` : null);
                 const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
-                const pdfHref = report.publicPdfUrl || '';
+                const pdfHref = item?.publicPdfUrl || '';
 
                 return (
-                  <TableRow key={report.id} className="border-slate-100 hover:bg-slate-50/70">
-                    <TableCell className="text-slate-700">{formatDate(report.completedAt || report.createdAt)}</TableCell>
+                  <TableRow key={item?.id || assessmentId || `report-row-${index}`} className="border-slate-100 hover:bg-slate-50/70">
+                    <TableCell className="text-slate-700">{formatDate(item?.completedAt || item?.createdAt || null)}</TableCell>
                     <TableCell className="max-w-xs truncate">
-                      {assessmentId ? (
-                        <Link to={resultHref} className="font-medium text-slate-900 hover:text-indigo-700 hover:underline">
-                          {report.respondentName}
-                        </Link>
+                      {resultHref ? (
+                        <a href={resultHref} className="font-medium text-slate-900 hover:text-indigo-700 hover:underline">
+                          {item?.title || item?.respondentName || 'Relatório'}
+                        </a>
                       ) : (
-                        report.respondentName
+                        <span>{item?.title || item?.respondentName || 'Relatório'}</span>
                       )}
                     </TableCell>
-                    <TableCell>{formatType(report.type)}</TableCell>
+                    <TableCell>{formatType(item?.type)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{report.dominantFactor || '-'}</Badge>
+                      <Badge variant="outline">{item?.dominantFactor || '-'}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
@@ -748,6 +760,7 @@ export default function MyAssessments() {
               })}
             </TableBody>
           </Table>
+          )
         ) : (
           <Table>
             <TableHeader>
