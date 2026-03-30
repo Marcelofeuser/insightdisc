@@ -251,28 +251,27 @@ function toNumber(value, fallback = 0) {
 
 function normalizeScoresSnapshot(scores = {}, options = {}) {
   const allowDefaultValues = options.allowDefaultValues !== false;
+  const fallback = allowDefaultValues
+    ? { D: 34, I: 32, S: 23, C: 11 }
+    : { D: 0, I: 0, S: 0, C: 0 };
   const raw = {
-    D: Math.max(0, toNumber(scores.D, allowDefaultValues ? 34 : 0)),
-    I: Math.max(0, toNumber(scores.I, allowDefaultValues ? 32 : 0)),
-    S: Math.max(0, toNumber(scores.S, allowDefaultValues ? 23 : 0)),
-    C: Math.max(0, toNumber(scores.C, allowDefaultValues ? 11 : 0)),
+    D: Math.max(0, toNumber(getFactorValue(scores, 'D'), fallback.D)),
+    I: Math.max(0, toNumber(getFactorValue(scores, 'I'), fallback.I)),
+    S: Math.max(0, toNumber(getFactorValue(scores, 'S'), fallback.S)),
+    C: Math.max(0, toNumber(getFactorValue(scores, 'C'), fallback.C)),
   };
-  const total = raw.D + raw.I + raw.S + raw.C;
+  const hasAnyScore = Object.values(raw).some((value) => value > 0);
 
-  if (!Number.isFinite(total) || total <= 0) {
-    return allowDefaultValues
-      ? { D: 34, I: 32, S: 23, C: 11 }
-      : { D: 0, I: 0, S: 0, C: 0 };
+  if (!hasAnyScore) {
+    return fallback;
   }
 
-  const normalized = {
-    D: Math.round((raw.D / total) * 100),
-    I: Math.round((raw.I / total) * 100),
-    S: Math.round((raw.S / total) * 100),
-    C: 0,
+  return {
+    D: clampPercentage(raw.D),
+    I: clampPercentage(raw.I),
+    S: clampPercentage(raw.S),
+    C: clampPercentage(raw.C),
   };
-  normalized.C = Math.max(0, 100 - normalized.D - normalized.I - normalized.S);
-  return normalized;
 }
 
 function clampPercentage(value) {
@@ -492,7 +491,7 @@ function getFactorNarrative(factor = 'D', value = 0) {
     return 'Baixa necessidade de formalismo; tende a priorizar fluidez sobre regras e detalhes extensos.';
   }
 
-  return 'Conformidade muito baixa: prefere flexibilidade, improviso e baixa rigidez processual.';
+  return 'Conformidade muito baixa: prefere flexibilidade e autonomia a normas rígidas, processos detalhados ou alto controle procedimental.';
 }
 
 function getPrimaryFocusNarrative(profile = {}) {
@@ -681,8 +680,8 @@ function getPrimaryProfileRows(primaryFactor = 'D') {
       careers: [
         { icon: '🤝', title: 'Relacionamento comercial', text: 'Atuações com prospecção, negociação relacional e expansão de carteira.' },
         { icon: '📣', title: 'Marketing e comunicação', text: 'Posições com narrativa, presença pública e influência de audiência.' },
-        { icon: '🌐', title: 'Parcerias e customer success', text: 'Funções centradas em vínculo, confiança e expansão por relacionamento.' },
-        { icon: '🎤', title: 'Facilitação e educação', text: 'Contextos com mediação, treinamento, apresentação e condução de grupos.' },
+        { icon: '🤝', title: 'Parcerias e customer success', text: 'Funções centradas em vínculo, confiança e expansão por relacionamento.' },
+        { icon: '🖥️', title: 'Facilitação e educação', text: 'Contextos com mediação, treinamento, apresentação e condução de grupos.' },
       ],
       recommendations: [
         { title: 'Eleve a Assertividade', text: 'Pratique mensagens curtas e firmes para não depender apenas de clima relacional.' },
@@ -837,13 +836,15 @@ function computeWeightedMetric(scores = {}, weights = {}) {
 
 function classifyMetric(value = 0) {
   const normalized = clampPercentage(value);
-  if (normalized >= 50) return { label: 'Alto', color: 'var(--s)' };
-  if (normalized >= 30) return { label: 'Médio', color: 'var(--i)' };
+  if (normalized >= 40) return { label: 'Alto', color: 'var(--d)' };
+  if (normalized >= 20) return { label: 'Moderado', color: 'var(--i)' };
   return { label: 'Baixo', color: 'var(--d)' };
 }
 
 function buildBehavioralIndices(profile = {}) {
   const scores = profile.scores || {};
+  const hasHighRelationalCommunication =
+    toNumber(scores?.I, 0) >= 40 && toNumber(scores?.S, 0) >= 35;
 
   const leadership = computeWeightedMetric(scores, {
     D: 0.42,
@@ -885,7 +886,9 @@ function buildBehavioralIndices(profile = {}) {
       title: 'Índice de Comunicação',
       value: communication,
       description:
-        communication >= 50
+        hasHighRelationalCommunication
+          ? 'Comunicação expressiva e relacional. Conecta com facilidade, adapta a mensagem ao contexto e engaja pessoas com entusiasmo e clareza.'
+          : communication >= 50
           ? 'Comunicação com boa tração relacional e facilidade para engajar pessoas.'
           : communication >= 30
             ? 'Comunicação equilibrada, com clareza suficiente sem depender de alta exposição social.'
@@ -917,16 +920,23 @@ function buildBehavioralIndices(profile = {}) {
 function buildCoverIndicators(profile = {}) {
   const indices = buildBehavioralIndices(profile);
   const leadership = classifyMetric(indices[0]?.value);
-  const communication = classifyMetric(indices[1]?.value);
+  let communication = classifyMetric(indices[1]?.value);
   const organization = classifyMetric(
     computeWeightedMetric(profile.scores, { D: 0.05, I: 0.05, S: 0.2, C: 0.7 }),
   );
-  const patience = classifyMetric(
+  let patience = classifyMetric(
     computeWeightedMetric(profile.scores, { D: 0.05, I: 0.05, S: 0.75, C: 0.15 }),
   );
   const detail = classifyMetric(
     computeWeightedMetric(profile.scores, { D: 0.0, I: 0.05, S: 0.15, C: 0.8 }),
   );
+
+  if (toNumber(profile?.scores?.I, 0) >= 40) {
+    communication = { label: 'Alto', color: 'var(--d)' };
+  }
+  if (toNumber(profile?.scores?.S, 0) >= 40 && communication.label !== 'Baixo') {
+    patience = { label: 'Moderado', color: 'var(--i)' };
+  }
 
   return [
     { title: 'Liderança', ...leadership },
@@ -1218,7 +1228,7 @@ function getProfilePlaybook(profile = {}) {
       ],
       nva: [
         { icon: '🤝', title: 'Estilo de Negociação', text: 'Negocia por conexão, leitura de audiência e construção de adesão. Funciona melhor com abertura e espaço para composição.' },
-        { icon: '💼', title: 'Estilo de Vendas', text: 'Vai bem em prospecção, relacionamento e narrativa comercial. Ganha tração quando consegue unir presença, confiança e contexto.' },
+        { icon: '📣', title: 'Estilo de Vendas', text: 'Vai bem em prospecção, relacionamento e narrativa comercial. Ganha tração quando consegue unir presença, confiança e contexto.' },
         { icon: '📚', title: 'Estilo de Aprendizado', text: 'Aprende por troca, experimentação e aplicação com pessoas. Engaja melhor quando há conversa, repertório e visibilidade de uso.' },
       ],
       dna: [
@@ -1428,7 +1438,7 @@ function buildNaturalAdaptedInterpretation(profile = {}) {
     .sort((left, right) => right.delta - left.delta)[0];
 
   if (!strongest || strongest.delta === 0) {
-    return 'Os dados disponíveis mostram mudança leve entre perfil natural e adaptado, sem deslocamentos relevantes entre os fatores.';
+    return 'Os perfis Natural e Adaptado apresentam alta congruência neste caso, indicando comportamento consistente independentemente do contexto profissional — característica positiva de autenticidade.';
   }
 
   return `${changes.join(' ')} A maior diferença aparece em ${FACTOR_META[strongest.factor].name}.`;
@@ -2719,6 +2729,7 @@ function resolveStableIconToken(icon = '', title = '') {
     '⏱️': 'TM',
     '💼': 'NV',
     '📚': 'AP',
+    '🖥️': 'ED',
     '🔍': 'AC',
     '🗣️': 'CM',
     '🔄': 'FL',
@@ -2748,12 +2759,46 @@ function renderStableMonogramIcon(icon = '', title = '') {
   return `<div class="ibox n" style="padding:0;overflow:hidden;"><svg viewBox="0 0 38 38" width="38" height="38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="0.5" y="0.5" width="37" height="37" rx="9" fill="rgba(108,71,255,0.18)" stroke="rgba(108,71,255,0.35)"/><text x="19" y="24" text-anchor="middle" font-family="Sora,sans-serif" font-size="11" font-weight="700" fill="#cfd4ff">${escapeHtml(token)}</text></svg></div>`;
 }
 
+function resolveCardIconKind(icon = '', title = '') {
+  const normalizedIcon = toText(icon).trim();
+  const normalizedTitle = toText(title).toLowerCase();
+  if (normalizedIcon === '🤝') return 'handshake';
+  if (normalizedIcon === '📣' || /vendas|marketing|comunicação/.test(normalizedTitle)) return 'megaphone';
+  if (normalizedIcon === '📚') return 'book';
+  if (normalizedIcon === '🖥️' || /facilita|educa/.test(normalizedTitle)) return 'presentation';
+  return '';
+}
+
+function renderCardIcon(icon = '', title = '') {
+  const kind = resolveCardIconKind(icon, title);
+  if (!kind) {
+    return renderStableMonogramIcon(icon, title);
+  }
+
+  const glyphs = {
+    handshake:
+      '<path d="M8 22l7-7 4 4 4-4 7 7" fill="none" stroke="#cfd4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 26l3-3m2 3l3-3m2 3l3-3m2 3l3-3" fill="none" stroke="#cfd4ff" stroke-width="1.6" stroke-linecap="round"/>',
+    megaphone:
+      '<path d="M9 21l10-5v8l-10-5z" fill="none" stroke="#cfd4ff" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 16l8-3v14l-8-3" fill="none" stroke="#cfd4ff" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 23l2 6h4l-1.6-5" fill="none" stroke="#cfd4ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    book:
+      '<rect x="8.5" y="10" width="9.5" height="17.5" rx="1.8" fill="none" stroke="#cfd4ff" stroke-width="1.6"/><rect x="19.5" y="10" width="9.5" height="17.5" rx="1.8" fill="none" stroke="#cfd4ff" stroke-width="1.6"/><line x1="19" y1="10" x2="19" y2="27.5" stroke="#cfd4ff" stroke-width="1.2"/><line x1="12" y1="14" x2="16" y2="14" stroke="#cfd4ff" stroke-width="1.2"/><line x1="22" y1="14" x2="26" y2="14" stroke="#cfd4ff" stroke-width="1.2"/>',
+    presentation:
+      '<rect x="8.5" y="9.5" width="21" height="13.5" rx="2" fill="none" stroke="#cfd4ff" stroke-width="1.6"/><line x1="19" y1="23" x2="19" y2="30" stroke="#cfd4ff" stroke-width="1.6" stroke-linecap="round"/><line x1="14" y1="30" x2="24" y2="30" stroke="#cfd4ff" stroke-width="1.6" stroke-linecap="round"/><line x1="12" y1="13" x2="25" y2="13" stroke="#cfd4ff" stroke-width="1.2"/><line x1="12" y1="17" x2="21" y2="17" stroke="#cfd4ff" stroke-width="1.2"/>',
+  };
+
+  return `<div class="ibox n" style="padding:0;overflow:hidden;"><svg viewBox="0 0 38 38" width="38" height="38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="0.5" y="0.5" width="37" height="37" rx="9" fill="rgba(108,71,255,0.18)" stroke="rgba(108,71,255,0.35)"/>${glyphs[kind]}</svg></div>`;
+}
+
 function renderCareerCard(card = {}) {
-  return `<div class="career-card"><div class="ibox n">${escapeHtml(card.icon)}</div><div><h4>${escapeHtml(card.title)}</h4><p>${escapeHtml(card.text)}</p></div></div>`;
+  return `<div class="career-card">${renderCardIcon(card.icon, card.title)}<div><h4>${escapeHtml(card.title)}</h4><p>${escapeHtml(card.text)}</p></div></div>`;
 }
 
 function renderRecommendationItem(item = {}) {
   return `<div class="rec-item"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.text)}</p></div>`;
+}
+
+function renderCareerCards(cards = []) {
+  return cards.map((card) => renderCareerCard(card)).join('');
 }
 
 function formatLookupDateTime(value = '') {
@@ -2883,7 +2928,21 @@ function renderDevelopmentCard(item = {}) {
 }
 
 function renderNvaCard(icon = '', title = '', text = '') {
-  return `<div class="nva-card"><div class="nva-icon">${escapeHtml(icon)}</div><h4 style="font-size:16px;margin-bottom:10px;">${escapeHtml(title)}</h4><p>${escapeHtml(text)}</p></div>`;
+  return `<div class="nva-card"><div class="nva-icon">${renderCardIcon(icon, title)}</div><h4 style="font-size:16px;margin-bottom:10px;">${escapeHtml(title)}</h4><p>${escapeHtml(text)}</p></div>`;
+}
+
+function renderRadarFactorCard(profile = {}, factor = 'D') {
+  const colors = {
+    D: '#ff5555',
+    I: '#f5c842',
+    S: '#42e8d8',
+    C: '#8b6dff',
+  };
+  const score = clampPercentage(profile?.scores?.[factor]);
+  const titleLabel = `${FACTOR_META[factor].name} — ${score}% · ${profile?.ranks?.title?.[factor] || 'Quaternário'}`;
+  const narrative = getFactorNarrative(factor, score);
+
+  return `<div style="display:flex;align-items:center;gap:14px;background:var(--bg2);border:1px solid var(--bord);border-left:3px solid ${colors[factor]};border-radius:8px;padding:12px 16px;"><div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:${colors[factor]};min-width:32px;">${factor}</div><div><div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px;">${escapeHtml(titleLabel)}</div><p style="font-size:12px;margin:0;">${escapeHtml(narrative)}</p></div></div>`;
 }
 
 function renderDnaCard(item = {}) {
@@ -2898,6 +2957,15 @@ function renderScaleRows(rows = []) {
       return `<div class="scale-row"><div class="scale-label">${escapeHtml(row.title)}</div><div class="bar-track"><div class="${className}" style="width:${width}%;"></div></div></div>`;
     })
     .join('');
+}
+
+function renderIntensityColumns(profile = {}) {
+  return DISC_FACTOR_KEYS.map((factor) => {
+    const score = clampPercentage(profile.scores?.[factor]);
+    const height = Math.max(18, Math.round(score * 1.7));
+    const isLowTone = factor === 'S' || factor === 'C';
+    return `<div class="int-col"><div style="font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--pur2);line-height:1;">${score}%</div><div class="int-bar${isLowTone ? ' lt' : ''}" style="height:${height}px;"></div><div class="int-name">${factor}</div></div>`;
+  }).join('');
 }
 
 function renderPlanDetailCards(items = []) {
@@ -3143,22 +3211,35 @@ function applyDynamicDiscHtmlAdjustments(html = '', profile = {}, options = {}) 
     return updatedBlock;
   });
 
+  result = replaceSlideBlock(result, 'p3', (block) => {
+    return block.replace(
+      /(<h3>Visão Geral do Perfil<\/h3>\s*<p>)([\s\S]*?)(<\/p>)/,
+      (match, start, content, end) => {
+        const rawContent = String(content || '').trim();
+        if (!/(?:…|\.{3})\s*$/.test(rawContent)) {
+          return match;
+        }
+
+        const withoutEllipsis = rawContent.replace(/(?:…|\.{3})\s*$/, '').trim();
+        const withPeriod = withoutEllipsis.endsWith('.') ? withoutEllipsis : `${withoutEllipsis}.`;
+        const shouldAppendFocus = /diferença de\s+\d+\s+pontos\.?$/i.test(withoutEllipsis);
+        const finalized = shouldAppendFocus
+          ? `${withPeriod} ${escapeHtml(getPrimaryFocusNarrative(profile))}`
+          : withPeriod;
+        return `${start}${finalized}${end}`;
+      },
+    );
+  });
+
   result = replaceSlideBlock(result, 'sg-radar', (block) => {
     let updatedBlock = block.replace(
       /<svg viewBox="0 0 900 520"[\s\S]*?<\/svg>/,
       renderRadarChartSvg(profile.scores),
     );
-
-    DISC_FACTOR_KEYS.forEach((factor) => {
-      const label = `${FACTOR_META[factor].name} — ${profile.scores[factor]}% · ${profile.ranks.title[factor]}`;
-      const pattern = new RegExp(
-        `(<div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:2px;">${escapeRegex(label)}<\\/div><p style="font-size:12px;margin:0;">)([\\s\\S]*?)(<\\/p>)`,
-      );
-      updatedBlock = updatedBlock.replace(
-        pattern,
-        `$1${escapeHtml(getFactorNarrative(factor, profile.scores[factor]))}$3`,
-      );
-    });
+    updatedBlock = updatedBlock.replace(
+      /(<div style="display:flex;flex-direction:column;gap:10px;">)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>)/,
+      `$1${DISC_FACTOR_KEYS.map((factor) => renderRadarFactorCard(profile, factor)).join('')}$3`,
+    );
 
     return updatedBlock;
   });
@@ -3199,15 +3280,10 @@ function applyDynamicDiscHtmlAdjustments(html = '', profile = {}, options = {}) 
 
   result = replaceSlideBlock(result, 's6', (block) => {
     let updatedBlock = block;
-    DISC_FACTOR_KEYS.forEach((factor, index) => {
-      const height = Math.max(18, Math.round((profile.scores?.[factor] || 0) * 1.7));
-      updatedBlock = replaceNthMatch(
-        updatedBlock,
-        /<div class="int-col"><div class="int-bar(?: lt)?" style="height:\d+px;"><\/div><div class="int-name">[DISC]<\/div><\/div>/g,
-        index,
-        `<div class="int-col"><div class="int-bar${factor === 'S' || factor === 'C' ? ' lt' : ''}" style="height:${height}px;"></div><div class="int-name">${factor}</div></div>`,
-      );
-    });
+    updatedBlock = updatedBlock.replace(
+      /(<div class="int-row">)([\s\S]*?)(<\/div>\s*<div style="text-align:center;font-size:11px;color:var\(--t4\);margin-top:6px;">Fator<\/div>)/,
+      `$1${renderIntensityColumns(profile)}$3`,
+    );
     updatedBlock = updatedBlock.replace(
       /(<p style="margin-bottom:18px;">)([\s\S]*?)(<\/p>)/,
       `$1${escapeHtml(buildMapSummary(profile))}$3`,
@@ -3436,14 +3512,10 @@ function applyDynamicDiscHtmlAdjustments(html = '', profile = {}, options = {}) 
   result = replaceSlideBlock(result, 's19', (block) => {
     let updatedBlock = block;
     updatedBlock = replaceNthMatch(updatedBlock, /<tbody>[\s\S]*?<\/tbody>/g, 0, renderTableBody(buildDevelopmentRows(profile)));
-    buildCareerCards(profile).forEach((card, index) => {
-      updatedBlock = replaceNthMatch(
-        updatedBlock,
-        /<div class="career-card"><div class="ibox n">[\s\S]*?<\/div><div><h4>[\s\S]*?<\/h4><p>[\s\S]*?<\/p><\/div><\/div>/g,
-        index,
-        renderCareerCard(card),
-      );
-    });
+    updatedBlock = updatedBlock.replace(
+      /(<div class="career-grid">)([\s\S]*?)(<\/div>\s*<\/div>\s*<div style="flex:1;padding-top:56px;">)/,
+      `$1${renderCareerCards(buildCareerCards(profile))}$3`,
+    );
     return updatedBlock;
   });
 

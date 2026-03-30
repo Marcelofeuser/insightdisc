@@ -401,20 +401,17 @@ function normalizeScores(input = {}) {
     C: Math.max(0, toNumber(input.C, DEFAULT_INPUT.scores.C)),
   };
 
-  const total = raw.D + raw.I + raw.S + raw.C;
-  if (!Number.isFinite(total) || total <= 0) {
+  const hasAnyScore = Object.values(raw).some((value) => value > 0);
+  if (!hasAnyScore) {
     return { ...DEFAULT_INPUT.scores };
   }
 
-  const normalized = {
-    D: Math.round((raw.D / total) * 100),
-    I: Math.round((raw.I / total) * 100),
-    S: Math.round((raw.S / total) * 100),
-    C: 0,
+  return {
+    D: clamp(raw.D, 0, 100),
+    I: clamp(raw.I, 0, 100),
+    S: clamp(raw.S, 0, 100),
+    C: clamp(raw.C, 0, 100),
   };
-  normalized.C = Math.max(0, 100 - normalized.D - normalized.I - normalized.S);
-
-  return normalized;
 }
 
 function computeProfile(scores) {
