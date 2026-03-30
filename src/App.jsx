@@ -340,6 +340,7 @@ const AuthenticatedApp = () => {
       <Route path="/panel" element={<Navigate to="/painel" replace />} />
       <Route path="/painel" element={DashboardHomeRouteElement} />
       <Route path="/Dashboard" element={DashboardHomeRouteElement} />
+      <Route path="/ai-lab" element={<Navigate to="/painel/ai-lab" replace />} />
       <Route
         path="/painel/ai-lab"
         element={
