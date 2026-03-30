@@ -11,6 +11,11 @@ import { generateWithGroq } from '../modules/ai/groq-provider.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { buildCoachReportContext } from '../shared/frontend/modules/coach/reportContext.js';
 import {
+  hasFeatureAccess,
+  resolveFeatureMinimumPlan,
+  resolveUserPlan,
+} from '../modules/plans/feature-access.js';
+import {
   AI_STRATEGIC_MODULES,
   normalizeAiSegment,
   normalizeStrategicModule,
@@ -311,6 +316,296 @@ function buildReportPreviewUserPrompt({ input, context, scores, segment }) {
   ].join('\n');
 }
 
+function normalizeStrategicText(value, maxLength = 1200) {
+  return toText(value).slice(0, maxLength);
+}
+
+function normalizeStrategicList(value, maxItems = 8, maxLength = 320) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => normalizeStrategicText(item, maxLength)).filter(Boolean))].slice(0, maxItems);
+}
+
+function normalizePlanStage(items = []) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+      const normalized = {
+        focus: normalizeStrategicText(entry.focus, 220),
+        behavior: normalizeStrategicText(entry.behavior, 320),
+        action: normalizeStrategicText(entry.action, 320),
+        frequency: normalizeStrategicText(entry.frequency, 160),
+        progressIndicator: normalizeStrategicText(
+          entry.progressIndicator || entry.progress_indicator,
+          240,
+        ),
+      };
+      if (!normalized.focus && !normalized.behavior && !normalized.action) return null;
+      return normalized;
+    })
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function normalizeStrategicModulePayload(moduleKey, parsed = {}) {
+  const source = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+
+  if (moduleKey === AI_STRATEGIC_MODULES.DEVELOPMENT_PLAN) {
+    return {
+      executiveSummary: normalizeStrategicText(source.executiveSummary || source.summary, 900),
+      shortTerm: normalizePlanStage(source.shortTerm || source.short_term),
+      mediumTerm: normalizePlanStage(source.mediumTerm || source.medium_term),
+      longTerm: normalizePlanStage(source.longTerm || source.long_term),
+      suggestions: normalizeStrategicList(source.suggestions, 8, 260),
+    };
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.MANAGER_FEEDBACK) {
+    return {
+      opening: normalizeStrategicText(source.opening, 800),
+      positivePoints: normalizeStrategicList(source.positivePoints || source.positive_points, 8, 240),
+      attentionPoints: normalizeStrategicList(source.attentionPoints || source.attention_points, 8, 240),
+      guidance: normalizeStrategicText(source.guidance, 1200),
+      closing: normalizeStrategicText(source.closing, 600),
+    };
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.DEBRIEF_SCRIPT) {
+    return {
+      opening: normalizeStrategicText(source.opening, 800),
+      keyMessages: normalizeStrategicList(source.keyMessages || source.key_messages, 8, 260),
+      conversationFlow: normalizeStrategicList(source.conversationFlow || source.conversation_flow, 10, 260),
+      resistancePrevention: normalizeStrategicList(source.resistancePrevention || source.resistance_prevention, 8, 260),
+      questions: normalizeStrategicList(source.questions, 12, 220),
+      closing: normalizeStrategicText(source.closing, 600),
+    };
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.BEHAVIORAL_RISK) {
+    return {
+      summary: normalizeStrategicText(source.summary, 900),
+      conflictRisk: normalizeStrategicText(source.conflictRisk || source.conflict_risk, 500),
+      communicationRisk: normalizeStrategicText(source.communicationRisk || source.communication_risk, 500),
+      pressureRisk: normalizeStrategicText(source.pressureRisk || source.pressure_risk, 500),
+      alignmentRisk: normalizeStrategicText(source.alignmentRisk || source.alignment_risk, 500),
+      mitigations: normalizeStrategicList(source.mitigations, 10, 260),
+    };
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.TEAM_ALLOCATION) {
+    return {
+      summary: normalizeStrategicText(source.summary, 900),
+      bestContexts: normalizeStrategicList(source.bestContexts || source.best_contexts, 8, 260),
+      avoidContexts: normalizeStrategicList(source.avoidContexts || source.avoid_contexts, 8, 260),
+      roleSuggestions: normalizeStrategicList(source.roleSuggestions || source.role_suggestions, 8, 260),
+      collaborationGuidelines: normalizeStrategicList(
+        source.collaborationGuidelines || source.collaboration_guidelines,
+        10,
+        260,
+      ),
+    };
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.IDEAL_ROLE_PROFILE) {
+    return {
+      summary: normalizeStrategicText(source.summary, 900),
+      idealProfile: normalizeStrategicText(source.idealProfile || source.ideal_profile, 700),
+      fitSignals: normalizeStrategicList(source.fitSignals || source.fit_signals, 8, 260),
+      mismatchRisks: normalizeStrategicList(source.mismatchRisks || source.mismatch_risks, 8, 260),
+      interviewFocus: normalizeStrategicList(source.interviewFocus || source.interview_focus, 10, 260),
+      recommendedEnvironments: normalizeStrategicList(
+        source.recommendedEnvironments || source.recommended_environments,
+        8,
+        260,
+      ),
+    };
+  }
+
+  return {
+    summary: normalizeStrategicText(source.summary, 900),
+    compatibilityScore: Math.max(0, Math.min(100, toNumber(source.compatibilityScore || source.compatibility_score, 0))),
+    synergies: normalizeStrategicList(source.synergies, 10, 260),
+    potentialConflicts: normalizeStrategicList(source.potentialConflicts || source.potential_conflicts, 10, 260),
+    coexistenceRecommendations: normalizeStrategicList(
+      source.coexistenceRecommendations || source.coexistence_recommendations,
+      10,
+      260,
+    ),
+    leadershipGuidance: normalizeStrategicText(source.leadershipGuidance || source.leadership_guidance, 900),
+  };
+}
+
+function hasMeaningfulStrategicPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object') return false;
+  return Object.values(payload).some((value) => {
+    if (typeof value === 'string') return Boolean(value.trim());
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.values(value).some((entry) => Boolean(toText(entry)));
+    if (typeof value === 'number') return Number.isFinite(value) && value > 0;
+    return false;
+  });
+}
+
+function formatStrategicContextBlock(context = {}, scores = {}) {
+  return [
+    `Assessment ID: ${toText(context.assessmentId) || 'n/d'}`,
+    `Report ID: ${toText(context.reportId) || 'n/d'}`,
+    `Respondente: ${toText(context.respondentName) || 'n/d'}`,
+    `Email: ${toText(context.candidateEmail) || 'n/d'}`,
+    `Tipo: ${toText(context.reportType) || 'business'}`,
+    `Perfil: ${toText(context.profileCode || `${context.dominantFactor}/${context.secondaryFactor}`) || 'n/d'}`,
+    `Predominante: ${toText(context.dominantFactor) || 'n/d'}`,
+    `Secundário: ${toText(context.secondaryFactor) || 'n/d'}`,
+    `Scores: D=${toNumber(scores.D, 0)}% | I=${toNumber(scores.I, 0)}% | S=${toNumber(scores.S, 0)}% | C=${toNumber(scores.C, 0)}%`,
+    `Resumo: ${toText(context.summary) || 'Não informado.'}`,
+    `Forças: ${(context.strengths || []).length ? context.strengths.join(' | ') : 'Não informado.'}`,
+    `Atenções: ${(context.limitations || []).length ? context.limitations.join(' | ') : 'Não informado.'}`,
+    `Riscos: ${(context.riskSignals || []).length ? context.riskSignals.join(' | ') : toText(context.riskProfile) || 'Não informado.'}`,
+    `Recomendações: ${(context.developmentRecommendations || []).length ? context.developmentRecommendations.join(' | ') : 'Não informado.'}`,
+  ].join('\n');
+}
+
+function buildStrategicUserPrompt({
+  moduleKey,
+  segment,
+  primaryContext,
+  primaryScores,
+  compareContext,
+  compareScores,
+  history = [],
+  jobContext = {},
+}) {
+  const normalizedHistory = Array.isArray(history)
+    ? history
+      .map((entry, index) => {
+        const question = normalizeStrategicText(entry?.question, 240);
+        const answer = normalizeStrategicText(entry?.answer, 320);
+        if (!question && !answer) return '';
+        return `Histórico ${index + 1}: Q=${question || 'n/d'} | A=${answer || 'n/d'}`;
+      })
+      .filter(Boolean)
+      .slice(0, 8)
+    : [];
+
+  const jobDetails = [
+    `Cargo alvo: ${normalizeStrategicText(jobContext?.roleTitle, 180) || 'n/d'}`,
+    `Senioridade: ${normalizeStrategicText(jobContext?.seniority, 120) || 'n/d'}`,
+    `Escopo de equipe: ${normalizeStrategicText(jobContext?.teamScope, 320) || 'n/d'}`,
+    `Objetivo do negócio: ${normalizeStrategicText(jobContext?.businessGoal, 320) || 'n/d'}`,
+  ].join('\n');
+
+  return [
+    `MÓDULO SOLICITADO: ${moduleKey}`,
+    `SEGMENTO: ${segment}`,
+    '',
+    'CONTEXTO PRINCIPAL (REAL):',
+    formatStrategicContextBlock(primaryContext, primaryScores),
+    '',
+    compareContext
+      ? [
+          'CONTEXTO SECUNDÁRIO PARA FIT (REAL):',
+          formatStrategicContextBlock(compareContext, compareScores),
+          '',
+        ].join('\n')
+      : '',
+    'CONTEXTO COMPLEMENTAR DE VAGA/EQUIPE:',
+    jobDetails,
+    '',
+    'HISTÓRICO DISPONÍVEL:',
+    normalizedHistory.length ? normalizedHistory.join('\n') : 'Sem histórico adicional.',
+    '',
+    'Instrução final: entregue orientação prática de gestão de pessoas baseada exclusivamente nesses dados.',
+  ].join('\n');
+}
+
+function buildStrategicJsonShape(moduleKey) {
+  if (moduleKey === AI_STRATEGIC_MODULES.DEVELOPMENT_PLAN) {
+    return [
+      '{',
+      '  "executiveSummary": "string",',
+      '  "shortTerm": [{"focus":"string","behavior":"string","action":"string","frequency":"string","progressIndicator":"string"}],',
+      '  "mediumTerm": [{"focus":"string","behavior":"string","action":"string","frequency":"string","progressIndicator":"string"}],',
+      '  "longTerm": [{"focus":"string","behavior":"string","action":"string","frequency":"string","progressIndicator":"string"}],',
+      '  "suggestions": ["string"]',
+      '}',
+    ].join('\n');
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.MANAGER_FEEDBACK) {
+    return [
+      '{',
+      '  "opening": "string",',
+      '  "positivePoints": ["string"],',
+      '  "attentionPoints": ["string"],',
+      '  "guidance": "string",',
+      '  "closing": "string"',
+      '}',
+    ].join('\n');
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.DEBRIEF_SCRIPT) {
+    return [
+      '{',
+      '  "opening": "string",',
+      '  "keyMessages": ["string"],',
+      '  "conversationFlow": ["string"],',
+      '  "resistancePrevention": ["string"],',
+      '  "questions": ["string"],',
+      '  "closing": "string"',
+      '}',
+    ].join('\n');
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.BEHAVIORAL_RISK) {
+    return [
+      '{',
+      '  "summary": "string",',
+      '  "conflictRisk": "string",',
+      '  "communicationRisk": "string",',
+      '  "pressureRisk": "string",',
+      '  "alignmentRisk": "string",',
+      '  "mitigations": ["string"]',
+      '}',
+    ].join('\n');
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.TEAM_ALLOCATION) {
+    return [
+      '{',
+      '  "summary": "string",',
+      '  "bestContexts": ["string"],',
+      '  "avoidContexts": ["string"],',
+      '  "roleSuggestions": ["string"],',
+      '  "collaborationGuidelines": ["string"]',
+      '}',
+    ].join('\n');
+  }
+
+  if (moduleKey === AI_STRATEGIC_MODULES.IDEAL_ROLE_PROFILE) {
+    return [
+      '{',
+      '  "summary": "string",',
+      '  "idealProfile": "string",',
+      '  "fitSignals": ["string"],',
+      '  "mismatchRisks": ["string"],',
+      '  "interviewFocus": ["string"],',
+      '  "recommendedEnvironments": ["string"]',
+      '}',
+    ].join('\n');
+  }
+
+  return [
+    '{',
+    '  "summary": "string",',
+    '  "compatibilityScore": 0,',
+    '  "synergies": ["string"],',
+    '  "potentialConflicts": ["string"],',
+    '  "coexistenceRecommendations": ["string"],',
+    '  "leadershipGuidance": "string"',
+    '}',
+  ].join('\n');
+}
+
 async function resolveAuthorizedCoachAssessment(user = {}, context = {}) {
   const assessmentId = toText(context.assessmentId);
   const reportId = toText(context.reportId);
@@ -383,6 +678,75 @@ async function resolveAuthorizedCoachAssessment(user = {}, context = {}) {
   });
 }
 
+function createHttpError(status, code, message) {
+  const error = new Error(message);
+  error.status = status;
+  error.code = code;
+  return error;
+}
+
+async function resolveAuthorizedStrategicContext({ user, input, requestContext }) {
+  if (!requestContext.assessmentId && !requestContext.reportId) {
+    throw createHttpError(
+      400,
+      'COACH_CONTEXT_REPORT_REQUIRED',
+      'Selecione um relatório válido antes de gerar insights estratégicos.',
+    );
+  }
+
+  const assessment = await resolveAuthorizedCoachAssessment(user, requestContext);
+  if (!assessment || !assessment.report) {
+    throw createHttpError(
+      404,
+      'COACH_REPORT_NOT_FOUND',
+      'Não foi possível localizar o relatório selecionado para este usuário.',
+    );
+  }
+
+  const reportContext = buildCoachReportContext({
+    id: assessment.id,
+    assessmentId: assessment.id,
+    reportId: assessment.report?.id,
+    reportType: requestContext.reportType || input.mode || 'business',
+    type: requestContext.reportType || input.mode || 'business',
+    candidateName: assessment.candidateName,
+    candidateEmail: assessment.candidateEmail,
+    completedAt: assessment.completedAt,
+    createdAt: assessment.createdAt,
+    discProfile: assessment.report?.discProfile || {},
+  });
+
+  const context = mergeRealCoachContext({
+    input,
+    requestContext,
+    reportContext,
+  });
+
+  const scores = normalizeDiscScores(reportContext?.scores || {
+    D: input.D,
+    I: input.I,
+    S: input.S,
+    C: input.C,
+  });
+  const rankedFactors = rankDiscFactors(scores);
+  const primaryFactor = toText(context.dominantFactor || rankedFactors[0]?.factor || 'D').toUpperCase();
+  const secondaryFactor = toText(context.secondaryFactor || rankedFactors[1]?.factor || 'I').toUpperCase();
+  const profileCode = toText(context.profileCode || `${primaryFactor}/${secondaryFactor}`).toUpperCase();
+
+  return {
+    context: {
+      ...context,
+      dominantFactor: primaryFactor,
+      secondaryFactor,
+      profileCode,
+    },
+    scores,
+    primaryFactor,
+    secondaryFactor,
+    profileCode,
+  };
+}
+
 function mergeRealCoachContext({ input, requestContext, reportContext }) {
   return normalizeCoachContext({
     ...requestContext,
@@ -416,6 +780,34 @@ function requireAiAccess(req, res, next) {
   }
 
   return requireAuth(req, res, () => attachUser(req, res, next));
+}
+
+function requireAiFeature(feature) {
+  return (req, res, next) => {
+    if (!req.user?.id) {
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'UNAUTHORIZED',
+        message: 'Autenticação necessária.',
+      });
+    }
+
+    const currentPlan = resolveUserPlan(req.user || {});
+    if (hasFeatureAccess(currentPlan, feature)) {
+      return next();
+    }
+
+    return sendSafeJsonError(res, {
+      status: 403,
+      error: 'FEATURE_PLAN_REQUIRED',
+      message: 'Plano atual sem acesso ao recurso solicitado.',
+      details: {
+        feature,
+        plan: currentPlan,
+        requiredPlan: resolveFeatureMinimumPlan(feature),
+      },
+    });
+  };
 }
 
 router.post('/disc-insights', requireAiAccess, async (req, res) => {
@@ -548,18 +940,13 @@ router.post('/report-preview', requireAiAccess, async (req, res) => {
   }
 });
 
-async function handleCoachRequest(req, res) {
-  try {
-    const input = coachInputSchema.parse(req.body || {});
-    const requestContext = normalizeCoachContext(input.context);
+router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai_lab'), async (req, res) => {
+  const startedAt = Date.now();
 
-    if (!requestContext.assessmentId && !requestContext.reportId) {
-      return sendSafeJsonError(res, {
-        status: 400,
-        error: 'COACH_CONTEXT_REPORT_REQUIRED',
-        message: 'Selecione um relatório válido antes de gerar insight no Coach AI.',
-      });
-    }
+  try {
+    const input = strategicInputSchema.parse(req.body || {});
+    const moduleKey = normalizeStrategicModule(input.module);
+    const segment = normalizeAiSegment(input.segment);
 
     if (!req.user?.id) {
       return sendSafeJsonError(res, {
@@ -569,45 +956,182 @@ async function handleCoachRequest(req, res) {
       });
     }
 
-    const authorizedAssessment = await resolveAuthorizedCoachAssessment(req.user, requestContext);
-    if (!authorizedAssessment || !authorizedAssessment.report) {
+    const primaryRequestContext = normalizeCoachContext(input.context);
+    const primaryResolved = await resolveAuthorizedStrategicContext({
+      user: req.user,
+      input: {
+        ...input,
+        D: toNumber(input?.D, 0),
+        I: toNumber(input?.I, 0),
+        S: toNumber(input?.S, 0),
+        C: toNumber(input?.C, 0),
+      },
+      requestContext: primaryRequestContext,
+    });
+    const primaryRiskSignals = buildRiskSignals(primaryResolved.scores, primaryResolved.context);
+
+    let compareResolved = null;
+    if (moduleKey === AI_STRATEGIC_MODULES.PROFILE_FIT) {
+      const compareRequestContext = normalizeCoachContext(input.compareContext);
+      if (!compareRequestContext.assessmentId && !compareRequestContext.reportId) {
+        throw createHttpError(
+          400,
+          'STRATEGIC_COMPARE_CONTEXT_REQUIRED',
+          'Selecione dois relatórios para gerar análise de fit entre perfis.',
+        );
+      }
+
+      compareResolved = await resolveAuthorizedStrategicContext({
+        user: req.user,
+        input: {
+          ...input,
+          D: toNumber(input?.D, 0),
+          I: toNumber(input?.I, 0),
+          S: toNumber(input?.S, 0),
+          C: toNumber(input?.C, 0),
+        },
+        requestContext: compareRequestContext,
+      });
+      compareResolved = {
+        ...compareResolved,
+        context: {
+          ...compareResolved.context,
+          riskSignals: buildRiskSignals(compareResolved.scores, compareResolved.context),
+        },
+      };
+    }
+
+    const userPromptBase = buildStrategicUserPrompt({
+      moduleKey,
+      segment,
+      primaryContext: {
+        ...primaryResolved.context,
+        riskSignals: primaryRiskSignals,
+      },
+      primaryScores: primaryResolved.scores,
+      compareContext: compareResolved?.context || null,
+      compareScores: compareResolved?.scores || null,
+      history: input.history || [],
+      jobContext: input.jobContext || {},
+    });
+    const userPrompt = [
+      userPromptBase,
+      '',
+      'Retorne apenas JSON válido, sem markdown, neste formato:',
+      buildStrategicJsonShape(moduleKey),
+    ].join('\n');
+    const systemPrompt = resolveStrategicSystemPrompt({
+      segment,
+      moduleKey,
+    });
+
+    const groqResult = await generateWithGroq({
+      systemPrompt,
+      userPrompt,
+      maxTokens: 1700,
+      temperature: 0.24,
+      responseFormat: 'json_object',
+      logLabel: `strategic:${moduleKey}:${segment}`,
+    });
+
+    const parsed = parseProviderJsonSafely(groqResult.text, {
+      provider: 'groq',
+      model: groqResult.model,
+    });
+    const normalizedData = normalizeStrategicModulePayload(moduleKey, parsed);
+
+    if (!hasMeaningfulStrategicPayload(normalizedData)) {
+      throw createHttpError(
+        503,
+        'AI_STRATEGIC_EMPTY_RESPONSE',
+        'Não foi possível gerar o insight agora. Tente novamente.',
+      );
+    }
+
+    return res.status(200).json({
+      ok: true,
+      provider: 'groq',
+      model: toText(groqResult?.model || env.groqModel || 'llama3-70b-8192'),
+      source: 'groq',
+      usedFallback: false,
+      module: moduleKey,
+      segment,
+      durationMs: Date.now() - startedAt,
+      data: normalizedData,
+      context: {
+        primary: {
+          reportId: primaryResolved.context.reportId,
+          assessmentId: primaryResolved.context.assessmentId,
+          respondentName: primaryResolved.context.respondentName,
+          profileCode: primaryResolved.profileCode,
+          dominantFactor: primaryResolved.primaryFactor,
+          secondaryFactor: primaryResolved.secondaryFactor,
+          scores: primaryResolved.scores,
+        },
+        compare: compareResolved
+          ? {
+              reportId: compareResolved.context.reportId,
+              assessmentId: compareResolved.context.assessmentId,
+              respondentName: compareResolved.context.respondentName,
+              profileCode: compareResolved.profileCode,
+              dominantFactor: compareResolved.primaryFactor,
+              secondaryFactor: compareResolved.secondaryFactor,
+              scores: compareResolved.scores,
+            }
+          : null,
+      },
+      attempts: [
+        {
+          provider: 'groq',
+          model: toText(groqResult?.model || env.groqModel || 'llama3-70b-8192'),
+          status: 'ok',
+        },
+      ],
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
       return sendSafeJsonError(res, {
-        status: 404,
-        error: 'COACH_REPORT_NOT_FOUND',
-        message: 'Não foi possível localizar o relatório selecionado para este usuário.',
+        status: 400,
+        error: 'INVALID_AI_STRATEGIC_PAYLOAD',
+        message: 'Payload inválido para insights estratégicos.',
       });
     }
 
-    const reportContext = buildCoachReportContext({
-      id: authorizedAssessment.id,
-      assessmentId: authorizedAssessment.id,
-      reportId: authorizedAssessment.report?.id,
-      reportType: requestContext.reportType || input.mode || 'business',
-      type: requestContext.reportType || input.mode || 'business',
-      candidateName: authorizedAssessment.candidateName,
-      candidateEmail: authorizedAssessment.candidateEmail,
-      completedAt: authorizedAssessment.completedAt,
-      createdAt: authorizedAssessment.createdAt,
-      discProfile: authorizedAssessment.report?.discProfile || {},
-    });
+    if (Number(error?.status) >= 400 && Number(error?.status) < 500) {
+      return sendSafeJsonError(res, {
+        status: Number(error.status),
+        error: toText(error?.code || 'AI_STRATEGIC_INPUT_INVALID'),
+        message: toText(error?.message || 'Não foi possível processar esta solicitação.'),
+      });
+    }
 
-    const context = mergeRealCoachContext({
+    return sendSafeJsonError(res, {
+      status: 503,
+      error: 'AI_STRATEGIC_PROVIDER_FAILED',
+      message: 'Não foi possível gerar o insight agora. Tente novamente.',
+    });
+  }
+});
+
+async function handleCoachRequest(req, res) {
+  try {
+    const input = coachInputSchema.parse(req.body || {});
+    const requestContext = normalizeCoachContext(input.context);
+
+    if (!req.user?.id) {
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: 'UNAUTHORIZED',
+        message: 'Autenticação necessária.',
+      });
+    }
+
+    const resolved = await resolveAuthorizedStrategicContext({
+      user: req.user,
       input,
       requestContext,
-      reportContext,
     });
-
-    const scores = normalizeDiscScores(reportContext?.scores || {
-      D: input.D,
-      I: input.I,
-      S: input.S,
-      C: input.C,
-    });
-
-    const rankedFactors = rankDiscFactors(scores);
-    const primaryFactor = toText(context.dominantFactor || rankedFactors[0]?.factor || 'D').toUpperCase();
-    const secondaryFactor = toText(context.secondaryFactor || rankedFactors[1]?.factor || 'I').toUpperCase();
-    const profileCode = toText(context.profileCode || `${primaryFactor}/${secondaryFactor}`).toUpperCase();
+    const { context, scores, primaryFactor, secondaryFactor, profileCode } = resolved;
     const riskSignals = buildRiskSignals(scores, context);
     const segment = normalizeAiSegment(input.segment);
 
@@ -684,6 +1208,14 @@ async function handleCoachRequest(req, res) {
       });
     }
 
+    if (Number(error?.status) >= 400 && Number(error?.status) < 500) {
+      return sendSafeJsonError(res, {
+        status: Number(error.status),
+        error: toText(error?.code || 'AI_COACH_INPUT_INVALID'),
+        message: toText(error?.message || 'Não foi possível processar esta solicitação.'),
+      });
+    }
+
     return sendSafeJsonError(res, {
       status: 503,
       error: 'AI_COACH_PROVIDER_FAILED',
@@ -692,7 +1224,7 @@ async function handleCoachRequest(req, res) {
   }
 }
 
-router.post('/coach', requireAuth, attachUser, handleCoachRequest);
-router.post('/coach-answer', requireAuth, attachUser, handleCoachRequest);
+router.post('/coach', requireAuth, attachUser, requireAiFeature('coach'), handleCoachRequest);
+router.post('/coach-answer', requireAuth, attachUser, requireAiFeature('coach'), handleCoachRequest);
 
 export default router;

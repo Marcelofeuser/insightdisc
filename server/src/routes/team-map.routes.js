@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, requireActiveCustomer, requireRole } from '../middleware/rbac.js';
+import { attachUser, requireActiveCustomer } from '../middleware/rbac.js';
 import { analyzeTeamMap, listTeamMapAssessments } from '../modules/team-map/team-map.service.js';
+import {
+  hasFeatureAccess,
+  resolveFeatureMinimumPlan,
+  resolveUserPlan,
+} from '../modules/plans/feature-access.js';
 
 const router = Router();
 
@@ -14,6 +19,7 @@ const ERROR_STATUS = Object.freeze({
   AUTH_REQUIRED: 401,
   ASSESSMENT_IDS_REQUIRED: 400,
   ASSESSMENTS_NOT_ACCESSIBLE: 403,
+  FEATURE_PLAN_REQUIRED: 403,
   INVALID_PAYLOAD: 400,
 });
 
@@ -34,6 +40,9 @@ function resolveFriendlyErrorMessage(code, fallback = 'Não foi possível carreg
   if (code === 'ASSESSMENT_IDS_REQUIRED' || code === 'INVALID_PAYLOAD') {
     return 'Selecione avaliações válidas para gerar o mapa organizacional.';
   }
+  if (code === 'FEATURE_PLAN_REQUIRED') {
+    return 'Mapa de equipe disponível apenas no plano Business.';
+  }
   return fallback;
 }
 
@@ -51,7 +60,22 @@ function sendError(res, error, fallback = 'TEAM_MAP_FAILED') {
   });
 }
 
-router.use(requireAuth, attachUser, requireRole('ADMIN', 'PRO'), requireActiveCustomer);
+router.use(requireAuth, attachUser, requireActiveCustomer);
+router.use((req, res, next) => {
+  const userPlan = resolveUserPlan(req.user || {});
+  if (hasFeatureAccess(userPlan, 'team_map')) {
+    return next();
+  }
+
+  return res.status(403).json({
+    ok: false,
+    error: 'FEATURE_PLAN_REQUIRED',
+    feature: 'team_map',
+    plan: userPlan,
+    requiredPlan: resolveFeatureMinimumPlan('team_map'),
+    message: 'Mapa de equipe disponível apenas no plano Business.',
+  });
+});
 
 router.get('/assessments', async (req, res) => {
   try {

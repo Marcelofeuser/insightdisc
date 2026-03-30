@@ -1,6 +1,10 @@
 export const PLAN_LIMITS = Object.freeze({
   personal: Object.freeze({
     assessmentsPerMonth: 10,
+    ai_lab: false,
+    coach: false,
+    jobs: false,
+    insights: false,
     teamMap: false,
     jobMatching: false,
     advancedComparison: false,
@@ -13,8 +17,12 @@ export const PLAN_LIMITS = Object.freeze({
   }),
   professional: Object.freeze({
     assessmentsPerMonth: 100,
+    ai_lab: true,
+    coach: true,
+    jobs: false,
+    insights: false,
     teamMap: false,
-    jobMatching: true,
+    jobMatching: false,
     advancedComparison: true,
     premiumReports: true,
     reportPdf: true,
@@ -25,6 +33,10 @@ export const PLAN_LIMITS = Object.freeze({
   }),
   business: Object.freeze({
     assessmentsPerMonth: Number.POSITIVE_INFINITY,
+    ai_lab: true,
+    coach: true,
+    jobs: true,
+    insights: true,
     teamMap: true,
     jobMatching: true,
     advancedComparison: true,

@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { loginAsProfessional } from './helpers/auth';
+import { loginAsAdmin, loginAsProfessional } from './helpers/auth';
 import { waitForApp } from './helpers/waitForApp';
 
-test('Job Matching em português responde sem erro fatal', async ({ page }, testInfo) => {
+test('Job Matching exige Business para profissional', async ({ page }) => {
   await loginAsProfessional(page);
+  await page.goto('/JobMatching', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+
+  await expect(page.getByText(/Pessoa × Cargo disponível em plano superior/i)).toBeVisible();
+  await expect(page.getByText(/Plano recomendado: Business/i)).toBeVisible();
+});
+
+test('Job Matching abre no plano Business sem erro fatal', async ({ page }, testInfo) => {
+  await loginAsAdmin(page);
   await page.goto('/JobMatching', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 

@@ -24,6 +24,15 @@ const CAN_USE_DEV_BASE44_FALLBACK = import.meta.env.DEV;
 const SHOULD_SKIP_BASE44_PUBLIC_SETTINGS =
   CAN_USE_DEV_BASE44_FALLBACK && Boolean(base44?.__isMock);
 
+function normalizeAuthPlanValue(value = '') {
+  const key = String(value || '').trim().toLowerCase();
+  if (!key) return '';
+  if (['personal', 'free', 'starter'].includes(key)) return 'personal';
+  if (['professional', 'pro', 'premium'].includes(key)) return 'professional';
+  if (['business', 'enterprise'].includes(key)) return 'business';
+  return '';
+}
+
 function buildDevShortcutUser() {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null;
 
@@ -46,7 +55,7 @@ function buildDevShortcutUser() {
       tenant_id: activeWorkspaceId,
       active_workspace_id: activeWorkspaceId,
       entitlements: ['*'],
-      plan: 'enterprise',
+      plan: 'business',
       credits: 999999,
       lifecycle_status: 'super_admin',
       has_paid_purchase: true,
@@ -64,7 +73,7 @@ function buildDevShortcutUser() {
       tenant_id: activeWorkspaceId,
       active_workspace_id: activeWorkspaceId,
       entitlements: ['report.pro', 'report.export.pdf', 'report.export.csv'],
-      plan: 'premium',
+      plan: 'business',
       credits: 500,
       lifecycle_status: 'customer_active',
       has_paid_purchase: true,
@@ -82,7 +91,7 @@ function buildDevShortcutUser() {
       tenant_id: activeWorkspaceId,
       active_workspace_id: activeWorkspaceId,
       entitlements: [],
-      plan: 'free',
+      plan: 'personal',
       credits: 0,
       lifecycle_status: 'registered_no_purchase',
       has_paid_purchase: false,
@@ -99,7 +108,7 @@ function buildDevShortcutUser() {
     tenant_id: activeWorkspaceId,
     active_workspace_id: activeWorkspaceId,
     entitlements: ['report.pro', 'report.export.pdf'],
-    plan: 'premium',
+    plan: 'professional',
     credits: 100,
     lifecycle_status: 'customer_active',
     has_paid_purchase: true,
@@ -133,7 +142,7 @@ export const AuthProvider = ({ children }) => {
     const normalizedAccess = createAccessContext(nextUser);
     setAuthContextStore({
       user: nextUser,
-      plan: inferPlan(nextUser),
+      plan: normalizedAccess.plan || inferPlan(nextUser),
       tenantId: normalizedAccess.tenantId,
       globalRole: normalizedAccess.globalRole,
       tenantRole: normalizedAccess.tenantRole,
@@ -148,25 +157,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const inferPlan = (inputUser) => {
-    const lifecycleStatus = deriveUserLifecycle(inputUser);
-    if (lifecycleStatus === USER_LIFECYCLE.SUPER_ADMIN) {
-      return 'enterprise';
-    }
-    if (lifecycleStatus === USER_LIFECYCLE.CUSTOMER_ACTIVE) {
-      return 'premium';
-    }
-
-    const rawPlan = String(
+    const explicitPlan = normalizeAuthPlanValue(
       inputUser?.plan ||
         inputUser?.workspace_plan ||
-        inputUser?.subscription_plan ||
-        ''
-    ).toLowerCase();
-    if (lifecycleStatus !== USER_LIFECYCLE.REGISTERED_NO_PURCHASE && ['premium', 'pro', 'enterprise'].includes(rawPlan)) {
-      return 'premium';
+        inputUser?.subscription_plan,
+    );
+    if (explicitPlan) return explicitPlan;
+
+    const lifecycleStatus = deriveUserLifecycle(inputUser);
+    if (lifecycleStatus === USER_LIFECYCLE.SUPER_ADMIN) {
+      return 'business';
+    }
+    if (lifecycleStatus === USER_LIFECYCLE.CUSTOMER_ACTIVE) {
+      return 'professional';
     }
 
-    return 'free';
+    return 'personal';
   };
 
   const checkAppState = async () => {
@@ -428,6 +434,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      plan: access?.plan || inferPlan(user),
       isAuthenticated, 
       isLoadingAuth,
       isLoadingPublicSettings,

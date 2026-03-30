@@ -13,13 +13,6 @@ function hasEntitlement(access = {}, key = '') {
     && access.entitlements.some((item) => String(item || '').trim().toLowerCase() === key);
 }
 
-function isSuperAdminAccess(access = {}) {
-  const role = String(access?.role || access?.user?.role || '').trim().toUpperCase();
-  const globalRole = String(access?.globalRole || access?.user?.global_role || '').trim().toUpperCase();
-  const lifecycle = String(access?.lifecycleStatus || access?.user?.lifecycle_status || '').trim().toLowerCase();
-  return role === 'SUPER_ADMIN' || globalRole === 'SUPER_ADMIN' || lifecycle === 'super_admin';
-}
-
 function hasPermission(access = {}, permission = '') {
   const granted = Array.isArray(access?.permissions) ? access.permissions : [];
   if (granted.includes('*') || granted.includes(permission)) return true;
@@ -34,6 +27,8 @@ function hasPermission(access = {}, permission = '') {
 }
 
 export const FEATURE_KEYS = Object.freeze({
+  AI_LAB: 'ai_lab',
+  COACH: 'coach',
   TEAM_MAP: 'teamMap',
   JOB_MATCHING: 'jobMatching',
   ADVANCED_COMPARISON: 'advancedComparison',
@@ -45,9 +40,48 @@ export const FEATURE_KEYS = Object.freeze({
   ORGANIZATIONAL_REPORT: 'organizationalReport',
 });
 
+export const PRODUCT_FEATURES = Object.freeze({
+  AI_LAB: 'ai_lab',
+  COACH: 'coach',
+  TEAM_MAP: 'team_map',
+  JOBS: 'jobs',
+  INSIGHTS: 'insights',
+});
+
+const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
+  personal: Object.freeze([]),
+  professional: Object.freeze([
+    PRODUCT_FEATURES.AI_LAB,
+    PRODUCT_FEATURES.COACH,
+  ]),
+  business: Object.freeze([
+    PRODUCT_FEATURES.AI_LAB,
+    PRODUCT_FEATURES.COACH,
+    PRODUCT_FEATURES.TEAM_MAP,
+    PRODUCT_FEATURES.JOBS,
+    PRODUCT_FEATURES.INSIGHTS,
+  ]),
+});
+
+const FEATURE_ALIASES = Object.freeze({
+  [FEATURE_KEYS.AI_LAB]: PRODUCT_FEATURES.AI_LAB,
+  [FEATURE_KEYS.COACH]: PRODUCT_FEATURES.COACH,
+  [FEATURE_KEYS.TEAM_MAP]: PRODUCT_FEATURES.TEAM_MAP,
+  team_map: PRODUCT_FEATURES.TEAM_MAP,
+  [FEATURE_KEYS.JOB_MATCHING]: PRODUCT_FEATURES.JOBS,
+  job_matching: PRODUCT_FEATURES.JOBS,
+  jobs: PRODUCT_FEATURES.JOBS,
+  [FEATURE_KEYS.BEHAVIOR_ANALYTICS]: PRODUCT_FEATURES.INSIGHTS,
+  [FEATURE_KEYS.BENCHMARK]: PRODUCT_FEATURES.INSIGHTS,
+  [FEATURE_KEYS.ORGANIZATIONAL_REPORT]: PRODUCT_FEATURES.INSIGHTS,
+  insights: PRODUCT_FEATURES.INSIGHTS,
+});
+
 const FEATURE_META = Object.freeze({
+  [FEATURE_KEYS.AI_LAB]: { label: 'AI Lab', minPlan: 'professional' },
+  [FEATURE_KEYS.COACH]: { label: 'Coach', minPlan: 'professional' },
   [FEATURE_KEYS.TEAM_MAP]: { label: 'Mapa Organizacional', minPlan: 'business' },
-  [FEATURE_KEYS.JOB_MATCHING]: { label: 'Candidato x Cargo', minPlan: 'professional' },
+  [FEATURE_KEYS.JOB_MATCHING]: { label: 'Criador de Vagas', minPlan: 'business' },
   [FEATURE_KEYS.ADVANCED_COMPARISON]: { label: 'Comparação Avançada', minPlan: 'professional' },
   [FEATURE_KEYS.PREMIUM_REPORTS]: { label: 'Relatórios Premium', minPlan: 'professional' },
   [FEATURE_KEYS.REPORT_PDF]: { label: 'Exportação PDF', minPlan: 'professional' },
@@ -73,6 +107,21 @@ function resolveFeatureLabel(feature) {
   return FEATURE_META?.[feature]?.label || 'Recurso premium';
 }
 
+function normalizeFeatureKey(feature = '') {
+  const raw = String(feature || '').trim();
+  if (!raw) return '';
+  return FEATURE_ALIASES[raw] || FEATURE_ALIASES[raw.toLowerCase()] || '';
+}
+
+export function hasFeatureAccessByPlan(plan = 'personal', feature = '') {
+  const normalizedPlan = normalizePlan(plan);
+  const normalizedFeature = normalizeFeatureKey(feature);
+  if (!normalizedFeature) return false;
+
+  const available = PLAN_FEATURE_ACCESS_MAP[normalizedPlan] || PLAN_FEATURE_ACCESS_MAP.personal;
+  return available.includes(normalizedFeature);
+}
+
 export function evaluateFeatureAccess(access = {}, feature = '', options = {}) {
   if (!feature) {
     return {
@@ -82,18 +131,12 @@ export function evaluateFeatureAccess(access = {}, feature = '', options = {}) {
     };
   }
 
-  if (isSuperAdminAccess(access)) {
-    return {
-      allowed: true,
-      reason: 'super_admin',
-      plan: normalizePlan(options?.plan || resolvePlanFromAccess(access)),
-      feature,
-    };
-  }
-
   const plan = normalizePlan(options?.plan || resolvePlanFromAccess(access));
   const limits = getPlanLimits(plan);
-  const featureEnabledByPlan = hasPlanFeature(plan, feature);
+  const mappedFeature = normalizeFeatureKey(feature);
+  const featureEnabledByPlan = mappedFeature
+    ? hasFeatureAccessByPlan(plan, mappedFeature)
+    : hasPlanFeature(plan, feature);
   const featureLabel = resolveFeatureLabel(feature);
 
   if (!featureEnabledByPlan) {
@@ -136,5 +179,9 @@ export function evaluateFeatureAccess(access = {}, feature = '', options = {}) {
 }
 
 export function hasFeatureAccess(access = {}, feature = '', options = {}) {
+  if (typeof access === 'string') {
+    return hasFeatureAccessByPlan(access, feature);
+  }
+
   return evaluateFeatureAccess(access, feature, options).allowed;
 }

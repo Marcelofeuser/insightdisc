@@ -17,7 +17,12 @@ import {
   hasPermission,
   isSuperAdminAccess,
 } from '@/modules/auth/access-control';
-import { FEATURE_KEYS, hasFeatureAccess } from '@/modules/billing/planGuard';
+import {
+  FEATURE_KEYS,
+  PRODUCT_FEATURES,
+  hasFeatureAccess,
+  hasFeatureAccessByPlan,
+} from '@/modules/billing/planGuard';
 import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
 import { DOSSIER_BASE_PATH } from '@/modules/dossier/routes';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
@@ -43,9 +48,11 @@ function resolveCapabilities(access) {
   const canAccessSuperAdminConsole = hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]);
   const canUseAdvancedComparison =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ADVANCED_COMPARISON, { plan });
-  const canUseTeamMap =
-    canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.TEAM_MAP, { plan });
   const canUseDossier = canViewTenantData && canAccessDossier(access);
+  const canUseAiLab = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.AI_LAB);
+  const canUseCoach = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.COACH);
+  const canUseTeamMapByPlan = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.TEAM_MAP);
+  const canUseJobsByPlan = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.JOBS);
 
   return {
     plan,
@@ -56,8 +63,11 @@ function resolveCapabilities(access) {
     canViewOwnData,
     canAccessSuperAdminConsole,
     canUseAdvancedComparison,
-    canUseTeamMap,
     canUseDossier,
+    canUseAiLab,
+    canUseCoach,
+    canUseTeamMapByPlan,
+    canUseJobsByPlan,
   };
 }
 
@@ -75,7 +85,7 @@ function buildBusinessNavigation(capabilities) {
           },
         })
       : null,
-    capabilities.canViewTenantData
+    capabilities.canUseTeamMapByPlan
       ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
       : null,
     capabilities.canUseDossier
@@ -95,13 +105,13 @@ function buildBusinessNavigation(capabilities) {
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canViewTenantData
+    capabilities.canUseJobsByPlan
       ? makeItem(Building2, 'Criador de Vagas', 'JobMatching', '/app/job-matching', 'Análises')
       : null,
-    capabilities.canViewAssessments
+    capabilities.canUseAiLab
       ? makeItem(Sparkles, 'AI Lab', 'PanelAiLab', '/painel/ai-lab', 'Análises')
       : null,
-    capabilities.canViewAssessments
+    capabilities.canUseCoach
       ? makeItem(BookOpen, 'Coach', 'PanelCoach', '/painel/coach', 'Análises')
       : null,
     capabilities.canViewAssessments
@@ -153,10 +163,10 @@ function buildProfessionalNavigation(capabilities) {
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
       : null,
-    capabilities.canViewAssessments
+    capabilities.canUseAiLab
       ? makeItem(Sparkles, 'AI Lab', 'PanelAiLab', '/painel/ai-lab', 'Análises')
       : null,
-    capabilities.canViewAssessments
+    capabilities.canUseCoach
       ? makeItem(BookOpen, 'Coach', 'PanelCoach', '/painel/coach', 'Análises')
       : null,
     capabilities.canViewAssessments

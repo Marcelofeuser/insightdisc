@@ -3,13 +3,33 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
-import { attachUser, requireActiveCustomer, requireRole } from '../middleware/rbac.js';
+import { attachUser, requireActiveCustomer } from '../middleware/rbac.js';
+import {
+  hasFeatureAccess,
+  resolveFeatureMinimumPlan,
+  resolveUserPlan,
+} from '../modules/plans/feature-access.js';
 
 const router = Router();
 const jobsByOrganization = new Map();
 const FACTORS = ['D', 'I', 'S', 'C'];
 
-router.use(requireAuth, attachUser, requireRole('ADMIN', 'PRO'), requireActiveCustomer);
+router.use(requireAuth, attachUser, requireActiveCustomer);
+router.use((req, res, next) => {
+  const userPlan = resolveUserPlan(req.user || {});
+  if (hasFeatureAccess(userPlan, 'jobs')) {
+    return next();
+  }
+
+  return res.status(403).json({
+    ok: false,
+    error: 'FEATURE_PLAN_REQUIRED',
+    feature: 'jobs',
+    plan: userPlan,
+    requiredPlan: resolveFeatureMinimumPlan('jobs'),
+    message: 'Criador de vagas disponível apenas no plano Business.',
+  });
+});
 
 function toNumber(value, fallback = 0) {
   const num = Number(value);

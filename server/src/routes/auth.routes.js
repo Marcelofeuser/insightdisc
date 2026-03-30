@@ -105,6 +105,38 @@ function hasActivePaidPurchase(user = {}) {
   return paymentsCount > 0 || creditsBalance > 0;
 }
 
+function normalizePlanValue(value = '') {
+  const key = String(value || '').trim().toLowerCase();
+  if (!key) return '';
+  if (['personal', 'free', 'starter'].includes(key)) return 'personal';
+  if (['professional', 'pro', 'premium'].includes(key)) return 'professional';
+  if (['business', 'enterprise'].includes(key)) return 'business';
+  return '';
+}
+
+function resolveRoleBasedPlan(role = '') {
+  const normalizedRole = String(role || '').trim().toUpperCase();
+  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'business';
+  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'professional';
+  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'personal';
+  return '';
+}
+
+function resolveUserPlan(user = {}, { isSuperAdmin = false, hasPaidPurchase = false } = {}) {
+  const explicitPlan = normalizePlanValue(
+    user?.plan || user?.workspace_plan || user?.subscription_plan,
+  );
+  if (explicitPlan) return explicitPlan;
+
+  if (isSuperAdmin) return 'business';
+
+  const rolePlan = resolveRoleBasedPlan(user?.role);
+  if (rolePlan) return rolePlan;
+
+  if (hasPaidPurchase) return 'professional';
+  return 'personal';
+}
+
 function normalizeUserPayload(user = {}) {
   const role = String(user?.role || 'PRO').toUpperCase();
   const workspaceId = resolvePrimaryOrganizationId(user);
@@ -112,6 +144,7 @@ function normalizeUserPayload(user = {}) {
   const isSuperAdmin = isSuperAdminUser(user);
   const isAdmin = role === 'ADMIN';
   const hasPaidPurchase = isSuperAdmin ? true : hasActivePaidPurchase(user);
+  const plan = resolveUserPlan(user, { isSuperAdmin, hasPaidPurchase });
   const creditsBalance = isSuperAdmin ? 999999 : getUserCreditsBalance(user);
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
@@ -141,7 +174,7 @@ function normalizeUserPayload(user = {}) {
         : isAdmin || hasPaidPurchase
           ? ['report.pro', 'report.export.pdf', 'report.export.csv']
           : [],
-    plan: isSuperAdmin ? 'enterprise' : isCustomerActive ? 'premium' : 'free',
+    plan,
     credits: creditsBalance,
   };
 }

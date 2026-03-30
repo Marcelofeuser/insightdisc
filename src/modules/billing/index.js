@@ -10,4 +10,10 @@ export {
 } from './stripeService.js';
 export { PLAN_LIMITS, getPlanLimits, hasPlanFeature, getPlanQuota } from './planLimits.js';
 export { PLANS, PLAN_META, normalizePlan, resolvePlanFromAccess, isPlanAtLeast } from './planConfig.js';
-export { FEATURE_KEYS, evaluateFeatureAccess, hasFeatureAccess } from './planGuard.js';
+export {
+  FEATURE_KEYS,
+  PRODUCT_FEATURES,
+  evaluateFeatureAccess,
+  hasFeatureAccess,
+  hasFeatureAccessByPlan,
+} from './planGuard.js';

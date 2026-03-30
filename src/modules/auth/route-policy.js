@@ -58,18 +58,10 @@ const PAGE_POLICIES = Object.freeze({
     redirectTo: '/Pricing?unlock=1',
   },
   PanelAiLab: {
-    allowedLifecycle: PREMIUM_LIFECYCLE,
-    redirectTo: '/Pricing?unlock=1',
-    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
-    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
-    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiresAuth: true,
   },
   PanelCoach: {
-    allowedLifecycle: PREMIUM_LIFECYCLE,
-    redirectTo: '/Pricing?unlock=1',
-    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
-    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
-    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiresAuth: true,
   },
   PanelArquetipos: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -79,11 +71,7 @@ const PAGE_POLICIES = Object.freeze({
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
   },
   JobMatching: {
-    allowedLifecycle: PREMIUM_LIFECYCLE,
-    redirectTo: '/Pricing?unlock=1',
-    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
-    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
-    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiresAuth: true,
   },
   LeadsDashboard: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -129,11 +117,7 @@ const PAGE_POLICIES = Object.freeze({
     permissions: [PERMISSIONS.ASSESSMENT_CREATE],
   },
   TeamMapping: {
-    allowedLifecycle: PREMIUM_LIFECYCLE,
-    redirectTo: '/Pricing?unlock=1',
-    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
-    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
-    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiresAuth: true,
   },
   CompareProfiles: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -143,11 +127,7 @@ const PAGE_POLICIES = Object.freeze({
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
   },
   TeamMap: {
-    allowedLifecycle: PREMIUM_LIFECYCLE,
-    redirectTo: '/Pricing?unlock=1',
-    anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
-    anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
-    permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiresAuth: true,
   },
   OrganizationalReport: {
     allowedLifecycle: PREMIUM_LIFECYCLE,

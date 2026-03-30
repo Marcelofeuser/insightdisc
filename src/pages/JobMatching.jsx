@@ -25,8 +25,8 @@ import { useQuery } from '@tanstack/react-query';
 import CreditPaywallCard from '@/components/billing/CreditPaywallCard';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
-import { isSuperAdminAccess } from '@/modules/auth/access-control';
-import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
+import { UpgradePrompt } from '@/modules/billing';
+import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
 import { normalizeDiscScores } from '@/modules/discEngine';
 import { calculateJobFit } from '@/modules/jobFit';
 import { buildLeadershipInsights } from '@/modules/leadershipInsights';
@@ -92,11 +92,10 @@ function buildRangeProfileFromScores(scores = {}) {
 }
 
 export default function JobMatching() {
-  const { access, user: authUser } = useAuth();
-  const { checkFeature, featureKeys } = useFeatureAccess();
-  const jobMatchingAccess = checkFeature(featureKeys.JOB_MATCHING);
+  const { access, plan, user: authUser } = useAuth();
+  const resolvedPlan = String(plan || access?.plan || '').trim().toLowerCase() || 'personal';
+  const canUseJobs = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.JOBS);
   const apiBaseUrl = getApiBaseUrl();
-  const hasSuperAdminBypass = isSuperAdminAccess(access);
   const organizationId = access?.tenantId || authUser?.active_workspace_id || authUser?.tenant_id || '';
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
@@ -158,7 +157,7 @@ export default function JobMatching() {
   });
 
   const availableCredits = Number(workspace?.credits_balance || 0);
-  const canUsePremiumActions = hasSuperAdminBypass || availableCredits > 0;
+  const canUsePremiumActions = availableCredits > 0;
 
   const handleCreatePosition = async () => {
     if (!canUsePremiumActions) return;
@@ -316,14 +315,14 @@ export default function JobMatching() {
     );
   }, [selectedCandidate]);
 
-  if (!jobMatchingAccess.allowed) {
+  if (!canUseJobs) {
     return (
       <div className="w-full min-w-0 bg-slate-50 px-4 py-8 sm:px-6">
         <div className="mx-auto max-w-4xl space-y-6">
           <UpgradePrompt
             title="Pessoa × Cargo disponível em plano superior"
-            description="A análise de aderência comportamental entre candidato e cargo ideal está liberada a partir do plano Professional."
-            requiredPlanLabel="Professional"
+            description="A análise de aderência comportamental entre candidato e cargo ideal está liberada no plano Business."
+            requiredPlanLabel="Business"
             ctaLabel="Ativar recurso"
           />
         </div>
@@ -344,9 +343,6 @@ export default function JobMatching() {
             <div>
               <h1 className="text-xl font-bold text-slate-900">Compatibilidade DISC para Vagas</h1>
               <p className="text-sm text-slate-500">Compare candidatos com perfis ideais de vaga</p>
-              {hasSuperAdminBypass ? (
-                <p className="text-xs font-semibold text-amber-700 mt-1">SUPER ADMIN — ACESSO TOTAL</p>
-              ) : null}
             </div>
           </div>
           <Button

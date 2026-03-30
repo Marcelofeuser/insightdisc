@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForApp } from './helpers/waitForApp';
-import { loginAsProfessional } from './helpers/auth';
+import { loginAsAdmin } from './helpers/auth';
 
 const PUBLIC_ROUTES = [
   { path: '/', assertion: /InsightDISC|DISC/i, name: 'home' },
@@ -22,7 +22,7 @@ test.describe('Smoke', () => {
   }
 
   test('carrega /JobMatching sem erro fatal', async ({ page }, testInfo) => {
-    await loginAsProfessional(page);
+    await loginAsAdmin(page);
     await page.goto('/JobMatching', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await expect(

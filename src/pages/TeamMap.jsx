@@ -6,7 +6,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelState from '@/components/ui/PanelState';
 import { useToast } from '@/components/ui/use-toast';
-import { UpgradePrompt, useFeatureAccess } from '@/modules/billing';
+import { useAuth } from '@/lib/AuthContext';
+import { UpgradePrompt } from '@/modules/billing';
+import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
 import {
   BehaviorInsightsPanel,
   DiscDistributionChart,
@@ -108,8 +110,9 @@ function normalizeTeamMapError(error, fallback = 'Não foi possível carregar av
 
 export default function TeamMap() {
   const { toast } = useToast();
-  const { checkFeature, featureKeys } = useFeatureAccess();
-  const teamMapAccess = checkFeature(featureKeys.TEAM_MAP);
+  const { access, plan } = useAuth();
+  const resolvedPlan = String(plan || access?.plan || '').trim().toLowerCase() || 'personal';
+  const canUseTeamMap = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.TEAM_MAP);
   const [assessments, setAssessments] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [teamMap, setTeamMap] = useState(null);
@@ -299,7 +302,7 @@ export default function TeamMap() {
     selectedIdsSet.has(String(item?.assessmentId || '')),
   ).length;
 
-  if (!teamMapAccess.allowed) {
+  if (!canUseTeamMap) {
     return (
       <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="mx-auto max-w-4xl space-y-6">

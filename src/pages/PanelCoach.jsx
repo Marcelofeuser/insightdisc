@@ -4,14 +4,14 @@ import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelState from '@/components/ui/PanelState';
+import { UpgradePrompt } from '@/modules/billing';
 import { mapCandidateReports } from '@/modules/report/backendReports';
 import {
   buildCoachReportContext,
   formatReportTypeLabel,
   normalizeCoachReportItem,
 } from '@/modules/coach/reportContext';
-import { PANEL_MODE, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
-import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
 
 const PROFILE_COLORS = {
   D: { bg: '#ef4444', text: '#fff' },
@@ -150,10 +150,10 @@ function buildHistoryEntry(payload, prompt) {
 }
 
 export default function PanelCoach() {
-  const { access } = useAuth();
+  const { access, plan } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
-  const panelMode = resolveAutoPanelMode(access);
-  const isPersonalMode = panelMode === PANEL_MODE.PERSONAL && !isSuperAdminAccess(access);
+  const resolvedPlan = String(plan || access?.plan || '').trim().toLowerCase() || 'personal';
+  const canUseCoach = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.COACH);
 
   const [selectedReportId, setSelectedReportId] = useState('');
   const [question, setQuestion] = useState('');
@@ -278,13 +278,14 @@ export default function PanelCoach() {
     }
   };
 
-  if (isPersonalMode) {
+  if (!canUseCoach) {
     return (
       <div className="w-full min-w-0 max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8" data-testid="panel-coach-page">
-        <PanelState
-          type="warning"
-          title="Coach AI indisponível no modo Personal"
-          description="O Coach AI está disponível nesta etapa apenas para os modos Profissional e Business."
+        <UpgradePrompt
+          title="Coach bloqueado no plano atual"
+          description="Coach está disponível a partir do plano Professional."
+          requiredPlanLabel="Professional"
+          ctaLabel="Fazer upgrade"
         />
       </div>
     );
