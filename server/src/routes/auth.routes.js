@@ -18,6 +18,7 @@ import {
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
+import { normalizePlan, mapPlanForFeatures } from '../lib/plan-normalize.js';
 
 const router = Router();
 
@@ -111,36 +112,27 @@ function hasActivePaidPurchase(user = {}) {
   return paymentsCount > 0 || creditsBalance > 0;
 }
 
-function normalizePlanValue(value = '') {
-  const key = String(value || '').trim().toLowerCase();
-  if (!key) return '';
-  if (['personal', 'free', 'starter'].includes(key)) return 'personal';
-  if (['professional', 'pro', 'premium'].includes(key)) return 'professional';
-  if (['business', 'enterprise'].includes(key)) return 'business';
-  return '';
-}
+// use central normalizePlan helper
 
 function resolveRoleBasedPlan(role = '') {
   const normalizedRole = String(role || '').trim().toUpperCase();
-  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'business';
-  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'professional';
-  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'personal';
-  return '';
+  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'professional'; // Tier Business
+  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'premium';      // Tier Professional
+  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'standard';       // Tier Personal
+  return 'standard';
 }
 
 function resolveUserPlan(user = {}, { isSuperAdmin = false, hasPaidPurchase = false } = {}) {
-  const explicitPlan = normalizePlanValue(
-    user?.plan || user?.workspace_plan || user?.subscription_plan,
-  );
-  if (explicitPlan) return explicitPlan;
+  const explicitPlan = mapPlanForFeatures(user?.plan || user?.workspace_plan || user?.subscription_plan);
+  if (explicitPlan && explicitPlan !== 'standard') return explicitPlan;
 
-  if (isSuperAdmin) return 'business';
+  if (isSuperAdmin) return 'professional';
 
   const rolePlan = resolveRoleBasedPlan(user?.role);
-  if (rolePlan) return rolePlan;
+  if (rolePlan && rolePlan !== 'standard') return rolePlan;
 
-  if (hasPaidPurchase) return 'professional';
-  return 'personal';
+  if (hasPaidPurchase) return 'premium';
+  return 'standard';
 }
 
 function normalizeUserPayload(user = {}) {

@@ -1,23 +1,11 @@
 import { getUserCreditsBalance } from '../auth/user-credits.js';
+import { normalizePlan, mapPlanForFeatures, isPaidPlan } from '../../lib/plan-normalize.js';
 
 export const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
-  personal: Object.freeze([]),
-  professional: Object.freeze(['ai_lab', 'coach']),
-  business: Object.freeze(['ai_lab', 'coach', 'team_map', 'jobs', 'insights']),
+  standard: Object.freeze([]),
+  premium: Object.freeze(['ai_lab', 'coach']),
+  professional: Object.freeze(['ai_lab', 'coach', 'team_map', 'jobs', 'insights']),
 });
-
-const PERSONAL_PLAN_ALIASES = new Set(['personal', 'free', 'starter']);
-const PROFESSIONAL_PLAN_ALIASES = new Set(['professional', 'pro', 'premium']);
-const BUSINESS_PLAN_ALIASES = new Set(['business', 'enterprise']);
-
-function normalizePlanValue(value = '') {
-  const key = String(value || '').trim().toLowerCase();
-  if (!key) return '';
-  if (PERSONAL_PLAN_ALIASES.has(key)) return 'personal';
-  if (PROFESSIONAL_PLAN_ALIASES.has(key)) return 'professional';
-  if (BUSINESS_PLAN_ALIASES.has(key)) return 'business';
-  return '';
-}
 
 function normalizeRole(value = '') {
   return String(value || '').trim().toUpperCase();
@@ -25,9 +13,9 @@ function normalizeRole(value = '') {
 
 function resolveRoleBasedPlan(role = '') {
   const normalizedRole = normalizeRole(role);
-  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'business';
-  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'professional';
-  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'personal';
+  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'professional';
+  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'premium';
+  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'standard';
   return '';
 }
 
@@ -37,26 +25,24 @@ function hasPaidPayment(user = {}) {
 }
 
 export function resolveUserPlan(user = {}) {
-  const explicitPlan = normalizePlanValue(
-    user?.plan || user?.workspace_plan || user?.subscription_plan,
-  );
+  const explicitPlan = normalizePlan(user?.plan || user?.workspace_plan || user?.subscription_plan);
   if (explicitPlan) return explicitPlan;
 
   const rolePlan = resolveRoleBasedPlan(user?.role);
   if (rolePlan) return rolePlan;
 
   const hasPaidPurchase = hasPaidPayment(user) || getUserCreditsBalance(user) > 0;
-  if (hasPaidPurchase) return 'professional';
+  if (hasPaidPurchase) return 'premium';
 
-  return 'personal';
+  return 'standard';
 }
 
 export function hasFeatureAccess(plan = 'personal', feature = '') {
-  const normalizedPlan = normalizePlanValue(plan) || 'personal';
+  const featurePlanKey = mapPlanForFeatures(plan) || 'personal';
   const normalizedFeature = String(feature || '').trim().toLowerCase();
   if (!normalizedFeature) return false;
 
-  const features = PLAN_FEATURE_ACCESS_MAP[normalizedPlan] || PLAN_FEATURE_ACCESS_MAP.personal;
+  const features = PLAN_FEATURE_ACCESS_MAP[featurePlanKey] || PLAN_FEATURE_ACCESS_MAP.personal;
   return features.includes(normalizedFeature);
 }
 

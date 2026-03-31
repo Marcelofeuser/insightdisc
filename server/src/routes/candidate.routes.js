@@ -9,6 +9,7 @@ import { attachUser, requireRole } from '../middleware/rbac.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
 import { normalizeReportType, resolveStoredReportType } from '../modules/report/report-type.js';
+import { isPaidPlan } from '../lib/plan-normalize.js';
 
 const router = Router();
 const PUBLIC_REPORT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14;
@@ -34,7 +35,7 @@ function hasEligiblePortalSaveAccess(user = {}) {
   const plan = String(user.plan || user.workspace_plan || user.subscription_plan || '')
     .trim()
     .toLowerCase();
-  const hasPaidPlan = ['premium', 'pro', 'professional', 'business', 'enterprise'].includes(plan);
+  const hasPaidPlan = isPaidPlan(plan);
   const hasPaidPurchase =
     Boolean(user.has_paid_purchase) ||
     Boolean(user.hasPaidPurchase) ||

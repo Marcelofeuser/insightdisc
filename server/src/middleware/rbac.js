@@ -1,5 +1,6 @@
 import { prisma, withPrismaRetry } from '../lib/prisma.js'
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js'
+import { normalizePlan, isPaidPlan } from '../lib/plan-normalize.js'
 
 async function loadUserWithRelations(userId) {
   if (!userId) return null
@@ -31,8 +32,8 @@ async function loadUserWithRelations(userId) {
     { retries: 1 }
   )
 
-  const normalizedPlan = normalizeRole(user?.plan)
-  const shouldCheckPaidPayment = normalizedPlan === 'PERSONAL' || !normalizedPlan
+  const normalizedPlan = normalizePlan(user?.plan) || ''
+  const shouldCheckPaidPayment = !normalizedPlan || normalizedPlan === 'personal'
   const latestPaidPayment = shouldCheckPaidPayment
     ? await withPrismaRetry(
         () =>
@@ -146,7 +147,7 @@ function isActiveCustomerProfile(user = {}) {
   if (!user?.id) return false
   if (isPrivilegedRole(user)) return true
   const normalizedPlan = normalizeRole(user?.plan)
-  if (normalizedPlan === 'PROFESSIONAL' || normalizedPlan === 'BUSINESS' || normalizedPlan === 'DIAMOND') {
+  if (isPaidPlan(user?.plan)) {
     return true
   }
   if (getUserCreditsBalance(user) > 0) return true

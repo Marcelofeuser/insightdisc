@@ -26,6 +26,12 @@ const PLAN_LIMITS = Object.freeze({
     jobMatching: false,
     reportPdf: false,
   }),
+  insider: Object.freeze({
+    assessmentsPerMonth: 100,
+    teamMap: true,
+    jobMatching: true,
+    reportPdf: true,
+  }),
   professional: Object.freeze({
     assessmentsPerMonth: 100,
     teamMap: true,
@@ -33,6 +39,18 @@ const PLAN_LIMITS = Object.freeze({
     reportPdf: true,
   }),
   business: Object.freeze({
+    assessmentsPerMonth: Number.POSITIVE_INFINITY,
+    teamMap: true,
+    jobMatching: true,
+    reportPdf: true,
+  }),
+  diamond: Object.freeze({
+    assessmentsPerMonth: Number.POSITIVE_INFINITY,
+    teamMap: true,
+    jobMatching: true,
+    reportPdf: true,
+  }),
+  enterprise: Object.freeze({
     assessmentsPerMonth: Number.POSITIVE_INFINITY,
     teamMap: true,
     jobMatching: true,
@@ -71,7 +89,7 @@ const createCheckoutSchema = z
 
 const changePlanSchema = z.object({
   action: z.enum(['upgrade', 'downgrade']),
-  targetPlan: z.enum(['personal', 'professional', 'business']),
+  targetPlan: z.enum(['personal', 'insider', 'professional', 'business', 'diamond', 'enterprise']),
 });
 
 function resolveStatusByCode(code = '') {

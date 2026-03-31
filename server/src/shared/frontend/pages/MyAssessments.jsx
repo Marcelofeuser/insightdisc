@@ -97,7 +97,6 @@ function resolveDominantFactor(raw = {}) {
   )
     .trim()
     .toUpperCase();
-
   if (['D', 'I', 'S', 'C'].includes(factor)) return factor;
   return '-';
 }
@@ -113,7 +112,6 @@ function mapOperationalAssessmentItem(item = {}, index = 0) {
     item?.candidateUserId || item?.candidate_user_id || item?.user_id || '',
   ).trim();
   const hasReport = Boolean(item?.hasReport || reportId || item?.publicPdfUrl || item?.pdfUrl);
-
   return {
     id: assessmentId || `assessment-${index}`,
     assessmentId,
@@ -134,7 +132,6 @@ function mapOperationalAssessmentItem(item = {}, index = 0) {
 
 function mapReportItem(item = {}, index = 0) {
   const assessmentId = String(item?.assessmentId || item?.id || item?.reportId || `report-${index}`).trim();
-
   return {
     id: assessmentId || `report-${index}`,
     assessmentId,
@@ -162,17 +159,10 @@ function isDateInWindow(value, windowKey) {
 function matchesSearch(item, query = '') {
   const needle = String(query || '').trim().toLowerCase();
   if (!needle) return true;
-
-  const haystack = [
-    item?.id,
-    item?.assessmentId,
-    item?.respondentName,
-    item?.candidateEmail,
-  ]
+  const haystack = [item?.id, item?.assessmentId, item?.respondentName, item?.candidateEmail]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
-
   return haystack.includes(needle);
 }
 
@@ -194,15 +184,12 @@ function isOwnRespondentRecord(item = {}, identity = {}) {
       item?.email ||
       '',
   );
-
   if (userId && candidateUserId && userId === candidateUserId) {
     return true;
   }
-
   if (email && candidateEmail && email === candidateEmail) {
     return true;
   }
-
   return false;
 }
 
@@ -230,13 +217,11 @@ export default function MyAssessments() {
 
   useEffect(() => {
     let mounted = true;
-
     const loadUser = async () => {
       if (authAccess?.userId) {
         if (mounted) setUser(authAccess.user || null);
         return;
       }
-
       try {
         const me = await base44.auth.me();
         if (mounted) setUser(me);
@@ -244,7 +229,6 @@ export default function MyAssessments() {
         if (mounted) setUser(null);
       }
     };
-
     loadUser();
     return () => {
       mounted = false;
@@ -259,6 +243,7 @@ export default function MyAssessments() {
   const canTenantView = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
   const canSelfView = hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF);
   const canCreateAssessment = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+
   const selfIdentity = {
     userId: access?.userId || '',
     email: access?.email || '',
@@ -273,9 +258,7 @@ export default function MyAssessments() {
       );
       return tenantItems.map(mapOperationalAssessmentItem);
     }
-
     if (!canSelfView) return [];
-
     const byUserId = access?.userId
       ? await base44.entities.Assessment.filter({ user_id: access.userId }, '-created_date', 240)
       : [];
@@ -288,21 +271,18 @@ export default function MyAssessments() {
     const byLeadEmail = access?.email
       ? await base44.entities.Assessment.filter({ lead_email: access.email }, '-created_date', 240)
       : [];
-
-    const merged = [...byUserId, ...byEmail, ...byRespondentEmail, ...byLeadEmail]
-      .map(mapOperationalAssessmentItem);
-
+    const merged = [...byUserId, ...byEmail, ...byRespondentEmail, ...byLeadEmail].map(
+      mapOperationalAssessmentItem,
+    );
     const seen = new Set();
     const deduped = merged.filter((item) => {
       if (!item?.id || seen.has(item.id)) return false;
       seen.add(item.id);
       return true;
     });
-
     if (isPersonalMode) {
       return deduped.filter((item) => isOwnRespondentRecord(item, selfIdentity));
     }
-
     return deduped;
   };
 
@@ -331,14 +311,12 @@ export default function MyAssessments() {
               method: 'GET',
               requireAuth: true,
             });
-
             const mapped = Array.isArray(payload?.assessments)
               ? payload.assessments.map(mapOperationalAssessmentItem)
               : [];
             const scoped = isPersonalMode
               ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
               : mapped;
-
             if (scoped.length > 0 || !base44?.__isMock) {
               return scoped;
             }
@@ -346,14 +324,11 @@ export default function MyAssessments() {
             console.warn('[MyAssessments] API assessments unavailable, fallback local mode', error);
           }
         }
-
         if (base44?.__isMock) {
           return loadLocalAssessments();
         }
-
         return [];
       }
-
       return loadLocalAssessments();
     },
     enabled: Boolean(access?.userId || access?.email),
@@ -393,20 +368,21 @@ export default function MyAssessments() {
             console.warn('[MyAssessments] API reports unavailable, fallback local mode', error);
           }
         }
-
         if (base44?.__isMock) {
           const local = await loadLocalAssessments();
-          const mapped = local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+          const mapped = local
+            .filter((item) => item.hasReport || item.status === 'completed')
+            .map(mapReportItem);
           return isPersonalMode
             ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
             : mapped;
         }
-
         return [];
       }
-
       const local = await loadLocalAssessments();
-      const mapped = local.filter((item) => item.hasReport || item.status === 'completed').map(mapReportItem);
+      const mapped = local
+        .filter((item) => item.hasReport || item.status === 'completed')
+        .map(mapReportItem);
       return isPersonalMode
         ? mapped.filter((item) => isOwnRespondentRecord(item, selfIdentity))
         : mapped;
@@ -420,7 +396,9 @@ export default function MyAssessments() {
   const safeReports = Array.isArray(reports) ? reports : [];
 
   const assessmentTypeOptions = useMemo(() => {
-    return Array.from(new Set(safeOperationalAssessments.map((item) => item.type).filter(Boolean))).sort();
+    return Array.from(
+      new Set(safeOperationalAssessments.map((item) => item.type).filter(Boolean)),
+    ).sort();
   }, [safeOperationalAssessments]);
 
   const reportTypeOptions = useMemo(() => {
@@ -451,7 +429,8 @@ export default function MyAssessments() {
       if (!matchesSearch(item, search)) return false;
       if (reportTypeFilter !== 'all' && item.type !== reportTypeFilter) return false;
       if (profileFilter !== 'all' && item.dominantFactor !== profileFilter) return false;
-      if (!isDateInWindow(item?.completedAt || item?.createdAt || null, reportDateFilter)) return false;
+      if (!isDateInWindow(item?.completedAt || item?.createdAt || null, reportDateFilter))
+        return false;
       return true;
     });
   }, [safeReports, search, reportTypeFilter, profileFilter, reportDateFilter]);
@@ -475,7 +454,8 @@ export default function MyAssessments() {
         source,
       });
     } catch (error) {
-      const message = error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.';
+      const message =
+        error?.payload?.message || error?.message || 'Não foi possível iniciar a avaliação.';
       setActionError(message);
       toast({
         title: 'Falha ao iniciar avaliação',
@@ -498,7 +478,6 @@ export default function MyAssessments() {
       >
         {isStartingSelfAssessment ? 'Iniciando...' : 'Nova Avaliação'}
       </Button>
-
       {isPersonalMode ? (
         <Button
           type="button"
@@ -510,7 +489,6 @@ export default function MyAssessments() {
           Comprar créditos
         </Button>
       ) : null}
-
       {!isPersonalMode && canCreateAssessment ? (
         <Button
           type="button"
@@ -522,7 +500,6 @@ export default function MyAssessments() {
           Enviar convite
         </Button>
       ) : null}
-
       <div className="relative min-w-[240px] flex-1 sm:flex-none">
         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <Input
@@ -532,7 +509,6 @@ export default function MyAssessments() {
           className="h-10 w-full border-slate-200 pl-9 sm:w-72"
         />
       </div>
-
       <select
         value={statusFilter}
         onChange={(event) => setStatusFilter(event.target.value)}
@@ -543,7 +519,6 @@ export default function MyAssessments() {
         <option value="in_progress">Em andamento</option>
         <option value="completed">Concluída</option>
       </select>
-
       <select
         value={assessmentTypeFilter}
         onChange={(event) => setAssessmentTypeFilter(event.target.value)}
@@ -570,7 +545,6 @@ export default function MyAssessments() {
           className="h-10 w-full border-slate-200 pl-9 sm:w-72"
         />
       </div>
-
       <select
         value={reportDateFilter}
         onChange={(event) => setReportDateFilter(event.target.value)}
@@ -581,7 +555,6 @@ export default function MyAssessments() {
         <option value="90d">Últimos 90 dias</option>
         <option value="180d">Últimos 180 dias</option>
       </select>
-
       <select
         value={reportTypeFilter}
         onChange={(event) => setReportTypeFilter(event.target.value)}
@@ -594,7 +567,6 @@ export default function MyAssessments() {
           </option>
         ))}
       </select>
-
       <select
         value={profileFilter}
         onChange={(event) => setProfileFilter(event.target.value)}
@@ -642,7 +614,6 @@ export default function MyAssessments() {
           >
             Relatórios
           </Link>
-
           {isReportsView ? (
             <>
               <Badge variant="outline">Total: {filteredReports.length}</Badge>
@@ -697,69 +668,80 @@ export default function MyAssessments() {
           !safeReports.length ? (
             <div>Nenhum relatório disponível</div>
           ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200">
-                <TableHead>Conclusão</TableHead>
-                <TableHead>Respondente</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Perfil</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(filteredReports || []).map((item, index) => {
-                const assessmentId = item?.assessmentId || item?.id;
-                const resultHref =
-                  item?.resultHref ||
-                  item?.reportPath ||
-                  (item?.assessmentId ? `/assessment/${item.assessmentId}/result` : null);
-                const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
-                const pdfHref = item?.publicPdfUrl || '';
-
-                return (
-                  <TableRow key={item?.id || assessmentId || `report-row-${index}`} className="border-slate-100 hover:bg-slate-50/70">
-                    <TableCell className="text-slate-700">{formatDate(item?.completedAt || item?.createdAt || null)}</TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {resultHref ? (
-                        <a href={resultHref} className="font-medium text-slate-900 hover:text-indigo-700 hover:underline">
-                          {item?.title || item?.respondentName || 'Relatório'}
-                        </a>
-                      ) : (
-                        <span>{item?.title || item?.respondentName || 'Relatório'}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{formatType(item?.type)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item?.dominantFactor || '-'}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        {assessmentId ? (
-                          <Link to={reportHref}>
-                            <Button variant="outline" size="sm">Relatório</Button>
-                          </Link>
-                        ) : (
-                          <Button variant="outline" size="sm" disabled>
-                            Relatório
-                          </Button>
-                        )}
-                        {pdfHref ? (
-                          <a href={pdfHref} target="_blank" rel="noreferrer">
-                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">PDF</Button>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200">
+                  <TableHead>Conclusão</TableHead>
+                  <TableHead>Respondente</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Perfil</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(filteredReports || []).map((item, index) => {
+                  const assessmentId = item?.assessmentId || item?.id;
+                  const resultHref =
+                    item?.resultHref ||
+                    item?.reportPath ||
+                    (item?.assessmentId ? `/assessment/${item.assessmentId}/result` : null);
+                  const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
+                  const pdfHref = item?.publicPdfUrl || '';
+                  return (
+                    <TableRow
+                      key={item?.id || assessmentId || `report-row-${index}`}
+                      className="border-slate-100 hover:bg-slate-50/70"
+                    >
+                      <TableCell className="text-slate-700">
+                        {formatDate(item?.completedAt || item?.createdAt || null)}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {resultHref ? (
+                          <a
+                            href={resultHref}
+                            className="font-medium text-slate-900 hover:text-indigo-700 hover:underline"
+                          >
+                            {item?.title || item?.respondentName || 'Relatório'}
                           </a>
                         ) : (
-                          <Button variant="outline" size="sm" disabled>
-                            PDF indisponível
-                          </Button>
+                          <span>{item?.title || item?.respondentName || 'Relatório'}</span>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell>{formatType(item?.type)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{item?.dominantFactor || '-'}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          {assessmentId ? (
+                            <Link to={reportHref}>
+                              <Button variant="outline" size="sm">
+                                Relatório
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button variant="outline" size="sm" disabled>
+                              Relatório
+                            </Button>
+                          )}
+                          {pdfHref ? (
+                            <a href={pdfHref} target="_blank" rel="noreferrer">
+                              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                                PDF
+                              </Button>
+                            </a>
+                          ) : (
+                            <Button variant="outline" size="sm" disabled>
+                              PDF indisponível
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )
         ) : (
           <Table>
@@ -777,11 +759,17 @@ export default function MyAssessments() {
                 const assessmentId = assessment.assessmentId || assessment.id;
                 const resultHref = assessmentId ? buildAssessmentResultPath(assessmentId) : '';
                 const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
-
                 return (
-                  <TableRow key={assessment.id} className="border-slate-100 hover:bg-slate-50/70">
-                    <TableCell className="text-slate-700">{formatDate(assessment.createdAt || assessment.completedAt)}</TableCell>
-                    <TableCell className="max-w-xs truncate">{assessment.respondentName}</TableCell>
+                  <TableRow
+                    key={assessment.id}
+                    className="border-slate-100 hover:bg-slate-50/70"
+                  >
+                    <TableCell className="text-slate-700">
+                      {formatDate(assessment.createdAt || assessment.completedAt)}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {assessment.respondentName}
+                    </TableCell>
                     <TableCell>{formatType(assessment.type)}</TableCell>
                     <TableCell>
                       <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
@@ -792,12 +780,16 @@ export default function MyAssessments() {
                       <div className="flex items-center justify-end gap-2">
                         {assessmentId ? (
                           <Link to={resultHref}>
-                            <Button variant="outline" size="sm">Resultado</Button>
+                            <Button variant="outline" size="sm">
+                              Resultado
+                            </Button>
                           </Link>
                         ) : null}
                         {assessment.hasReport && assessmentId ? (
                           <Link to={reportHref}>
-                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">Relatório</Button>
+                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                              Relatório
+                            </Button>
                           </Link>
                         ) : (
                           <Button variant="outline" size="sm" disabled>

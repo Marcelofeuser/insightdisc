@@ -1,4 +1,5 @@
 // Catálogo de features por plano SaaS
+import { mapPlanForFeatures } from '../../../lib/plan-normalize.js';
 
 const FEATURE_CATALOG = {
   personal: {
@@ -33,7 +34,7 @@ const FEATURE_MIN_PLAN = {
 };
 
 function getFeaturesForPlan(planId) {
-  const key = (planId || 'personal').toLowerCase();
+  const key = mapPlanForFeatures(planId) || 'personal';
   return FEATURE_CATALOG[key] || FEATURE_CATALOG.personal;
 }
 

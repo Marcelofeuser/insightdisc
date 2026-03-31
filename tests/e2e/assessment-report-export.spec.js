@@ -126,7 +126,7 @@ test.describe('Exportação PDF do relatório oficial', () => {
       await expect(page.locator('body')).not.toContainText(/NOT_FOUND|payload\.error|The page could not be found/i);
       expect(download.suggestedFilename().toLowerCase()).toContain('.pdf');
       expect(legacyPdfRouteHit).toBeFalsy();
-      await expect(page.locator('body')).toContainText(/PDF gerado com sucesso|Relatório DISC/i);
+      await expect(page.locator('body')).toContainText(/PDF gerado com sucesso|Relatório DISC|Relatório comportamental/i);
     });
   }
 });

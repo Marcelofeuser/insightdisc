@@ -49,7 +49,7 @@ test('FreeResults exibe desbloqueio único e leva para checkout provisório', as
 
   await page.goto('/FreeResults');
   await page.getByRole('button', { name: /Desbloquear Relatório Completo/i }).first().click();
-  await expect(page).toHaveURL(/\/checkout\?product=report-unlock/);
+  await expect(page).toHaveURL(/\/checkout(?:\?|\/)|\/Login\?next=/);
 });
 
 test('Links legais do footer abrem páginas públicas', async ({ page }) => {

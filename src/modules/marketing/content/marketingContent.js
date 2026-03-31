@@ -293,7 +293,7 @@ export const MAIN_LANDING_CONTENT = Object.freeze({
 export const PERSONA_CONTENT = Object.freeze({
   empresa: {
     slug: 'empresa',
-    reportTier: 'professional',
+    reportTier: 'professional', // Mapeia para Business
     metaTitle: 'InsightDISC para Empresas | Inteligencia comportamental organizacional',
     metaDescription:
       'Mapeie cultura, lideranca, equilibrio da equipe e riscos comportamentais com leitura executiva e acao pratica.',
@@ -317,7 +317,7 @@ export const PERSONA_CONTENT = Object.freeze({
   },
   rh: {
     slug: 'rh',
-    reportTier: 'premium',
+    reportTier: 'premium', // Mapeia para Professional
     metaTitle: 'InsightDISC para RH | Recrutamento e desenvolvimento com DISC aplicado',
     metaDescription:
       'Avalie aderencia candidato x cargo, compare perfis e tome decisoes de recrutamento e desenvolvimento com mais seguranca.',

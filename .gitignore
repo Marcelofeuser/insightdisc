@@ -2,54 +2,33 @@
 .env
 .env.*
 .env.local
-server/.env
-server/.env.local
+server/.env*
 
-# Node
-node_modules
-dist
-build
-
-# OS
-.DS_Store
-
-# Logs
-*.log
-
-# Editor
-.vscode
-
-# Test
-playwright-report
-test-results
-
-# Uploads
-server/uploads/
-
-# Generated reports
-reports/
-tmp/
-server/generated/
-
-# PDFs
-*.pdf
-
-# Debug images
-*.png
-*.zip
-
-# Allow real assets
-!assets/
-!public/logos/.env
-server/.env
-
-.env
-server/.env
+# Dependencies & Build
 node_modules/
 dist/
-tmp/
+build/
+.vercel/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Logs & Debug
+*.log
+*.png
+*.zip
+.vscode/
+
+# Testing & Artifacts
+playwright-report/
+test-results/
 reports/
+tmp/
 server/generated/
+server/uploads/
 *.pdf
-.vercel
-.env*.local
+
+# Assets Policy
+!assets/
+!public/logos/
