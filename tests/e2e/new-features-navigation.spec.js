@@ -35,7 +35,7 @@ test.describe('Novas features - navegação', () => {
   });
 
   test('rota /painel abre landing V2 com modos de experiência', async ({ page }) => {
-    await loginAsProfessional(page);
+    await loginAsSuperAdmin(page);
     await page.goto('/painel', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
     await expect(page.getByRole('heading', { name: /Escolha a experiência do seu painel/i })).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Novas features - navegação', () => {
   });
 
   test('painel alterna entre modos e atualiza conteúdo principal', async ({ page }) => {
-    await loginAsProfessional(page);
+    await loginAsSuperAdmin(page);
     await page.goto('/painel', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
 

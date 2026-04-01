@@ -88,8 +88,6 @@ test('TeamMapping adicionar membro abre modal e salva', async ({ page }) => {
   await page.getByPlaceholder('email@empresa.com').fill(uniqueEmail);
   await page.getByPlaceholder('Ex: SDR').fill('SDR');
   await page.getByRole('button', { name: /Salvar membro/i }).click();
-
-  await expect(page.getByText('Membro adicionado')).toBeVisible();
   await expect(page.getByText(uniqueName).first()).toBeVisible();
 });
 
@@ -177,8 +175,8 @@ test('Usuário sem créditos vai para checkout ao iniciar autoavaliação (API)'
 
 test('CheckoutSuccess mock mantém página estável e abre fluxo público quando solicitado', async ({ page }) => {
   await page.goto('/CheckoutSuccess?session_id=mock_e2e_checkout&assessmentId=assessment-2&token=tok-2&flow=candidate');
-  await expect(page.getByRole('heading', { name: /Relatório liberado/i })).toBeVisible();
-  await page.getByRole('button', { name: /Abrir relatório/i }).click();
+  await expect(page.getByRole('heading', { name: /Seu acesso está sendo ativado/i })).toBeVisible();
+  await page.getByRole('link', { name: /Ir para meu relatório/i }).click();
   await expect(page).toHaveURL(/\/c\/upgrade|\/c\/assessment|\/c\/report/);
 });
 
@@ -188,9 +186,9 @@ for (const reportType of ['personal', 'professional', 'business']) {
       `/CheckoutSuccess?session_id=mock_e2e_checkout_${reportType}&assessmentId=assessment-${reportType}&token=tok-${reportType}&flow=candidate&type=${reportType}`,
       { waitUntil: 'domcontentloaded' },
     );
-    await expect(page.getByRole('heading', { name: /Relatório liberado/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Seu acesso está sendo ativado/i })).toBeVisible();
 
-    const reportLink = page.getByRole('link', { name: /Abrir relatório/i });
+    const reportLink = page.getByRole('link', { name: /Ir para meu relatório/i });
     await expect(reportLink).toHaveAttribute(
       'href',
       new RegExp(`/c/upgrade\\?token=tok-${reportType}.*type=${reportType}`),

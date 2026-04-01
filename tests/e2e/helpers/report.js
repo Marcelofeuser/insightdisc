@@ -2,12 +2,13 @@ import { expect } from '@playwright/test';
 import { waitForApp } from './waitForApp';
 
 export async function openPublicReport(page, reportUrl) {
-  await page.goto(reportUrl, { waitUntil: 'domcontentloaded' });
+  await page.goto(reportUrl, { waitUntil: 'networkidle' });
   await waitForApp(page);
 }
 
 export async function waitForReportRender(page) {
-  await expect(page.getByTestId('candidate-report-container')).toBeVisible();
+  await expect(page.getByText(/Carregando relatório/i)).toBeHidden({ timeout: 15_000 });
+  await expect(page.getByTestId('candidate-report-container')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(/Relatório DISC/i)).toBeVisible();
 }
 

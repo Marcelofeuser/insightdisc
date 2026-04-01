@@ -21,7 +21,7 @@ test.describe('Fluxos principais do produto', () => {
     await loginAsProfessional(page);
     await page.goto('/assessments/assessment-1/report', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
-    await expect(page.getByRole('heading', { name: /Relatório DISC/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Relatório comportamental/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Exportar PDF|Gerando PDF/i })).toBeVisible();
   });
 
