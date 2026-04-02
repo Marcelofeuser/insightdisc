@@ -6242,51 +6242,191 @@ export function renderReportHtml(input = {}) {
         border: none !important;
       }
     }
+
+
+    /* === PÁGINA 7 — RADAR === */
+    .page-7 {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .page-7 .split-half-layout {
+      display: grid;
+      grid-template-columns: 0.68fr 1.32fr;
+      gap: 7mm;
+      align-items: start;
+    }
+
+    .page-7 .split-half-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
     .page-7 .radar-card {
-      max-width: 290px;
-      margin: 0 auto;
-      padding: 8px;
+      padding: 5px;
+      min-height: unset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .page-7 .radar {
       display: block;
       width: 100%;
-      max-width: 270px;
-      height: 190px;
+      max-width: 195px;
+      height: 160px;
       margin: 0 auto;
     }
 
-    .page-9 .mini-disc-chart {
-      width: 84%;
-      max-width: 250px;
-      margin: -6px auto -8px;
+    .page-7 .split-half-insight .card {
+      padding: 10px 11px;
     }
 
-    .page-9 .mini-disc-label small {
-      font-size: 8.7px;
+    .page-7 .split-half-insight h3 {
+      font-size: 13px;
+      margin-bottom: 5px;
     }
 
-    .page-9 .mini-disc-value {
+    .page-7 .split-half-insight p {
       font-size: 10px;
+      line-height: 1.32;
+      margin-bottom: 7px;
+    }
+
+    .page-7 .split-half-insight li {
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .page-7 .callout-box {
+      padding: 8px 10px;
+      margin-top: 7px;
+    }
+
+    .page-7 .callout-box h4 {
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .page-7 .callout-box p {
+      font-size: 9.8px;
+      line-height: 1.3;
+    }
+
+    /* === PÁGINA 9 — DINÂMICA === */
+    .page-9 {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .page-9 .content {
+      padding-top: 7mm;
+      padding-bottom: 16mm;
     }
 
     .page-9 .card {
-      padding: 10px;
+      padding: 9px 10px;
+    }
+
+    .page-9 h3 {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .page-9 h4 {
+      font-size: 10.5px;
+      margin-bottom: 3px;
     }
 
     .page-9 p,
     .page-9 li {
-      font-size: 10px;
+      font-size: 9.8px;
       line-height: 1.28;
     }
 
-    .page-9 h3 {
-      font-size: 13.5px;
-      margin-bottom: 4px;
+    .page-9 .bullet-list {
+      gap: 5px;
     }
 
     .page-9 .grid.two.stack-on-print {
-      gap: 8px;
+      gap: 7px;
+      margin-top: 7px;
+    }
+
+    .page-9 .callout-box {
+      padding: 7px 9px;
+      margin-top: 6px;
+    }
+
+    .page-9 .callout-box h4 {
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .page-9 .callout-box p {
+      font-size: 9.5px;
+      line-height: 1.27;
+    }
+
+    .page-9 .mini-disc-chart {
+      width: 100%;
+      max-width: 100%;
+      margin: 2px 0 4px;
+      padding: 7px 8px;
+    }
+
+    .page-9 .mini-disc-header h4 {
+      font-size: 10px;
+    }
+
+    .page-9 .mini-disc-row {
+      grid-template-columns: 76px 1fr 34px;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .page-9 .mini-disc-label strong {
+      font-size: 10px;
+    }
+
+    .page-9 .mini-disc-label small {
+      font-size: 8.4px;
+    }
+
+    .page-9 .mini-disc-track {
+      height: 6px;
+    }
+
+    .page-9 .mini-disc-value {
+      font-size: 9.5px;
+    }
+
+    .page-9 .behavior-matrix {
+      padding: 7px;
+    }
+
+    .page-9 .behavior-matrix-head h4 {
+      font-size: 10px;
+    }
+
+    .page-9 .behavior-matrix-grid {
+      min-height: 96px;
+    }
+
+    .page-9 .matrix-quadrant {
+      padding: 5px 6px;
+      font-size: 9px;
+    }
+
+    .page-9 .matrix-quadrant small {
+      font-size: 8px;
+    }
+
+    .page-9 .factor-accent-badge {
+      font-size: 9.5px;
+      padding: 4px 8px;
+      margin-top: 4px;
     }
 
   </style>

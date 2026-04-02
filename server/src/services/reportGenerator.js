@@ -4315,6 +4315,10 @@ async function renderOfficialHtmlToPdfBuffer(html = '') {
   const browser = await browserLauncher.launch();
 
   try {
+    const sanitizedHtml = String(normalizedHtml)
+      .replace(/<a[^>]*__cf_email__[^>]*>[\s\S]*?<\/a>/g, '<span class="fixed-support-email">suporte@insightdisc.com</span>')
+      .replace(/mailto:[^"']+/g, 'mailto:suporte@insightdisc.com');
+
     const page = await browser.newPage();
     await page.setViewport({
       width: 1400,
@@ -4323,13 +4327,14 @@ async function renderOfficialHtmlToPdfBuffer(html = '') {
     });
     await page.emulateMediaType('screen');
     page.setDefaultNavigationTimeout(60_000);
-    await page.setContent(normalizedHtml, {
+    await page.setContent(sanitizedHtml, {
       waitUntil: 'domcontentloaded',
       timeout: 60_000,
     });
 
     const pdfBuffer = await page.pdf({
-      format: 'A4',
+      width: '297mm',
+      height: '167mm',
       timeout: 90_000,
       printBackground: true,
       margin: {
@@ -4338,7 +4343,7 @@ async function renderOfficialHtmlToPdfBuffer(html = '') {
         bottom: '0mm',
         left: '0mm',
       },
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
     });
 
     return Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
