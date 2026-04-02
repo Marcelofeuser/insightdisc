@@ -13,6 +13,7 @@ function Page({ number, children }) {
         margin: '0 auto',
         pageBreakAfter: 'always',
         breakAfter: 'page',
+        overflow: 'hidden',
       }}
     >
       <div className="h-full flex flex-col">
@@ -124,9 +125,9 @@ export function GenericPage({ number, title, subtitle, paragraphs, bullets, bloc
       <div className="space-y-6">
         <Title title={title} subtitle={subtitle} />
         {Array.isArray(blocks) && blocks.length ? (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4" style={{ breakInside: 'avoid' }}>
             {blocks.map((b, i) => (
-              <Card key={i} className="shadow-sm border-slate-200">
+              <Card key={i} className="shadow-sm border-slate-200" style={{ breakInside: 'avoid' }}>
                 <CardContent className="p-5 space-y-1">
                   <div className="text-xs text-slate-500">{b.label}</div>
                   <div className="text-lg font-semibold text-slate-900">{b.value}</div>

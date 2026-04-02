@@ -366,7 +366,7 @@ export default function CandidateOnboarding() {
           </Button>
 
           <p className="text-xs text-center text-slate-400">
-            Seus dados são tratados com segurança. Você pode solicitar a exclusão a qualquer momento via privacidade@discpro.com.br
+            Seus dados são tratados com segurança. Você pode solicitar a exclusão a qualquer momento via suporte.com
           </p>
         </div>
       </motion.div>

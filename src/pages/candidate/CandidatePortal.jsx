@@ -6,7 +6,7 @@ const CANDIDATE_JWT_KEY = 'candidate_jwt';
 
 function getCandidateToken() {
   if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(CANDIDATE_JWT_KEY) || '';
+  return window.window.localStorage.getItem(CANDIDATE_JWT_KEY) || '';
 }
 
 function firstNonEmpty(...values) {

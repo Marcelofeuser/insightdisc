@@ -36,13 +36,13 @@ function normalizeAuthPlanValue(value = '') {
 function buildDevShortcutUser() {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null;
 
-  const email = String(window.localStorage.getItem('disc_mock_user_email') || '')
+  const email = String(window.window.localStorage.getItem('disc_mock_user_email') || '')
     .trim()
     .toLowerCase();
   if (!email) return null;
 
   const activeWorkspaceId =
-    String(window.localStorage.getItem('disc_mock_active_tenant') || '').trim() || 'workspace-1';
+    String(window.window.localStorage.getItem('disc_mock_active_tenant') || '').trim() || 'workspace-1';
 
   if (email === 'superadmin@example.com') {
     return {
@@ -374,7 +374,7 @@ export const AuthProvider = ({ children }) => {
         hasApiToken ||
         (ENABLE_DEV_LOGIN_SHORTCUTS &&
           typeof window !== 'undefined' &&
-          Boolean(window.localStorage.getItem('disc_mock_user_email')));
+          Boolean(window.window.localStorage.getItem('disc_mock_user_email')));
       if ((error.status === 401 || error.status === 403) && hasSessionToken) {
         setAuthError({
           type: 'auth_required',

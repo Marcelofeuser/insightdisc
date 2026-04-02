@@ -11,7 +11,7 @@ const TOTAL_QUESTIONS = 40;
 function getDraftAnsweredCount(assessmentId) {
   if (!assessmentId || typeof window === 'undefined') return 0;
   try {
-    const raw = window.localStorage.getItem(`disc_draft_${assessmentId}`);
+    const raw = window.window.localStorage.getItem(`disc_draft_${assessmentId}`);
     if (!raw) return 0;
     const parsed = JSON.parse(raw);
     return Object.keys(parsed?.savedAnswers || {}).length;

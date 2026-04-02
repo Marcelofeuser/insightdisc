@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Download } from 'lucide-react';
+import { Download, LayoutDashboard } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,7 +19,7 @@ const CANDIDATE_JWT_KEY = 'candidate_jwt';
 
 function getCandidateJwt() {
   if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(CANDIDATE_JWT_KEY) || '';
+  return window.window.localStorage.getItem(CANDIDATE_JWT_KEY) || '';
 }
 
 function normalizeAssessmentFromApi(assessment, discProfile, report) {
@@ -175,18 +175,9 @@ export default function CandidateReport() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
-  const [isSavingToPortal, setIsSavingToPortal] = useState(false);
   const [availablePdfUrl, setAvailablePdfUrl] = useState('');
   const [publicAccess, setPublicAccess] = useState(null);
   const lastPdfErrorToastRef = useRef({ message: '', ts: 0 });
-
-  const [showClaim, setShowClaim] = useState(false);
-  const [claimMode, setClaimMode] = useState('register'); // register | login
-  const [claimName, setClaimName] = useState('');
-  const [claimEmail, setClaimEmail] = useState('');
-  const [claimPassword, setClaimPassword] = useState('');
-  const [claimError, setClaimError] = useState('');
-  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     if (loading || loadError || !assessment?.results) return;
@@ -226,9 +217,6 @@ export default function CandidateReport() {
     }
     if (code.includes('REPORT_ALREADY_CLAIMED')) {
       return 'Este relatório já está vinculado a outro usuário.';
-    }
-    if (code.includes('PORTAL_SAVE_NOT_ELIGIBLE')) {
-      return 'Salvar uma cópia no portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.';
     }
     if (code.includes('AUTH_REQUIRED')) {
       return 'Faça login para salvar este relatório no portal.';
@@ -564,9 +552,6 @@ export default function CandidateReport() {
   const currentPlan = useMemo(() => resolvePlanFromAccess(access), [access]);
   const isAuthenticated = Boolean(access?.userId);
   const hasPaidPlan = isPlanAtLeast(currentPlan, PLANS.PROFESSIONAL);
-  const hasEligibleVoucher = Array.isArray(access?.entitlements)
-    && access.entitlements.some((item) => ['report.pro', 'report.export.pdf'].includes(String(item || '').trim().toLowerCase()));
-  const canSaveToOwnPortal = isAuthenticated && (hasPaidPlan || hasEligibleVoucher);
 
   const ensurePublicPdfUrl = async () => {
     if (availablePdfUrl) {
@@ -611,95 +596,15 @@ export default function CandidateReport() {
     return resolvedPdfUrl;
   };
 
-  const claimReport = async () => {
-    setClaimError('');
-
-    if (!apiBaseUrl) {
-      setClaimError('Este ambiente não possui backend configurado para salvar relatório.');
-      return;
-    }
-
-    const resolvedAssessmentId = assessment?.id || assessmentId;
-    if (!token || !resolvedAssessmentId) {
-      setClaimError('Token ausente para vincular este relatório.');
-      return;
-    }
-
-    setClaiming(true);
-
-    try {
-      let authToken = getCandidateJwt();
-
-      if (claimMode === 'register') {
-        try {
-          const registerPayload = await apiRequest('/candidate/register', {
-            method: 'POST',
-            body: {
-              email: claimEmail,
-              password: claimPassword,
-              name: claimName || 'Candidato',
-            },
-          });
-          if (registerPayload?.token) {
-            authToken = registerPayload.token;
-          }
-        } catch (registerError) {
-          const reason = String(
-            registerError?.payload?.reason || registerError?.message || ''
-          ).toUpperCase();
-          if (!reason.includes('EMAIL_EXISTS')) {
-            throw registerError;
-          }
-        }
-      }
-
-      if (!authToken || claimMode === 'login') {
-        const loginPayload = await apiRequest('/candidate/login', {
-          method: 'POST',
-          body: {
-            email: claimEmail,
-            password: claimPassword,
-          },
-        });
-        if (!loginPayload?.token) {
-          throw new Error('Não foi possível autenticar sua conta.');
-        }
-        authToken = loginPayload.token;
-      }
-
-      const payload = await apiRequest('/candidate/claim-report', {
-        method: 'POST',
-        token: authToken,
-        body: {
-          token,
-          assessmentId: resolvedAssessmentId,
-          email: claimEmail,
-          password: claimPassword,
-          name: claimName,
-        },
-      });
-
-      if (!payload?.ok) {
-        throw new Error(payload?.error || payload?.reason || 'Falha ao salvar relatório.');
-      }
-
-      window.localStorage.setItem(CANDIDATE_JWT_KEY, payload?.token || authToken);
-      setShowClaim(false);
+  const handleGoToDashboard = () => {
+    if (isAuthenticated && hasPaidPlan) {
+      navigate(createPageUrl('MyAssessments'));
+    } else {
       toast({
-        title: 'Relatório vinculado',
-        description: 'Seu relatório foi salvo com sucesso no seu portal.',
+        variant: 'default',
+        title: 'Acesso restrito',
+        description: 'Acesso liberado ao painel somente para usuários com plano ativo.',
       });
-
-      if (getApiToken()) {
-        navigate(createPageUrl('MyAssessments'));
-        return;
-      }
-
-      navigate('/c/portal');
-    } catch (error) {
-      setClaimError(resolveSavePortalErrorMessage(error));
-    } finally {
-      setClaiming(false);
     }
   };
 
@@ -785,110 +690,6 @@ export default function CandidateReport() {
     }
   };
 
-  const saveToPortal = async () => {
-    if (!canSaveToOwnPortal) {
-      toast({
-        variant: 'destructive',
-        title: 'Ação indisponível',
-        description:
-          'Salvar uma cópia no seu portal está disponível apenas para contas autenticadas com plano pago ou permissão elegível.',
-      });
-      return;
-    }
-
-    const resolvedAssessmentId = assessment?.id || assessmentId;
-    if (!token || !resolvedAssessmentId) {
-      toast({
-        variant: 'destructive',
-        title: 'Não foi possível salvar no portal',
-        description: 'Token ou identificação do relatório ausente.',
-      });
-      return;
-    }
-
-    setIsSavingToPortal(true);
-    try {
-      const saveToLocalPortal = async () => {
-        const isAuthenticated = typeof base44?.auth?.isAuthenticated === 'function'
-          ? await base44.auth.isAuthenticated()
-          : false;
-
-        if (!isAuthenticated) {
-          throw new Error('PORTAL_SAVE_NOT_ELIGIBLE');
-        }
-
-        const currentUser = typeof base44?.auth?.me === 'function' ? await base44.auth.me() : null;
-        const resolvedUserId = currentUser?.email || currentUser?.id;
-        if (!resolvedUserId) {
-          throw new Error('Usuário autenticado não encontrado.');
-        }
-
-        await base44.entities.Assessment.update(resolvedAssessmentId, {
-          user_id: resolvedUserId,
-          respondent_email: assessment?.respondent_email || currentUser?.email || '',
-          respondent_name: assessment?.respondent_name || currentUser?.full_name || currentUser?.name || '',
-        });
-
-        toast({
-          title: 'Relatório salvo no portal',
-          description: 'Seu relatório foi vinculado com sucesso à sua conta.',
-        });
-
-        navigate(createPageUrl('MyAssessments'));
-      };
-
-      if (!apiBaseUrl) {
-        await saveToLocalPortal();
-        return;
-      }
-
-      const authToken = getAuthenticatedPortalToken();
-      if (!authToken) {
-        if (base44?.__isMock) {
-          await saveToLocalPortal();
-          return;
-        }
-        setClaimError('');
-        setClaimMode('register');
-        setShowClaim(true);
-        return;
-      }
-
-      const payload = await apiRequest('/candidate/claim-report', {
-        method: 'POST',
-        token: authToken,
-        body: {
-          token,
-          assessmentId: resolvedAssessmentId,
-        },
-      });
-
-      if (!payload?.ok) {
-        throw new Error(payload?.error || payload?.reason || 'Falha ao vincular relatório.');
-      }
-
-      toast({
-        title: 'Relatório salvo no portal',
-        description: 'Seu relatório foi vinculado com sucesso à sua conta.',
-      });
-
-      if (getApiToken()) {
-        navigate(createPageUrl('MyAssessments'));
-      } else {
-        navigate('/c/portal');
-      }
-    } catch (error) {
-      console.error('[CandidateReport] saveToPortal failed', error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao salvar no portal',
-        description: resolveSavePortalErrorMessage(error),
-      });
-    } finally {
-      setIsSavingToPortal(false);
-    }
-  };
-
   if (loading) {
     return <div className="rounded-xl border bg-white p-6 text-sm text-slate-500">Carregando relatório...</div>;
   }
@@ -912,31 +713,26 @@ export default function CandidateReport() {
           <span className="text-xs text-green-800">
             Este relatório já foi salvo automaticamente no painel do responsável pela avaliação.<br/>
             <b>Use esta página para visualizar o conteúdo e baixar o PDF oficial.</b>
-            {canSaveToOwnPortal ? <><br />Sua conta atual também pode salvar uma cópia no próprio portal.</> : null}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={downloadPdf}
             className="rounded-lg bg-slate-900 text-white hover:bg-slate-800"
-            disabled={isPreparingPdf || isSavingToPortal}
+            disabled={isPreparingPdf}
             data-testid="candidate-report-download-pdf"
           >
             <Download className="w-4 h-4 mr-2" />
             {isPreparingPdf ? 'Preparando...' : 'Baixar PDF oficial'}
           </Button>
-          {canSaveToOwnPortal ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={saveToPortal}
-              disabled={isPreparingPdf || isSavingToPortal}
-              className="rounded-lg"
-              data-testid="candidate-report-save-portal"
-            >
-              {isSavingToPortal ? 'Salvando...' : 'Salvar no meu portal'}
-            </Button>
-          ) : null}
+          <Button
+            variant="outline"
+            onClick={handleGoToDashboard}
+            className="rounded-lg"
+          >
+            <LayoutDashboard className="w-4 h-4 mr-2" />
+            Ir para o painel
+          </Button>
         </div>
       </div>
 

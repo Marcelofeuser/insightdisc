@@ -239,7 +239,7 @@ export default function PremiumAssessment() {
         }
       });
 
-      const draftRaw = localStorage.getItem(DRAFT_KEY(assessmentId));
+      const draftRaw = window.localStorage.getItem(DRAFT_KEY(assessmentId));
       const { savedAnswers, savedQuestion } = parseDraft(draftRaw);
 
       const mergedMap = { ...mappedExisting, ...savedAnswers };
@@ -254,7 +254,7 @@ export default function PremiumAssessment() {
       let shouldShowContextIntro = false;
       let resolvedQuickContext = { ...QUICK_CONTEXT_DEFAULT };
       let hasRemoteQuickContext = false;
-      const quickContextDoneLocally = localStorage.getItem(QUICK_CONTEXT_STEP_KEY(assessmentId)) === '1';
+      const quickContextDoneLocally = window.localStorage.getItem(QUICK_CONTEXT_STEP_KEY(assessmentId)) === '1';
 
       if (apiBaseUrl && token) {
         try {
@@ -276,7 +276,7 @@ export default function PremiumAssessment() {
         }
       } else {
         try {
-          const localQuickRaw = localStorage.getItem(QUICK_CONTEXT_DATA_KEY(assessmentId));
+          const localQuickRaw = window.localStorage.getItem(QUICK_CONTEXT_DATA_KEY(assessmentId));
           if (localQuickRaw) {
             const parsed = JSON.parse(localQuickRaw);
             if (parsed && typeof parsed === 'object') {
@@ -396,7 +396,7 @@ export default function PremiumAssessment() {
         authUser?.id ||
         authUser?.email ||
         (typeof window !== 'undefined'
-          ? String(window.localStorage.getItem('disc_mock_user_email') || '').trim()
+          ? String(window.window.localStorage.getItem('disc_mock_user_email') || '').trim()
           : '') ||
         null;
 
@@ -510,7 +510,7 @@ export default function PremiumAssessment() {
 
   const markQuickContextDone = () => {
     if (assessmentId) {
-      localStorage.setItem(QUICK_CONTEXT_STEP_KEY(assessmentId), '1');
+      window.localStorage.setItem(QUICK_CONTEXT_STEP_KEY(assessmentId), '1');
     }
     setShowQuickContextForm(false);
     setShowContextIntro(false);
@@ -541,7 +541,7 @@ export default function PremiumAssessment() {
           },
         });
       } else {
-        localStorage.setItem(QUICK_CONTEXT_DATA_KEY(assessmentId), JSON.stringify(quickContext));
+        window.localStorage.setItem(QUICK_CONTEXT_DATA_KEY(assessmentId), JSON.stringify(quickContext));
       }
 
       markQuickContextDone();
@@ -576,7 +576,7 @@ export default function PremiumAssessment() {
     setAnswers(nextAnswers);
 
     if (assessmentId) {
-      localStorage.setItem(
+      window.localStorage.setItem(
         DRAFT_KEY(assessmentId),
         JSON.stringify({
           savedAnswers: nextAnswers,

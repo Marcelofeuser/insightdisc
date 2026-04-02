@@ -62,7 +62,7 @@ function loadLocalDossierSummary(workspaceId = '') {
   }
 
   try {
-    const raw = JSON.parse(window.localStorage.getItem('insightdisc_behavioral_dossiers') || '{}');
+    const raw = JSON.parse(window.window.localStorage.getItem('insightdisc_behavioral_dossiers') || '{}');
     const keyPrefix = `${String(workspaceId || 'default-workspace').trim()}:`;
     const records = Object.entries(raw || {}).filter(([key]) => key.startsWith(keyPrefix));
 

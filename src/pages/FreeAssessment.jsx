@@ -132,7 +132,7 @@ export default function FreeAssessment() {
   const [compareFromName, setCompareFromName] = useState('');
   const redirectedRef = useRef(false);
   const [consentGiven, setConsentGiven] = useState(() => {
-    return localStorage.getItem('disc_consent_given') === 'true';
+    return window.localStorage.getItem('disc_consent_given') === 'true';
   });
 
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function FreeAssessment() {
     } catch (error) {
       console.error('Error saving assessment:', error);
       // Still navigate but store results in localStorage as backup
-      localStorage.setItem('freeAssessmentResults', JSON.stringify(results));
+      window.localStorage.setItem('freeAssessmentResults', JSON.stringify(results));
       const nextParams = new URLSearchParams();
       if (compareWithAssessmentId) nextParams.set('compareWith', compareWithAssessmentId);
       if (compareRelation) nextParams.set('relation', compareRelation);
@@ -285,7 +285,7 @@ export default function FreeAssessment() {
   const isComplete = Object.keys(answers).length === FREE_QUESTIONS.length;
 
   const handleConsentAccept = () => {
-    localStorage.setItem('disc_consent_given', 'true');
+    window.localStorage.setItem('disc_consent_given', 'true');
     setConsentGiven(true);
   };
 

@@ -156,6 +156,7 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
+
       <Route path="/c" element={<CandidateShell />}>
         <Route index element={<CandidateInvite />} />
         <Route path="invite" element={<CandidateInvite />} />

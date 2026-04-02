@@ -105,7 +105,7 @@ export default function LGPDConsent({ onAccept, onDecline }) {
 
           <div className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg">
             <strong>Seus direitos (LGPD):</strong> Você pode solicitar acesso, correção, portabilidade 
-            ou exclusão dos seus dados a qualquer momento via <a href="mailto:privacidade@discpro.com.br" className="underline">privacidade@discpro.com.br</a>
+            ou exclusão dos seus dados a qualquer momento via <a href="mailto:suporte.com" className="underline">suporte.com</a>
           </div>
 
           {/* Actions */}

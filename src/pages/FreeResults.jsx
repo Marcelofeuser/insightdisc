@@ -150,7 +150,7 @@ export default function FreeResults() {
     
     // Fallback to localStorage (fix: use local variable, not stale state)
     if (!loaded) {
-      const localResults = localStorage.getItem('freeAssessmentResults');
+      const localResults = window.localStorage.getItem('freeAssessmentResults');
       if (localResults) {
         try {
           setAssessment({ results: JSON.parse(localResults) });

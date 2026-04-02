@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
@@ -80,7 +81,7 @@ function toUpperProfile(value) {
 function readLocalStore() {
   if (typeof window === 'undefined') return {};
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_DOSSIER_KEY) || '{}');
+    const parsed = JSON.parse(window.window.localStorage.getItem(LOCAL_DOSSIER_KEY) || '{}');
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
@@ -89,7 +90,7 @@ function readLocalStore() {
 
 function writeLocalStore(value) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOCAL_DOSSIER_KEY, JSON.stringify(value || {}));
+  window.window.localStorage.setItem(LOCAL_DOSSIER_KEY, JSON.stringify(value || {}));
 }
 
 function makeStoreKey(workspaceId, candidateId) {
@@ -189,7 +190,7 @@ function profileEvolutionRows(assessmentsHistory = []) {
 function readLocalAnamnesisStore() {
   if (typeof window === 'undefined') return {};
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_DOSSIER_ANAMNESIS_KEY) || '{}');
+    const parsed = JSON.parse(window.window.localStorage.getItem(LOCAL_DOSSIER_ANAMNESIS_KEY) || '{}');
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
@@ -198,7 +199,7 @@ function readLocalAnamnesisStore() {
 
 function writeLocalAnamnesisStore(value) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOCAL_DOSSIER_ANAMNESIS_KEY, JSON.stringify(value || {}));
+  window.window.localStorage.setItem(LOCAL_DOSSIER_ANAMNESIS_KEY, JSON.stringify(value || {}));
 }
 
 function makeAnamnesisStoreKey(workspaceId, assessmentId) {
@@ -1643,50 +1644,69 @@ export default function Dossier() {
                   <CardTitle className="text-base">Saúde</CardTitle>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-3">
-                  <Input
-                    value={anamnesisForm.stressLevel}
-                    onChange={(event) => handleAnamnesisChange('stressLevel', event.target.value)}
-                    placeholder="Nível de estresse"
-                  />
-                  <Input
-                    value={anamnesisForm.sleepQuality}
-                    onChange={(event) => handleAnamnesisChange('sleepQuality', event.target.value)}
-                    placeholder="Qualidade do sono"
-                  />
-                  <Input
-                    value={anamnesisForm.physicalActivity}
-                    onChange={(event) =>
-                      handleAnamnesisChange('physicalActivity', event.target.value)
-                    }
-                    placeholder="Atividade física"
-                  />
-                  <Input
-                    value={anamnesisForm.smoker}
-                    onChange={(event) => handleAnamnesisChange('smoker', event.target.value)}
-                    placeholder="Tabagismo"
-                  />
-                  <Input
-                    value={anamnesisForm.alcoholConsumption}
-                    onChange={(event) =>
-                      handleAnamnesisChange('alcoholConsumption', event.target.value)
-                    }
-                    placeholder="Álcool"
-                  />
-                  <Input
-                    value={anamnesisForm.usesMedication}
-                    onChange={(event) =>
-                      handleAnamnesisChange('usesMedication', event.target.value)
-                    }
-                    placeholder="Uso de medicamentos"
-                  />
-                  <div className="md:col-span-2">
+                  <div className="space-y-1">
+                    <Label>Nível de estresse</Label>
+                    <Input
+                      value={anamnesisForm.stressLevel}
+                      onChange={(event) => handleAnamnesisChange('stressLevel', event.target.value)}
+                      placeholder="Ex: baixo, moderado, alto"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Qualidade do sono</Label>
+                    <Input
+                      value={anamnesisForm.sleepQuality}
+                      onChange={(event) => handleAnamnesisChange('sleepQuality', event.target.value)}
+                      placeholder="Ex: boa, regular, ruim"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Atividade física</Label>
+                    <Input
+                      value={anamnesisForm.physicalActivity}
+                      onChange={(event) =>
+                        handleAnamnesisChange('physicalActivity', event.target.value)
+                      }
+                      placeholder="Ex: musculação 3x/semana"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Tabagismo</Label>
+                    <Input
+                      value={anamnesisForm.smoker}
+                      onChange={(event) => handleAnamnesisChange('smoker', event.target.value)}
+                      placeholder="Ex: não, sim, social"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Consumo de álcool</Label>
+                    <Input
+                      value={anamnesisForm.alcoholConsumption}
+                      onChange={(event) =>
+                        handleAnamnesisChange('alcoholConsumption', event.target.value)
+                      }
+                      placeholder="Ex: não, social, frequente"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Uso de medicamentos</Label>
+                    <Input
+                      value={anamnesisForm.usesMedication}
+                      onChange={(event) =>
+                        handleAnamnesisChange('usesMedication', event.target.value)
+                      }
+                      placeholder="Ex: não, sim"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <Label>Lista de medicamentos</Label>
                     <Textarea
                       rows={3}
                       value={anamnesisForm.medicationList}
                       onChange={(event) =>
                         handleAnamnesisChange('medicationList', event.target.value)
                       }
-                      placeholder="Lista de medicamentos"
+                      placeholder="Informe quais medicamentos utiliza"
                     />
                   </div>
                 </CardContent>

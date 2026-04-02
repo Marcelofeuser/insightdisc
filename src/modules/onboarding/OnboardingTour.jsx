@@ -17,7 +17,7 @@ const BASE_STEPS = Object.freeze([
 function readState() {
   if (typeof window === 'undefined') return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return typeof parsed === 'object' && parsed ? parsed : {};
@@ -28,7 +28,7 @@ function readState() {
 
 function persistState(nextState = {}) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+  window.window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
 }
 
 export default function OnboardingTour() {

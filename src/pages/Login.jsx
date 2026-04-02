@@ -168,8 +168,8 @@ export default function Login() {
         mockUser = await base44.auth.login({ email: mockEmail });
       } else if (typeof window !== 'undefined') {
         const normalizedEmail = String(mockEmail || '').trim().toLowerCase();
-        window.localStorage.setItem('disc_mock_user_email', normalizedEmail);
-        window.localStorage.setItem('disc_mock_active_tenant', 'workspace-1');
+        window.window.localStorage.setItem('disc_mock_user_email', normalizedEmail);
+        window.window.localStorage.setItem('disc_mock_active_tenant', 'workspace-1');
 
         ['insightdisc_token', 'insightdisc_api_token', 'insight_api_token', 'server_api_token'].forEach((key) => {
           window.localStorage.removeItem(key);

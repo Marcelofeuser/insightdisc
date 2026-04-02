@@ -2033,7 +2033,7 @@ function buildPage({
       : content;
 
   return `
-    <section class="page page-${number} ${parityClass}">
+    <section class="page ${parityClass}">
       <div class="page-backdrop"></div>
       <main class="content">
         ${
@@ -6242,53 +6242,6 @@ export function renderReportHtml(input = {}) {
         border: none !important;
       }
     }
-    .page-7 .radar-card {
-      max-width: 290px;
-      margin: 0 auto;
-      padding: 8px;
-    }
-
-    .page-7 .radar {
-      display: block;
-      width: 100%;
-      max-width: 270px;
-      height: 190px;
-      margin: 0 auto;
-    }
-
-    .page-9 .mini-disc-chart {
-      width: 84%;
-      max-width: 250px;
-      margin: -6px auto -8px;
-    }
-
-    .page-9 .mini-disc-label small {
-      font-size: 8.7px;
-    }
-
-    .page-9 .mini-disc-value {
-      font-size: 10px;
-    }
-
-    .page-9 .card {
-      padding: 10px;
-    }
-
-    .page-9 p,
-    .page-9 li {
-      font-size: 10px;
-      line-height: 1.28;
-    }
-
-    .page-9 h3 {
-      font-size: 13.5px;
-      margin-bottom: 4px;
-    }
-
-    .page-9 .grid.two.stack-on-print {
-      gap: 8px;
-    }
-
   </style>
 </head>
 <body class="${isPremiumTier ? 'theme-premium' : 'theme-standard'}">

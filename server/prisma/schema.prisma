@@ -14,19 +14,19 @@ model User {
   passwordHash                String                       @map("password_hash")
   name                        String
   role                        UserRole                     @default(PRO)
-  plan                        BillingPlan                  @default(PERSONAL)
   createdAt                   DateTime                     @default(now()) @map("created_at")
+  plan                        BillingPlan                  @default(PERSONAL)
   candidateAssessments        Assessment[]                 @relation("AssessmentCandidate")
   assessmentsCreated          Assessment[]                 @relation("AssessmentCreator")
   candidateDossiers           BehavioralDossier[]          @relation("BehavioralDossierCandidate")
-  billingSubscriptions        BillingSubscription[]
   createdDossiers             BehavioralDossier[]          @relation("BehavioralDossierCreator")
+  billingSubscriptions        BillingSubscription[]
   campaignAuditLogs           CampaignAuditLog[]           @relation("CampaignAuditActor")
   couponsRedeemed             CampaignCoupon[]             @relation("CampaignCouponRedeemer")
   campaignsCreated            Campaign[]                   @relation("CampaignCreator")
-  creditLedgerEntries         CreditLedgerEntry[]
   creditGrantsIssued          CreditGrant[]                @relation("CreditGrantActor")
   creditGrantsReceived        CreditGrant[]                @relation("CreditGrantRecipient")
+  creditLedgerEntries         CreditLedgerEntry[]
   credits                     Credit?
   memberships                 OrganizationMember[]
   organizationsOwned          Organization[]               @relation("OrganizationOwner")
@@ -199,23 +199,23 @@ model Report {
 }
 
 model Payment {
-  id                  String              @id @default(cuid())
-  userId              String              @map("user_id")
-  creditsAdded        Int                 @map("credits_added")
-  amount              Int
-  stripeSession       String              @unique @map("stripe_session")
-  status              PaymentStatus       @default(PENDING)
-  productId           String?             @map("product_id")
-  mode                String?
-  currency            String?
-  stripePaymentIntent String?             @map("stripe_payment_intent")
-  stripeCustomerId    String?             @map("stripe_customer_id")
-  stripeSubscriptionId String?            @map("stripe_subscription_id")
-  metadata            Json?
-  createdAt           DateTime            @default(now()) @map("created_at")
-  updated_at          DateTime            @updatedAt @default(now())
-  ledgerEntries       CreditLedgerEntry[]
-  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String              @id @default(cuid())
+  userId               String              @map("user_id")
+  creditsAdded         Int                 @map("credits_added")
+  amount               Int
+  stripeSession        String              @unique @map("stripe_session")
+  status               PaymentStatus       @default(PENDING)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  currency             String?
+  metadata             Json?
+  mode                 String?
+  productId            String?             @map("product_id")
+  stripeCustomerId     String?             @map("stripe_customer_id")
+  stripePaymentIntent  String?             @map("stripe_payment_intent")
+  stripeSubscriptionId String?             @map("stripe_subscription_id")
+  updated_at           DateTime            @default(now()) @updatedAt
+  ledgerEntries        CreditLedgerEntry[]
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([stripePaymentIntent])
   @@index([stripeSubscriptionId])
@@ -223,34 +223,34 @@ model Payment {
 }
 
 model BillingSubscription {
-  id                String             @id @default(cuid())
-  userId            String             @map("user_id")
-  plan              BillingPlan
-  status            SubscriptionStatus @default(INCOMPLETE)
-  stripeCustomerId  String?            @map("stripe_customer_id")
-  stripeSubscriptionId String          @unique @map("stripe_subscription_id")
-  stripePriceId     String?            @map("stripe_price_id")
-  currentPeriodStart DateTime?         @map("current_period_start")
-  currentPeriodEnd  DateTime?          @map("current_period_end")
-  cancelAtPeriodEnd Boolean            @default(false) @map("cancel_at_period_end")
-  canceledAt        DateTime?          @map("canceled_at")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String             @id @default(cuid())
+  userId               String             @map("user_id")
+  plan                 BillingPlan
+  status               SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
+  stripePriceId        String?            @map("stripe_price_id")
+  currentPeriodStart   DateTime?          @map("current_period_start")
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  canceledAt           DateTime?          @map("canceled_at")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@map("billing_subscriptions")
 }
 
 model StripeWebhookEvent {
-  id            String   @id @default(cuid())
-  stripeEventId String   @unique @map("stripe_event_id")
-  eventType     String   @map("event_type")
-  livemode      Boolean  @default(false)
+  id            String    @id @default(cuid())
+  stripeEventId String    @unique @map("stripe_event_id")
+  eventType     String    @map("event_type")
+  livemode      Boolean   @default(false)
   payload       Json
-  status        String   @default("RECEIVED")
-  errorMessage  String?  @map("error_message")
-  receivedAt    DateTime @default(now()) @map("received_at")
+  status        String    @default("RECEIVED")
+  errorMessage  String?   @map("error_message")
+  receivedAt    DateTime  @default(now()) @map("received_at")
   processedAt   DateTime? @map("processed_at")
 
   @@index([eventType, receivedAt])
@@ -258,17 +258,17 @@ model StripeWebhookEvent {
 }
 
 model CreditLedgerEntry {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  paymentId   String?  @map("payment_id")
-  source      String
-  externalRef String   @map("external_ref")
-  amount      Int
-  balanceAfter Int     @map("balance_after")
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-  payment     Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  paymentId    String?  @map("payment_id")
+  source       String
+  externalRef  String   @map("external_ref")
+  amount       Int
+  balanceAfter Int      @map("balance_after")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  payment      Payment? @relation(fields: [paymentId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, source, externalRef])
   @@index([paymentId])
@@ -549,6 +549,7 @@ enum BillingPlan {
   PERSONAL
   PROFESSIONAL
   BUSINESS
+  DIAMOND
 }
 
 enum SubscriptionStatus {

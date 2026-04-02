@@ -48,7 +48,7 @@ function normalizeLocalLead(item = {}, index = 0) {
 function loadLocalLeads() {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(LOCAL_LEADS_KEY);
+    const raw = window.window.localStorage.getItem(LOCAL_LEADS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
     return parsed.map((item, index) => normalizeLocalLead(item, index));
@@ -60,7 +60,7 @@ function loadLocalLeads() {
 function saveLocalLeads(leads = []) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify(leads));
+    window.window.localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify(leads));
   } catch {
     // ignore quota/storage errors
   }
