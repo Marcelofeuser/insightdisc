@@ -409,7 +409,153 @@ a[href^="mailto"] {
   overflow-wrap: normal !important;
 }
 
+
+
+
+@media print {
+  #sg-radar .slide-content,
+  #sg-bars .slide-content {
+    overflow: hidden !important;
+  }
+
+  #sg-radar svg,
+  #sg-bars svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+
+@media print {
+  /* mantém o slide ocupando a página inteira */
+  #sg-radar.slide,
+  #sg-bars.slide {
+    width: 100% !important;
+    min-height: 100vh !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* ajusta só a área interna */
+  #sg-radar .slide-content,
+  #sg-bars .slide-content {
+    display: grid !important;
+    grid-template-columns: 56% 44% !important;
+    gap: 14px !important;
+    align-items: start !important;
+    padding: 0 8px !important;
+    box-sizing: border-box !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* gráfico: cresce mais, sem reduzir o slide */
+  #sg-radar .slide-content > div:first-child,
+  #sg-bars .slide-content > div:first-child {
+    transform: scale(0.92) !important;
+    transform-origin: top left !important;
+    width: 108% !important;
+    max-width: 108% !important;
+    overflow: hidden !important;
+  }
+
+  /* texto: compacta sem estourar */
+  #sg-radar .slide-content > div:last-child,
+  #sg-bars .slide-content > div:last-child {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  #sg-radar .slide-content > div:last-child p,
+  #sg-radar .slide-content > div:last-child li,
+  #sg-radar .slide-content > div:last-child div,
+  #sg-bars .slide-content > div:last-child p,
+  #sg-bars .slide-content > div:last-child li,
+  #sg-bars .slide-content > div:last-child div {
+    font-size: 11px !important;
+    line-height: 1.22 !important;
+    margin-bottom: 4px !important;
+    word-break: break-word !important;
+  }
+
+  #sg-radar .slide-content > div:last-child h2,
+  #sg-radar .slide-content > div:last-child h3,
+  #sg-bars .slide-content > div:last-child h2,
+  #sg-bars .slide-content > div:last-child h3 {
+    font-size: 17px !important;
+    line-height: 1.05 !important;
+    margin: 0 0 5px 0 !important;
+  }
+
+  /* cards internos menores */
+  #sg-radar .slide-content > div:last-child [style*="padding:20px 24px"],
+  #sg-bars .slide-content > div:last-child [style*="padding:20px 24px"] {
+    padding: 10px 12px !important;
+    margin-bottom: 5px !important;
+  }
+}
+
 </style>
+
+<style id="ajuste-leve-paginas-7-8">
+
+@media print {
+  #sg-radar .slide-content,
+  #sg-bars .slide-content {
+    display: grid !important;
+    grid-template-columns: 55% 45% !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  /* segura o gráfico, mas deixa ele um pouco menor para abrir espaço ao texto */
+  #sg-radar .slide-content > div:first-child,
+  #sg-bars .slide-content > div:first-child {
+    position: relative !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+  }
+
+  #sg-radar .slide-content > div:first-child > *,
+  #sg-bars .slide-content > div:first-child > * {
+    transform: scale(0.96) !important;
+    transform-origin: center left !important;
+    max-width: 100% !important;
+  }
+
+  /* texto */
+  #sg-radar .slide-content > div:last-child,
+  #sg-bars .slide-content > div:last-child {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  #sg-radar .slide-content > div:last-child p,
+  #sg-bars .slide-content > div:last-child p,
+  #sg-radar .slide-content > div:last-child li,
+  #sg-bars .slide-content > div:last-child li,
+  #sg-radar .slide-content > div:last-child div,
+  #sg-bars .slide-content > div:last-child div {
+    font-size: 12px !important;
+    line-height: 1.28 !important;
+  }
+
+  #sg-radar h2, #sg-bars h2,
+  #sg-radar h3, #sg-bars h3 {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+    margin-bottom: 6px !important;
+  }
+
+  #sg-radar [style*="padding:20px"],
+  #sg-bars [style*="padding:20px"] {
+    padding: 12px 14px !important;
+  }
+}
+
+</style>
+
 </head>
 <body>
 
