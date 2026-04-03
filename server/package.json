@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push --accept-data-loss",
     "seed:super-admin": "node scripts/seed-super-admin.js",
-    "create:super-admin": "node scripts/create-super-admin.js"
+    "create:super-admin": "node scripts/create-super-admin.js",
+    "check:business-pdf": "node scripts/check-business-pdf-layout.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",
