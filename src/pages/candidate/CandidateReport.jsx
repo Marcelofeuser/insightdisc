@@ -177,6 +177,9 @@ export default function CandidateReport() {
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [availablePdfUrl, setAvailablePdfUrl] = useState('');
   const [publicAccess, setPublicAccess] = useState(null);
+  const [showClaim, setShowClaim] = useState(false);
+  const [claimName, setClaimName] = useState('');
+  const [claimEmail, setClaimEmail] = useState('');
   const lastPdfErrorToastRef = useRef({ message: '', ts: 0 });
 
   useEffect(() => {
@@ -431,6 +434,7 @@ export default function CandidateReport() {
             setAssessment(normalizedAssessment);
             setClaimName(normalizedAssessment.respondent_name || '');
             setClaimEmail(normalizedAssessment.respondent_email || '');
+            setLoading(false);
             return;
           } catch (tokenReportError) {
             console.warn('[CandidateReport] token report API unavailable, using fallback data source', tokenReportError);
@@ -477,6 +481,7 @@ export default function CandidateReport() {
                 setAssessment(normalizedAssessment);
                 setClaimName(normalizedAssessment.respondent_name || '');
                 setClaimEmail(normalizedAssessment.respondent_email || '');
+                setLoading(false);
                 return;
               }
             } catch {
