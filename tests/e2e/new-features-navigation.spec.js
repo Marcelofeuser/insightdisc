@@ -64,9 +64,12 @@ test.describe('Novas features - navegação', () => {
     await page.goto('/painel', { waitUntil: 'domcontentloaded' });
     await waitForApp(page);
 
+    await expect(page.getByText(/Inteligência comportamental da sua organização em tempo real/i).first()).toBeVisible();
+
+    const modeSelect = page.getByRole('banner').getByLabel(/Selecionar modo do painel/i);
+    await modeSelect.selectOption('professional');
     await expect(page.getByRole('heading', { name: /Produtividade analítica para especialistas DISC/i })).toBeVisible();
 
-    const modeSelect = page.getByLabel(/Selecionar modo do painel/i);
     await modeSelect.selectOption('business');
     await expect(page.getByText(/Inteligência comportamental da sua organização em tempo real/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /Organização/i }).first()).toBeVisible();
