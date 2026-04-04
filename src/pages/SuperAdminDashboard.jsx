@@ -170,10 +170,15 @@ function resolveReportTypeFromRecord(record = {}, fallback = 'business') {
 
 function normalizeReportRowPayload(report = {}, resolveAbsoluteApiUrl) {
   const assessmentId = inferReportAssessmentId(report);
-  const previewPath =
-        report?.publicReportUrl ||
-        report?.public_report_url ||
-        (assessmentId ? `/assessments/${encodeURIComponent(assessmentId)}/report` : '');
+  const previewPath = firstNonEmpty(
+    report?.previewPath,
+    report?.publicLink,
+    report?.publicUrl,
+    report?.previewUrl,
+    report?.publicReportUrl,
+    report?.public_report_url,
+    assessmentId ? `/assessments/${encodeURIComponent(assessmentId)}/report` : '',
+  );
   const rawPdfPath =
     firstNonEmpty(report?.pdfPath, report?.pdfUrl, report?.pdf_url, report?.pdfAbsoluteUrl);
 

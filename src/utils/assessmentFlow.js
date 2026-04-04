@@ -81,10 +81,49 @@ export async function startSelfAssessment({
   access = null,
   source = 'dashboard',
 } = {}) {
+  const runtimeMode = String(import.meta.env.MODE || '').trim().toLowerCase();
+  const isE2eApiRuntime = runtimeMode.startsWith('e2e-api');
   const hasApi = Boolean(String(apiBaseUrl || '').trim());
   const hasApiSession = Boolean(getApiToken());
   const shouldUseBase44Fallback = !hasApi || (Boolean(base44?.__isMock) && !hasApiSession);
   const loginPath = createPageUrl('Login');
+  const devMockEmail = getDevMockUserId();
+
+  if (import.meta.env.DEV && isE2eApiRuntime && devMockEmail && !hasApiSession) {
+    const isSuperAdmin = isSuperAdminAccess(access);
+
+    let creditsStatus = null;
+    try {
+      creditsStatus = await getCreditsStatus({ access, requireAuth: false });
+    } catch (creditsError) {
+      devLog('DEV_E2E_BYPASS credits unavailable', creditsError);
+      creditsStatus = null;
+    }
+
+    const credits = Number(creditsStatus?.credits || 0);
+    devLog('DEV_E2E_BYPASS credits resolved', {
+      source: creditsStatus?.source || 'unknown',
+      credits,
+      isSuperAdmin,
+    });
+
+    if (creditsStatus && !isSuperAdmin && credits < 1) {
+      navigateTo(navigate, '/checkout');
+      return { ok: false, reason: 'INSUFFICIENT_CREDITS' };
+    }
+
+    devLog('DEV_E2E_BYPASS', { source, email: devMockEmail });
+    const bypassToken = `tok-e2e-bypass-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    const params = new URLSearchParams({
+      token: bypassToken,
+      self: '1',
+      from: String(source || 'dashboard'),
+    });
+    navigateTo(navigate, `/c/assessment?${params.toString()}`);
+    return { ok: true, reason: 'DEV_E2E_BYPASS', token: bypassToken };
+  }
 
   if (shouldUseBase44Fallback) {
     navigateTo(navigate, createPageUrl('PremiumAssessment'));
@@ -92,7 +131,7 @@ export async function startSelfAssessment({
   }
 
   const isAuthenticated =
-    Boolean(access?.userId) || hasApiSession || Boolean(getDevMockUserId());
+    Boolean(access?.userId) || hasApiSession || Boolean(devMockEmail);
   if (!isAuthenticated) {
     navigateTo(navigate, loginPath);
     return { ok: false, reason: 'AUTH_REQUIRED' };

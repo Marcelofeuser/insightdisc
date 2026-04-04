@@ -18,6 +18,7 @@ import CandidateReport from './pages/candidate/CandidateReport';
 import CandidatePortal from './pages/candidate/CandidatePortal';
 import CandidateUpgrade from './pages/candidate/CandidateUpgrade';
 import InsightChatWidget from '@/components/InsightChatWidget';
+import { Toaster } from '@/components/ui/toaster';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AiDiscLab from './pages/AiDiscLab';
@@ -589,6 +590,7 @@ function App() {
           <ScrollToTopOnRouteChange />
           <AuthenticatedApp />
           <RouteAwareChatWidget />
+          <Toaster />
         </Router>
       </AuthProvider>
     </QueryClientProvider>
