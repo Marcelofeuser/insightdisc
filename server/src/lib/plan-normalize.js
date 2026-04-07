@@ -6,7 +6,18 @@
  * business     -> professional
  */
 
-const KNOWN_PLANS = ['personal', 'insider', 'professional', 'business', 'diamond', 'enterprise', 'standard', 'premium'];
+const KNOWN_PLANS = [
+  'personal',
+  'insider',
+  'professional',
+  'business',
+  'diamond',
+  'enterprise',
+  'business_corporation',
+  'diamond_consulting',
+  'standard',
+  'premium',
+];
 
 function normalizePlan(value = '') {
   const key = String(value || '').trim().toLowerCase();
@@ -20,6 +31,12 @@ function normalizePlan(value = '') {
   if (['premium'].includes(key)) return 'premium';
   if (['business', 'empresa'].includes(key)) return 'business';
   if (['diamond'].includes(key)) return 'diamond';
+  if (['business_corporation', 'business-corporation', 'corporation', 'corp'].includes(key)) {
+    return 'business_corporation';
+  }
+  if (['diamond_consulting', 'diamond-consulting', 'diamondconsulting'].includes(key)) {
+    return 'diamond_consulting';
+  }
   if (['enterprise'].includes(key)) return 'enterprise';
 
   if (KNOWN_PLANS.includes(key)) return key;
@@ -31,13 +48,15 @@ function mapPlanForFeatures(plan = '') {
   if (!normalized) return 'personal';
   if (normalized === 'personal' || normalized === 'standard') return 'standard';
   if (normalized === 'professional' || normalized === 'premium' || normalized === 'insider') return 'premium';
-  if (['business', 'diamond', 'enterprise', 'professional_tier'].includes(normalized)) return 'professional';
+  if (['business', 'diamond', 'enterprise', 'business_corporation', 'diamond_consulting', 'professional_tier'].includes(normalized)) {
+    return 'professional';
+  }
   return 'standard';
 }
 
 function isPaidPlan(plan = '') {
   const normalized = normalizePlan(plan);
-  return ['insider', 'professional', 'business', 'diamond', 'enterprise'].includes(normalized);
+  return ['insider', 'professional', 'business', 'diamond', 'enterprise', 'business_corporation', 'diamond_consulting'].includes(normalized);
 }
 
 function normalizePlanToDbEnum(plan = '') {

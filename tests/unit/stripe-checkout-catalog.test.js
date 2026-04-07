@@ -11,7 +11,7 @@ test('normalizePlanId traduz aliases de plano corretamente', () => {
   assert.equal(normalizePlanId('profissional'), 'professional');
   assert.equal(normalizePlanId('business'), 'business');
   assert.equal(normalizePlanId('personal'), 'personal');
-  assert.equal(normalizePlanId('diamond'), 'business');
+  assert.equal(normalizePlanId('diamond'), 'diamond_consulting');
 });
 
 test('resolveCheckoutCatalogEntry monta sess√£o de assinatura para plano professional', () => {
@@ -64,7 +64,7 @@ test('resolveCheckoutCatalogEntry valida mismatch entre priceId informado e cat√
         },
         {
           envVars: {
-            STRIPE_PRICE_SINGLE: 'price_single_official',
+            STRIPE_PRICE_DISC_INDIVIDUAL: 'price_single_official',
           },
         },
       ),

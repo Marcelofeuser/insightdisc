@@ -5,8 +5,11 @@ import { PRODUCTS } from '../config/pricing.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
 import { prisma } from '../lib/prisma.js';
+import { normalizePlan } from '../lib/plan-normalize.js';
 import {
   createBillingCheckoutSession,
+  claimStripeCheckoutSessionForUser,
+  createPublicBillingCheckoutSession,
   getCheckoutSessionStatusForUser,
 } from '../modules/billing/stripe-billing.service.js';
 
@@ -49,7 +52,11 @@ function buildCheckoutInputFromLegacyPayload(input = {}) {
     || resolveProductIdFromPayload(input.productType, input.credits)
     || '',
   ).trim();
-  const explicitPriceId = String(input.priceEnvKey ? process.env[input.priceEnvKey] || '' : '').trim();
+  const requestedEnvKey = String(input.priceEnvKey || '').trim();
+  const explicitPriceId =
+    requestedEnvKey && /^STRIPE_PRICE_[A-Z0-9_]+$/.test(requestedEnvKey)
+      ? String(process.env[requestedEnvKey] || '').trim()
+      : '';
 
   return {
     planId: normalizedPlan,
@@ -68,37 +75,121 @@ function buildCheckoutInputFromLegacyPayload(input = {}) {
     cancelUrl: input.cancelUrl,
     workspaceId: input.workspaceId,
     orderBumpAdvancedAnalysis: input.orderBumpAdvancedAnalysis,
+    whiteLabelAddon: input.whiteLabelAddon,
   };
 }
 
-router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
+const createCheckoutSchema = z.object({
+  assessmentId: z.string().optional(),
+  token: z.string().optional(),
+  flow: z.string().optional(),
+  plan: z.string().trim().optional(),
+  planId: z.string().optional(),
+  billing: z.enum(['monthly', 'yearly', 'one_time']).optional(),
+  provider: z.enum(['STRIPE']).optional(),
+  productType: z
+    .enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription', 'report_unlock'])
+    .optional(),
+  product: z.string().trim().optional(),
+  credits: z.number().int().positive().optional(),
+  mode: z.enum(['payment', 'subscription']).optional(),
+  priceId: z.string().trim().optional(),
+  priceEnvKey: z.string().trim().min(1).optional(),
+  creditsPackageId: z.string().trim().optional(),
+  packageId: z.string().trim().optional(),
+  workspaceId: z.string().trim().optional(),
+  orderBumpAdvancedAnalysis: z.boolean().optional(),
+  whiteLabelAddon: z.boolean().optional(),
+  giftToken: z.string().optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+});
+
+const PUBLIC_CHECKOUT_ALLOWED_PLANS = new Set([
+  'personal',
+  'insider',
+  'professional',
+  'business',
+  'business_corporation',
+  'diamond_consulting',
+]);
+
+router.post('/create-checkout-public', async (req, res) => {
   try {
-    const schema = z.object({
-      assessmentId: z.string().optional(),
-      token: z.string().optional(),
-      flow: z.string().optional(),
-      plan: z.string().trim().optional(),
-      planId: z.string().optional(),
-      billing: z.enum(['monthly', 'yearly', 'one_time']).optional(),
-      provider: z.enum(['STRIPE']).optional(),
-      productType: z
-        .enum(['single_assessment', 'gift_assessment', 'credit_pack', 'business_subscription', 'report_unlock'])
-        .optional(),
-      product: z.string().trim().optional(),
-      credits: z.number().int().positive().optional(),
-      mode: z.enum(['payment', 'subscription']).optional(),
-      priceId: z.string().trim().optional(),
-      priceEnvKey: z.string().trim().min(1).optional(),
-      creditsPackageId: z.string().trim().optional(),
-      packageId: z.string().trim().optional(),
-      workspaceId: z.string().trim().optional(),
-      orderBumpAdvancedAnalysis: z.boolean().optional(),
-      giftToken: z.string().optional(),
-      successUrl: z.string().url().optional(),
-      cancelUrl: z.string().url().optional(),
+    const input = createCheckoutSchema.parse(req.body || {});
+    const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
+    const normalizedPlan = normalizePlan(checkoutInput.planId || checkoutInput.plan || checkoutInput.product || '');
+
+    if (!PUBLIC_CHECKOUT_ALLOWED_PLANS.has(normalizedPlan)) {
+      const error = new Error('Plano não disponível para checkout público.');
+      error.code = 'INVALID_CHECKOUT_PRODUCT';
+      throw error;
+    }
+
+    const payload = await createPublicBillingCheckoutSession({
+      input: {
+        ...checkoutInput,
+        flow: input.flow,
+      },
     });
 
+    return res.status(200).json({
+      ok: true,
+      id: payload.sessionId,
+      sessionId: payload.sessionId,
+      url: payload.checkoutUrl,
+      checkoutUrl: payload.checkoutUrl,
+      provider: payload.provider,
+      mode: payload.mode,
+      item: payload.item,
+      paymentMethods: payload.paymentMethods,
+      public: true,
+    });
+  } catch (error) {
+    const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_PUBLIC_CREATE_FAILED').toUpperCase();
+    return res.status(resolveStatusCodeByError(code)).json({
+      ok: false,
+      error: code,
+      message: error?.message || 'Falha ao criar checkout Stripe.',
+    });
+  }
+});
+
+router.post('/claim-checkout', requireAuth, attachUser, async (req, res) => {
+  try {
+    const schema = z.object({
+      sessionId: z.string().trim().min(1),
+    });
     const input = schema.parse(req.body || {});
+
+    await claimStripeCheckoutSessionForUser({
+      sessionId: input.sessionId,
+      userId: req.auth?.userId,
+      user: req.user,
+    });
+
+    const status = await getCheckoutSessionStatusForUser({
+      sessionId: input.sessionId,
+      userId: req.auth?.userId,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      ...status,
+    });
+  } catch (error) {
+    const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_CLAIM_FAILED').toUpperCase();
+    return res.status(resolveStatusCodeByError(code)).json({
+      ok: false,
+      error: code,
+      message: error?.message || 'Falha ao confirmar checkout Stripe.',
+    });
+  }
+});
+
+router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
+  try {
+    const input = createCheckoutSchema.parse(req.body || {});
     const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
 
     const payload = await createBillingCheckoutSession({

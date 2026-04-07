@@ -306,9 +306,11 @@ export default function DossieComportamentalLandingPage() {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link to="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
-                  <span className="text-white text-lg font-extrabold">ID</span>
-                </div>
+                <img
+                  src="/logos/insightDISC_logo4_transp.png"
+                  alt="InsightDISC"
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
                 <span className="text-xl font-bold">InsightDISC</span>
               </Link>
 
@@ -637,9 +639,11 @@ export default function DossieComportamentalLandingPage() {
         <footer className="py-14 px-6 border-t border-slate-800">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="disc-gradient w-10 h-10 rounded-xl flex items-center justify-center">
-                <span className="text-lg font-extrabold text-white">ID</span>
-              </div>
+              <img
+                src="/logos/insightDISC_logo4_transp.png"
+                alt="InsightDISC"
+                className="h-10 w-10 rounded-xl object-contain"
+              />
               <span className="text-xl font-bold text-white">InsightDISC</span>
             </div>
             <p className="text-sm text-slate-500 text-center md:text-right">

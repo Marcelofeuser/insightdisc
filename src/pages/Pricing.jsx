@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Building2,
   CheckCircle2,
-  Gift,
   HeartHandshake,
   Shield,
   Sparkles,
@@ -19,48 +18,57 @@ import { useAuth } from '@/lib/AuthContext';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
 import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
 import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
+import { V21_PLAN_KEYS, V21_PLANS } from '@/modules/billing/v21Plans';
 
 const SALES_WHATSAPP_URL =
   'https://wa.me/5562994090276?text=Olá%20quero%20conhecer%20os%20planos%20Business%20do%20InsightDISC';
 
-const SOCIAL_OFFERS = Object.freeze([
+const INDIVIDUAL_PLANS = Object.freeze([
   {
-    id: 'free',
-    title: 'Starter',
-    price: 'R$ 0',
-    subtitle: 'Teste grátis com leitura inicial',
-    badge: 'LIMITADO',
-    cta: 'Fazer Teste Grátis',
-    ctaHref: '/avaliacoes',
+    id: 'disc_individual',
+    name: 'DISC Individual',
+    price: 'R$ 59,90',
+    billing: 'pagamento único',
+    audience: 'Uso único • leitura imediata',
+    cta: 'Comprar DISC Individual',
+    ctaKind: 'disc',
     features: [
-      'Resultado imediato com perfil dominante',
-      'Versão reduzida do diagnóstico comportamental',
-      'Ideal para experimentar o método DISC',
+      'Leitura comportamental individual',
+      'Relatório premium (tela + PDF)',
+      'Uso único (sem recorrência)',
+      'Ideal para decisão pontual e objetiva',
     ],
   },
   {
-    id: 'single',
-    title: 'Professional',
-    price: formatPriceBRL(PRODUCTS.SINGLE_PRO.price),
-    subtitle: '1 avaliação premium completa',
-    cta: 'Comprar 1 Avaliação',
+    id: 'personal',
+    name: 'Personal',
+    price: 'R$ 99,90/mês',
+    billing: 'mensal',
+    audience: 'Autoconhecimento contínuo',
+    cta: 'Assinar Personal',
+    ctaKind: 'plan',
+    planSlug: 'personal',
     features: [
-      'Relatório premium completo em PDF',
-      'Gráficos naturais e adaptados',
-      'Leitura detalhada de perfil e desenvolvimento',
-      'Acesso ao resultado completo',
+      'Leitura comportamental aplicada ao dia a dia',
+      'Clareza sobre decisão, pressão e comunicação',
+      'Direcionamento de evolução (próximos passos)',
+      'Relatório para consulta contínua',
     ],
   },
   {
-    id: 'gift',
-    title: 'Gift',
-    price: formatPriceBRL(PRODUCTS.GIFT.price),
-    subtitle: 'Compre 1 avaliação para outra pessoa',
-    cta: 'Comprar presente',
+    id: 'insider',
+    name: 'Insider',
+    price: 'R$ 129,90/mês',
+    billing: 'mensal',
+    audience: 'Versão aprofundada',
+    cta: 'Assinar Insider',
+    ctaKind: 'plan',
+    planSlug: 'insider',
     features: [
-      'Link exclusivo de presente',
-      'Personalização somente após pagamento',
-      'Compartilhamento fácil por link e WhatsApp',
+      'Tudo do Personal',
+      'Leitura mais profunda e detalhada',
+      'Mais camadas de interpretação e contexto',
+      'Base forte para decisões consistentes',
     ],
   },
 ]);
@@ -99,226 +107,88 @@ const CREDIT_PACKS = Object.freeze([
   },
 ]);
 
-const BUSINESS_PLANS = Object.freeze([
+const WHITE_LABEL_ADDON_LABEL = 'White label (add-on R$ 299 • pagamento único)';
+
+const PROFESSIONAL_PLANS = Object.freeze([
   {
-    id: 'business_monthly',
-    name: 'Plano Business Mensal',
-    price: `${formatPriceBRL(PRODUCTS.BUSINESS_MONTHLY.price)}/${PRODUCTS.BUSINESS_MONTHLY.billingPeriod}`,
-    audience: 'Profissionais e equipes em operação contínua',
-    cta: 'Assinar Plano Business',
-    ctaKind: 'checkout',
+    id: 'professional',
+    name: 'Professional',
+    price: 'R$ 199,90/mês',
+    audience: '10 créditos/mês • uso profissional',
+    cta: 'Assinar Professional',
+    ctaKind: 'plan',
+    planSlug: 'professional',
     features: [
-      'Inclui 5 avaliações por mês',
-      'Painel SaaS completo para gestão de avaliações',
-      'Histórico de candidatos e relatórios premium',
-      'Avaliações extras via pacotes de créditos',
-      'Job Matching e visão de pipeline',
+      '10 créditos por mês',
+      'Relatórios premium (tela + PDF)',
+      'Comparação de perfis',
+      WHITE_LABEL_ADDON_LABEL,
+      'Ideal para especialistas e entregáveis premium',
     ],
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Sob consulta',
-    audience: 'Operação corporativa com múltiplas áreas',
-    cta: 'Falar com Vendas',
-    ctaKind: 'sales',
+    id: 'business',
+    name: 'Business',
+    price: 'R$ 399,90/mês',
+    audience: '25 créditos/mês • pequenas empresas',
+    cta: 'Assinar Business',
+    ctaKind: 'plan',
+    planSlug: 'business',
     features: [
-      'White-label corporativo completo',
-      'Gestão de equipes e permissões avançadas',
-      'Analytics executivo e indicadores por unidade',
-      'API e integrações sob demanda',
-      'Suporte estratégico dedicado',
+      '25 créditos por mês',
+      'Team Map e leitura de equipe',
+      'Relatórios premium (tela + PDF)',
+      WHITE_LABEL_ADDON_LABEL,
+      'Ideal para aplicar em time e decisões de pessoas',
     ],
   },
 ]);
 
-const SOCIAL_COMPARISON = Object.freeze([
+const CORPORATE_PLANS = Object.freeze([
   {
-    feature: 'Resultado imediato',
-    free: 'Sim',
-    single: 'Sim',
-    gift: 'Sim (após ativação do presente)',
+    ...V21_PLANS[V21_PLAN_KEYS.BUSINESS_CORPORATION],
+    price: 'R$ 999,90/mês',
+    audience: 'Uso ilimitado • white label incluso',
+    features: [
+      'Uso ilimitado sob política de uso justo',
+      'White label incluso',
+      'Foco em RH estruturado e equilíbrio organizacional',
+      'Onboarding guiado e suporte prioritário',
+      'Em implantação progressiva (V2.1)',
+    ],
   },
   {
-    feature: 'Perfil dominante',
-    free: 'Sim',
-    single: 'Sim',
-    gift: 'Sim',
-  },
-  {
-    feature: 'Relatório completo',
-    free: 'Não',
-    single: 'Sim',
-    gift: 'Sim',
-  },
-  {
-    feature: 'PDF premium',
-    free: 'Não',
-    single: 'Sim',
-    gift: 'Sim',
-  },
-  {
-    feature: 'Gráficos completos D/I/S/C',
-    free: 'Parcial',
-    single: 'Completo',
-    gift: 'Completo',
-  },
-  {
-    feature: 'Acesso vitalício ao resultado',
-    free: 'Não',
-    single: 'Sim',
-    gift: 'Sim',
-  },
-  {
-    feature: 'Possibilidade de compartilhar',
-    free: 'Limitado',
-    single: 'Sim',
-    gift: 'Sim',
-  },
-  {
-    feature: 'Experiência presenteável',
-    free: 'Não',
-    single: 'Opcional',
-    gift: 'Sim',
-  },
-]);
-
-const BUSINESS_COMPARISON = Object.freeze([
-  {
-    feature: 'Quantidade incluída',
-    credits10: '10 avaliações',
-    credits50: '50 avaliações',
-    credits100: '100 avaliações',
-    business: '5 avaliações/mês',
-    enterprise: 'Sob desenho',
-  },
-  {
-    feature: 'Validade',
-    credits10: '12 meses',
-    credits50: '12 meses',
-    credits100: '12 meses',
-    business: 'Ciclo mensal',
-    enterprise: 'Contrato corporativo',
-  },
-  {
-    feature: 'Painel SaaS',
-    credits10: 'Sim',
-    credits50: 'Sim',
-    credits100: 'Sim',
-    business: 'Sim',
-    enterprise: 'Sim avançado',
-  },
-  {
-    feature: 'Relatórios PDF premium',
-    credits10: 'Sim',
-    credits50: 'Sim',
-    credits100: 'Sim',
-    business: 'Sim',
-    enterprise: 'Sim + customização',
-  },
-  {
-    feature: 'Job Matching',
-    credits10: 'Básico',
-    credits50: 'Completo',
-    credits100: 'Completo',
-    business: 'Completo',
-    enterprise: 'Completo + governança',
-  },
-  {
-    feature: 'Histórico de candidatos',
-    credits10: 'Sim',
-    credits50: 'Sim',
-    credits100: 'Sim',
-    business: 'Sim',
-    enterprise: 'Sim',
-  },
-  {
-    feature: 'White-label',
-    credits10: 'Não',
-    credits50: 'Opcional',
-    credits100: 'Opcional',
-    business: 'Opcional',
-    enterprise: 'Completo',
-  },
-  {
-    feature: 'Equipe e permissões',
-    credits10: 'Básico',
-    credits50: 'Básico',
-    credits100: 'Básico',
-    business: 'Intermediário',
-    enterprise: 'Avançado',
-  },
-  {
-    feature: 'Analytics',
-    credits10: 'Essencial',
-    credits50: 'Intermediário',
-    credits100: 'Intermediário',
-    business: 'Gerencial',
-    enterprise: 'Executivo',
-  },
-  {
-    feature: 'Suporte',
-    credits10: 'Padrão',
-    credits50: 'Prioritário',
-    credits100: 'Prioritário',
-    business: 'Prioritário',
-    enterprise: 'Dedicado',
-  },
-  {
-    feature: 'API',
-    credits10: 'Não',
-    credits50: 'Não',
-    credits100: 'Não',
-    business: 'Não',
-    enterprise: 'Sim',
-  },
-  {
-    feature: 'Uso corporativo avançado',
-    credits10: 'Limitado',
-    credits50: 'Moderado',
-    credits100: 'Moderado',
-    business: 'Alto',
-    enterprise: 'Total',
+    ...V21_PLANS[V21_PLAN_KEYS.DIAMOND_CONSULTING],
+    price: 'R$ 9.990/mês',
+    audience: 'Consultoria premium + acompanhamento humano',
+    features: [
+      'Tudo do Business Corporation',
+      'White label avançado incluso',
+      'Acompanhamento consultivo (RH / liderança / cultura)',
+      'Playbooks e implantação em escala',
+      'Em implantação progressiva (V2.1)',
+    ],
   },
 ]);
 
 const FAQ_ITEMS = Object.freeze([
   {
-    q: 'Qual a diferença entre crédito avulso e assinatura Business?',
-    a: 'Crédito avulso é compra pontual de avaliações com validade. Assinatura Business é mensal, inclui avaliações recorrentes e acesso contínuo ao painel.',
+    q: 'Qual a diferença entre assinatura mensal e compra avulsa?',
+    a: 'Assinatura mensal é recorrência (com créditos e acesso contínuo). Compra avulsa é pontual (uso único ou pacotes), sem mensalidade.',
   },
   {
-    q: 'O teste grátis já entrega o relatório completo?',
-    a: 'Não. O teste grátis é limitado e mostra uma versão reduzida. O relatório premium completo fica disponível nos produtos pagos.',
+    q: 'O relatório premium (PDF) está incluído?',
+    a: 'Sim — nos planos pagos e no DISC Individual. O PDF é exportável e pensado para consulta e entregáveis.',
   },
   {
-    q: 'Posso comprar avaliações extras além do plano mensal?',
-    a: 'Sim. Mesmo com assinatura ativa, você pode complementar com pacotes de créditos quando precisar de volume adicional.',
+    q: 'Posso complementar créditos além do plano mensal?',
+    a: 'Sim. Quando fizer sentido, você pode adicionar pacotes de créditos para volume adicional (sem mudar seu plano).',
   },
   {
-    q: 'Como funciona o presente?',
-    a: 'Você compra primeiro e personaliza depois: gera o link exclusivo, adiciona mensagem e compartilha quando quiser.',
+    q: 'Como funciona o white label?',
+    a: 'Professional e Business têm add-on opcional (pagamento único). Business Corporation e Diamond Consulting incluem white label.',
   },
 ]);
-
-function ComparisonCell({ value }) {
-  const positive = ['sim', 'completo', 'alto', 'total'];
-  const lowered = String(value || '').toLowerCase();
-  const isPositive = positive.some((token) => lowered.includes(token));
-  return (
-    <td className="px-3 py-3 text-sm text-slate-700 align-top">
-      <span
-        className={
-          isPositive
-            ? 'inline-flex rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold'
-            : 'inline-flex rounded-full bg-slate-100 text-slate-600 px-2 py-1 text-xs font-semibold'
-        }
-      >
-        {value}
-      </span>
-    </td>
-  );
-}
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -394,12 +264,21 @@ export default function Pricing() {
     navigate(`/checkout/plan/${normalizedPlanSlug}`);
   };
 
-  const handleBuySingleAssessment = () => {
-    startCheckout('professional');
-  };
+  const startDiscIndividualCheckout = () => {
+    const nextUrl = '/checkout/disc';
+    if (!authUser?.id) {
+      navigate(
+        buildLoginRedirectUrl({
+          pathname: nextUrl,
+          search: '',
+        }),
+      );
+      return;
+    }
 
-  const handleGiftPurchase = () => {
-    startCheckout('personal');
+    setCheckoutLoading('disc_individual');
+    setCheckoutError('');
+    navigate(nextUrl);
   };
 
   const handleCreditPackPurchase = (pack) => {
@@ -427,10 +306,6 @@ export default function Pricing() {
     navigate(createPageUrl('Credits'));
   };
 
-  const handleBusinessSubscription = () => {
-    startCheckout('business');
-  };
-
   const user = authUser || null;
   const hasSuperAdminBypass = isSuperAdminAccess(access);
   const activeBalance = Number(authUser?.credits_balance ?? authUser?.credits ?? 0);
@@ -446,9 +321,9 @@ export default function Pricing() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-slate-900">Preços InsightDISC</h1>
+              <h1 className="text-xl md:text-2xl font-black text-slate-900">Planos InsightDISC</h1>
               <p className="text-sm text-slate-600">
-                Estrutura comercial clara para Social / Individual e Business / Empresas
+                Leitura comportamental aplicável • recorrência, créditos e white label
               </p>
             </div>
           </div>
@@ -486,33 +361,35 @@ export default function Pricing() {
               Pricing estruturado por jornada
             </p>
             <h2 className="mt-4 text-3xl md:text-4xl font-black text-slate-900 leading-tight">
-              Escolha a trilha certa para você: <span className="text-indigo-600">Social / Individual</span> ou{' '}
-              <span className="text-violet-600">Business / Empresas</span>
+              Escolha o plano certo para sua realidade:{' '}
+              <span className="text-indigo-600">Individual</span>,{' '}
+              <span className="text-violet-600">Profissional</span> ou{' '}
+              <span className="text-slate-900">Empresas</span>
             </h2>
             <p className="mt-4 text-slate-600 leading-relaxed">
-              Aqui você encontra exatamente o que cada oferta entrega: o que é gratuito, o que é avulso, o que é presenteável,
-              o que é pacote de avaliações e o que é assinatura mensal SaaS. Linhas comerciais: Starter, Professional, Business e Enterprise.
+              O InsightDISC é um sistema de leitura comportamental aplicável para decisões, relações e performance.
+              Veja recorrência, créditos e o que cada camada entrega — do Individual ao corporativo.
             </p>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href="#social">
+            <a href="#individual">
               <Button className="h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 px-6">
-                Social / Individual
+                Individual
               </Button>
             </a>
-            <a href="#b2b">
+            <a href="#profissional">
               <Button variant="outline" className="h-12 rounded-2xl px-6 border-slate-300 text-slate-900">
-                Business / Empresas
+                Profissional e Empresas
               </Button>
             </a>
           </div>
 
           <div className="mt-7 grid md:grid-cols-3 gap-4">
             {[
-              'Sem ambiguidade entre assinatura e créditos',
-              'Diferença clara entre uso individual e corporativo',
-              'Funil preparado para conversão e expansão',
+              'Recorrência e créditos com clareza',
+              'White label como add-on ou incluso por plano',
+              'CTA direto para checkout ou especialista',
             ].map((item) => (
               <div key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 {item}
@@ -528,199 +405,58 @@ export default function Pricing() {
           </p>
         </div>
 
-        <section id="social" className="scroll-mt-28 space-y-6">
+        <section id="individual" className="scroll-mt-28 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-indigo-600 font-semibold">Social / Individual</p>
-              <h3 className="text-3xl font-black text-slate-900">Para quem quer se conhecer, evoluir ou presentear alguém</h3>
+              <p className="text-xs uppercase tracking-[0.12em] text-indigo-600 font-semibold">Individual</p>
+              <h3 className="text-3xl font-black text-slate-900">Autoconhecimento aplicável, com clareza de entrega</h3>
               <p className="text-slate-600 mt-2 max-w-3xl">
-                Ofertas diretas para pessoa física: teste grátis limitado, compra avulsa de 1 avaliação e fluxo dedicado de presente com link personalizado.
+                Escolha entre uso único (DISC Individual) ou assinatura mensal (Personal/Insider) para acompanhamento contínuo.
               </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/demo">
+                <Button variant="outline" className="h-11 rounded-2xl px-5 border-slate-300 text-slate-900">
+                  Ver demo
+                </Button>
+              </Link>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            <Card className="h-full border-2 border-slate-200">
-              <CardContent className="p-6 h-full flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[0].title}</h4>
-                      <p className="text-sm text-slate-600">{SOCIAL_OFFERS[0].subtitle}</p>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Plano Starter</p>
-                    </div>
-                    <span className="rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-bold">
-                      {SOCIAL_OFFERS[0].badge}
-                    </span>
-                  </div>
+            {INDIVIDUAL_PLANS.map((plan, index) => {
+              const isDisc = plan.ctaKind === 'disc';
+              const loadingKey = isDisc ? plan.id : plan.planSlug;
+              const isLoading = checkoutLoading === loadingKey;
+              const borderTone =
+                index === 0
+                  ? 'border-2 border-slate-200'
+                  : index === 1
+                    ? 'border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]'
+                    : 'border-2 border-violet-200';
 
-                  <div>
-                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[0].price}</span>
-                  </div>
-
-                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
-                    {SOCIAL_OFFERS[0].features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Link to={SOCIAL_OFFERS[0].ctaHref} className="mt-auto">
-                  <Button className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950">
-                    {SOCIAL_OFFERS[0].cta}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="h-full border-2 border-indigo-200 shadow-[0_16px_36px_rgba(79,70,229,0.12)]">
-              <CardContent className="p-6 h-full flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[1].title}</h4>
-                    <p className="text-sm text-slate-600">{SOCIAL_OFFERS[1].subtitle}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">Plano Professional</p>
-                  </div>
-
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[1].price}</span>
-                    <span className="text-sm text-slate-500 pb-1">pagamento único</span>
-                  </div>
-
-                  {isCandidateUnlock ? (
-                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
-                      Você veio de um resultado gratuito. Esta compra libera o relatório completo desta avaliação.
-                    </div>
-                  ) : null}
-
-                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
-                    {SOCIAL_OFFERS[1].features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Button
-                  onClick={handleBuySingleAssessment}
-                  disabled={Boolean(checkoutLoading)}
-                  className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {checkoutLoading === 'professional' ? 'Abrindo checkout...' : 'Comprar 1 Avaliação'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="h-full border-2 border-violet-200">
-              <CardContent className="p-6 h-full flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h4 className="text-xl font-bold text-slate-900">{SOCIAL_OFFERS[2].title}</h4>
-                      <p className="text-sm text-slate-600">{SOCIAL_OFFERS[2].subtitle}</p>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-violet-700">Produto Presenteável</p>
-                    </div>
-                    <Gift className="w-5 h-5 text-violet-600" />
-                  </div>
-
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-black text-slate-900">{SOCIAL_OFFERS[2].price}</span>
-                    <span className="text-sm text-slate-500 pb-1">por presente</span>
-                  </div>
-
-                  <ul className="space-y-2 text-sm text-slate-700 min-h-44">
-                    {SOCIAL_OFFERS[2].features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
-                    A personalização do presente acontece após o pagamento confirmado.
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleGiftPurchase}
-                  disabled={Boolean(checkoutLoading)}
-                  className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
-                >
-                  {checkoutLoading === 'personal' ? 'Abrindo checkout...' : 'Comprar presente'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="border border-slate-200">
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full min-w-[780px] border-collapse">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-800">Social / Individual</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Grátis</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">1 Avaliação</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Presenteie alguém</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {SOCIAL_COMPARISON.map((row) => (
-                    <tr key={row.feature} className="border-t border-slate-200">
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.feature}</td>
-                      <ComparisonCell value={row.free} />
-                      <ComparisonCell value={row.single} />
-                      <ComparisonCell value={row.gift} />
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section id="b2b" className="scroll-mt-28 space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-violet-700 font-semibold">Business / Empresarial</p>
-              <h3 className="text-3xl font-black text-slate-900">Pacotes de avaliações, SaaS mensal e Enterprise</h3>
-              <p className="text-slate-600 mt-2 max-w-3xl">
-                Diferença clara: pacotes avulsos entregam volume imediato de avaliações; assinatura mensal entrega operação contínua com quantidade incluída; Enterprise é desenho personalizado para escala corporativa.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {CREDIT_PACKS.map((pack) => (
-              <motion.div key={pack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-[0_18px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
+              return (
+                <Card key={plan.id} className={`h-full ${borderTone}`}>
                   <CardContent className="p-6 h-full flex flex-col justify-between">
                     <div className="space-y-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
-                          <p className="text-sm text-slate-600">{pack.highlight}</p>
-                        </div>
-                        {pack.popular ? <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> : null}
+                      <div>
+                        <h4 className="text-xl font-bold text-slate-900">{plan.name}</h4>
+                        <p className="text-sm text-slate-600">{plan.audience}</p>
                       </div>
 
-                      <div>
-                        <div className="text-3xl font-black text-slate-900">{pack.price}</div>
-                        <div className="text-sm text-slate-500">{pack.perUnit}</div>
+                      <div className="flex items-end gap-2">
+                        <span className="text-3xl font-black text-slate-900">{plan.price}</span>
+                        <span className="text-sm text-slate-500 pb-1">{plan.billing}</span>
                       </div>
+
+                      {isCandidateUnlock && isDisc ? (
+                        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
+                          Você veio de um fluxo público. Esta compra libera o relatório premium desta avaliação.
+                        </div>
+                      ) : null}
 
                       <ul className="space-y-2 text-sm text-slate-700 min-h-44">
-                        {[
-                          `${pack.credits} avaliações incluídas`,
-                          'Validade de 12 meses',
-                          'Relatórios PDF premium',
-                          'Uso em recrutamento e desenvolvimento',
-                        ].map((feature) => (
+                        {plan.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-2">
                             <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
                             <span>{feature}</span>
@@ -730,37 +466,98 @@ export default function Pricing() {
                     </div>
 
                     <Button
-                      onClick={() => handleCreditPackPurchase(pack)}
-                      disabled={checkoutLoading === pack.id}
-                      className="mt-auto w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950"
+                      onClick={() => {
+                        if (isDisc) return startDiscIndividualCheckout();
+                        return startCheckout(plan.planSlug);
+                      }}
+                      disabled={Boolean(checkoutLoading)}
+                      className={`mt-auto w-full h-12 rounded-2xl ${
+                        index === 2 ? 'bg-violet-600 hover:bg-violet-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
                     >
-                      {checkoutLoading === pack.id ? 'Abrindo checkout...' : pack.cta}
+                      {isLoading ? 'Abrindo checkout...' : plan.cta}
                     </Button>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
+              );
+            })}
+          </div>
+        </section>
+
+        <section id="profissional" className="scroll-mt-28 space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.12em] text-violet-700 font-semibold">Profissional e Empresas</p>
+              <h3 className="text-3xl font-black text-slate-900">Créditos mensais para operar com consistência</h3>
+              <p className="text-slate-600 mt-2 max-w-3xl">
+                Professional e Business são assinaturas mensais com créditos. Business Corporation e Diamond Consulting são camadas
+                corporativas com uso ilimitado (uso justo) e white label incluso.
+              </p>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            {BUSINESS_PLANS.map((plan) => (
-              <Card key={plan.id} className="h-full border-2 border-violet-200">
+            {PROFESSIONAL_PLANS.map((plan) => {
+              const isLoading = checkoutLoading === plan.planSlug;
+              return (
+                <Card key={plan.id} className="h-full border-2 border-violet-200">
+                  <CardContent className="p-6 h-full flex flex-col justify-between">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
+                            <Building2 className="w-4 h-4" />
+                            Assinatura mensal
+                          </div>
+                          <h4 className="text-2xl font-black text-slate-900">{plan.name}</h4>
+                          <p className="text-sm text-slate-600">{plan.audience}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-black text-slate-900">{plan.price}</div>
+                          <div className="text-xs text-slate-500">{plan.id === 'business' ? '25 créditos/mês' : '10 créditos/mês'}</div>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <Button
+                      onClick={() => startCheckout(plan.planSlug)}
+                      disabled={Boolean(checkoutLoading)}
+                      className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      {isLoading ? 'Abrindo checkout...' : plan.cta}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {CORPORATE_PLANS.map((plan) => (
+              <Card key={plan.id} className="h-full border-2 border-slate-200">
                 <CardContent className="p-6 h-full flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="inline-flex items-center gap-2 text-violet-700 text-xs uppercase tracking-[0.1em] font-semibold">
+                        <div className="inline-flex items-center gap-2 text-slate-700 text-xs uppercase tracking-[0.1em] font-semibold">
                           <Building2 className="w-4 h-4" />
-                          SaaS / Enterprise
+                          Corporate
                         </div>
                         <h4 className="text-2xl font-black text-slate-900">{plan.name}</h4>
                         <p className="text-sm text-slate-600">{plan.audience}</p>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-black text-slate-900">{plan.price}</div>
-                        {plan.id === 'business_monthly' ? (
-                          <div className="text-xs text-slate-500">Inclui 5 avaliações/mês + créditos extras opcionais</div>
-                        ) : null}
+                        <div className="text-xs text-slate-500">Uso ilimitado (uso justo)</div>
                       </div>
                     </div>
 
@@ -774,55 +571,77 @@ export default function Pricing() {
                     </ul>
                   </div>
 
-                  {plan.ctaKind === 'checkout' ? (
-                    <Button
-                      onClick={handleBusinessSubscription}
-                      disabled={Boolean(checkoutLoading)}
-                      className="mt-auto w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      {checkoutLoading === 'business' ? 'Abrindo checkout...' : 'Assinar Plano Business'}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={openSales}
-                      className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
-                    >
-                      Falar com Vendas
-                    </Button>
-                  )}
+                  <Button
+                    onClick={openSales}
+                    className="mt-auto w-full h-12 rounded-2xl bg-violet-600 hover:bg-violet-700"
+                  >
+                    {plan.cta || 'Falar com especialista'}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          <Card className="border border-slate-200">
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full min-w-[1120px] border-collapse">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-800">Business / Empresas</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">10 avaliações</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">50 avaliações</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">100 avaliações</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Business mensal</th>
-                    <th className="text-left px-3 py-3 text-sm font-semibold text-slate-700">Enterprise</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {BUSINESS_COMPARISON.map((row) => (
-                    <tr key={row.feature} className="border-t border-slate-200">
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.feature}</td>
-                      <ComparisonCell value={row.credits10} />
-                      <ComparisonCell value={row.credits50} />
-                      <ComparisonCell value={row.credits100} />
-                      <ComparisonCell value={row.business} />
-                      <ComparisonCell value={row.enterprise} />
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+            <strong>White label:</strong> add-on opcional em Professional e Business (pagamento único). Incluso em Business Corporation e Diamond Consulting.
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-600 font-semibold">Créditos avulsos</p>
+              <h3 className="text-2xl font-black text-slate-900">Complementar volume quando precisar</h3>
+              <p className="text-slate-600 mt-1 max-w-3xl">
+                Para operações com plano ativo: adicione pacotes de créditos quando houver pico de demanda.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              {CREDIT_PACKS.map((pack) => (
+                <motion.div key={pack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                  <Card className={`h-full border-2 ${pack.popular ? 'border-indigo-400 shadow-[0_18px_40px_rgba(79,70,229,0.18)]' : 'border-slate-200'}`}>
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-xl font-bold text-slate-900">{pack.name}</h4>
+                            <p className="text-sm text-slate-600">{pack.highlight}</p>
+                          </div>
+                          {pack.popular ? <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> : null}
+                        </div>
+
+                        <div>
+                          <div className="text-3xl font-black text-slate-900">{pack.price}</div>
+                          <div className="text-sm text-slate-500">{pack.perUnit}</div>
+                        </div>
+
+                        <ul className="space-y-2 text-sm text-slate-700 min-h-44">
+                          {[
+                            `${pack.credits} avaliações incluídas`,
+                            'Validade de 12 meses',
+                            'Relatórios PDF premium',
+                            'Uso em recrutamento e desenvolvimento',
+                          ].map((feature) => (
+                            <li key={feature} className="flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <Button
+                        onClick={() => handleCreditPackPurchase(pack)}
+                        disabled={checkoutLoading === pack.id}
+                        className="mt-auto w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-950"
+                      >
+                        {checkoutLoading === pack.id ? 'Abrindo checkout...' : pack.cta}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="grid lg:grid-cols-[1.4fr_1fr] gap-6">
@@ -848,7 +667,7 @@ export default function Pricing() {
               </div>
               <h3 className="text-2xl font-black leading-tight">Precisa de apoio para escolher o plano certo?</h3>
               <p className="text-indigo-100">
-                Nosso time comercial ajuda você a definir a melhor combinação entre avaliação avulsa, pacotes de créditos e assinatura Business.
+                Nosso time ajuda a mapear sua necessidade e indicar a melhor camada: Individual, Professional, Business ou corporativo (Business Corporation / Diamond Consulting).
               </p>
               <div className="grid gap-2 pt-1">
                 <Button

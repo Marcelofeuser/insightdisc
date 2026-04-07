@@ -9,6 +9,7 @@ const allowDevEmailAuth =
   String(process.env.ALLOW_DEV_EMAIL_AUTH || '')
     .trim()
     .toLowerCase() === 'true';
+const aiApiUrl = String(process.env.AI_API_URL || '').trim();
 const aiProvider = String(process.env.AI_PROVIDER || 'groq')
   .trim()
   .toLowerCase();
@@ -36,6 +37,10 @@ if (!hasSuperAdminKey && process.env.NODE_ENV !== 'test') {
   console.warn('[SUPER_ADMIN] SUPER_ADMIN_MASTER_KEY não configurada');
 }
 
+if (!aiApiUrl) {
+  console.warn('[AI] AI_API_URL não configurada — usando providers locais (se disponíveis).');
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.SERVER_PORT || 4000),
@@ -49,10 +54,14 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
   stripePriceCredits: process.env.STRIPE_PRICE_ID_CREDITS || '',
+  stripePriceDiscIndividual: process.env.STRIPE_PRICE_DISC_INDIVIDUAL || '',
   stripePricePersonal: process.env.STRIPE_PRICE_PERSONAL || '',
+  stripePriceInsider: process.env.STRIPE_PRICE_INSIDER || '',
   stripePriceProfessional: process.env.STRIPE_PRICE_PROFESSIONAL || '',
   stripePriceBusiness: process.env.STRIPE_PRICE_BUSINESS || '',
-  stripePriceSingle: process.env.STRIPE_PRICE_SINGLE || '',
+  stripePriceBusinessCorporation: process.env.STRIPE_PRICE_BUSINESS_CORPORATION || '',
+  stripePriceDiamondConsulting: process.env.STRIPE_PRICE_DIAMOND_CONSULTING || '',
+  stripePriceWhiteLabelOneTime: process.env.STRIPE_PRICE_WHITE_LABEL_ONE_TIME || '',
   stripePriceReportUnlock: process.env.STRIPE_PRICE_REPORT_UNLOCK || '',
   stripePriceGift: process.env.STRIPE_PRICE_GIFT || '',
   stripePricePack10: process.env.STRIPE_PRICE_PACK_10 || '',
@@ -70,6 +79,7 @@ export const env = {
   superAdminMasterKey,
   hasSuperAdminKey,
   allowDevEmailAuth,
+  aiApiUrl,
   aiProvider,
   groqApiKey,
   groqModel,

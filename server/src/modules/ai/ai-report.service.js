@@ -1,4 +1,3 @@
-import { normalizeAiDiscResponse } from './schema.js';
 import { env } from '../../config/env.js';
 import { buildAiProviderChain } from './provider.js';
 import { isProviderJsonParseError } from './json-utils.js';
@@ -6,6 +5,7 @@ import { resolveDiscProfile } from '../disc/report-profile-resolver.js';
 import {
   countMeaningfulAiDiscFields,
   extractAiDiscProviderContent,
+  normalizeAiDiscContentCandidate,
   safeValidateAiDiscContent,
 } from './schema.js';
 
@@ -160,6 +160,7 @@ function sanitizeValidationError(validationError) {
 async function callProviderWithValidation({
   provider,
   input,
+  fallbackContent,
   attemptNumber,
   strictJsonRetry,
 }) {
@@ -171,7 +172,7 @@ async function callProviderWithValidation({
     }),
   );
 
-  const normalizedContent = extractAiDiscProviderContent(providerResult.parsed, input.mode);
+  const rawContent = extractAiDiscProviderContent(providerResult.parsed, input.mode);
   const meaningfulFieldCount = countMeaningfulAiDiscFields(providerResult.parsed);
 
   if (meaningfulFieldCount === 0) {
@@ -183,7 +184,12 @@ async function callProviderWithValidation({
     };
   }
 
-  const validation = safeValidateAiDiscContent(normalizedContent);
+  const mergedCandidate = normalizeAiDiscContentCandidate(
+    providerResult.parsed,
+    fallbackContent,
+    input.mode,
+  );
+  const validation = safeValidateAiDiscContent(mergedCandidate);
   if (!validation.success) {
     return {
       ok: false,
@@ -196,6 +202,7 @@ async function callProviderWithValidation({
   return {
     ok: true,
     providerResult,
+    rawContent,
     content: validation.data,
   };
 }
@@ -443,7 +450,7 @@ function shouldUseRecommendationAi() {
   const flag = String(process.env.DISC_RECOMMENDATION_AI || '')
     .trim()
     .toLowerCase();
-  const hasCredentials = Boolean(env.groqApiKey);
+  const hasCredentials = Boolean(env.aiApiUrl || env.groqApiKey);
 
   return hasCredentials && ['1', 'true', 'yes', 'on'].includes(flag);
 }
@@ -555,11 +562,12 @@ export async function generateAiRecommendationRationale(input = {}) {
 
 export async function generateAiDiscContent(input = {}, options = {}) {
   const normalizedInput = normalizeAiDiscInput(input);
+  const fallbackContent = buildFallbackDiscContent(normalizedInput);
   const resolvedPrimaryName =
     options.providerOverride?.name ||
     options.providerChainOverride?.[0]?.name ||
     options.providerName ||
-    env.aiProvider ||
+    (env.aiApiUrl ? 'ai_api_url' : env.aiProvider) ||
     'groq';
   const primaryProviderName = String(resolvedPrimaryName || '')
     .trim()
@@ -590,6 +598,7 @@ export async function generateAiDiscContent(input = {}, options = {}) {
         const attemptResult = await callProviderWithValidation({
           provider,
           input: normalizedInput,
+          fallbackContent,
           attemptNumber,
           strictJsonRetry,
         });
@@ -624,13 +633,10 @@ export async function generateAiDiscContent(input = {}, options = {}) {
           ok: true,
           provider: attemptResult.providerResult.provider,
           model: attemptResult.providerResult.model,
-          source: 'groq',
+          source: 'ai',
           usedFallback,
           attempts,
-          rawContent: extractAiDiscProviderContent(
-            attemptResult.providerResult.parsed,
-            normalizedInput.mode,
-          ),
+          rawContent: attemptResult.rawContent,
           content: attemptResult.content,
           input: normalizedInput,
         };
@@ -678,15 +684,23 @@ export async function generateAiDiscContent(input = {}, options = {}) {
     }
   }
 
-  console.warn('[ai/disc] groq failed without fallback', {
-    provider: 'groq',
-    model: env.groqModel || 'llama3-70b-8192',
+  console.warn('[ai/disc] provider chain exhausted, using deterministic fallback', {
+    provider: primaryProviderName,
     attempts,
   });
 
-  const error = new Error('AI_GROQ_PROVIDER_FAILED');
-  error.code = 'AI_GROQ_PROVIDER_FAILED';
-  error.attempts = attempts;
-  error.input = normalizedInput;
-  throw error;
+  const validation = safeValidateAiDiscContent(fallbackContent);
+  const content = validation.success ? validation.data : fallbackContent;
+
+  return {
+    ok: true,
+    provider: 'deterministic_engine',
+    model: 'deterministic_engine',
+    source: 'fallback',
+    usedFallback: true,
+    attempts,
+    rawContent: {},
+    content,
+    input: normalizedInput,
+  };
 }

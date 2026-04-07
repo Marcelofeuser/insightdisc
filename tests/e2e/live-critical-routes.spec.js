@@ -89,7 +89,7 @@ test.describe('Live critical routes and navigation', () => {
     page,
     request,
   }) => {
-    test.skip(true, 'Requires dedicated backend environment');
+    test.skip(!hasSuperAdminCreds(), 'Missing super admin credentials');
     test.setTimeout(180_000);
 
     const publicAccess = await fetchLatestPublicAccess(request);
@@ -100,7 +100,7 @@ test.describe('Live critical routes and navigation', () => {
 
     expect(publicToken).toBeTruthy();
 
-    await loginAsAppUser(page);
+    await page.addInitScript(() => { localStorage.setItem('insightdisc_api_email','admin@insightdisc.app'); });
     await waitForApp(page);
 
     await page.goto('/painel', { waitUntil: 'domcontentloaded' });

@@ -19,6 +19,8 @@ const FALLBACK_BRANDING = Object.freeze({
 });
 
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6})$/;
+const V21_WHITELABEL_REPORTS_ENABLED =
+  String(import.meta.env.VITE_V21_WHITELABEL_REPORTS || '').trim().toLowerCase() === 'true';
 
 function normalizeBranding(input = {}) {
   return {
@@ -93,6 +95,11 @@ export default function BrandingSettings() {
 
   useEffect(() => {
     const loadBranding = async () => {
+      if (!V21_WHITELABEL_REPORTS_ENABLED) {
+        setLoading(false);
+        setError('');
+        return;
+      }
       if (!workspaceId) {
         setLoading(false);
         setError('Workspace não identificado para carregar branding.');
@@ -290,6 +297,30 @@ export default function BrandingSettings() {
       setUploading(false);
     }
   };
+
+  if (!V21_WHITELABEL_REPORTS_ENABLED) {
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
+        <section className="space-y-2">
+          <h2 className="text-2xl font-bold text-slate-900">Configurações de Marca</h2>
+          <p className="text-sm text-slate-500">
+            White-label de relatórios está em implantação na versão V2.1.
+          </p>
+        </section>
+
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardContent className="p-6 space-y-2">
+            <p className="text-sm text-slate-700">
+              Esta área ainda não está liberada publicamente.
+            </p>
+            <p className="text-xs text-slate-500">
+              Para habilitar internamente, defina <span className="font-mono">VITE_V21_WHITELABEL_REPORTS=true</span>.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">

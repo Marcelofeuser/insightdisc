@@ -2,42 +2,44 @@ export const PLANS = Object.freeze({
   disc: {
     key: 'disc',
     enginePlanCode: 'disc',
-    name: 'DISC INDIVIDUAL',
-    price: 'R$ 98',
+    name: 'DISC Individual — Relatório Completo',
+    price: 'R$ 59,90',
     billingLabel: 'pagamento único',
-    ctaLabel: 'Gerar meu relatório agora',
+    ctaLabel: 'Comprar DISC Individual',
     checkoutPath: '/checkout/disc',
     benefits: [
-      'Relatório DISC completo com leitura estruturada',
-      'Download profissional em PDF pronto para usar',
-      'Acesso imediato — resultado em minutos',
-      'Sem assinatura, sem compromisso',
+      'Relatório completo instantâneo (tela + PDF)',
+      'Análise comportamental detalhada',
+      'Perfil predominante e secundário',
+      'Pontos fortes e de atenção',
+      'Aplicação pessoal e profissional',
     ],
-    description: 'Para quem precisa de uma leitura comportamental objetiva agora, sem assinatura.',
+    description:
+      'Avaliação comportamental DISC com entrega imediata de um relatório detalhado, ideal para autoconhecimento e tomada de decisão.',
     indication: 'Avaliação pontual e imediata',
   },
   personal: {
     key: 'personal',
     enginePlanCode: 'personal',
-    name: 'PERSONAL',
-    price: 'R$ 79,90',
-    billingLabel: '2 meses',
-    ctaLabel: 'Começar minha evolução',
+    name: 'Plano Personal — Uso contínuo individual',
+    price: 'R$ 99,90',
+    billingLabel: '/mês',
+    ctaLabel: 'Assinar Personal',
     checkoutPath: '/checkout/plan/personal',
     benefits: [
-      'Acesso à plataforma por 2 meses',
-      '1 relatório por ciclo mensal',
-      'Histórico de evolução comportamental',
-      'Acompanhamento contínuo do perfil',
-      'Direcionamentos práticos de desenvolvimento pessoal',
+      'Acesso contínuo à plataforma',
+      'Geração de relatórios individuais',
+      'Histórico de avaliações',
+      'Evolução comportamental ao longo do tempo',
     ],
-    description: 'Para quem quer se conhecer melhor e acompanhar sua evolução comportamental ao longo do tempo.',
+    description:
+      'Ideal para quem deseja acompanhar evolução comportamental e utilizar o DISC de forma recorrente no dia a dia.',
     indication: 'Autoconhecimento com acompanhamento',
   },
   insider: {
     key: 'insider',
     enginePlanCode: 'insider',
-    name: 'INSIDER',
+    name: 'Plano Insider — Mais recursos e profundidade',
     price: 'R$ 129,90',
     billingLabel: '/mês',
     ctaLabel: 'Assinar Insider',
@@ -50,17 +52,18 @@ export const PLANS = Object.freeze({
       'Insights mais profundos de perfil',
       'Recomendações estratégicas personalizadas',
     ],
-    description: 'Plano avançado para usuários que desejam mais profundidade e consistência na análise DISC.',
+    description:
+      'Para usuários que desejam mais controle, análise e profundidade na utilização do DISC.',
     indication: 'Uso individual avançado com foco em profundidade',
     highlight: false,
   },
   profissional: {
     key: 'profissional',
     enginePlanCode: 'professional',
-    name: 'PROFISSIONAL',
-    price: 'R$ 197',
+    name: 'Plano Professional — Aplicação profissional',
+    price: 'R$ 199,90',
     billingLabel: '/mês',
-    ctaLabel: 'Começar agora — 7 dias grátis',
+    ctaLabel: 'Assinar Professional',
     checkoutPath: '/checkout/plan/professional',
     highlight: 'Mais escolhido por RH',
     benefits: [
@@ -73,16 +76,17 @@ export const PLANS = Object.freeze({
       'AI Lab para análises mais profundas (preview)',
       'Exportação em PDF profissional',
     ],
-    description: 'A ferramenta que profissionais de RH usam para mapear, comparar e desenvolver pessoas com precisão.',
+    description:
+      'Plano ideal para uso individual com aplicação profissional, relatórios e 10 créditos mensais.',
     indication: 'RH, consultores e gestores de pessoas',
   },
   business: {
     key: 'business',
     enginePlanCode: 'business',
-    name: 'BUSINESS',
-    price: 'R$ 397',
+    name: 'Plano Business — Uso empresarial',
+    price: 'R$ 399,90',
     billingLabel: '/mês',
-    ctaLabel: 'Quero gestão de equipe',
+    ctaLabel: 'Assinar Business',
     checkoutPath: '/checkout/plan/business',
     benefits: [
       'Tudo do Profissional incluso',
@@ -94,29 +98,80 @@ export const PLANS = Object.freeze({
       'Estrutura completa para RH estratégico',
       'Gestão de múltiplos usuários',
     ],
-    description: 'Para empresas que precisam de visão estratégica sobre equipes, cultura e decisões de liderança.',
+    description:
+      'Plano voltado para empresas e profissionais que atuam com equipes, clientes e contexto corporativo.',
     indication: 'Empresas com equipes a desenvolver',
+  },
+  business_corporation: {
+    key: 'business_corporation',
+    enginePlanCode: 'business_corporation',
+    name: 'Business Corporation — Estrutura corporativa completa',
+    price: 'R$ 999,90',
+    billingLabel: '/mês',
+    ctaLabel: 'Assinar Business Corporation',
+    checkoutPath: '/checkout/plan/business-corporation',
+    benefits: [
+      'Uso ilimitado sob política de uso justo',
+      'Operação em larga escala',
+      'Gestão completa de usuários',
+      'White Label incluso',
+      'Ideal para empresas estruturadas',
+    ],
+    description:
+      'Solução corporativa com uso ilimitado, recursos avançados e White Label incluso.',
+    indication: 'Empresas estruturadas e operação em escala',
+  },
+  diamond_consulting: {
+    key: 'diamond_consulting',
+    enginePlanCode: 'diamond_consulting',
+    name: 'Diamond Consulting — Nível estratégico premium',
+    price: 'R$ 9.990,00',
+    billingLabel: '/mês',
+    ctaLabel: 'Assinar Diamond Consulting',
+    checkoutPath: '/checkout/plan/diamond-consulting',
+    benefits: [
+      'Consultoria estratégica especializada',
+      'Acompanhamento com psicanalista (interpretação clínica e estratégica)',
+      'Uso avançado da plataforma',
+      'Estrutura para alta performance',
+      'Aplicação em nível executivo',
+      'White Label incluso',
+    ],
+    description:
+      'Solução premium com acompanhamento estratégico (inclui psicanalista) e estrutura avançada para operação consultiva.',
+    indication: 'Operação executiva e consultiva premium',
   },
   diamond: {
     key: 'diamond',
-    enginePlanCode: 'diamond',
-    name: 'DIAMOND',
-    price: 'R$ 697',
+    enginePlanCode: 'diamond_consulting',
+    name: 'Diamond Consulting — Nível estratégico premium',
+    price: 'R$ 9.990,00',
     billingLabel: '/mês',
-    ctaLabel: 'Falar com consultor',
-    checkoutPath: '/checkout/plan/diamond',
+    ctaLabel: 'Assinar Diamond Consulting',
+    checkoutPath: '/checkout/plan/diamond-consulting',
     benefits: [
-      'Tudo do Business incluso',
-      'Avaliações ilimitadas — sem teto de uso',
-      'Operação DISC em escala empresarial',
-      'Para empresas com mais de 50 colaboradores',
+      'Consultoria estratégica especializada',
+      'Acompanhamento com psicanalista (interpretação clínica e estratégica)',
+      'Uso avançado da plataforma',
+      'Estrutura para alta performance',
+      'Aplicação em nível executivo',
+      'White Label incluso',
     ],
-    description: 'Para operações de RH em larga escala que não podem ter limite no volume de avaliações.',
-    indication: 'Empresas acima de 50 colaboradores',
+    description:
+      'Solução premium com acompanhamento estratégico (inclui psicanalista) e estrutura avançada para operação consultiva.',
+    indication: 'Operação executiva e consultiva premium',
   },
 });
 
-export const PLAN_ORDER = Object.freeze(['disc', 'personal', 'insider', 'profissional', 'business', 'diamond']);
+export const PLAN_ORDER = Object.freeze([
+  'disc',
+  'personal',
+  'insider',
+  'profissional',
+  'business',
+  'business_corporation',
+  'diamond_consulting',
+]);
 
 export function resolveCheckoutPlan(slug = '', tier = '') {
   const normalizedSlug = String(slug || '').toLowerCase();
@@ -124,9 +179,12 @@ export function resolveCheckoutPlan(slug = '', tier = '') {
   if (normalizedSlug === 'professional') return PLANS.profissional;
   if (normalizedSlug === 'profissional') return PLANS.profissional;
   if (normalizedSlug === 'insider') return PLANS.insider;
+  if (normalizedSlug === 'business-corporation' || normalizedSlug === 'business_corporation') return PLANS.business_corporation;
+  if (normalizedSlug === 'diamond-consulting' || normalizedSlug === 'diamond_consulting') return PLANS.diamond_consulting;
+  if (normalizedSlug === 'diamond') return PLANS.diamond_consulting || PLANS.diamond;
 
   if (normalizedSlug === 'business' && normalizedTier === 'diamond') {
-    return PLANS.diamond;
+    return PLANS.diamond_consulting || PLANS.diamond;
   }
 
   return PLANS[normalizedSlug] || null;

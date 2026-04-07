@@ -1,8 +1,23 @@
 import { env } from '../../config/env.js';
+import { generateHttpDiscInsights } from './ai-http-provider.js';
 import { generateGroqDiscInsights as generateStructuredDiscInsightsWithGroq } from './groq-provider.js';
 import { generateGroqCoachAnswer } from './groq-provider.js';
+import {
+  generateStructuredDiscInsights as generateStructuredDiscInsightsWithGemini,
+  generateGeminiCoachAnswer,
+} from './gemini-provider.js';
+
+const httpProvider = {
+  name: 'ai_api_url',
+  getModel() {
+    return 'ai_api_url';
+  },
+  generateStructuredDiscInsights: generateHttpDiscInsights,
+};
 
 const PROVIDERS = {
+  ai_api_url: httpProvider,
+  ai_http: httpProvider,
   groq: {
     name: 'groq',
     getModel() {
@@ -10,6 +25,14 @@ const PROVIDERS = {
     },
     generateStructuredDiscInsights: generateStructuredDiscInsightsWithGroq,
     generateCoachAnswer: generateGroqCoachAnswer,
+  },
+  gemini: {
+    name: 'gemini',
+    getModel() {
+      return env.geminiModel;
+    },
+    generateStructuredDiscInsights: generateStructuredDiscInsightsWithGemini,
+    generateCoachAnswer: generateGeminiCoachAnswer,
   },
 };
 

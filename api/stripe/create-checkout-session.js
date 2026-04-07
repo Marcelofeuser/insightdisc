@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       flow = '',
       mode = 'payment',
       product = '',
-      priceEnvKey = 'STRIPE_PRICE_PRO',
+      priceEnvKey = 'STRIPE_PRICE_PROFESSIONAL',
       successUrl,
       cancelUrl,
     } = body || {};

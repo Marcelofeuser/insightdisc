@@ -6,6 +6,12 @@ import { sendSafeJsonError } from '../lib/http-security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
 import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
+import {
+  isAiApiUrlConfigured,
+  requestCoach,
+  requestReportPreview,
+  requestStrategicInsights,
+} from '../modules/ai/ai-http-client.js';
 import { parseProviderJsonSafely } from '../modules/ai/json-utils.js';
 import { generateWithGroq } from '../modules/ai/groq-provider.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
@@ -880,32 +886,63 @@ router.post('/report-preview', requireAiAccess, async (req, res) => {
     });
     const systemPrompt = resolveReportPreviewSystemPrompt(normalizedSegment);
 
-    const groqResult = await generateWithGroq({
+    const aiRequest = {
       userPrompt,
       systemPrompt,
       maxTokens: 1400,
       temperature: 0.28,
       responseFormat: 'json_object',
       logLabel: `report_preview:${normalizedSegment}`,
-    });
+    };
 
-    const parsedContent = parseProviderJsonSafely(groqResult.text, {
-      provider: 'groq',
-      model: groqResult.model,
-    });
+    let providerResult = null;
+    let providerSource = 'ai_api_url';
+
+    try {
+      if (!isAiApiUrlConfigured()) {
+        throw new Error('AI_API_URL_NOT_CONFIGURED');
+      }
+      providerResult = await requestReportPreview(aiRequest);
+      if (providerResult?.ok === true && providerResult?.preview) {
+        return res.status(200).json(providerResult);
+      }
+      if (
+        !(
+          (typeof providerResult?.text === 'string' && providerResult.text.trim()) ||
+          (providerResult?.content && typeof providerResult.content === 'object')
+        )
+      ) {
+        throw new Error('AI_HTTP_INVALID_RESPONSE');
+      }
+    } catch (httpError) {
+      providerSource = 'groq';
+      providerResult = await generateWithGroq(aiRequest);
+    }
+
+    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
+    const providerModel =
+      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
+      'unknown';
+    const parsedContent =
+      providerResult?.content && typeof providerResult.content === 'object'
+        ? providerResult.content
+        : parseProviderJsonSafely(toText(providerResult?.text), {
+            provider: providerName,
+            model: providerModel,
+          });
     const normalizedContent = normalizePreviewContent(parsedContent);
 
     return res.status(200).json({
       ok: true,
-      provider: 'groq',
-      model: toText(groqResult.model || env.groqModel || 'llama3-70b-8192'),
-      source: 'groq',
+      provider: providerName,
+      model: providerModel,
+      source: providerSource,
       segment: normalizedSegment,
       usedFallback: false,
       attempts: [
         {
-          provider: 'groq',
-          model: toText(groqResult.model || env.groqModel || 'llama3-70b-8192'),
+          provider: providerName,
+          model: providerModel,
           status: 'ok',
         },
       ],
@@ -1025,19 +1062,49 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
       moduleKey,
     });
 
-    const groqResult = await generateWithGroq({
+    const aiRequest = {
       systemPrompt,
       userPrompt,
       maxTokens: 1700,
       temperature: 0.24,
       responseFormat: 'json_object',
       logLabel: `strategic:${moduleKey}:${segment}`,
-    });
+    };
 
-    const parsed = parseProviderJsonSafely(groqResult.text, {
-      provider: 'groq',
-      model: groqResult.model,
-    });
+    let providerResult = null;
+    let providerSource = 'ai_api_url';
+
+    try {
+      if (!isAiApiUrlConfigured()) {
+        throw new Error('AI_API_URL_NOT_CONFIGURED');
+      }
+      providerResult = await requestStrategicInsights(aiRequest);
+      if (providerResult?.ok === true && providerResult?.data) {
+        return res.status(200).json(providerResult);
+      }
+      if (
+        !(
+          (typeof providerResult?.text === 'string' && providerResult.text.trim()) ||
+          (providerResult?.content && typeof providerResult.content === 'object')
+        )
+      ) {
+        throw new Error('AI_HTTP_INVALID_RESPONSE');
+      }
+    } catch (httpError) {
+      providerSource = 'groq';
+      providerResult = await generateWithGroq(aiRequest);
+    }
+
+    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
+    const providerModel =
+      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
+      'unknown';
+    const parsed = providerResult?.content && typeof providerResult.content === 'object'
+      ? providerResult.content
+      : parseProviderJsonSafely(toText(providerResult?.text), {
+          provider: providerName,
+          model: providerModel,
+        });
     const normalizedData = normalizeStrategicModulePayload(moduleKey, parsed);
 
     if (!hasMeaningfulStrategicPayload(normalizedData)) {
@@ -1050,9 +1117,9 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
 
     return res.status(200).json({
       ok: true,
-      provider: 'groq',
-      model: toText(groqResult?.model || env.groqModel || 'llama3-70b-8192'),
-      source: 'groq',
+      provider: providerName,
+      model: providerModel,
+      source: providerSource,
       usedFallback: false,
       module: moduleKey,
       segment,
@@ -1082,8 +1149,8 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
       },
       attempts: [
         {
-          provider: 'groq',
-          model: toText(groqResult?.model || env.groqModel || 'llama3-70b-8192'),
+          provider: providerName,
+          model: providerModel,
           status: 'ok',
         },
       ],
@@ -1150,23 +1217,47 @@ async function handleCoachRequest(req, res) {
       riskSignals,
     });
 
-    const coachResult = await generateWithGroq({
+    const aiRequest = {
       systemPrompt: systemInstruction,
       userPrompt,
       temperature: 0.32,
       maxTokens: 1100,
       logLabel: `coach:${segment}`,
-    });
+    };
+
+    let providerResult = null;
+    let providerSource = 'ai_api_url';
+
+    try {
+      if (!isAiApiUrlConfigured()) {
+        throw new Error('AI_API_URL_NOT_CONFIGURED');
+      }
+      providerResult = await requestCoach(aiRequest);
+      if (providerResult?.ok === true && providerResult?.answer) {
+        return res.status(200).json(providerResult);
+      }
+      if (!(typeof providerResult?.text === 'string' && providerResult.text.trim())) {
+        throw new Error('AI_HTTP_INVALID_RESPONSE');
+      }
+    } catch (httpError) {
+      providerSource = 'groq';
+      providerResult = await generateWithGroq(aiRequest);
+    }
+
+    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
+    const providerModel =
+      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
+      'unknown';
 
     return res.status(200).json({
       ok: true,
-      provider: 'groq',
-      model: toText(coachResult?.model || env.groqModel || 'llama3-70b-8192'),
-      source: 'groq',
+      provider: providerName,
+      model: providerModel,
+      source: providerSource,
       usedFallback: false,
       segment,
       question: input.question,
-      answer: toText(coachResult?.text),
+      answer: toText(providerResult?.text),
       context: {
         reportId: context.reportId,
         assessmentId: context.assessmentId,
@@ -1193,8 +1284,8 @@ async function handleCoachRequest(req, res) {
       },
       attempts: [
         {
-          provider: 'groq',
-          model: toText(coachResult?.model || env.groqModel || 'llama3-70b-8192'),
+          provider: providerName,
+          model: providerModel,
           status: 'ok',
         },
       ],

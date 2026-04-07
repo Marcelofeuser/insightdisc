@@ -30,6 +30,87 @@ body.landing-body {
   background: linear-gradient(135deg, #0f172a 0%, #111827 45%, #0b1220 100%);
 }
 
+.landing-page .premium-wallpaper {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(1120px, 140vw);
+  height: min(1120px, 140vw);
+  transform: translate3d(-50%, -50%, 0);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.34;
+  background-position: center;
+  background-repeat: no-repeat;
+  will-change: transform;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 70%);
+  -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+.landing-page .premium-wallpaper--corporation {
+  background-image:
+    radial-gradient(circle at center, rgba(59, 130, 246, 0.22) 0%, rgba(15, 23, 42, 0) 64%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(148, 163, 184, 0.06) 0,
+      rgba(148, 163, 184, 0.06) 1px,
+      transparent 1px,
+      transparent 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(59, 130, 246, 0.06) 0,
+      rgba(59, 130, 246, 0.06) 1px,
+      transparent 1px,
+      transparent 40px
+    );
+}
+
+.landing-page .premium-wallpaper--diamond {
+  background-image:
+    radial-gradient(circle at center, rgba(167, 139, 250, 0.22) 0%, rgba(15, 23, 42, 0) 64%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(250, 204, 21, 0.055) 0,
+      rgba(250, 204, 21, 0.055) 1px,
+      transparent 1px,
+      transparent 46px
+    ),
+    repeating-linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.055) 0,
+      rgba(139, 92, 246, 0.055) 1px,
+      transparent 1px,
+      transparent 46px
+    );
+}
+
+.landing-page.premium-landing--corporation .headline-accent {
+  background: linear-gradient(120deg, #93c5fd 0%, #38bdf8 45%, #60a5fa 100%);
+  text-shadow: 0 0 18px rgba(147, 197, 253, 0.22);
+}
+
+.landing-page.premium-landing--diamond .headline-accent {
+  background: linear-gradient(120deg, #ddd6fe 0%, #fbbf24 40%, #a78bfa 100%);
+  text-shadow: 0 0 18px rgba(251, 191, 36, 0.18);
+}
+
+@media (max-width: 640px) {
+  .landing-page .premium-wallpaper {
+    width: 170vw;
+    height: 170vw;
+    opacity: 0.22;
+  }
+
+  .landing-page .premium-wallpaper--corporation {
+    background-image: radial-gradient(circle at center, rgba(96, 165, 250, 0.2) 0%, rgba(15, 23, 42, 0) 66%);
+  }
+
+  .landing-page .premium-wallpaper--diamond {
+    background-image: radial-gradient(circle at center, rgba(196, 181, 253, 0.2) 0%, rgba(15, 23, 42, 0) 66%);
+  }
+}
+
 .landing-page .disc-gradient {
   background: linear-gradient(135deg, #ef4444 0%, #f59e0b 25%, #22c55e 50%, #3b82f6 75%, #8b5cf6 100%);
   background-size: 200% 200%;
@@ -258,6 +339,20 @@ body.landing-body {
   max-height: min(72vh, 760px);
 }
 
+.landing-page .planos-carousel {
+  scrollbar-width: none;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+}
+
+.landing-page .planos-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.landing-page .planos-carousel.is-dragging {
+  cursor: grabbing;
+}
+
 .landing-page .planos-compare-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -294,7 +389,7 @@ body.landing-body {
 }
 
 .landing-page .planos-compare-summary-row td {
-  background-color: rgba(148, 163, 184, 0.03);
+  background-color: inherit;
 }
 
 .landing-page .planos-compare-toggle-row td {

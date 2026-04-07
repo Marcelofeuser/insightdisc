@@ -2025,6 +2025,12 @@ function buildPage({
     `;
   }
 
+  const resolvedBrandLine = branding?.white_label_enabled
+    ? safeText(
+        firstNonEmptyText(branding?.report_footer_text, branding?.company_name),
+        PLATFORM_BRAND_LINE,
+      )
+    : PLATFORM_BRAND_LINE;
   const parityClass = number % 2 === 0 ? 'page-even' : 'page-odd';
   const densityChars = stripHtml(content).length;
   const contentWithDensity =
@@ -2041,7 +2047,7 @@ function buildPage({
             ? ''
             : `
               <div class="page-brand-strip">
-                <div class="report-header-line">${esc(PLATFORM_BRAND_LINE)}</div>
+                <div class="report-header-line">${esc(resolvedBrandLine)}</div>
               </div>
             `
         }
@@ -2055,7 +2061,7 @@ function buildPage({
         ${contentWithDensity}
       </main>
       <footer class="footer">
-        <span>${esc(PLATFORM_BRAND_LINE)}</span>
+        <span>${esc(resolvedBrandLine)}</span>
         <span>Página ${number} de ${totalPages}</span>
       </footer>
     </section>
@@ -2092,6 +2098,9 @@ export function renderReportHtml(input = {}) {
   const isBusinessTier = reportType === REPORT_TIER.BUSINESS;
   const isProfessionalTier = reportType === REPORT_TIER.PROFESSIONAL;
   const isPremiumTier = reportType !== REPORT_TIER.PERSONAL;
+  const v21WhiteLabelReportsEnabled =
+    String(process.env.VITE_V21_WHITELABEL_REPORTS || '').trim().toLowerCase() === 'true' &&
+    (reportType === REPORT_TIER.PROFESSIONAL || reportType === REPORT_TIER.BUSINESS);
   const logicalPageTarget =
     reportType === REPORT_TIER.PERSONAL
       ? PERSONAL_PAGE_SEQUENCE.length
@@ -2117,12 +2126,20 @@ export function renderReportHtml(input = {}) {
     report?.meta?.assetBaseUrl,
     safeText(input?.assetBaseUrl, '')
   );
-  const branding = normalizeBranding(report?.branding || {}, report?.meta || {});
+  const branding = {
+    ...normalizeBranding(report?.branding || {}, report?.meta || {}),
+    white_label_enabled: v21WhiteLabelReportsEnabled,
+  };
   const participant = normalizeParticipant(report?.participant || {}, report?.meta || {});
-  const finalLockupLogoSrc = resolvePdfImageSrc(DEFAULT_BRANDING.logo_url, {
+  const platformLockupLogoSrc = resolvePdfImageSrc(DEFAULT_BRANDING.logo_url, {
     fallbackSrc: branding.logo_url,
     assetBaseUrl,
   });
+  const workspaceLockupLogoSrc = resolvePdfImageSrc(branding.logo_url, {
+    fallbackSrc: DEFAULT_BRANDING.logo_url,
+    assetBaseUrl,
+  });
+  const finalLockupLogoSrc = v21WhiteLabelReportsEnabled ? workspaceLockupLogoSrc : platformLockupLogoSrc;
   const shouldRenderFinalLockupLogo = /^(data:image\/|https?:\/\/|file:\/\/)/i.test(finalLockupLogoSrc);
   const platformWebsite = safeText(branding?.website, DEFAULT_BRANDING.website);
   const platformEmail = normalizeInstitutionalEmail(
@@ -2218,12 +2235,15 @@ export function renderReportHtml(input = {}) {
       : reportType === REPORT_TIER.PROFESSIONAL
         ? 'Professional'
         : 'Personal';
+  const coverBrandPrefix = v21WhiteLabelReportsEnabled
+    ? safeText(branding.company_name, DEFAULT_BRANDING.company_name).toUpperCase()
+    : 'INSIGHTDISC';
   const coverReportKicker =
     reportType === REPORT_TIER.BUSINESS
-      ? 'INSIGHTDISC · RELATÓRIO PREMIUM'
+      ? `${coverBrandPrefix} · RELATÓRIO PREMIUM`
       : reportType === REPORT_TIER.PROFESSIONAL
-        ? 'INSIGHTDISC · RELATÓRIO PROFESSIONAL'
-        : 'INSIGHTDISC · RELATÓRIO PERSONAL';
+        ? `${coverBrandPrefix} · RELATÓRIO PROFESSIONAL`
+        : `${coverBrandPrefix} · RELATÓRIO PERSONAL`;
   const coverInstitutionTitle = PLATFORM_BRAND_LINE;
   const coverInstitutionUrl = platformWebsite;
   const coverInstitutionEmail = platformEmail;
@@ -2233,6 +2253,14 @@ export function renderReportHtml(input = {}) {
   const coverFooterNote =
     'Este relatório foi desenvolvido para apoio à análise comportamental, autoconhecimento, desenvolvimento pessoal e profissional, comunicação, liderança e tomada de decisão. Este material não substitui avaliação clínica, psicológica ou psiquiátrica.';
   const coverBackgroundUrl = resolveCoverBackgroundByTier(reportType);
+  const coverTopBrand = v21WhiteLabelReportsEnabled ? branding.company_name : 'InsightDISC';
+  const coverTopSubtitle = v21WhiteLabelReportsEnabled
+    ? 'Relatório DISC'
+    : 'Plataforma de Análise Comportamental';
+  const coverTopLogoHtml =
+    v21WhiteLabelReportsEnabled && shouldRenderFinalLockupLogo
+      ? `<img src="${esc(finalLockupLogoSrc)}" alt="${esc(branding.company_name)}" class="cover-top-logo" />`
+      : '';
 
   const adaptation = {
     label: safeText(report?.adaptation?.label, safeText(report?.adaptation?.band, 'moderado')).toUpperCase(),
@@ -2351,16 +2379,17 @@ export function renderReportHtml(input = {}) {
       totalPages: meta.totalPages,
       cover: true,
       coverBackgroundUrl,
-      branding,
-      content: `
-        <div class="cover-shell">
-          <div class="cover-top-band">
-            <div class="cover-top-brand">InsightDISC</div>
-            <div class="cover-top-subtitle">Plataforma de Análise Comportamental</div>
-          </div>
-          <div class="cover-body">
-            <div class="cover-central-block">
-              <div class="cover-report-kicker">${esc(coverReportKicker)}</div>
+	      branding,
+	      content: `
+	        <div class="cover-shell">
+	          <div class="cover-top-band">
+	            ${coverTopLogoHtml}
+	            <div class="cover-top-brand">${esc(coverTopBrand)}</div>
+	            <div class="cover-top-subtitle">${esc(coverTopSubtitle)}</div>
+	          </div>
+	          <div class="cover-body">
+	            <div class="cover-central-block">
+	              <div class="cover-report-kicker">${esc(coverReportKicker)}</div>
               <div class="cover-mode-line">Modo: ${esc(coverModeLabel)}</div>
               <div class="cover-name-highlight">${esc(coverParticipantName)}</div>
               <div class="cover-meta-pair">
@@ -3978,14 +4007,14 @@ export function renderReportHtml(input = {}) {
             <p><strong>Contato da emissão:</strong> ${esc(issuerResponsibleContact)}</p>
           </div>
         </div>
-        <div class="card final-lockup">
-          ${
-            shouldRenderFinalLockupLogo
-              ? `<img src="${esc(finalLockupLogoSrc)}" alt="InsightDISC" class="final-lockup-logo" />`
-              : '<div class="final-lockup-logo-fallback">InsightDISC</div>'
-          }
-          <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
-        </div>
+	        <div class="card final-lockup">
+	          ${
+	            shouldRenderFinalLockupLogo
+	              ? `<img src="${esc(finalLockupLogoSrc)}" alt="${esc(v21WhiteLabelReportsEnabled ? branding.company_name : 'InsightDISC')}" class="final-lockup-logo" />`
+	              : `<div class="final-lockup-logo-fallback">${esc(v21WhiteLabelReportsEnabled ? branding.company_name : 'InsightDISC')}</div>`
+	          }
+	          <p><strong>${esc(participant.name)}</strong>, o próximo nível do seu desenvolvimento começa quando cada insight se transforma em ação observável no seu contexto real de trabalho.</p>
+	        </div>
         <div class="grid two">
           <div class="card">
             <h3>Respaldo técnico-profissional</h3>
@@ -4347,10 +4376,10 @@ export function renderReportHtml(input = {}) {
       display: none;
     }
 
-    .cover-content {
-      --navy: #0b1f3b;
-      --gold: #f7b500;
-      --gold-2: #ff8a00;
+	    .cover-content {
+	      --navy: #0b1f3b;
+	      --gold: #f7b500;
+	      --gold-2: #ff8a00;
       --white: #ffffff;
       --bg: #eef2f7;
       --text: #243447;
@@ -4364,14 +4393,20 @@ export function renderReportHtml(input = {}) {
       display: flex;
       align-items: stretch;
       justify-content: stretch;
-      overflow: hidden;
-      background: linear-gradient(180deg, var(--bg) 0%, var(--white) 100%);
-    }
+	      overflow: hidden;
+	      background: linear-gradient(180deg, var(--bg) 0%, var(--white) 100%);
+	    }
 
-    .cover-content::before {
-      content: "";
-      position: absolute;
-      inset: 0;
+	    body.theme-whitelabel .cover-content {
+	      --navy: var(--primary);
+	      --gold: var(--secondary);
+	      --gold-2: var(--secondary);
+	    }
+
+	    .cover-content::before {
+	      content: "";
+	      position: absolute;
+	      inset: 0;
       background:
         radial-gradient(circle at 88% 10%, rgba(247, 181, 0, 0.18), transparent 28%),
         radial-gradient(circle at 10% 88%, rgba(11, 31, 59, 0.1), transparent 34%);
@@ -4425,16 +4460,25 @@ export function renderReportHtml(input = {}) {
       background: linear-gradient(90deg, var(--gold), var(--gold-2));
     }
 
-    .cover-top-brand {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1.05;
-      letter-spacing: 0.4px;
-    }
+	    .cover-top-brand {
+	      font-size: 26px;
+	      font-weight: 800;
+	      line-height: 1.05;
+	      letter-spacing: 0.4px;
+	    }
 
-    .cover-top-subtitle {
-      margin-top: 2.2mm;
-      font-size: 11.8px;
+	    .cover-top-logo {
+	      display: block;
+	      height: 18mm;
+	      max-width: 80mm;
+	      object-fit: contain;
+	      margin: 0 auto 4mm;
+	      filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.22));
+	    }
+
+	    .cover-top-subtitle {
+	      margin-top: 2.2mm;
+	      font-size: 11.8px;
       line-height: 1.35;
       letter-spacing: 0.4px;
       color: rgba(255, 255, 255, 0.88);
@@ -6431,7 +6475,7 @@ export function renderReportHtml(input = {}) {
 
   </style>
 </head>
-<body class="${isPremiumTier ? 'theme-premium' : 'theme-standard'}">
+<body class="${isPremiumTier ? 'theme-premium' : 'theme-standard'}${v21WhiteLabelReportsEnabled ? ' theme-whitelabel' : ''}">
   ${selectedPages.join('\n')}
 </body>
 </html>`;

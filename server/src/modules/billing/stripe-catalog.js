@@ -1,14 +1,15 @@
 import { PRODUCTS, resolveProductId as resolvePricingProductId } from '../../config/pricing.js';
+import { STRIPE_V21_PRICE_ENV_KEYS, getPriceId } from './stripe-price-map.js';
 
 const SUPPORTED_PLANS = Object.freeze({
   personal: Object.freeze({
     id: 'personal',
     type: 'plan',
-    mode: 'payment',
+    mode: 'subscription',
     planTarget: 'personal',
     creditsToGrant: 1,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_PERSONAL']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.personal]),
   }),
   professional: Object.freeze({
     id: 'professional',
@@ -17,7 +18,7 @@ const SUPPORTED_PLANS = Object.freeze({
     planTarget: 'professional',
     creditsToGrant: 10,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_PROFESSIONAL']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.professional]),
   }),
   insider: Object.freeze({
     id: 'insider',
@@ -26,7 +27,7 @@ const SUPPORTED_PLANS = Object.freeze({
     planTarget: 'professional',
     creditsToGrant: 10,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_INSIDER', 'STRIPE_PRICE_PROFESSIONAL']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.insider]),
   }),
   business: Object.freeze({
     id: 'business',
@@ -35,7 +36,25 @@ const SUPPORTED_PLANS = Object.freeze({
     planTarget: 'business',
     creditsToGrant: 25,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_BUSINESS']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.business]),
+  }),
+  business_corporation: Object.freeze({
+    id: 'business_corporation',
+    type: 'plan',
+    mode: 'subscription',
+    planTarget: 'business',
+    creditsToGrant: 25,
+    currency: 'brl',
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.business_corporation]),
+  }),
+  diamond_consulting: Object.freeze({
+    id: 'diamond_consulting',
+    type: 'plan',
+    mode: 'subscription',
+    planTarget: 'business',
+    creditsToGrant: 25,
+    currency: 'brl',
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.diamond_consulting]),
   }),
 });
 
@@ -46,7 +65,7 @@ const LEGACY_PRODUCTS = Object.freeze({
     mode: 'payment',
     creditsToGrant: 1,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_SINGLE', 'STRIPE_PRICE_PERSONAL']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.disc_individual, 'STRIPE_PRICE_SINGLE']),
   }),
   [PRODUCTS.REPORT_UNLOCK.id]: Object.freeze({
     id: PRODUCTS.REPORT_UNLOCK.id,
@@ -54,7 +73,11 @@ const LEGACY_PRODUCTS = Object.freeze({
     mode: 'payment',
     creditsToGrant: 0,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_REPORT_UNLOCK', 'STRIPE_PRICE_SINGLE']),
+    priceEnvCandidates: Object.freeze([
+      'STRIPE_PRICE_REPORT_UNLOCK',
+      STRIPE_V21_PRICE_ENV_KEYS.disc_individual,
+      'STRIPE_PRICE_SINGLE',
+    ]),
   }),
   [PRODUCTS.GIFT.id]: Object.freeze({
     id: PRODUCTS.GIFT.id,
@@ -62,7 +85,11 @@ const LEGACY_PRODUCTS = Object.freeze({
     mode: 'payment',
     creditsToGrant: 0,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_GIFT', 'STRIPE_PRICE_SINGLE']),
+    priceEnvCandidates: Object.freeze([
+      'STRIPE_PRICE_GIFT',
+      STRIPE_V21_PRICE_ENV_KEYS.disc_individual,
+      'STRIPE_PRICE_SINGLE',
+    ]),
   }),
   [PRODUCTS.PACK_10.id]: Object.freeze({
     id: PRODUCTS.PACK_10.id,
@@ -98,7 +125,7 @@ const LEGACY_PRODUCTS = Object.freeze({
     planTarget: 'business',
     creditsToGrant: 25,
     currency: 'brl',
-    priceEnvCandidates: Object.freeze(['STRIPE_PRICE_BUSINESS']),
+    priceEnvCandidates: Object.freeze([STRIPE_V21_PRICE_ENV_KEYS.business]),
   }),
   'credit-1': Object.freeze({
     id: 'credit-1',
@@ -150,7 +177,15 @@ const PLAN_ALIASES = Object.freeze({
   business: 'business',
   empresa: 'business',
   disc: PRODUCTS.SINGLE_PRO.id,
-  diamond: 'business',
+  diamond: 'diamond_consulting',
+  corporation: 'business_corporation',
+  corp: 'business_corporation',
+  'business-corporation': 'business_corporation',
+  businesscorporation: 'business_corporation',
+  business_corporation: 'business_corporation',
+  diamond_consulting: 'diamond_consulting',
+  'diamond-consulting': 'diamond_consulting',
+  diamondconsulting: 'diamond_consulting',
 });
 
 const PRODUCT_TYPE_TO_PRODUCT_ID = Object.freeze({
@@ -328,9 +363,29 @@ export function resolveOrderBumpEntry(input = {}, options = {}) {
   };
 }
 
+export function resolveWhiteLabelAddonEntry(input = {}, options = {}) {
+  const envVars = options?.envVars || process.env;
+  const enabled = resolveBooleanInput(input?.whiteLabelAddon);
+  if (!enabled) return null;
+
+  const priceId = getPriceId('white_label_one_time', envVars);
+
+  return {
+    id: 'white-label-one-time',
+    type: 'white_label_addon',
+    mode: 'payment',
+    quantity: 1,
+    priceId,
+    currency: 'brl',
+  };
+}
+
 export function getRecurringCreditsByPlan(plan = '') {
   const normalized = normalizePlanId(plan);
+  if (normalized === 'personal') return 1;
   if (normalized === 'business') return 25;
+  if (normalized === 'business_corporation') return 999999;
+  if (normalized === 'diamond_consulting') return 999999;
   if (normalized === 'insider') return 10;
   if (normalized === 'professional') return 10;
   return 0;

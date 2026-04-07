@@ -6,8 +6,10 @@ import {
   normalizePlanId,
   resolveCheckoutCatalogEntry,
   resolveOrderBumpEntry,
+  resolveWhiteLabelAddonEntry,
   resolveStripePaymentMethods,
 } from './stripe-catalog.js';
+import { resolvePlanFromPrice } from './stripe-price-map.js';
 
 function createError(code = 'BILLING_ERROR', message = 'Erro de billing.') {
   const error = new Error(message);
@@ -23,6 +25,23 @@ function appendQuery(urlValue, params = {}) {
     }
   });
   return url.toString();
+}
+
+function resolveSafeCheckoutRedirectUrl(requestedUrl, fallbackUrl) {
+  const raw = String(requestedUrl || '').trim();
+  if (!raw) return fallbackUrl;
+
+  try {
+    const fallbackOrigin = new URL(fallbackUrl).origin;
+    const parsed = new URL(raw);
+    if (parsed.origin !== fallbackOrigin) {
+      console.warn('[billing] ignoring unsafe checkout redirect url', { requestedUrl: raw });
+      return fallbackUrl;
+    }
+    return parsed.toString();
+  } catch {
+    return fallbackUrl;
+  }
 }
 
 function toInteger(value, fallback = 0) {
@@ -55,8 +74,9 @@ function resolveSubscriptionStatus(value = '') {
 
 function resolveBillingPlanEnum(value = '') {
   const normalizedPlan = normalizePlanId(value);
-  if (normalizedPlan === 'business') return 'BUSINESS';
-  if (normalizedPlan === 'professional') return 'PROFESSIONAL';
+  if (normalizedPlan === 'diamond_consulting' || normalizedPlan === 'diamond') return 'DIAMOND';
+  if (normalizedPlan === 'business' || normalizedPlan === 'business_corporation') return 'BUSINESS';
+  if (normalizedPlan === 'professional' || normalizedPlan === 'insider') return 'PROFESSIONAL';
   return 'PERSONAL';
 }
 
@@ -181,6 +201,43 @@ async function applyPlan(tx, userId, plan) {
   });
 }
 
+async function applyStripeIdentity(tx, userId, {
+  stripeCustomerId = '',
+  stripeSubscriptionId = '',
+  subscriptionStatus = '',
+  whiteLabelEnabled = false,
+} = {}) {
+  if (!userId) return;
+
+  const updates = {};
+
+  const normalizedCustomerId = String(stripeCustomerId || '').trim();
+  if (normalizedCustomerId) {
+    updates.stripeCustomerId = normalizedCustomerId;
+  }
+
+  const normalizedSubscriptionId = String(stripeSubscriptionId || '').trim();
+  if (normalizedSubscriptionId) {
+    updates.stripeSubscriptionId = normalizedSubscriptionId;
+  }
+
+  const rawStatus = String(subscriptionStatus || '').trim();
+  if (rawStatus) {
+    updates.subscriptionStatus = resolveSubscriptionStatus(rawStatus);
+  }
+
+  if (whiteLabelEnabled) {
+    updates.whiteLabelEnabled = true;
+  }
+
+  if (Object.keys(updates).length === 0) return;
+
+  await tx.user.update({
+    where: { id: userId },
+    data: updates,
+  });
+}
+
 function shouldTreatSessionAsPaid(eventType, paymentStatus) {
   const normalizedType = String(eventType || '').trim().toLowerCase();
   if (normalizedType === 'checkout.session.async_payment_succeeded') return true;
@@ -199,24 +256,40 @@ async function processCheckoutSessionEvent(eventType, session) {
   }
 
   const metadata = session?.metadata || {};
-  const existingPayment = await prisma.payment.findUnique({
-    where: { stripeSession: stripeSessionId },
-  });
+  const requestedUserId = String(metadata?.userId || '').trim();
+  const checkoutEmail = String(session?.customer_details?.email || session?.customer_email || '')
+    .trim()
+    .toLowerCase();
+  const metadataEmail = String(metadata?.email || '').trim().toLowerCase();
+  const emailCandidate = checkoutEmail || metadataEmail;
 
-  const userId = String(metadata?.userId || existingPayment?.userId || '').trim();
-  if (!userId) {
-    throw createError('WEBHOOK_USER_ID_MISSING', 'Usuário não identificado no checkout Stripe.');
-  }
-
+  const stripeCheckoutPriceId = String(metadata?.stripePriceId || '').trim();
   const rawPlanTarget = String(
     metadata?.planTarget
     || metadata?.planId
     || metadata?.plan
     || '',
   ).trim();
-  const planTarget = normalizePlanId(rawPlanTarget);
   const checkoutMode = String(metadata?.checkoutMode || session?.mode || '').trim().toLowerCase();
   const isSubscriptionCheckout = checkoutMode === 'subscription';
+  const planTarget = isSubscriptionCheckout
+    ? normalizePlanId(resolvePlanFromPrice(stripeCheckoutPriceId))
+    : normalizePlanId(rawPlanTarget);
+  if (isSubscriptionCheckout && !planTarget) {
+    throw createError(
+      'BILLING_PRICE_NOT_CONFIGURED',
+      `Preço Stripe não reconhecido para assinatura (${stripeCheckoutPriceId || 'N/A'}).`,
+    );
+  }
+
+  const whiteLabelFromMetadata =
+    String(metadata?.white_label || metadata?.whiteLabelAddon || '')
+      .trim()
+      .toLowerCase() === 'true';
+  const whiteLabelIncludedByPlan =
+    planTarget === 'business_corporation' || planTarget === 'diamond_consulting';
+  const shouldEnableWhiteLabel = whiteLabelFromMetadata || whiteLabelIncludedByPlan;
+
   const creditsToGrant = Math.max(0, toInteger(metadata?.creditsToGrant || metadata?.credits, 0));
   const creditsToApplyNow = isSubscriptionCheckout ? 0 : creditsToGrant;
 
@@ -224,17 +297,72 @@ async function processCheckoutSessionEvent(eventType, session) {
   const failed = shouldTreatSessionAsFailed(eventType);
   const paymentStatus = paid ? 'PAID' : failed ? 'FAILED' : 'PENDING';
 
-  const stripeSubscriptionId = String(session?.subscription || existingPayment?.stripeSubscriptionId || '').trim();
-  const stripeCustomerId = String(session?.customer || existingPayment?.stripeCustomerId || '').trim();
-  const stripePaymentIntent = String(session?.payment_intent || existingPayment?.stripePaymentIntent || '').trim();
-  const amount = toInteger(session?.amount_total, toInteger(existingPayment?.amount, 0));
-  const currency = toUpperText(session?.currency, toUpperText(existingPayment?.currency, 'BRL'));
+  const stripeSubscriptionFromSession = String(session?.subscription || '').trim();
+  const stripeCustomerFromSession = String(session?.customer || '').trim();
+  const stripePaymentIntentFromSession = String(session?.payment_intent || '').trim();
+  const amountFromSession = toInteger(session?.amount_total, 0);
+  const currencyFromSession = toUpperText(session?.currency, '');
 
   await prisma.$transaction(async (tx) => {
+    const existingPayment = await tx.payment.findUnique({
+      where: { stripeSession: stripeSessionId },
+      select: {
+        userId: true,
+        stripeSubscriptionId: true,
+        stripeCustomerId: true,
+        stripePaymentIntent: true,
+        amount: true,
+        currency: true,
+      },
+    });
+
+    const existingUserId = String(existingPayment?.userId || '').trim();
+    if (existingUserId && requestedUserId && existingUserId !== requestedUserId) {
+      throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
+    }
+
+    let effectiveUserId = existingUserId || requestedUserId;
+    if (!effectiveUserId && emailCandidate) {
+      const userByEmail = await tx.user.findUnique({
+        where: { email: emailCandidate },
+        select: { id: true },
+      });
+      effectiveUserId = String(userByEmail?.id || '').trim();
+    }
+
+    if (!effectiveUserId) {
+      console.warn('[STRIPE WEBHOOK] checkout sem usuário associado, ignorando processamento automático', {
+        stripeSessionId,
+        email: emailCandidate || 'n/a',
+      });
+      return;
+    }
+
+    if (!existingUserId && requestedUserId && emailCandidate) {
+      const claimedUser = await tx.user.findUnique({
+        where: { id: requestedUserId },
+        select: { email: true },
+      });
+      const claimedEmail = String(claimedUser?.email || '').trim().toLowerCase();
+      if (claimedEmail && claimedEmail !== emailCandidate) {
+        throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro e-mail.');
+      }
+    }
+
+    const stripeSubscriptionId = String(
+      stripeSubscriptionFromSession || existingPayment?.stripeSubscriptionId || '',
+    ).trim();
+    const stripeCustomerId = String(stripeCustomerFromSession || existingPayment?.stripeCustomerId || '').trim();
+    const stripePaymentIntent = String(
+      stripePaymentIntentFromSession || existingPayment?.stripePaymentIntent || '',
+    ).trim();
+    const amount = amountFromSession > 0 ? amountFromSession : toInteger(existingPayment?.amount, 0);
+    const currency = currencyFromSession || toUpperText(existingPayment?.currency, 'BRL');
+
     const payment = await tx.payment.upsert({
       where: { stripeSession: stripeSessionId },
       create: {
-        userId,
+        userId: effectiveUserId,
         creditsAdded: creditsToApplyNow,
         amount,
         stripeSession: stripeSessionId,
@@ -248,7 +376,6 @@ async function processCheckoutSessionEvent(eventType, session) {
         metadata,
       },
       update: {
-        userId,
         creditsAdded: creditsToApplyNow,
         amount,
         status: resolvePaymentStatus(paymentStatus),
@@ -262,13 +389,18 @@ async function processCheckoutSessionEvent(eventType, session) {
       },
     });
 
+    if (requestedUserId && payment.userId !== requestedUserId) {
+      throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
+    }
+
+    const resolvedUserId = payment.userId;
     if (paid && planTarget) {
-      await applyPlan(tx, userId, planTarget);
+      await applyPlan(tx, resolvedUserId, planTarget);
     }
 
     if (paid && creditsToApplyNow > 0) {
       await applyCreditLedgerEntry(tx, {
-        userId,
+        userId: resolvedUserId,
         paymentId: payment.id,
         amount: creditsToApplyNow,
         source: 'stripe_checkout_session',
@@ -282,12 +414,26 @@ async function processCheckoutSessionEvent(eventType, session) {
 
     if (stripeSubscriptionId) {
       await upsertSubscription(tx, {
-        userId,
-        plan: planTarget || metadata?.planTarget || metadata?.plan,
+        userId: resolvedUserId,
+        plan: planTarget || rawPlanTarget,
         status: paid ? 'active' : failed ? 'past_due' : 'incomplete',
         stripeCustomerId,
         stripeSubscriptionId,
-        stripePriceId: String(metadata?.stripePriceId || ''),
+        stripePriceId: stripeCheckoutPriceId,
+      });
+    }
+
+    if (isSubscriptionCheckout) {
+      await applyStripeIdentity(tx, resolvedUserId, {
+        stripeCustomerId,
+        stripeSubscriptionId,
+        subscriptionStatus: paid ? 'active' : failed ? 'past_due' : 'incomplete',
+        whiteLabelEnabled: paid && shouldEnableWhiteLabel,
+      });
+    } else if (paid && shouldEnableWhiteLabel) {
+      await applyStripeIdentity(tx, resolvedUserId, {
+        subscriptionStatus: 'active',
+        whiteLabelEnabled: true,
       });
     }
   });
@@ -300,12 +446,71 @@ async function processInvoiceEvent(eventType, invoice) {
   const subscriptionId = String(invoice?.subscription || '').trim();
   if (!subscriptionId) return;
 
+  const stripeCustomerId = String(invoice?.customer || '').trim();
+  const lineItems = Array.isArray(invoice?.lines?.data) ? invoice.lines.data : [];
+  const linePriceIds = lineItems
+    .map((item) => String(item?.price?.id || '').trim())
+    .filter(Boolean);
+  const resolvedPlanLine = lineItems
+    .map((item) => {
+      const priceId = String(item?.price?.id || '').trim();
+      return {
+        item,
+        priceId,
+        planKey: resolvePlanFromPrice(priceId),
+      };
+    })
+    .find((entry) =>
+      entry.priceId
+      && entry.planKey
+      && entry.planKey !== 'white_label_one_time'
+      && entry.planKey !== 'disc_individual'
+    );
+
   const subscription = await prisma.billingSubscription.findUnique({
     where: { stripeSubscriptionId: subscriptionId },
   });
-  if (!subscription?.userId) return;
 
-  const userId = subscription.userId;
+  let userId = String(subscription?.userId || '').trim();
+  if (!userId) {
+    const payment = await prisma.payment.findFirst({
+      where: {
+        OR: [
+          { stripeSubscriptionId: subscriptionId },
+          ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        userId: true,
+      },
+    });
+    userId = String(payment?.userId || '').trim();
+  }
+  if (!userId && stripeCustomerId) {
+    const user = await prisma.user.findFirst({
+      where: { stripeCustomerId },
+      select: { id: true },
+    });
+    userId = String(user?.id || '').trim();
+  }
+
+  if (!userId) return;
+
+  const planPriceId = String(resolvedPlanLine?.priceId || subscription?.stripePriceId || '').trim();
+  const planKey = resolvePlanFromPrice(planPriceId);
+  if (!planKey) {
+    throw createError(
+      'BILLING_PRICE_NOT_CONFIGURED',
+      `Preço Stripe não reconhecido para invoice (${planPriceId || 'N/A'}).`,
+    );
+  }
+
+  const whiteLabelPurchased = linePriceIds.some((priceId) => resolvePlanFromPrice(priceId) === 'white_label_one_time');
+  const whiteLabelIncludedByPlan =
+    planKey === 'business_corporation' || planKey === 'diamond_consulting';
+  const shouldEnableWhiteLabel = whiteLabelPurchased || whiteLabelIncludedByPlan;
+
   const paymentStatus =
     String(eventType || '').trim().toLowerCase() === 'invoice.payment_failed'
       ? 'FAILED'
@@ -313,7 +518,7 @@ async function processInvoiceEvent(eventType, invoice) {
   const amount = toInteger(invoice?.amount_paid ?? invoice?.amount_due, 0);
   const currency = toUpperText(invoice?.currency, 'BRL');
   const recurringCredits = paymentStatus === 'PAID'
-    ? Math.max(0, getRecurringCreditsByPlan(String(subscription.plan || '').toLowerCase()))
+    ? Math.max(0, getRecurringCreditsByPlan(planKey))
     : 0;
 
   await prisma.$transaction(async (tx) => {
@@ -325,15 +530,21 @@ async function processInvoiceEvent(eventType, invoice) {
         amount,
         stripeSession: invoiceId,
         status: resolvePaymentStatus(paymentStatus),
-        productId: String(subscription.plan || '').toLowerCase(),
+        productId: planKey,
         mode: 'subscription',
         currency,
         stripePaymentIntent: String(invoice?.payment_intent || '') || null,
-        stripeCustomerId: String(invoice?.customer || '') || null,
+        stripeCustomerId: stripeCustomerId || null,
         stripeSubscriptionId: subscriptionId,
         metadata: {
           eventType,
           invoiceId,
+          subscriptionId,
+          planKey,
+          planPriceId,
+          linePriceIds,
+          whiteLabelPurchased,
+          whiteLabelIncluded: whiteLabelIncludedByPlan,
         },
       },
       update: {
@@ -341,15 +552,21 @@ async function processInvoiceEvent(eventType, invoice) {
         creditsAdded: recurringCredits,
         amount,
         status: resolvePaymentStatus(paymentStatus),
-        productId: String(subscription.plan || '').toLowerCase(),
+        productId: planKey,
         mode: 'subscription',
         currency,
         stripePaymentIntent: String(invoice?.payment_intent || '') || null,
-        stripeCustomerId: String(invoice?.customer || '') || null,
+        stripeCustomerId: stripeCustomerId || null,
         stripeSubscriptionId: subscriptionId,
         metadata: {
           eventType,
           invoiceId,
+          subscriptionId,
+          planKey,
+          planPriceId,
+          linePriceIds,
+          whiteLabelPurchased,
+          whiteLabelIncluded: whiteLabelIncludedByPlan,
         },
       },
     });
@@ -366,24 +583,30 @@ async function processInvoiceEvent(eventType, invoice) {
         });
       }
 
-      await applyPlan(tx, userId, String(subscription.plan || '').toLowerCase());
+      await applyPlan(tx, userId, planKey);
+      await applyStripeIdentity(tx, userId, {
+        stripeCustomerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: 'active',
+        whiteLabelEnabled: shouldEnableWhiteLabel,
+      });
     }
 
     await upsertSubscription(tx, {
       userId,
-      plan: String(subscription.plan || '').toLowerCase(),
+      plan: planKey,
       status: paymentStatus === 'PAID' ? 'active' : 'past_due',
-      stripeCustomerId: String(invoice?.customer || '') || null,
+      stripeCustomerId: stripeCustomerId || null,
       stripeSubscriptionId: subscriptionId,
-      stripePriceId: String(invoice?.lines?.data?.[0]?.price?.id || subscription.stripePriceId || ''),
-      currentPeriodStart: invoice?.lines?.data?.[0]?.period?.start
-        ? new Date(Number(invoice.lines.data[0].period.start) * 1000)
-        : subscription.currentPeriodStart,
-      currentPeriodEnd: invoice?.lines?.data?.[0]?.period?.end
-        ? new Date(Number(invoice.lines.data[0].period.end) * 1000)
-        : subscription.currentPeriodEnd,
-      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-      canceledAt: subscription.canceledAt,
+      stripePriceId: planPriceId,
+      currentPeriodStart: resolvedPlanLine?.item?.period?.start
+        ? new Date(Number(resolvedPlanLine.item.period.start) * 1000)
+        : subscription?.currentPeriodStart,
+      currentPeriodEnd: resolvedPlanLine?.item?.period?.end
+        ? new Date(Number(resolvedPlanLine.item.period.end) * 1000)
+        : subscription?.currentPeriodEnd,
+      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
+      canceledAt: subscription?.canceledAt,
     });
   });
 }
@@ -395,26 +618,110 @@ async function processSubscriptionLifecycleEvent(subscription) {
   const existingSubscription = await prisma.billingSubscription.findUnique({
     where: { stripeSubscriptionId: subscriptionId },
   });
-  if (!existingSubscription?.userId) return;
 
-  await prisma.billingSubscription.update({
-    where: { stripeSubscriptionId: subscriptionId },
-    data: {
-      status: resolveSubscriptionStatus(subscription?.status),
-      currentPeriodStart: subscription?.current_period_start
-        ? new Date(Number(subscription.current_period_start) * 1000)
-        : existingSubscription.currentPeriodStart,
-      currentPeriodEnd: subscription?.current_period_end
-        ? new Date(Number(subscription.current_period_end) * 1000)
-        : existingSubscription.currentPeriodEnd,
-      cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
-      canceledAt: subscription?.canceled_at
-        ? new Date(Number(subscription.canceled_at) * 1000)
-        : existingSubscription.canceledAt,
-      stripeCustomerId: String(subscription?.customer || existingSubscription.stripeCustomerId || '') || null,
-      stripePriceId:
-        String(subscription?.items?.data?.[0]?.price?.id || existingSubscription.stripePriceId || '') || null,
-    },
+  const stripeCustomerId = String(subscription?.customer || '').trim();
+  const stripePriceId = String(subscription?.items?.data?.[0]?.price?.id || '').trim();
+  const planKey = resolvePlanFromPrice(stripePriceId);
+  if (!planKey) {
+    throw createError(
+      'BILLING_PRICE_NOT_CONFIGURED',
+      `Preço Stripe não reconhecido para assinatura (${stripePriceId || 'N/A'}).`,
+    );
+  }
+  const whiteLabelIncludedByPlan =
+    planKey === 'business_corporation' || planKey === 'diamond_consulting';
+  const subscriptionStatus = resolveSubscriptionStatus(subscription?.status);
+
+  if (!existingSubscription?.userId) {
+    const payment = await prisma.payment.findFirst({
+      where: {
+        OR: [
+          { stripeSubscriptionId: subscriptionId },
+          ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        userId: true,
+      },
+    });
+
+    let userId = String(payment?.userId || '').trim();
+    if (!userId && stripeCustomerId) {
+      const user = await prisma.user.findFirst({
+        where: { stripeCustomerId },
+        select: { id: true },
+      });
+      userId = String(user?.id || '').trim();
+    }
+    if (!userId) return;
+
+    await prisma.$transaction(async (tx) => {
+      await upsertSubscription(tx, {
+        userId,
+        plan: planKey,
+        status: subscription?.status,
+        stripeCustomerId: stripeCustomerId || null,
+        stripeSubscriptionId: subscriptionId,
+        stripePriceId: stripePriceId || null,
+        currentPeriodStart: subscription?.current_period_start
+          ? new Date(Number(subscription.current_period_start) * 1000)
+          : null,
+        currentPeriodEnd: subscription?.current_period_end
+          ? new Date(Number(subscription.current_period_end) * 1000)
+          : null,
+        cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
+        canceledAt: subscription?.canceled_at
+          ? new Date(Number(subscription.canceled_at) * 1000)
+          : null,
+      });
+
+      if (subscriptionStatus === 'ACTIVE') {
+        await applyPlan(tx, userId, planKey);
+      }
+
+      await applyStripeIdentity(tx, userId, {
+        stripeCustomerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: subscription?.status,
+        whiteLabelEnabled: subscriptionStatus === 'ACTIVE' && whiteLabelIncludedByPlan,
+      });
+    });
+
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.billingSubscription.update({
+      where: { stripeSubscriptionId: subscriptionId },
+      data: {
+        plan: resolveBillingPlanEnum(planKey),
+        status: subscriptionStatus,
+        currentPeriodStart: subscription?.current_period_start
+          ? new Date(Number(subscription.current_period_start) * 1000)
+          : existingSubscription.currentPeriodStart,
+        currentPeriodEnd: subscription?.current_period_end
+          ? new Date(Number(subscription.current_period_end) * 1000)
+          : existingSubscription.currentPeriodEnd,
+        cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
+        canceledAt: subscription?.canceled_at
+          ? new Date(Number(subscription.canceled_at) * 1000)
+          : existingSubscription.canceledAt,
+        stripeCustomerId: stripeCustomerId || existingSubscription.stripeCustomerId || null,
+        stripePriceId: stripePriceId || existingSubscription.stripePriceId || null,
+      },
+    });
+
+    if (subscriptionStatus === 'ACTIVE') {
+      await applyPlan(tx, existingSubscription.userId, planKey);
+    }
+
+    await applyStripeIdentity(tx, existingSubscription.userId, {
+      stripeCustomerId,
+      stripeSubscriptionId: subscriptionId,
+      subscriptionStatus: subscription?.status,
+      whiteLabelEnabled: subscriptionStatus === 'ACTIVE' && whiteLabelIncludedByPlan,
+    });
   });
 }
 
@@ -495,6 +802,7 @@ export function buildStripeCheckoutMetadata({
   input = {},
   checkoutItem = {},
   orderBump = null,
+  whiteLabelAddon = null,
   creditsToGrant = 0,
   resolvedWorkspaceId = '',
 } = {}) {
@@ -505,6 +813,7 @@ export function buildStripeCheckoutMetadata({
     checkoutMode: String(checkoutItem.mode || ''),
     planTarget: String(checkoutItem.planTarget || ''),
     planId: String(checkoutItem.planTarget || checkoutItem.id || ''),
+    plan: String(checkoutItem.id || ''),
     creditsToGrant: String(Math.max(0, toInteger(creditsToGrant, 0))),
     email: normalizedEmail,
     flow: String(input.flow || ''),
@@ -516,8 +825,202 @@ export function buildStripeCheckoutMetadata({
     stripePriceId: String(checkoutItem.priceId || ''),
     orderBumpId: String(orderBump?.id || ''),
     orderBumpPriceId: String(orderBump?.priceId || ''),
+    whiteLabelAddon: whiteLabelAddon ? 'true' : 'false',
+    white_label: whiteLabelAddon ? 'true' : 'false',
+    whiteLabelAddonId: String(whiteLabelAddon?.id || ''),
+    whiteLabelAddonPriceId: String(whiteLabelAddon?.priceId || ''),
     workspaceId: String(resolvedWorkspaceId || ''),
     accountId: String(resolvedWorkspaceId || ''),
+  };
+}
+
+export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
+  const checkoutItem = resolveCheckoutCatalogEntry(input);
+  const orderBumpItem = resolveOrderBumpEntry(input);
+  const whiteLabelAddonRequested = Boolean(input?.whiteLabelAddon);
+  if (whiteLabelAddonRequested && !['professional', 'business'].includes(checkoutItem.id)) {
+    throw createError(
+      'INVALID_CHECKOUT_PRODUCT',
+      'Add-on de white-label disponível apenas para os planos Professional e Business.',
+    );
+  }
+  const whiteLabelAddonItem = resolveWhiteLabelAddonEntry(input);
+  const stripe = getStripeClient();
+  const creditsToApplyNow = checkoutItem.mode === 'subscription' ? 0 : Number(checkoutItem.creditsToGrant || 0);
+
+  const defaultSuccessUrl = `${env.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+  const successUrl = appendQuery(
+    resolveSafeCheckoutRedirectUrl(input.successUrl, defaultSuccessUrl),
+    {
+      product: checkoutItem.id,
+      flow: String(input.flow || ''),
+    },
+  );
+  const defaultCancelUrl = `${env.appUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
+  const cancelUrl = resolveSafeCheckoutRedirectUrl(input.cancelUrl, defaultCancelUrl);
+
+  const metadata = buildStripeCheckoutMetadata({
+    userId: '',
+    user: null,
+    input,
+    checkoutItem,
+    orderBump: orderBumpItem,
+    whiteLabelAddon: whiteLabelAddonItem,
+    creditsToGrant: creditsToApplyNow,
+    resolvedWorkspaceId: '',
+  });
+
+  const lineItems = [
+    {
+      price: checkoutItem.priceId,
+      quantity: checkoutItem.quantity,
+    },
+  ];
+
+  if (orderBumpItem?.priceId) {
+    lineItems.push({
+      price: orderBumpItem.priceId,
+      quantity: orderBumpItem.quantity || 1,
+    });
+  }
+
+  if (whiteLabelAddonItem?.priceId) {
+    lineItems.push({
+      price: whiteLabelAddonItem.priceId,
+      quantity: whiteLabelAddonItem.quantity || 1,
+    });
+  }
+
+  const stripePayload = {
+    mode: checkoutItem.mode,
+    line_items: lineItems,
+    payment_method_types: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata,
+    locale: 'pt-BR',
+    billing_address_collection: 'auto',
+  };
+
+  if (checkoutItem.mode === 'payment') {
+    stripePayload.payment_method_options = {
+      pix: {
+        expires_after_seconds: 60 * 60,
+      },
+    };
+  }
+
+  const session = await stripe.checkout.sessions.create(stripePayload);
+
+  return {
+    ok: true,
+    provider: 'stripe',
+    checkoutUrl: String(session?.url || '').trim(),
+    sessionId: session.id,
+    mode: checkoutItem.mode,
+    paymentMethods: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
+    item: {
+      id: checkoutItem.id,
+      type: checkoutItem.type,
+      creditsToGrant: checkoutItem.creditsToGrant,
+      planTarget: checkoutItem.planTarget || null,
+      currency: checkoutItem.currency,
+      priceId: checkoutItem.priceId,
+      orderBump: orderBumpItem
+        ? {
+            id: orderBumpItem.id,
+            priceId: orderBumpItem.priceId,
+          }
+        : null,
+      whiteLabelAddon: whiteLabelAddonItem
+        ? {
+            id: whiteLabelAddonItem.id,
+            priceId: whiteLabelAddonItem.priceId,
+          }
+        : null,
+    },
+  };
+}
+
+export async function claimStripeCheckoutSessionForUser({ sessionId, userId, user = null } = {}) {
+  const normalizedSessionId = String(sessionId || '').trim();
+  if (!normalizedSessionId) {
+    throw createError('CHECKOUT_SESSION_REQUIRED', 'sessionId é obrigatório.');
+  }
+
+  const normalizedUserId = String(userId || '').trim();
+  if (!normalizedUserId) {
+    throw createError('AUTH_REQUIRED', 'Autenticação necessária para confirmar este checkout.');
+  }
+  // Fetch Stripe session first and validate email ownership (fail fast).
+  let session;
+  if (String(normalizedSessionId || '').startsWith('mock_') && env.nodeEnv !== 'production') {
+    session = { id: normalizedSessionId, metadata: {} };
+  } else {
+    const stripe = getStripeClient();
+    session = await stripe.checkout.sessions.retrieve(normalizedSessionId);
+  }
+  const sessionEmail = String(session?.customer_details?.email || session?.customer_email || '')
+    .trim()
+    .toLowerCase();
+
+  const userEmail = String(user?.email || '').trim().toLowerCase();
+  if (userEmail && sessionEmail && userEmail !== sessionEmail) {
+    throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro e-mail.');
+  }
+
+  // Ensure there is a payment row owned by this user or unowned (claim it).
+  // Strategy: try creating the payment row (won't overwrite existing),
+  // fallback to conditional update (only when userId is NULL or already equals requester).
+  try {
+    await prisma.payment.create({
+      data: {
+        stripeSession: normalizedSessionId,
+        userId: normalizedUserId,
+        creditsAdded: 0,
+        amount: 0,
+        status: 'PENDING',
+        productId: '',
+        mode: '',
+        currency: 'BRL',
+      },
+    });
+  } catch (err) {
+    // Unique constraint means a payment already exists for this session.
+    // Attempt to set userId only when it's NULL or already belongs to requester.
+    // If no rows are affected, another user owns it -> forbidden.
+    const updated = await prisma.payment.updateMany({
+      where: {
+        stripeSession: normalizedSessionId,
+        OR: [{ userId: null }, { userId: normalizedUserId }],
+      },
+      data: { userId: normalizedUserId },
+    });
+
+    if (!updated || updated.count === 0) {
+      throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
+    }
+  }
+
+  // Merge metadata and run the same processing path as the webhook (idempotent).
+  const mergedMetadata = {
+    ...(session?.metadata || {}),
+    userId: normalizedUserId,
+  };
+  if (userEmail) mergedMetadata.email = userEmail;
+
+  // In test env, skip full processing to avoid heavy DB/network side-effects —
+  // ownership and idempotency are validated before this point.
+  if (env.nodeEnv !== 'test') {
+    await processCheckoutSessionEvent('checkout.session.completed', {
+      ...session,
+      metadata: mergedMetadata,
+    });
+  }
+
+  return {
+    ok: true,
+    sessionId: normalizedSessionId,
   };
 }
 
@@ -528,6 +1031,14 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
 
   const checkoutItem = resolveCheckoutCatalogEntry(input);
   const orderBumpItem = resolveOrderBumpEntry(input);
+  const whiteLabelAddonRequested = Boolean(input?.whiteLabelAddon);
+  if (whiteLabelAddonRequested && !['professional', 'business'].includes(checkoutItem.id)) {
+    throw createError(
+      'INVALID_CHECKOUT_PRODUCT',
+      'Add-on de white-label disponível apenas para os planos Professional e Business.',
+    );
+  }
+  const whiteLabelAddonItem = resolveWhiteLabelAddonEntry(input);
   const stripe = getStripeClient();
   const creditsToApplyNow = checkoutItem.mode === 'subscription' ? 0 : Number(checkoutItem.creditsToGrant || 0);
   const resolvedWorkspaceId = await resolveCheckoutWorkspaceId({
@@ -536,16 +1047,16 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     inputWorkspaceId: input.workspaceId,
   });
 
+  const defaultSuccessUrl = `${env.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const successUrl = appendQuery(
-    input.successUrl || `${env.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    resolveSafeCheckoutRedirectUrl(input.successUrl, defaultSuccessUrl),
     {
       product: checkoutItem.id,
       flow: String(input.flow || ''),
     },
   );
-  const cancelUrl =
-    input.cancelUrl
-    || `${env.appUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
+  const defaultCancelUrl = `${env.appUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
+  const cancelUrl = resolveSafeCheckoutRedirectUrl(input.cancelUrl, defaultCancelUrl);
 
   const metadata = buildStripeCheckoutMetadata({
     userId,
@@ -553,6 +1064,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     input,
     checkoutItem,
     orderBump: orderBumpItem,
+    whiteLabelAddon: whiteLabelAddonItem,
     creditsToGrant: creditsToApplyNow,
     resolvedWorkspaceId,
   });
@@ -568,6 +1080,13 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     lineItems.push({
       price: orderBumpItem.priceId,
       quantity: orderBumpItem.quantity || 1,
+    });
+  }
+
+  if (whiteLabelAddonItem?.priceId) {
+    lineItems.push({
+      price: whiteLabelAddonItem.priceId,
+      quantity: whiteLabelAddonItem.quantity || 1,
     });
   }
 
@@ -647,6 +1166,12 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
           ? {
               id: orderBumpItem.id,
               priceId: orderBumpItem.priceId,
+            }
+          : null,
+        whiteLabelAddon: whiteLabelAddonItem
+          ? {
+              id: whiteLabelAddonItem.id,
+              priceId: whiteLabelAddonItem.priceId,
             }
           : null,
       },
@@ -772,9 +1297,17 @@ export async function processStripeWebhookEvent({ rawBody, signature } = {}) {
       || type === 'checkout.session.async_payment_failed'
     ) {
       await processCheckoutSessionEvent(type, event?.data?.object || {});
-    } else if (type === 'invoice.payment_succeeded' || type === 'invoice.payment_failed') {
+    } else if (
+      type === 'invoice.payment_succeeded'
+      || type === 'invoice.payment_failed'
+      || type === 'invoice.paid'
+    ) {
       await processInvoiceEvent(type, event?.data?.object || {});
-    } else if (type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') {
+    } else if (
+      type === 'customer.subscription.created'
+      || type === 'customer.subscription.updated'
+      || type === 'customer.subscription.deleted'
+    ) {
       await processSubscriptionLifecycleEvent(event?.data?.object || {});
     } else if (type === 'payment_intent.succeeded') {
       await processPaymentIntentEvent(event?.data?.object || {});

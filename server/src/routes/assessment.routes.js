@@ -98,6 +98,65 @@ function looksLikePublicReportToken(token = '') {
   return String(token || '').trim().split('.').length === 3;
 }
 
+const V21_WHITELABEL_REPORTS_ENABLED =
+  String(process.env.VITE_V21_WHITELABEL_REPORTS || '').trim().toLowerCase() === 'true';
+
+function shouldUseV21WhiteLabelReports(reportType = REPORT_TYPE.BUSINESS) {
+  if (!V21_WHITELABEL_REPORTS_ENABLED) return false;
+  const normalized = normalizeReportType(reportType);
+  return normalized === REPORT_TYPE.PROFESSIONAL || normalized === REPORT_TYPE.BUSINESS;
+}
+
+async function generateV21PublicReportPdf({ token = '', reportType = REPORT_TYPE.BUSINESS, assetBaseUrl = '' } = {}) {
+  const tokenPayload = verifyPublicReportToken(token);
+  const assessmentId = String(
+    tokenPayload?.assessmentId || tokenPayload?.id || tokenPayload?.assessment_id || '',
+  ).trim();
+  const accountId = String(
+    tokenPayload?.accountId || tokenPayload?.organizationId || tokenPayload?.account_id || '',
+  ).trim();
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      organizationId: accountId,
+    },
+    include: {
+      report: true,
+      creator: true,
+      organization: { include: { owner: true } },
+      quickContext: true,
+      response: true,
+    },
+  });
+
+  const resolvedReportType = normalizeReportType(
+    reportType || tokenPayload?.reportType || resolveAssessmentReportType(assessment, REPORT_TYPE.BUSINESS),
+  );
+  const reportModel = await buildPremiumReportModel({
+    assessment,
+    discResult: resolveAssessmentDiscResult(assessment),
+    assetBaseUrl,
+    currentUser: assessment?.creator || assessment?.organization?.owner || null,
+    reportType: resolvedReportType,
+    includeAiComplement: false,
+    useAi: false,
+  });
+  const generated = await generatePremiumPdf(reportModel, assessment?.id || assessmentId, assessment, {
+    inMemory: true,
+    reportType: resolvedReportType,
+    includeAiComplement: false,
+  });
+
+  return {
+    assessment,
+    reportType: resolvedReportType,
+    pdfBuffer: generated.pdfBuffer,
+    fileName: generated.fileName,
+    cacheHit: false,
+  };
+}
+
 function resolveAssessmentDiscResult(assessment = {}) {
   return assessment?.report?.discProfile || assessment?.results || assessment?.disc_results || {};
 }
@@ -1080,12 +1139,33 @@ export async function handlePublicReportPdf(req, res) {
   try {
     const token = String(req.query.token || req.query.t || '').trim();
     const requestedReportType = normalizeReportType(req.query.type || req.query.reportType);
-    const generated = await generateStructuredReport({
-      token,
-      reportType: requestedReportType,
-      assetBaseUrl: getRequestBaseUrl(req),
-      inMemory: true,
-    });
+    const assetBaseUrl = getRequestBaseUrl(req);
+
+    let generated = null;
+    if (shouldUseV21WhiteLabelReports(requestedReportType)) {
+      try {
+        generated = await generateV21PublicReportPdf({
+          token,
+          reportType: requestedReportType,
+          assetBaseUrl,
+        });
+      } catch (error) {
+        console.warn(
+          '[assessment/public-report-pdf] v2.1 white-label generator failed, falling back:',
+          error?.message || error,
+        );
+        generated = null;
+      }
+    }
+
+    if (!generated) {
+      generated = await generateStructuredReport({
+        token,
+        reportType: requestedReportType,
+        assetBaseUrl,
+        inMemory: true,
+      });
+    }
     const buffer = generated.pdfBuffer;
 
     if (!hasBinaryPdfPayload(buffer)) {

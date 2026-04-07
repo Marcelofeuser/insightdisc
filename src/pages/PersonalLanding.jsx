@@ -2,42 +2,42 @@ import ProductSegmentLandingBase from '@/pages/ProductSegmentLandingBase';
 
 const PERSONAL_CONFIG = {
   slug: 'personal',
-  metaTitle: 'InsightDISC Personal: autoconhecimento com clareza comportamental',
+  metaTitle: 'InsightDISC Personal: entenda como você realmente funciona',
   metaDescription:
-    'A experiência Personal do InsightDISC entrega leitura comportamental clara, prática e acessível para autoconhecimento e desenvolvimento pessoal.',
+    'Leitura comportamental clara e aplicada para melhorar decisões, relações e rotina com mais consciência.',
   hero: {
-    badge: 'Experiência individual para autoconhecimento prático',
-    title: 'InsightDISC Personal: clareza comportamental para evolução pessoal',
-    titleHighlight: 'evolução pessoal',
+    badge: 'Autoconhecimento aplicável',
+    title: 'Entenda como você realmente funciona',
+    titleHighlight: 'realmente funciona',
     subtitle:
-      'Uma jornada simples e estruturada para entender seu perfil, melhorar sua comunicação e tomar decisões com mais consciência emocional.',
+      'Uma leitura comportamental clara para melhorar decisões, relações e rotina.',
     primaryCta: {
-      label: 'Quero acessar meu perfil completo',
+      label: 'Fazer minha análise',
       to: '/checkout/plan/personal',
       source: 'hero_checkout_personal',
     },
     secondaryCta: {
-      label: 'Ver como funciona na prática',
-      to: '#como-funciona',
+      label: 'Ver o que eu descubro',
+      to: '#o-que-e',
       source: 'hero_descobrir_meu_perfil',
     },
     panel: {
       eyebrow: 'Leitura pessoal guiada',
-      title: 'Seu comportamento explicado de forma prática',
+      title: 'Seu comportamento explicado com clareza',
       stats: [
         { label: 'Foco principal', value: 'Autoconhecimento aplicado' },
         { label: 'Linguagem', value: 'Clara e acessível' },
       ],
       highlight: {
-        label: 'Insight central',
-        value: 'Entenda como você reage, comunica e decide em diferentes contextos.',
+        label: 'Você enxerga',
+        value: 'Como você reage sob pressão, decide e se ajusta em diferentes contextos.',
       },
       secondaryEyebrow: 'Você recebe',
       pillars: [
-        'Leitura objetiva do perfil',
+        'Padrões comportamentais claros',
         'Pontos fortes e riscos',
-        'Direcionamentos de evolução',
-        'Relatório claro para consulta',
+        'Direcionamento prático',
+        'Relatório para consulta',
       ],
     },
   },
@@ -80,30 +80,30 @@ const PERSONAL_CONFIG = {
     },
   },
   whatIs: {
-    title: 'Uma experiência DISC desenhada para quem quer se entender melhor',
+    title: 'O que você descobre',
     description:
-      'O InsightDISC Personal organiza seu perfil comportamental em uma leitura simples, sem perder profundidade.',
+      'Uma leitura objetiva do seu padrão comportamental e de como ele aparece na sua rotina.',
     supportText:
-      'Você visualiza seus padrões com clareza e transforma o resultado em ações práticas para rotina, relações e desenvolvimento pessoal.',
-    highlight: 'Não é apenas um teste. É uma base prática para autoconhecimento contínuo.',
+      'Você entende o que te move, onde você tende a exagerar e como ajustar sua comunicação e suas decisões.',
+    highlight: 'Leitura comportamental aplicada: clareza para agir, não apenas para “se definir”.',
     bullets: [
-      'Compreensão rápida do seu estilo comportamental',
-      'Clareza sobre forças naturais e pontos de atenção',
-      'Leitura acessível para uso no dia a dia',
-      'Insights diretos para evolução pessoal',
+      'Como você reage sob pressão',
+      'Como você toma decisões',
+      'Seu padrão emocional e comportamental',
+      'O que tende a facilitar ou travar sua rotina',
     ],
   },
   audience: {
-    title: 'Feito para pessoas que querem evoluir com direção',
+    title: 'Para quem é',
     description:
-      'Ideal para quem busca autoconhecimento com estrutura, sem linguagem excessivamente técnica.',
+      'Para quem quer autoconhecimento aplicável, com clareza e próximos passos.',
     items: [
-      'Pessoas em transição de carreira',
-      'Profissionais que querem se comunicar melhor',
-      'Quem busca clareza emocional e comportamental',
-      'Estudantes e jovens profissionais',
-      'Pessoas em processo de desenvolvimento pessoal',
-      'Quem quer decisões mais conscientes no cotidiano',
+      'Pessoas em transição',
+      'Quem busca autoconhecimento',
+      'Quem quer melhorar relações e comunicação',
+      'Quem quer decisões mais conscientes',
+      'Quem quer mais clareza e direção',
+      'Quem quer rotina com menos ruído interno',
     ],
   },
   offers: {
@@ -149,7 +149,7 @@ const PERSONAL_CONFIG = {
   },
   workflow: {
     title: 'Do resultado à prática em poucos passos',
-    description: 'Fluxo simples para sair do teste e chegar em ações concretas de desenvolvimento pessoal.',
+    description: 'Fluxo simples para sair da leitura e chegar em ações concretas de desenvolvimento pessoal.',
     steps: [
       {
         title: 'Você responde a avaliação',
@@ -174,42 +174,42 @@ const PERSONAL_CONFIG = {
     ],
   },
   benefits: {
-    title: 'Benefícios reais para seu dia a dia',
-    description: 'Mais clareza pessoal, melhor comunicação e decisões mais alinhadas ao seu perfil.',
+    title: 'Resultado',
+    description: 'Clareza aplicável para reduzir dúvida, melhorar relações e agir com mais controle.',
     items: [
       {
-        title: 'Autoconhecimento com direção',
-        description: 'Entenda padrões que influenciam suas escolhas e relações.',
+        title: 'Clareza pessoal',
+        description: 'Você entende seus padrões com linguagem simples e aplicável.',
       },
       {
-        title: 'Clareza emocional',
-        description: 'Reconheça gatilhos e respostas comportamentais em cenários de pressão.',
+        title: 'Menos dúvida',
+        description: 'Você reduz indecisão ao entender como você decide e o que te influencia.',
       },
       {
-        title: 'Comunicação mais efetiva',
-        description: 'Ajuste sua forma de se expressar para gerar conexões melhores.',
+        title: 'Mais controle',
+        description: 'Você reconhece gatilhos e ajusta respostas em cenários de pressão.',
       },
       {
-        title: 'Decisões mais conscientes',
-        description: 'Reduza impulsividade e aumente consistência nas suas escolhas.',
+        title: 'Relações mais leves',
+        description: 'Você ajusta comunicação e expectativas para reduzir atrito desnecessário.',
       },
       {
-        title: 'Plano de evolução pessoal',
-        description: 'Transforme leitura comportamental em ações práticas de melhoria.',
+        title: 'Próximos passos',
+        description: 'Você transforma leitura comportamental em ações práticas no dia a dia.',
       },
       {
-        title: 'Experiência premium e intuitiva',
-        description: 'Visual sofisticado e linguagem clara para uso contínuo.',
+        title: 'Consulta contínua',
+        description: 'Um relatório claro para revisitar e acompanhar sua evolução.',
       },
     ],
   },
   finalCta: {
     layout: 'single-centered',
-    title: 'Comece sua evolução com um plano que transforma autoconhecimento em ação diária.',
+    title: 'Começar agora',
     description:
-      'Ative o Personal para acompanhar seu perfil, receber orientação prática e evoluir com consistência.',
+      'Ative o Personal e comece sua leitura comportamental com clareza e próximos passos.',
     primaryCta: {
-      label: 'Quero acessar meu perfil completo',
+      label: 'Começar agora',
       to: '/checkout/plan/personal',
       source: 'cta_checkout_personal',
     },

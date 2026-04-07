@@ -494,9 +494,15 @@ export function buildUnifiedLandingConfig(content, kind = 'persona') {
         : ['Visual premium consistente', 'Estrutura modular reutilizavel', 'Animacoes suaves com reveal', 'Identidade unica entre rotas'],
     },
     workflow: {
-      title: 'Como funciona na pratica',
-      description: 'Fluxo padronizado para sair da navegacao e chegar em decisao com clareza.',
-      steps: buildWorkflowSteps(content),
+      title: safeText(content?.workflowTitle, 'Como funciona na pratica'),
+      description: safeText(
+        content?.workflowDescription,
+        'Fluxo padronizado para sair da navegacao e chegar em decisao com clareza.'
+      ),
+      steps:
+        Array.isArray(content?.workflowSteps) && content.workflowSteps.length
+          ? content.workflowSteps
+          : buildWorkflowSteps(content),
     },
     benefits: {
       title: 'Beneficios diretos da solucao',

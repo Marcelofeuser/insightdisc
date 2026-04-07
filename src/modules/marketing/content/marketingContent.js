@@ -7,6 +7,12 @@ export const MARKETING_MENU_ITEMS = Object.freeze([
   { label: 'Planos', path: '/Pricing' },
 ]);
 
+const V21_CORPORATE_PLANS_ENABLED =
+  String(import.meta.env.VITE_V21_CORPORATE_PLANS || '').trim().toLowerCase() === 'true';
+const CORPORATE_PLANS_LABEL = V21_CORPORATE_PLANS_ENABLED
+  ? 'Business Corporation e Diamond Consulting'
+  : 'planos corporativos sob consulta';
+
 export const MAIN_LANDING_CONTENT = Object.freeze({
   meta: {
     title: 'InsightDISC | Inteligencia comportamental DISC para pessoas e empresas',
@@ -294,26 +300,116 @@ export const PERSONA_CONTENT = Object.freeze({
   empresa: {
     slug: 'empresa',
     reportTier: 'professional', // Mapeia para Business
-    metaTitle: 'InsightDISC para Empresas | Inteligencia comportamental organizacional',
+    metaTitle: 'InsightDISC para Empresas | Transforme comportamento em estratégia',
     metaDescription:
-      'Mapeie cultura, lideranca, equilibrio da equipe e riscos comportamentais com leitura executiva e acao pratica.',
-    badge: 'InsightDISC para Empresas',
-    title: 'Inteligencia comportamental para cultura, lideranca e performance organizacional',
+      'Mapa comportamental organizacional para decisões de pessoas com mais previsibilidade, alinhamento humano e inteligência aplicada.',
+    badge: 'Solução premium para empresas',
+    title: 'Transforme comportamento em estratégia',
     subtitle:
-      'Consolide uma camada unica para decisao sobre pessoas: team map, comparacao de perfis, relatorios premium e leitura estrategica de equipe.',
+      `Mapa comportamental organizacional, decisões baseadas em perfil e redução de erro em contratação. Solução em evolução contínua (V2.1 em implantação).`,
     painPoints: [
-      'Decisoes de pessoas sem criterio comportamental consistente',
-      'Conflitos recorrentes entre lideranca e operacao',
-      'Baixa visibilidade sobre gaps de composicao de equipe',
+      'Decisões de pessoas sem critério comportamental consistente',
+      'Conflitos recorrentes entre liderança e operação',
+      'Baixa visibilidade sobre gaps de composição de equipe',
     ],
     benefits: [
-      'Mapa comportamental organizacional com leitura executiva',
-      'Insights automaticos de riscos e oportunidades da equipe',
-      'Relatorio premium para alinhamento entre RH e lideranca',
+      'Mapa comportamental organizacional (visão executiva da composição)',
+      'Decisões baseadas em perfil para liderança, cultura e performance',
+      'Redução de erro em contratação e alocação com leitura aplicada',
+      `Governança progressiva e planos corporativos (${CORPORATE_PLANS_LABEL}) em implantação V2.1`,
     ],
     modules: ['teamMap', 'comparison', 'organizationReport', 'leadership'],
-    primaryCta: { label: 'Falar com comercial', to: '/Pricing' },
-    secondaryCta: { label: 'Explorar demo', to: '/demo' },
+    primaryCta: { label: 'Falar com especialista', to: '/Pricing' },
+    secondaryCta: { label: 'Ver demo', to: '/demo' },
+  },
+  'business-corporation': {
+    slug: 'business-corporation',
+    reportTier: 'professional',
+    metaTitle: 'Business Corporation | Estrutura corporativa completa com DISC aplicado',
+    metaDescription:
+      'Camada corporativa com uso ilimitado, governança progressiva e white label incluso para aplicar leitura comportamental em escala.',
+    badge: 'Camada corporativa',
+    title: 'Business Corporation — Estrutura corporativa completa',
+    subtitle:
+      'Assinatura mensal de R$ 999,90\nUso ilimitado (uso justo)\nWhite Label incluso',
+    painPoints: [
+      'Volume de avaliações e operação recorrente em múltiplas áreas',
+      'Decisões de pessoas sem padrão consistente de leitura comportamental',
+      'Necessidade de padronizar entregas e comunicação institucional',
+    ],
+    benefits: [
+      'Uso ilimitado sob política de uso justo',
+      'White Label incluso (marca em capa/rodapé e apresentação profissional)',
+      'Estrutura para RH estruturado, equilíbrio organizacional e contratações futuras',
+      'Suporte prioritário e onboarding guiado',
+      'Base pronta para evolução contínua (V2.1)',
+    ],
+    modules: ['teamMap', 'comparison', 'organizationReport', 'leadership', 'reports'],
+    primaryCta: { label: 'Assinar Business Corporation', to: '/checkout/plan/business-corporation' },
+    secondaryCta: { label: 'Ver planos', to: '/Pricing' },
+  },
+  'diamond-consulting': {
+    slug: 'diamond-consulting',
+    reportTier: 'professional',
+    metaTitle: 'Diamond Consulting | Nível estratégico premium com DISC aplicado',
+    metaDescription:
+      'Camada premium estratégica com acompanhamento especializado, white label incluso e posicionamento consultivo para operação executiva e implantação em escala.',
+    badge: 'Premium estratégico',
+    title: 'Diamond Consulting — Nível estratégico premium',
+    subtitle:
+      'Assinatura mensal de R$ 9.990,00\nAcompanhamento estratégico com psicanalista\nWhite Label incluso',
+    painPoints: [
+      'Necessidade de implantação estruturada e operação consultiva em alto nível',
+      'Demanda por governança, consistência e comunicação executiva',
+      'Pressão por decisões mais seguras em gente, cultura e performance',
+    ],
+    benefits: [
+      'Acompanhamento estratégico com psicanalista (leitura clínica e organizacional)',
+      'Transforme a análise comportamental em ferramenta estratégica real para decisões, desenvolvimento e cultura',
+      'White Label incluso (identidade premium e entregáveis executivos)',
+      'Operação avançada com uso justo e priorização de suporte',
+      'Estrutura para alta performance e aplicação em nível executivo',
+      'Interpretação aprofundada para liderança, conflitos e cultura (além dos dados)',
+      'Evolução progressiva V2.1 com roadmap premium',
+    ],
+    workflowTitle: 'Acompanhamento estratégico com psicanalista',
+    workflowDescription:
+      'O Diamond Consulting não é apenas uma ferramenta. É uma estrutura de acompanhamento profissional com leitura comportamental aprofundada e aplicação estratégica dentro da realidade da empresa.',
+    workflowSteps: [
+      {
+        title: 'Entrevista inicial',
+        description:
+          'Entendimento do contexto da empresa, perfis-chave e objetivos estratégicos para orientar a aplicação.',
+      },
+      {
+        title: 'Aplicação e leitura comportamental',
+        description:
+          'Aplicação DISC e cruzamento de perfis para identificar padrões, forças e pontos de tensão relevantes.',
+      },
+      {
+        title: 'Interpretação clínica e estratégica',
+        description:
+          'Leitura feita por psicanalista para aprofundar hipóteses de comportamento organizacional, liderança e conflitos.',
+      },
+      {
+        title: 'Relatórios estruturados',
+        description:
+          'Entrega de relatório técnico e relatório estratégico com direcionamento prático e executivo.',
+      },
+      {
+        title: 'Devolutiva para a empresa',
+        description:
+          'Reunião de apresentação, alinhamento com liderança e definição de ações priorizadas para o ciclo.',
+      },
+      {
+        title: 'Acompanhamento contínuo',
+        description:
+          'Evolução dos perfis, ajustes estratégicos e suporte consultivo para manter consistência ao longo do tempo.',
+      },
+    ],
+    modules: ['organizationReport', 'leadership', 'comparison', 'teamMap', 'reports'],
+    primaryCta: { label: 'Assinar Diamond Consulting', to: '/checkout/plan/diamond-consulting' },
+    secondaryCta: { label: 'Ver demo', to: '/demo' },
   },
   rh: {
     slug: 'rh',
@@ -602,7 +698,7 @@ export const MARKETING_MODULE_LABELS = Object.freeze({
   },
   leadership: {
     title: 'Inteligencia de lideranca',
-    description: 'Leitura automatica de decisao, conflito, pressao e gestao de equipe.',
+    description: 'Insights e direcionamentos para comunicacao, gestao de pressao e colaboracao (em evolucao).',
   },
   development: {
     title: 'Plano de desenvolvimento',
@@ -610,6 +706,6 @@ export const MARKETING_MODULE_LABELS = Object.freeze({
   },
   organizationReport: {
     title: 'Relatorio organizacional',
-    description: 'Sintese executiva da cultura comportamental com recomendacoes estrategicas.',
+    description: 'Sintese executiva da cultura comportamental (em implantacao V2.1, sob validacao).',
   },
 });

@@ -81,8 +81,8 @@ export default function DemoMode() {
 
   const demoActions = [
     {
-      title: 'Fazer avaliacao',
-      description: 'Inicie o fluxo de avaliacao real com onboarding e resultado oficial.',
+      title: 'Fazer avaliação',
+      description: 'Inicie o fluxo real com onboarding e leitura oficial.',
       to: '/avaliacoes',
     },
     {
@@ -91,8 +91,8 @@ export default function DemoMode() {
       to: '/assessments/assessment-1/result',
     },
     {
-      title: 'Gerar relatorio',
-      description: 'Visualize o relatorio HTML premium com secoes executivas.',
+      title: 'Gerar relatório',
+      description: 'Visualize o relatório HTML premium com seções executivas.',
       to: '/assessments/assessment-1/report',
     },
     {
@@ -106,8 +106,8 @@ export default function DemoMode() {
       to: '/JobMatching',
     },
     {
-      title: 'Team intelligence',
-      description: 'Mapeie composicao da equipe e riscos organizacionais.',
+      title: 'Inteligência de equipe',
+      description: 'Mapeie composição da equipe e riscos organizacionais.',
       to: '/team-map',
     },
   ];
@@ -120,16 +120,16 @@ export default function DemoMode() {
             Modo Demo
           </p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-            Demo comercial da InsightDISC
+            Ambiente demonstrativo do InsightDISC
           </h1>
           <p className="mt-2 max-w-4xl text-base text-slate-600">
-            Veja em poucos minutos como a plataforma entrega valor real: avaliacao individual, resultado oficial,
-            relatorio premium, comparacao avancada, aderencia candidato x cargo e team intelligence.
+            Este é um ambiente demonstrativo: os dados são fictícios, mas a estrutura é real. Use para entender o fluxo de leitura
+            comportamental (individual, relatório premium, comparação, aderência pessoa × cargo e inteligência de equipe).
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link to="/StartFree">
               <Button className="bg-indigo-600 hover:bg-indigo-700">
-                Comecar avaliacao agora
+                Começar avaliação agora
               </Button>
             </Link>
             <Link to="/compare-profiles">
@@ -143,12 +143,15 @@ export default function DemoMode() {
               </Button>
             </Link>
           </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Observação: este ambiente não representa dados reais de pessoas. Alguns módulos podem exigir login para proteger operações e entregas.
+          </p>
         </section>
 
         <ReportValueLadderCard
           currentTier="standard"
-          title="Escada de valor dos relatorios"
-          description="Na demo voce visualiza a progressao de valor: Standard Report, Premium Report e Professional Report."
+          title="Escada de valor dos relatórios"
+          description="Na demo você visualiza exemplos de entrega por camadas. Recursos corporativos (white label, governança) seguem sob validação e implantação progressiva na V2.1."
         />
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

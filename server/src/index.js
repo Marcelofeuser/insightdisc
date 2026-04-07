@@ -10,6 +10,10 @@ async function startServer() {
   const server = app.listen(env.port, () => {
     console.log(`InsightDISC API running on http://localhost:${env.port}`);
     console.log('[server] CORS allowed origins:', env.corsAllowedOrigins.join(', '));
+    console.log('[AI] Provider principal:', env.aiApiUrl ? 'AI_API_URL' : `AI_PROVIDER=${env.aiProvider || 'unset'}`);
+    console.log('[AI] AI_API_URL ativo:', Boolean(env.aiApiUrl));
+    console.log('[AI] Fallback Gemini:', env.geminiApiKey ? 'ativo' : 'inativo');
+    console.log('[AI] Fallback determinístico:', 'ativo');
     void printSuperAdminBootstrapStatus();
   });
 

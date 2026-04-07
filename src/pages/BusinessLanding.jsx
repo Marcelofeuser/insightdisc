@@ -2,42 +2,42 @@ import ProductSegmentLandingBase from '@/pages/ProductSegmentLandingBase';
 
 const BUSINESS_CONFIG = {
   slug: 'business',
-  metaTitle: 'InsightDISC Business: inteligência comportamental para equipes e liderança',
+  metaTitle: 'InsightDISC Business: entenda como sua equipe funciona',
   metaDescription:
-    'A versão Business do InsightDISC integra Team Map, visão organizacional e leitura estratégica para apoiar decisões de liderança, cultura e performance.',
+    'Inteligência comportamental para equipes: decisões mais assertivas, menos conflito interno e mais alinhamento com dados.',
   hero: {
-    badge: 'Solução corporativa para equipes, líderes e RH estratégico',
-    title: 'InsightDISC Business: inteligência comportamental para decisões organizacionais',
-    titleHighlight: 'decisões organizacionais',
+    badge: 'Leitura de equipe para decisões e alinhamento',
+    title: 'Entenda como sua equipe funciona',
+    titleHighlight: 'sua equipe funciona',
     subtitle:
-      'Conecte comportamento, cultura e performance com uma visão estruturada da equipe para liderar com mais precisão e escalar com consistência.',
+      'Tome decisões de pessoas com mais precisão — sem achismo, com dados comportamentais.',
     primaryCta: {
-      label: 'Quero estruturar minha equipe com inteligência',
+      label: 'Aplicar na minha empresa',
       to: '/checkout/plan/business',
       source: 'hero_checkout_business',
     },
     secondaryCta: {
-      label: 'Ver como a solução escala equipes',
-      to: '#diferenciais',
+      label: 'Ver como funciona',
+      to: '#como-funciona',
       source: 'hero_ver_solucao_times',
     },
     panel: {
-      eyebrow: 'Visão organizacional',
-      title: 'Leitura coletiva com foco em performance',
+      eyebrow: 'Visão de equipe',
+      title: 'Leitura coletiva para decisões melhores',
       stats: [
-        { label: 'Foco principal', value: 'Inteligência de equipe' },
-        { label: 'Abordagem', value: 'Dados para liderança' },
+        { label: 'Foco principal', value: 'Equipe e cultura' },
+        { label: 'Abordagem', value: 'Dados comportamentais' },
       ],
       highlight: {
-        label: 'Diferencial-chave',
-        value: 'Team Map com leitura de distribuição DISC para apoiar decisões de gestão.',
+        label: 'Diferencial',
+        value: 'Sem achismo: leitura de equipe com Team Map e interpretação aplicada.',
       },
       secondaryEyebrow: 'Camadas da solução',
       pillars: [
         'Team Map e composição de times',
-        'Leitura de riscos comportamentais',
-        'Apoio à liderança e cultura',
-        'Direcionamento para desenvolvimento',
+        'Decisões mais assertivas',
+        'Menos conflito interno',
+        'Apoio à liderança',
       ],
     },
   },
@@ -83,30 +83,30 @@ const BUSINESS_CONFIG = {
     },
   },
   whatIs: {
-    title: 'Uma camada de inteligência comportamental para gestão de pessoas',
+    title: 'Leitura de equipe aplicada à gestão de pessoas',
     description:
-      'O InsightDISC Business entrega uma visão integrada de comportamento individual e coletivo para decisões mais seguras em contexto corporativo.',
+      'Uma visão estruturada do comportamento individual e coletivo para decisões mais seguras no contexto corporativo.',
     supportText:
-      'Com leitura organizacional estruturada, a empresa identifica padrões de equipe, oportunidades de liderança e riscos de desalinhamento cultural.',
-    highlight: 'Não é só relatório individual. É visão estratégica de comportamento em escala.',
+      'Você enxerga padrões, lacunas e riscos de composição — e usa isso para ajustar liderança, comunicação e decisões de gente.',
+    highlight: 'Sem achismo, com dados comportamentais.',
     bullets: [
-      'Mapeamento de dinâmica comportamental do time',
-      'Apoio à tomada de decisão em gestão de pessoas',
-      'Leitura aplicada para performance e cultura',
-      'Base analítica para liderança e desenvolvimento',
+      'Leitura de equipe com Team Map',
+      'Decisões mais assertivas',
+      'Menos conflito interno',
+      'Alinhamento de cultura e execução',
     ],
   },
   audience: {
-    title: 'Para empresas que querem gestão orientada por comportamento',
+    title: 'Para quem é',
     description:
-      'Indicado para lideranças, RH e áreas estratégicas que precisam tomar decisões com visão de equipe.',
+      'Para pequenas empresas e times que precisam reduzir ruído e tomar decisões com mais clareza.',
     items: [
-      'Diretores e heads de área',
-      'Líderes de times operacionais e estratégicos',
-      'RH e People Analytics',
-      'Business Partners',
-      'Consultorias de gestão e cultura',
-      'Organizações em escala de crescimento',
+      'Lideranças de time',
+      'RH e People',
+      'Gestores de operação',
+      'Empresas em crescimento',
+      'Consultorias e BPs',
+      'Times com conflitos recorrentes',
     ],
   },
   offers: {
@@ -177,42 +177,42 @@ const BUSINESS_CONFIG = {
     ],
   },
   benefits: {
-    title: 'Benefícios para operação e estratégia empresarial',
-    description: 'Mais clareza na gestão de pessoas, mais alinhamento de equipe e mais performance sustentável.',
+    title: 'Resultado',
+    description: 'Mais alinhamento, menos conflito e decisões de pessoas com mais previsibilidade.',
     items: [
       {
-        title: 'Decisões orientadas por comportamento',
-        description: 'Reduz subjetividade e aumenta segurança na gestão de talentos.',
+        title: 'Decisões mais assertivas',
+        description: 'Use leitura comportamental para reduzir subjetividade e aumentar segurança.',
       },
       {
-        title: 'Visão completa de equipe',
-        description: 'Entenda como os perfis interagem e impactam resultados coletivos.',
+        title: 'Visão de equipe',
+        description: 'Entenda como os perfis interagem e impactam o resultado coletivo.',
       },
       {
-        title: 'Fortalecimento da liderança',
-        description: 'Apoie líderes com leitura prática para condução de times.',
+        title: 'Menos conflito interno',
+        description: 'Reduza atritos recorrentes ao entender os padrões de interação do time.',
       },
       {
-        title: 'Aderência cultural mais precisa',
-        description: 'Use dados comportamentais para ajustar contratação e desenvolvimento.',
+        title: 'Alinhamento cultural',
+        description: 'Calibre cultura e comunicação com dados comportamentais e leitura aplicada.',
       },
       {
-        title: 'Melhor alocação de talentos',
-        description: 'Posicione perfis nos contextos de maior aderência e impacto.',
+        title: 'Melhor alocação',
+        description: 'Posicione perfis nos contextos com maior aderência e impacto.',
       },
       {
-        title: 'Escalabilidade com padronização',
-        description: 'Estrutura replicável para múltiplos times e unidades de negócio.',
+        title: 'Gestão mais previsível',
+        description: 'Uma base comum para decisões, comunicação e desenvolvimento do time.',
       },
     ],
   },
   finalCta: {
     layout: 'single-centered',
-    title: 'Transforme comportamento em inteligência operacional para liderança, cultura e performance.',
+    title: 'Aplicar na minha empresa',
     description:
-      'Ative o Business para consolidar visão de equipe, apoiar decisões estratégicas e escalar gestão de pessoas com segurança.',
+      'Ative o Business e comece a usar dados comportamentais para liderar com mais clareza.',
     primaryCta: {
-      label: 'Quero estruturar minha equipe com inteligência',
+      label: 'Aplicar na minha empresa',
       to: '/checkout/plan/business',
       source: 'cta_checkout_business',
     },

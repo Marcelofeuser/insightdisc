@@ -8,7 +8,7 @@ test.describe('Fase 5-9 - rotas principais', () => {
     await waitForApp(page);
 
     await expect(page.getByText('Modo Demo')).toBeVisible();
-    await expect(page.getByText('Demo comercial da InsightDISC')).toBeVisible();
+    await expect(page.getByText(/Ambiente demonstrativo do InsightDISC/i)).toBeVisible();
   });
 
   test('profissional acessa /coach e recebe gating em /organization-report', async ({ page }) => {

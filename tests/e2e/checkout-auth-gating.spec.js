@@ -14,8 +14,8 @@ test.describe('Checkout auth gating', () => {
     await clearAuth(page);
     await page.goto('/checkout/profissional', { waitUntil: 'domcontentloaded' });
 
-    await expect(page).toHaveURL(/\/Login\?next=/i);
-    await expect(page.getByRole('heading', { name: /Entrar/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/checkout\/plan\/profissional(?:\?|$)/i);
+    await expect(page.getByRole('heading', { name: /Checkout do plano/i })).toBeVisible();
   });
 
   test('usuário autenticado acessa checkout de plano normalmente', async ({ page }) => {

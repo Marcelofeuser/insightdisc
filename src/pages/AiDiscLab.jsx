@@ -83,7 +83,7 @@ export default function AiDiscLab() {
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">AI Lab</p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight">Gemini DISC Preview</h1>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight">InsightDISC AI Preview</h1>
             <p className="mt-3 max-w-2xl text-sm text-slate-300">
               Laboratório mínimo para validar a camada de IA do InsightDISC sem substituir a
               pipeline determinística do relatório.

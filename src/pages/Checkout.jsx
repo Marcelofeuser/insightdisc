@@ -54,7 +54,17 @@ export default function Checkout() {
     const normalizedPlan = String(access?.plan || user?.plan || '').trim().toLowerCase();
     return (
       Boolean(user?.hasActivePlan || user?.has_active_plan || access?.hasPaidPurchase) ||
-      ['personal', 'professional', 'business', 'diamond', 'enterprise', 'pro', 'premium'].includes(normalizedPlan)
+      [
+        'personal',
+        'professional',
+        'business',
+        'diamond',
+        'enterprise',
+        'business_corporation',
+        'diamond_consulting',
+        'pro',
+        'premium',
+      ].includes(normalizedPlan)
     );
   }, [access?.hasPaidPurchase, access?.plan, user?.hasActivePlan, user?.has_active_plan, user?.plan]);
 
@@ -118,10 +128,15 @@ export default function Checkout() {
 
       window.location.href = checkoutUrl;
     } catch (error) {
+      const code = String(error?.code || error?.payload?.error || error?.message || '')
+        .trim()
+        .toUpperCase();
       const fallbackMessage =
         error?.message === 'API_AUTH_MISSING'
           ? 'Redirecionando para login...'
-          : error?.message || 'Falha ao iniciar checkout.';
+          : code === 'BILLING_PRICE_NOT_CONFIGURED' || code === 'STRIPE_NOT_CONFIGURED'
+            ? 'Checkout em implantação neste ambiente. Entre em contato para liberação.'
+            : error?.message || 'Falha ao iniciar checkout.';
 
       if (error?.message === 'API_AUTH_MISSING') {
         redirectToLogin();

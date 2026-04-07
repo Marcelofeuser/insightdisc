@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { PLAN_DROPDOWN_ITEMS } from '@/modules/marketing/landingNavConfig';
 import '../styles/landing.css';
 
 const LANDING_TITLE = 'InsightDISC - Plataforma de Inteligência Comportamental';
@@ -252,10 +255,12 @@ export default function Home() {
    <nav id="navbar" className="fixed top-0 left-0 right-0 z-50 glass-card transition-all duration-300">
     <div className="max-w-7xl mx-auto px-6 py-4">
      <div className="flex items-center justify-between">
-      <Link to="/" className="flex items-center gap-3">
-       <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
-        <span className="text-white text-lg font-extrabold">ID</span>
-       </div>
+     <Link to="/" className="flex items-center gap-3">
+       <img
+        src="/logos/insightDISC_logo4_transp.png"
+        alt="InsightDISC"
+        className="h-10 w-10 rounded-xl object-contain"
+       />
        <span className="text-xl font-bold">InsightDISC</span>
       </Link>
       <div className="hidden lg:flex items-center gap-5 text-sm">
@@ -263,11 +268,27 @@ export default function Home() {
        <a href="#publicos" className="text-slate-300 hover:text-white transition-colors">Para quem é</a>
        <a href="#recursos" className="text-slate-300 hover:text-white transition-colors">Recursos</a>
        <a href="#casos" className="text-slate-300 hover:text-white transition-colors">Casos de uso</a>
-       <Link to="/planos" className="planos-nav-link">Planos</Link>
+       <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+         <button type="button" className="planos-nav-link gap-1.5" aria-label="Abrir planos">
+          Planos
+          <ChevronDown className="h-4 w-4 opacity-90" />
+         </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="w-56 bg-slate-950/95 border-white/10 text-slate-100 backdrop-blur-xl shadow-2xl"
+        >
+         {PLAN_DROPDOWN_ITEMS.map((plan) => (
+          <DropdownMenuItem key={plan.to} asChild className="cursor-pointer focus:bg-white/10 focus:text-slate-100">
+           <Link to={plan.to} className="w-full">
+            {plan.label}
+           </Link>
+          </DropdownMenuItem>
+         ))}
+        </DropdownMenuContent>
+       </DropdownMenu>
        <Link to="/dossie" className="text-slate-300 hover:text-white transition-colors">Dossiê</Link>
-       <Link to="/personal" className="text-slate-300 hover:text-white transition-colors">Personal</Link>
-       <Link to="/profissional" className="text-slate-300 hover:text-white transition-colors">Profissional</Link>
-       <Link to="/business" className="text-slate-300 hover:text-white transition-colors">Business</Link>
       </div>
       <div className="flex items-center gap-3">
        <Link to="/Login" className="hidden sm:inline-flex text-slate-300 hover:text-white transition-colors font-medium">Entrar</Link>
@@ -280,15 +301,24 @@ export default function Home() {
       </button>
      </div>
      <div id="mobile-menu" className="hidden lg:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4">
-      <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a>
-      <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a>
-      <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a>
-      <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a>
-      <Link to="/planos" className="block py-2 planos-nav-link-mobile">Planos</Link>
+     <a href="#plataforma" className="block text-slate-300 hover:text-white transition-colors py-2">Plataforma</a>
+     <a href="#publicos" className="block text-slate-300 hover:text-white transition-colors py-2">Para quem é</a>
+     <a href="#recursos" className="block text-slate-300 hover:text-white transition-colors py-2">Recursos</a>
+     <a href="#casos" className="block text-slate-300 hover:text-white transition-colors py-2">Casos de uso</a>
+      <details className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-3 py-2">
+       <summary className="flex cursor-pointer items-center justify-between gap-2 text-amber-100 font-semibold">
+        Planos
+        <ChevronDown className="h-4 w-4 opacity-90" />
+       </summary>
+       <div className="mt-2 space-y-1 pl-3 border-l border-white/10">
+        {PLAN_DROPDOWN_ITEMS.map((plan) => (
+         <Link key={plan.to} to={plan.to} className="block py-2 text-slate-300 hover:text-white transition-colors">
+          {plan.label}
+         </Link>
+        ))}
+       </div>
+      </details>
       <Link to="/dossie" className="block text-slate-300 hover:text-white transition-colors py-2">Dossiê</Link>
-      <Link to="/personal" className="block text-slate-300 hover:text-white transition-colors py-2">Personal</Link>
-      <Link to="/profissional" className="block text-slate-300 hover:text-white transition-colors py-2">Profissional</Link>
-      <Link to="/business" className="block text-slate-300 hover:text-white transition-colors py-2">Business</Link>
      </div>
     </div>
    </nav>
@@ -707,9 +737,12 @@ export default function Home() {
    <footer className="py-14 px-6 border-t border-slate-800">
     <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
      <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
-       <span className="text-white text-lg font-extrabold">ID</span>
-      </div><span className="text-xl font-bold">InsightDISC</span>
+      <img
+       src="/logos/insightDISC_logo4_transp.png"
+       alt="InsightDISC"
+       className="h-10 w-10 rounded-xl object-contain"
+      />
+      <span className="text-xl font-bold">InsightDISC</span>
      </div>
      <p className="text-slate-500 text-sm text-center md:text-right">© 2024 InsightDISC. Plataforma de inteligência comportamental.</p>
     </div>

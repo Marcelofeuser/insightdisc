@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForApp } from './helpers/waitForApp';
 
 const PERSONA_ROUTES = Object.freeze([
-  { path: '/empresa', expected: /Inteligencia comportamental para cultura, lideranca/i },
+  { path: '/empresa', expected: /Transforme comportamento em estrat[eé]gia/i },
   { path: '/rh', expected: /Recrutamento e desenvolvimento com leitura comportamental/i },
   { path: '/lideres', expected: /Lidere com clareza comportamental/i },
   { path: '/consultores', expected: /Escalone entregas de consultoria DISC/i },
@@ -44,4 +44,3 @@ test.describe('Landing marketing', () => {
     });
   }
 });
-

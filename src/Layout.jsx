@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Sparkles, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createPageUrl } from '@/utils';
 import AppShell from '@/components/shell/AppShell';
@@ -28,6 +28,7 @@ const PUBLIC_PAGES = [
   'FreeAssessment',
   'FreeResults',
   'CandidateOnboarding',
+  'CheckoutPlan',
   'CheckoutSuccess',
   'ForgotPassword',
   'Login',
@@ -190,15 +191,17 @@ export default function Layout({ children, currentPageName }) {
           className={
             isHomePage
               ? `fixed left-0 right-0 top-0 z-50 glass-card transition-all duration-300 ${homeScrolled ? 'nav-sticky' : ''}`
-              : 'fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100'
+              : 'fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/70 shadow-sm'
           }
         >
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link to={createPageUrl('Home')} className="flex items-center gap-2">
-                <div className={isHomePage ? 'disc-gradient w-10 h-10 rounded-xl flex items-center justify-center' : 'w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center'}>
-                  {isHomePage ? <span className="text-lg font-extrabold text-white">ID</span> : <Sparkles className="w-5 h-5 text-white" />}
-                </div>
+                <img
+                  src="/logos/insightDISC_logo4_transp.png"
+                  alt="InsightDISC"
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
                 <div className="leading-tight">
                   <div className={isHomePage ? 'text-xl font-bold text-white' : 'text-xl font-bold text-slate-900'}>InsightDISC</div>
                   {isHomePage ? null : <div className="text-xs text-slate-500">Plataforma de Análise Comportamental</div>}
@@ -276,9 +279,11 @@ export default function Layout({ children, currentPageName }) {
           <footer className="py-14 px-6 border-t border-slate-800">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="disc-gradient w-10 h-10 rounded-xl flex items-center justify-center">
-                  <span className="text-lg font-extrabold text-white">ID</span>
-                </div>
+                <img
+                  src="/logos/insightDISC_logo4_transp.png"
+                  alt="InsightDISC"
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
                 <span className="text-xl font-bold text-white">InsightDISC</span>
               </div>
               <p className="text-sm text-slate-500 text-center md:text-right">

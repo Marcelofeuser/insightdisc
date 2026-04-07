@@ -27,6 +27,7 @@ import billingRoutes from './routes/billing.routes.js';
 import campaignsRoutes from './routes/campaigns.routes.js';
 import anamnesisRoutes from './routes/anamnesis.routes.js';
 import { handleStripeWebhook } from './routes/stripe-webhooks.routes.js';
+import stripeWebhookRoutes from './routes/stripe-webhook.routes.js';
 import saasRouter from './saas/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -149,6 +150,7 @@ export function createApp() {
     },
     handleStripeWebhook,
   );
+  app.use('/api/stripe/webhook', stripeWebhookRawParser, stripeWebhookRoutes);
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
 

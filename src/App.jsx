@@ -31,6 +31,7 @@ import CheckoutPlanPage from './pages/CheckoutPlanPage';
 import CheckoutCancel from './pages/CheckoutCancel.jsx';
 import DossieComportamentalLandingPage from './pages/DossieComportamental';
 import PersonalLandingPage from './pages/PersonalLanding';
+import InsiderLandingPage from './pages/InsiderLanding';
 import ProfissionalLandingPage from './pages/ProfissionalLanding';
 import BusinessLandingPage from './pages/BusinessLanding';
 import PlanosPage from './pages/PlanosPage';
@@ -186,6 +187,7 @@ const AuthenticatedApp = () => {
         }
       />
       <Route path="/personal" element={<PersonalLandingPage />} />
+      <Route path="/insider" element={<InsiderLandingPage />} />
       <Route path="/profissional" element={<ProfissionalLandingPage />} />
       <Route path="/business" element={<BusinessLandingPage />} />
       <Route path="/planos" element={<PlanosPage />} />
@@ -229,12 +231,28 @@ const AuthenticatedApp = () => {
       <Route
         path="/checkout/plan/:planSlug"
         element={
-          <ProtectedRoute pageName="CheckoutPlan" policy={getPagePolicy('CheckoutPlan')}>
+          <LayoutWrapper currentPageName="CheckoutPlan">
             <CheckoutPlanPage />
-          </ProtectedRoute>
+          </LayoutWrapper>
         }
       />
       <Route path="/checkout/:planSlug" element={<CheckoutPlanLegacyRedirect />} />
+      <Route
+        path="/business-corporation"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/diamond-consulting"
+        element={
+          <LayoutWrapper currentPageName="SalesLanding">
+            <SalesPersonaLanding />
+          </LayoutWrapper>
+        }
+      />
       <Route
         path="/empresa"
         element={

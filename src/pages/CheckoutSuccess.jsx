@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, getApiToken, getApiUserEmail, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import { buildAssessmentReportPath } from '@/modules/reports';
@@ -25,12 +25,78 @@ import {
 } from '@/modules/billing/gift-utils';
 import '@/styles/checkout-approved.css';
 
+const CHECKOUT_INTENT_STORAGE_KEY = 'insightdisc_checkout_intent_v21';
+const V21_WHITELABEL_REPORTS_ENABLED =
+  String(import.meta.env.VITE_V21_WHITELABEL_REPORTS || '').trim().toLowerCase() === 'true';
+
 const DEFAULT_GIFT_MESSAGE =
   'Você recebeu uma avaliação DISC do InsightDISC. Aproveite para descobrir seu perfil comportamental completo.';
 
 function buildGiftWhatsappShareLink(giftUrl) {
   const message = `Você recebeu um presente InsightDISC. Acesse seu teste por este link: ${giftUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+const PLAN_PRICE_BY_KEY_BRL = Object.freeze({
+  disc_individual: 59.9,
+  single: 59.9,
+  personal: 99.9,
+  insider: 129.9,
+  professional: 199.9,
+  business: 399.9,
+  business_corporation: 999.9,
+  diamond_consulting: 9990,
+});
+
+function formatPriceBRL(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return '-';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function readCheckoutIntent() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(CHECKOUT_INTENT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function matchesCheckoutIntent(intentPlanKey = '', checkoutItemKey = '') {
+  const normalizedIntent = String(intentPlanKey || '').trim().toLowerCase();
+  const normalizedItem = String(checkoutItemKey || '').trim().toLowerCase();
+  if (!normalizedIntent || !normalizedItem) return false;
+  if (normalizedIntent === normalizedItem) return true;
+  if (normalizedIntent === 'disc_individual' && normalizedItem === 'single') return true;
+  if (normalizedIntent === 'diamond' && normalizedItem === 'diamond_consulting') return true;
+  return false;
+}
+
+function isSubscriptionCheckoutItem(itemKey = '') {
+  const normalized = String(itemKey || '').trim().toLowerCase();
+  return [
+    'personal',
+    'insider',
+    'professional',
+    'business',
+    'business_corporation',
+    'diamond_consulting',
+  ].includes(normalized);
+}
+
+function planIncludesWhiteLabel(itemKey = '') {
+  const normalized = String(itemKey || '').trim().toLowerCase();
+  return normalized === 'business_corporation' || normalized === 'diamond_consulting';
 }
 
 function normalizeReportType(value = '', fallback = '') {
@@ -42,12 +108,16 @@ function normalizeReportType(value = '', fallback = '') {
 }
 
 const CHECKOUT_ITEM_LABELS = Object.freeze({
-  personal: 'Plano Personal',
-  professional: 'Plano Profissional',
-  business: 'Plano Business',
-  disc: 'DISC Individual',
+  personal: 'Plano Personal — Uso contínuo individual',
+  insider: 'Plano Insider — Mais recursos e profundidade',
+  professional: 'Plano Professional — Aplicação profissional',
+  business: 'Plano Business — Uso empresarial',
+  business_corporation: 'Business Corporation',
+  diamond_consulting: 'Diamond Consulting',
+  diamond: 'Diamond',
+  disc: 'DISC Individual — Relatório Completo',
+  single: 'DISC Individual — Relatório Completo',
   'business-monthly': 'Assinatura Business',
-  single: '1 Avaliação Professional',
   gift: 'Gift DISC',
   'pack-10': 'Pacote 10 avaliações',
   'pack-50': 'Pacote 50 avaliações',
@@ -81,7 +151,7 @@ function resolveCheckoutItemKey(searchParams) {
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
-  const { access: authAccess } = useAuth();
+  const { access: authAccess, isAuthenticated } = useAuth();
   const checkoutCompletedTrackRef = useRef('');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +165,7 @@ export default function CheckoutSuccess() {
   const [balanceAfterCheckout, setBalanceAfterCheckout] = useState(0);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [checkoutIntent] = useState(() => readCheckoutIntent());
 
   const [giftPayload, setGiftPayload] = useState(null);
   const [giftLink, setGiftLink] = useState('');
@@ -123,6 +194,32 @@ export default function CheckoutSuccess() {
   const checkoutItemLabel = useMemo(() => resolveCheckoutItemLabel(searchParams), [searchParams]);
   const upsellOffer = useMemo(() => resolveCheckoutUpsellOffer(checkoutItemKey), [checkoutItemKey]);
   const sessionId = String(searchParams.get('session_id') || '').trim();
+  const checkoutSummary = useMemo(() => {
+    const subscription = isSubscriptionCheckoutItem(checkoutItemKey);
+    const intentIsMatch = matchesCheckoutIntent(checkoutIntent?.planKey, checkoutItemKey);
+    const safeIntent = intentIsMatch ? checkoutIntent : null;
+
+    const planPriceBrl =
+      safeIntent?.planPriceBrl ??
+      (PLAN_PRICE_BY_KEY_BRL[checkoutItemKey] ?? null);
+    const totalTodayBrl = safeIntent?.totalTodayBrl ?? null;
+    const orderBump = Boolean(safeIntent?.orderBumpAdvancedAnalysis);
+    const whiteLabelAddon = Boolean(safeIntent?.whiteLabelAddon);
+    const whiteLabelIncluded = planIncludesWhiteLabel(checkoutItemKey);
+    const whiteLabelActive =
+      V21_WHITELABEL_REPORTS_ENABLED &&
+      (whiteLabelAddon || whiteLabelIncluded);
+
+    return {
+      subscription,
+      planPriceBrl,
+      totalTodayBrl,
+      orderBump,
+      whiteLabelAddon,
+      whiteLabelIncluded,
+      whiteLabelActive,
+    };
+  }, [checkoutIntent, checkoutItemKey]);
 
   const giftLandingUrl = useMemo(() => {
     if (!queryGiftToken) return '';
@@ -252,7 +349,9 @@ export default function CheckoutSuccess() {
       }
 
       if (apiBaseUrl && !isCandidateContext) {
-        if (!getApiToken()) {
+        const hasApiAuthHeaders =
+          Boolean(getApiToken()) || (import.meta.env.DEV && Boolean(getApiUserEmail()));
+        if (!hasApiAuthHeaders) {
           setPaymentConfirmed(false);
           setProcessingMessage('Faça login para visualizar o status final do pagamento.');
           setError('');
@@ -261,10 +360,22 @@ export default function CheckoutSuccess() {
         }
 
         try {
-          const payload = await apiRequest(`/billing/checkout-session/${encodeURIComponent(sessionId)}/status`, {
+          let payload = await apiRequest(`/billing/checkout-session/${encodeURIComponent(sessionId)}/status`, {
             method: 'GET',
             requireAuth: true,
           });
+
+          if (payload?.found === false) {
+            try {
+              payload = await apiRequest('/payments/claim-checkout', {
+                method: 'POST',
+                requireAuth: true,
+                body: { sessionId },
+              });
+            } catch {
+              // ignore claim errors and fall back to original status response
+            }
+          }
 
           const status = String(payload?.status || '').toLowerCase();
 
@@ -405,7 +516,7 @@ export default function CheckoutSuccess() {
     };
 
     processCheckout();
-  }, [searchParams, apiBaseUrl, requestedReportType]);
+  }, [searchParams, apiBaseUrl, requestedReportType, isAuthenticated]);
 
   const openReportHref = (() => {
     const isCandidateFlow = flow === 'candidate' || Boolean(candidateToken);
@@ -572,13 +683,16 @@ export default function CheckoutSuccess() {
   const upsellPrice = (() => {
     const baseKey = upsellOffer?.key || '';
     if (baseKey.includes('diamond')) {
-      return showDownsell
-        ? { from: 'R$ 697', to: 'R$ 547' }
-        : { from: 'R$ 697', to: 'R$ 597' };
+      const from = PLAN_PRICE_BY_KEY_BRL.diamond_consulting;
+      return { from: from != null ? formatPriceBRL(from) : '—', to: 'Condição no checkout' };
+    }
+    if (baseKey.includes('business')) {
+      const from = PLAN_PRICE_BY_KEY_BRL.business;
+      return { from: from != null ? formatPriceBRL(from) : '—', to: 'Condição no checkout' };
     }
     return showDownsell
-      ? { from: 'R$ 397', to: 'R$ 277' }
-      : { from: 'R$ 397', to: 'R$ 297' };
+      ? { from: '—', to: 'Condição no checkout' }
+      : { from: '—', to: 'Condição no checkout' };
   })();
 
   return (
@@ -636,8 +750,21 @@ export default function CheckoutSuccess() {
                   </div>
                 </div>
                 <div className="panel checkout-inline-panel">
-                  <div className="label">Plano comprado</div>
+                  <div className="label">Plano contratado</div>
                   <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{checkoutItemLabel}</div>
+                  <div className="fine" style={{ marginTop: 8 }}>
+                    {checkoutSummary.subscription ? 'Tipo: Assinatura mensal' : 'Tipo: Pagamento único'}
+                    {checkoutSummary.subscription && checkoutSummary.planPriceBrl != null
+                      ? ` • Próxima cobrança: ${formatPriceBRL(checkoutSummary.planPriceBrl)}/mês`
+                      : ''}
+                  </div>
+                  {checkoutSummary.whiteLabelActive ? (
+                    <div className="fine" style={{ marginTop: 6 }}>
+                      {checkoutSummary.whiteLabelAddon
+                        ? 'White Label: Ativado • Cobrança única: R$ 299,00.'
+                        : '✔ White Label já incluso no plano.'}
+                    </div>
+                  ) : null}
                   <div className="fine" style={{ marginTop: 8 }}>Status: Em processamento</div>
                 </div>
               </div>
@@ -674,7 +801,7 @@ export default function CheckoutSuccess() {
                   <div>
                     <div className="badge success">Pagamento recebido</div>
                     <h1 style={{ margin: '10px 0 8px', color: '#0f172a' }}>
-                      {isGiftFlow ? 'Presente DISC confirmado' : 'Seu acesso está sendo ativado'}
+                      {isGiftFlow ? 'Presente DISC confirmado' : 'Compra confirmada com sucesso'}
                     </h1>
                     <p className="subcopy" style={{ margin: 0 }}>
                       {isGiftFlow
@@ -684,8 +811,29 @@ export default function CheckoutSuccess() {
                   </div>
                 </div>
                 <div className="panel checkout-inline-panel">
-                  <div className="label">Plano comprado</div>
+                  <div className="label">Plano contratado</div>
                   <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>{checkoutItemLabel}</div>
+                  <div className="fine" style={{ marginTop: 8 }}>
+                    {checkoutSummary.subscription ? 'Tipo: Assinatura mensal' : 'Tipo: Pagamento único'}
+                    {checkoutSummary.totalTodayBrl != null ? ` • Valor pago hoje: ${formatPriceBRL(checkoutSummary.totalTodayBrl)}` : ''}
+                  </div>
+                  {checkoutSummary.subscription && checkoutSummary.planPriceBrl != null ? (
+                    <div className="fine" style={{ marginTop: 6 }}>
+                      Próxima cobrança: {formatPriceBRL(checkoutSummary.planPriceBrl)}/mês.
+                    </div>
+                  ) : null}
+                  {checkoutItemKey === 'business_corporation' ? (
+                    <div className="fine" style={{ marginTop: 6 }}>
+                      Uso ilimitado (uso justo).
+                    </div>
+                  ) : null}
+                  {checkoutSummary.whiteLabelActive ? (
+                    <div className="fine" style={{ marginTop: 6 }}>
+                      {checkoutSummary.whiteLabelAddon
+                        ? 'White Label: Ativado • Cobrança única: R$ 299,00.'
+                        : '✔ White Label já incluso no plano.'}
+                    </div>
+                  ) : null}
                   <div className="fine" style={{ marginTop: 8 }}>
                     {confirmedCredits > 0
                       ? `${confirmedCredits} créditos adicionados. Saldo atual: ${balanceAfterCheckout}.`
@@ -698,9 +846,19 @@ export default function CheckoutSuccess() {
                 <Link to={openReportHref} className="btn primary" style={{ width: 'auto', padding: '14px 22px' }}>
                   {assessmentId || candidateToken ? 'Ir para meu relatório' : 'Ir para meu painel'}
                 </Link>
+                {!assessmentId && !candidateToken ? (
+                  <Link to="/PremiumAssessment" className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                    Iniciar avaliação
+                  </Link>
+                ) : null}
                 <Link to={createPageUrl('MyAssessments')} className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
                   Ver minhas avaliações
                 </Link>
+                {checkoutSummary.whiteLabelActive ? (
+                  <Link to="/app/branding" className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
+                    Configurar marca
+                  </Link>
+                ) : null}
                 {canOpenPdf ? (
                   <a href={availablePdfUrl} target="_blank" rel="noreferrer" className="btn secondary" style={{ width: 'auto', padding: '14px 22px' }}>
                     Abrir PDF
@@ -858,7 +1016,7 @@ export default function CheckoutSuccess() {
                           <div className="label">Hoje apenas</div>
                           <div style={{ marginTop: 14 }} className="strike">{upsellPrice.from}</div>
                           <div className="highlight-price">{upsellPrice.to}</div>
-                          <div className="fine" style={{ marginTop: 8 }}>Upgrade imediato com desconto de ativação.</div>
+                          <div className="fine" style={{ marginTop: 8 }}>Upgrade imediato com condição de ativação.</div>
                           <div className="cta-row" style={{ marginTop: 18 }}>
                             {showDownsell ? (
                               <>

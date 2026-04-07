@@ -4,8 +4,17 @@ function getStripeSecretKey() {
   return process.env.STRIPE_SECRET_KEY || '';
 }
 
-export function getPriceIdByEnvKey(priceEnvKey = 'STRIPE_PRICE_PRO') {
-  return process.env[priceEnvKey] || '';
+export function getPriceIdByEnvKey(priceEnvKey = 'STRIPE_PRICE_PROFESSIONAL') {
+  const normalizedKey = String(priceEnvKey || '').trim() || 'STRIPE_PRICE_PROFESSIONAL';
+  const direct = process.env[normalizedKey] || '';
+  if (direct) return direct;
+
+  // Backward-compat: legacy env key used by older serverless handlers
+  if (normalizedKey === 'STRIPE_PRICE_PRO') {
+    return process.env.STRIPE_PRICE_PROFESSIONAL || '';
+  }
+
+  return '';
 }
 
 function getDefaultAppUrl() {

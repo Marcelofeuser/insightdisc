@@ -1,150 +1,271 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { apiRequest } from '@/lib/apiClient';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
-import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
 import { useAuth } from '@/lib/AuthContext';
 import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
 import '@/styles/checkout-approved.css';
 
+const CHECKOUT_INTENT_STORAGE_KEY = 'insightdisc_checkout_intent_v21';
+const ORDER_BUMP_PRICE_BRL = 19.9;
+const WHITE_LABEL_ADDON_PRICE_BRL = 299;
+
+const WHITE_LABEL_INCLUDED_BADGE = '✔ White Label já incluso neste plano';
+
+const PLAN_PRICE_BY_KEY_BRL = Object.freeze({
+  disc_individual: 59.9,
+  personal: 99.9,
+  insider: 129.9,
+  professional: 199.9,
+  business: 399.9,
+  business_corporation: 999.9,
+  diamond_consulting: 9990,
+});
+
+function formatPriceBRL(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return '-';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function persistCheckoutIntent(intent = {}) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(
+      CHECKOUT_INTENT_STORAGE_KEY,
+      JSON.stringify({
+        ...intent,
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // ignore
+  }
+}
+
 const PLAN_UI = Object.freeze({
-  personal: {
-    badge: 'Plano individual',
-    title: 'Personal',
+  disc_individual: {
+    badge: 'Pagamento único',
+    title: 'DISC Individual — Relatório Completo',
     subtitle:
-      'Acesso individual com recorrência leve, relatório completo e histórico pessoal para evolução contínua.',
-    price: 'R$ 79,90',
-    billing: 'mensal',
+      'Avaliação comportamental DISC com entrega imediata de um relatório detalhado, ideal para autoconhecimento e tomada de decisão.',
+    price: 'R$ 59,90',
+    billing: 'pagamento único',
     summary:
-      'Mais profundidade e acompanhamento contínuo em comparação ao DISC individual.',
+      'Entrega imediata do relatório premium, sem assinatura e sem cobranças futuras.',
     features: [
       {
-        title: 'Relatório DISC completo',
-        description: 'Leitura comportamental clara, direta e aplicada ao uso pessoal.',
+        title: 'Relatório completo instantâneo',
+        description: 'Entrega imediata em tela e PDF após a conclusão.',
       },
       {
-        title: 'Histórico de acesso',
-        description: 'Guarda seus relatórios e evolução no mesmo ambiente.',
+        title: 'Análise comportamental detalhada',
+        description: 'Leitura aplicada para autoconhecimento e decisões mais conscientes.',
       },
       {
-        title: 'Direcionamentos de desenvolvimento',
-        description: 'Sugestões práticas para autoconhecimento e crescimento.',
+        title: 'Perfil predominante e secundário',
+        description: 'Entenda intensidade e combinações comportamentais com clareza.',
       },
       {
-        title: 'Fluxo simples e rápido',
-        description: 'Ideal para entrar com baixo atrito e começar logo.',
+        title: 'Pontos fortes e de atenção',
+        description: 'Mapeamento objetivo de forças naturais e riscos recorrentes.',
+      },
+      {
+        title: 'Aplicação pessoal e profissional',
+        description: 'Direcionamentos práticos para rotina, relações e contexto de trabalho.',
+      },
+    ],
+  },
+  personal: {
+    badge: 'Plano individual',
+    title: 'Plano Personal — Uso contínuo individual',
+    subtitle:
+      'Ideal para quem deseja acompanhar evolução comportamental e utilizar o DISC de forma recorrente no dia a dia.',
+    price: 'R$ 99,90',
+    billing: 'mensal',
+    summary:
+      'Acesso contínuo individual para acompanhar histórico e evolução comportamental ao longo do tempo.',
+    features: [
+      {
+        title: 'Acesso contínuo à plataforma',
+        description: 'Acompanhe sua leitura e evolução de forma recorrente.',
+      },
+      {
+        title: 'Geração de relatórios individuais',
+        description: 'Leituras claras e aplicáveis para o uso no dia a dia.',
+      },
+      {
+        title: 'Histórico de avaliações',
+        description: 'Revisite entregas e acompanhe mudanças de padrão ao longo do tempo.',
+      },
+      {
+        title: 'Evolução comportamental',
+        description: 'Use o DISC como referência contínua para decisões e ajustes práticos.',
       },
     ],
   },
   insider: {
     badge: 'Personal Pro',
-    title: 'Insider',
+    title: 'Plano Insider — Mais recursos e profundidade',
     subtitle:
-      'Plano avançado para quem quer evoluir com mais profundidade, consistência e leitura comportamental mais estratégica.',
+      'Para usuários que desejam mais controle, análise e profundidade na utilização do DISC.',
     price: 'R$ 129,90',
     billing: 'mensal',
     summary:
-      'Inclui tudo do Personal com mais profundidade de leitura e recomendações estratégicas de evolução.',
+      'Camada individual avançada para uso mais estratégico e interpretação com mais contexto.',
     features: [
       {
-        title: 'Tudo do Personal incluso',
-        description: 'Mantém o histórico e a evolução comportamental no mesmo fluxo.',
+        title: 'Recursos avançados de análise',
+        description: 'Mais camadas de leitura e interpretação do perfil.',
       },
       {
-        title: 'Relatórios mais completos com IA',
-        description: 'Leitura aprofundada do perfil com suporte de análise inteligente.',
+        title: 'Melhor visualização de dados',
+        description: 'Entenda padrões com mais profundidade e consistência.',
       },
       {
-        title: 'Comparação entre avaliações',
-        description: 'Facilita acompanhar mudanças de padrão ao longo do tempo.',
+        title: 'Uso mais estratégico da plataforma',
+        description: 'Aplicação prática para quem já utiliza DISC com frequência.',
       },
       {
-        title: 'Insights estratégicos personalizados',
-        description: 'Direcionamentos práticos para decisão, comunicação e desenvolvimento.',
+        title: 'Ideal para uso recorrente',
+        description: 'Mais controle e clareza para decisões, comunicação e rotina.',
       },
     ],
   },
   professional: {
     badge: 'Plano mais escolhido',
-    title: 'Professional',
+    title: 'Plano Professional — Aplicação profissional',
     subtitle:
-      'Plano principal para consultores, analistas e profissionais que precisam operar avaliações DISC com frequência e qualidade.',
-    price: 'R$ 197',
+      'Plano ideal para uso individual com aplicação profissional, relatórios e 10 créditos mensais.',
+    price: 'R$ 199,90',
     billing: 'mensal',
     summary:
-      'Inclui dossiê técnico, comparador, IA e operação recorrente acima do Personal.',
+      'Aplicação profissional com relatórios premium e créditos mensais para operação recorrente.',
     features: [
       {
-        title: '10 avaliações por mês',
-        description: 'Operação recorrente com volume inicial validado para profissionais.',
+        title: 'Inclui 10 créditos por mês',
+        description: 'Operação recorrente com volume ideal para consultores e profissionais.',
       },
       {
-        title: 'Coach AI incluído',
-        description: 'Orientação contextual por relatório real selecionado.',
+        title: 'Relatórios profissionais',
+        description: 'Entregáveis premium (tela + PDF) para uso com clientes e atendimentos.',
       },
       {
-        title: 'AI Lab incluído',
-        description: 'Leituras avançadas e hipóteses mais estratégicas.',
+        title: 'Aplicação em clientes e atendimentos',
+        description: 'Leitura estruturada para devolutiva e tomada de decisão.',
       },
       {
-        title: 'Comparador e arquétipos',
-        description: 'Profundidade analítica para devolutivas e apresentações.',
+        title: 'Uso estratégico do DISC',
+        description: 'Estrutura e consistência para uso profissional recorrente.',
+      },
+      {
+        title: 'White Label opcional',
+        description: 'Adicione sua marca nos relatórios como add-on (pagamento único).',
       },
     ],
   },
   business: {
     badge: 'Para equipes e RH',
-    title: 'Business',
+    title: 'Plano Business — Uso empresarial',
     subtitle:
-      'Solução para equipes e empresas que precisam de análise comportamental aplicada à gestão, liderança e decisões estratégicas.',
-    price: 'R$ 397',
+      'Plano voltado para empresas e profissionais que atuam com equipes, clientes e contexto corporativo.',
+    price: 'R$ 399,90',
     billing: 'mensal',
     summary:
-      'Adiciona Team Map e visão estratégica de equipe acima do Professional.',
+      'Operação empresarial com créditos mensais, visão de equipe e recursos para RH.',
     features: [
       {
-        title: '25 avaliações por mês',
-        description: 'Escala inicial para operação recorrente em equipe.',
+        title: 'Inclui 25 créditos por mês',
+        description: 'Escala para operar com equipes, clientes e contexto corporativo.',
       },
       {
-        title: 'Tudo do Professional',
-        description: 'Herda integralmente o plano profissional.',
+        title: 'Gestão de múltiplos usuários',
+        description: 'Estrutura escalável para operação empresarial.',
       },
       {
-        title: 'Team Map',
-        description: 'Mapa comportamental de equipe com leitura consolidada.',
+        title: 'Aplicação em equipes e RH',
+        description: 'Leitura organizacional e suporte a decisões de pessoas.',
       },
       {
-        title: 'Visão estratégica de gestão',
-        description: 'Insights para liderança, RH e evolução organizacional.',
+        title: 'Análises organizacionais',
+        description: 'Base para decisões mais seguras em cultura, liderança e performance.',
+      },
+      {
+        title: 'White Label opcional',
+        description: 'Adicione sua marca nos relatórios como add-on (pagamento único).',
       },
     ],
   },
-  diamond: {
-    badge: 'Escala avançada',
-    title: 'Diamond',
+  business_corporation: {
+    badge: 'Corporativo',
+    title: 'Business Corporation — Estrutura corporativa completa',
     subtitle:
-      'Topo do SaaS automático para operações intensivas, consultorias em escala e times que precisam de uso contínuo com prioridade.',
-    price: 'R$ 697',
-    billing: 'mensal • uso justo',
-    summary: 'Escala ilimitada e operação intensiva acima do Business.',
+      'Solução corporativa com uso ilimitado, recursos avançados e White Label incluso.',
+    price: 'R$ 999,90',
+    billing: 'mensal • uso ilimitado',
+    summary:
+      'Camada corporativa para operar em escala com uso ilimitado (uso justo) e identidade de marca inclusa.',
     features: [
       {
-        title: 'Avaliações ilimitadas',
-        description: 'Uso justo para operação contínua sem gargalo comercial.',
+        title: 'Uso ilimitado',
+        description: 'Operação em larga escala sob política de uso justo.',
       },
       {
-        title: 'Tudo do Business',
-        description: 'Mantém todos os recursos de equipe e inteligência organizacional.',
+        title: 'Operação em larga escala',
+        description: 'Estrutura para múltiplas áreas, públicos e decisões recorrentes.',
       },
       {
-        title: 'Prioridade de processamento',
-        description: 'Experiência mais fluida em ambientes de alto volume.',
+        title: 'Gestão completa de usuários',
+        description: 'Base para RH estruturado e governança progressiva.',
       },
       {
-        title: 'Ideal para escala',
-        description: 'Posicionamento acima do Business e abaixo do Enterprise consultivo.',
+        title: 'White Label incluso',
+        description: 'Marca aplicada no relatório e entregáveis premium para comunicação institucional.',
+      },
+      {
+        title: 'Ideal para empresas estruturadas',
+        description: 'Foco em equilíbrio organizacional, cultura e contratações futuras.',
+      },
+    ],
+  },
+  diamond_consulting: {
+    badge: 'Premium estratégico',
+    title: 'Diamond Consulting — Nível estratégico premium',
+    subtitle:
+      'Solução premium com acompanhamento estratégico por psicanalista, leitura comportamental aprofundada e estrutura avançada para operação consultiva.',
+    price: 'R$ 9.990,00',
+    billing: 'mensal',
+    summary: 'Camada premium com acompanhamento especializado, devolutiva executiva e white label incluso.',
+    features: [
+      {
+        title: 'Acompanhamento estratégico com psicanalista',
+        description: 'Leitura clínica e organizacional aplicada à realidade da empresa.',
+      },
+      {
+        title: 'Diagnóstico comportamental aprofundado',
+        description: 'Interpretação técnica do perfil DISC com mais profundidade e contexto.',
+      },
+      {
+        title: 'Devolutiva estratégica para a empresa',
+        description: 'Direcionamento para liderança, cultura, conflitos e decisões de pessoas.',
+      },
+      {
+        title: 'Aplicação em nível executivo',
+        description: 'Uso em decisões críticas de gestão e posicionamento organizacional.',
+      },
+      {
+        title: 'Estrutura para alta performance organizacional',
+        description: 'Operação consultiva premium com entregas estruturadas e acompanhamento contínuo.',
+      },
+      {
+        title: 'White Label incluso',
+        description: 'Identidade premium nos relatórios (capa/rodapé) e entregáveis executivos.',
       },
     ],
   },
@@ -167,6 +288,9 @@ const PAYMENT_OPTIONS = Object.freeze([
 
 function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
   const normalizedSlug = String(planSlug || '').trim().toLowerCase();
+  if (normalizedSlug === 'disc' || normalizedSlug === 'disc_individual' || normalizedSlug === 'disc-individual') {
+    return 'disc_individual';
+  }
   if (normalizedSlug === 'insider') {
     return 'insider';
   }
@@ -174,20 +298,28 @@ function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
     return 'professional';
   }
   if (normalizedSlug === 'business') return 'business';
-  if (normalizedSlug === 'diamond') return 'diamond';
+  if (normalizedSlug === 'business-corporation' || normalizedSlug === 'business_corporation') return 'business_corporation';
+  if (normalizedSlug === 'diamond-consulting' || normalizedSlug === 'diamond_consulting' || normalizedSlug === 'diamond') {
+    return 'diamond_consulting';
+  }
   if (normalizedSlug === 'personal') return 'personal';
 
   const normalizedPlanKey = String(fallbackPlanKey || '').trim().toLowerCase();
+  if (normalizedPlanKey === 'disc' || normalizedPlanKey === 'disc_individual' || normalizedPlanKey === 'disc-individual') {
+    return 'disc_individual';
+  }
   if (normalizedPlanKey === 'insider') return 'insider';
   if (normalizedPlanKey === 'profissional') return 'professional';
   if (normalizedPlanKey === 'professional') return 'professional';
   if (normalizedPlanKey === 'business') return 'business';
-  if (normalizedPlanKey === 'diamond') return 'diamond';
+  if (normalizedPlanKey === 'business_corporation' || normalizedPlanKey === 'business-corporation') return 'business_corporation';
+  if (normalizedPlanKey === 'diamond_consulting' || normalizedPlanKey === 'diamond-consulting' || normalizedPlanKey === 'diamond') {
+    return 'diamond_consulting';
+  }
   return 'personal';
 }
 
 export default function CheckoutPlanPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { planSlug } = useParams();
   const { access, user } = useAuth();
@@ -202,13 +334,30 @@ export default function CheckoutPlanPage() {
   );
 
   const [selectedMethod, setSelectedMethod] = useState('pix');
-  const [orderBumpEnabled, setOrderBumpEnabled] = useState(true);
+  const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
+  const [whiteLabelAddonEnabled, setWhiteLabelAddonEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [checkoutBlocked, setCheckoutBlocked] = useState(false);
   const [previewState, setPreviewState] = useState(() => getCheckoutPreviewState());
 
   const previewRequired = requiresCheckoutPreview(access);
   const canProceedToPayment = !previewRequired || previewState.hasPreview;
+  const canOfferAiOrderBump =
+    checkoutPlanKey !== 'professional' &&
+    checkoutPlanKey !== 'business' &&
+    checkoutPlanKey !== 'business_corporation' &&
+    checkoutPlanKey !== 'diamond_consulting';
+  const canOfferWhiteLabelAddon =
+    checkoutPlanKey === 'professional' || checkoutPlanKey === 'business';
+  const planPriceBrl = PLAN_PRICE_BY_KEY_BRL[checkoutPlanKey] ?? null;
+  const oneTimeAddOnsTotal =
+    (canOfferAiOrderBump && orderBumpEnabled ? ORDER_BUMP_PRICE_BRL : 0) +
+    (canOfferWhiteLabelAddon && whiteLabelAddonEnabled ? WHITE_LABEL_ADDON_PRICE_BRL : 0);
+  const totalTodayBrl = planPriceBrl != null ? planPriceBrl + oneTimeAddOnsTotal : null;
+  const planIncludesWhiteLabel =
+    (checkoutPlanKey === 'business_corporation' || checkoutPlanKey === 'diamond_consulting');
+  const isOneTimeCheckout = checkoutPlanKey === 'disc_individual';
 
   useEffect(() => {
     const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
@@ -219,6 +368,22 @@ export default function CheckoutPlanPage() {
       window.removeEventListener('visibilitychange', refreshPreviewState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!canOfferWhiteLabelAddon) {
+      setWhiteLabelAddonEnabled(false);
+    }
+  }, [canOfferWhiteLabelAddon]);
+
+  useEffect(() => {
+    if (!canOfferAiOrderBump) {
+      setOrderBumpEnabled(false);
+    }
+  }, [canOfferAiOrderBump]);
+
+  useEffect(() => {
+    setSelectedMethod(isOneTimeCheckout ? 'pix' : 'card');
+  }, [checkoutPlanKey, isOneTimeCheckout]);
 
   useEffect(() => {
     if (!planUi?.title) return;
@@ -243,15 +408,6 @@ export default function CheckoutPlanPage() {
   }
 
   const handleFinalizePayment = async () => {
-    if (!user?.id) {
-      const loginRedirectUrl = buildLoginRedirectUrl({
-        pathname: location.pathname,
-        search: location.search || '',
-      });
-      navigate(loginRedirectUrl);
-      return;
-    }
-
     if (!canProceedToPayment) {
       setFeedback('Antes de pagar, veja um preview do relatório para liberar o checkout.');
       return;
@@ -259,25 +415,68 @@ export default function CheckoutPlanPage() {
 
     setIsSubmitting(true);
     setFeedback('');
+    setCheckoutBlocked(false);
 
     trackEvent('checkout_public_finalize_click', {
       planKey: checkoutPlanKey,
       paymentMethod: selectedMethod,
-      orderBumpEnabled,
+      orderBumpEnabled: canOfferAiOrderBump ? orderBumpEnabled : false,
+      whiteLabelAddon: whiteLabelAddonEnabled,
       path: location.pathname,
     });
 
     try {
-      const response = await apiRequest('/payments/create-checkout', {
-        method: 'POST',
-        requireAuth: true,
-        body: {
-          plan: checkoutPlanKey,
-          billing: 'monthly',
-          provider: 'STRIPE',
-          orderBumpAdvancedAnalysis: orderBumpEnabled,
-        },
+      persistCheckoutIntent({
+        planKey: checkoutPlanKey,
+        planTitle: planUi.title,
+        billing: isOneTimeCheckout ? 'one_time' : 'monthly',
+        mode: isOneTimeCheckout ? 'payment' : 'subscription',
+        planPriceBrl,
+        orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
+        whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
+        oneTimeAddOnsTotalBrl: oneTimeAddOnsTotal,
+        totalTodayBrl,
       });
+
+      const checkoutPayload = isOneTimeCheckout
+        ? {
+            productType: 'single_assessment',
+            mode: 'payment',
+            billing: 'one_time',
+            provider: 'STRIPE',
+            orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
+          }
+        : {
+            plan: checkoutPlanKey,
+            billing: 'monthly',
+            provider: 'STRIPE',
+            orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
+            whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
+          };
+
+      const shouldUsePublicCheckout = !user?.id && !isOneTimeCheckout;
+      const checkoutEndpoint = shouldUsePublicCheckout
+        ? '/payments/create-checkout-public'
+        : '/payments/create-checkout';
+
+      let response;
+      try {
+        response = await apiRequest(checkoutEndpoint, {
+          method: 'POST',
+          requireAuth: !shouldUsePublicCheckout,
+          body: checkoutPayload,
+        });
+      } catch (error) {
+        if (error?.message === 'API_AUTH_MISSING' && !shouldUsePublicCheckout && !isOneTimeCheckout) {
+          response = await apiRequest('/payments/create-checkout-public', {
+            method: 'POST',
+            requireAuth: false,
+            body: checkoutPayload,
+          });
+        } else {
+          throw error;
+        }
+      }
 
       const checkoutUrl = String(response?.checkoutUrl || response?.url || '').trim();
       if (!checkoutUrl) {
@@ -286,12 +485,14 @@ export default function CheckoutPlanPage() {
 
       window.location.assign(checkoutUrl);
     } catch (error) {
-      if (error?.message === 'API_AUTH_MISSING') {
-        const loginRedirectUrl = buildLoginRedirectUrl({
-          pathname: location.pathname,
-          search: location.search || '',
-        });
-        navigate(loginRedirectUrl);
+      const code = String(error?.code || error?.payload?.error || error?.message || '')
+        .trim()
+        .toUpperCase();
+      if (code === 'BILLING_PRICE_NOT_CONFIGURED' || code === 'STRIPE_NOT_CONFIGURED') {
+        setCheckoutBlocked(true);
+        setFeedback(
+          'Este plano está em implantação de cobrança neste ambiente. Fale com nosso time para liberar o checkout.',
+        );
         return;
       }
 
@@ -308,41 +509,82 @@ export default function CheckoutPlanPage() {
           <div className="brand">
             <div className="eyebrow">InsightDISC</div>
             <h1>Checkout do plano</h1>
-            <p>Fluxo individual por plano, com login obrigatório e ativação automática via webhook.</p>
+            <p>Escolha confirmada. Revise os detalhes e siga para o checkout seguro.</p>
           </div>
-          <div className="nav-pill">🔒 Checkout seguro com Stripe + Pix</div>
+          <div className="nav-pill">🔒 Checkout seguro com Stripe</div>
         </div>
 
         <div className="hero-card">
           <div className="checkout-grid">
             <section className="panel">
               <span className="badge primary">{planUi.badge}</span>
-              <div className="plan-title">
-                <div>
-                  <h2>{planUi.title}</h2>
-                  <p className="subcopy">{planUi.subtitle}</p>
-                </div>
-                <div className="price">
-                  {planUi.price}
-                  <br />
-                  <small>{planUi.billing}</small>
-                </div>
-              </div>
-
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={orderBumpEnabled}
-                  onChange={(event) => setOrderBumpEnabled(event.target.checked)}
-                  disabled={isSubmitting}
-                />
-                <div>
-                  <strong>Adicionar análise avançada com IA por R$ 19,90</strong>
-                  <div className="fine">
-                    Order bump opcional para aprofundar insights, recomendações e leitura estratégica.
+                <div className="plan-title">
+                  <div>
+                    <h2>{planUi.title}</h2>
+                    <p className="subcopy">{planUi.subtitle}</p>
+                  </div>
+                  <div className="price">
+                    {planUi.price}
+                    <br />
+                    <small>{planUi.billing}</small>
                   </div>
                 </div>
-              </label>
+
+                {planIncludesWhiteLabel ? (
+                  <div className="cta-row" style={{ justifyContent: 'flex-start', marginTop: 10 }}>
+                    <span className="badge light" style={{ width: 'auto' }}>
+                      {WHITE_LABEL_INCLUDED_BADGE}
+                    </span>
+                  </div>
+                ) : null}
+
+              {canOfferAiOrderBump ? (
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={orderBumpEnabled}
+                    onChange={(event) => setOrderBumpEnabled(event.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                  <div>
+                    <strong>Adicionar análise avançada com IA por R$ 19,90</strong>
+                    <div className="fine">
+                      Order bump opcional para aprofundar insights, recomendações e leitura estratégica.
+                    </div>
+                  </div>
+                </label>
+              ) : null}
+
+              {canOfferWhiteLabelAddon ? (
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={whiteLabelAddonEnabled}
+                    onChange={(event) => setWhiteLabelAddonEnabled(event.target.checked)}
+                    disabled={isSubmitting}
+                  />
+                  <div>
+                    <strong>Adicionar White Label à sua compra</strong>
+                    <div className="fine">
+                      Personalize a plataforma com sua marca, identidade visual e apresentação profissional. Ideal para quem atende clientes e deseja transmitir autoridade.
+                      <br />
+                      <br />
+                      <strong>Destaques</strong>
+                      <br />
+                      - Sua logo e identidade visual
+                      <br />
+                      - Plataforma com sua marca
+                      <br />
+                      - Relatórios personalizados
+                      <br />
+                      <br />
+                      <strong>Pagamento único de R$ 299,00</strong>
+                      <br />
+                      Cobrado apenas uma vez. Disponível para os planos Professional e Business.
+                    </div>
+                  </div>
+                </label>
+              ) : null}
 
               <ul className="feature-list">
                 {planUi.features.map((feature) => (
@@ -365,21 +607,63 @@ export default function CheckoutPlanPage() {
               </div>
 
               <div className="sidebar-section">
+                <div className="label">Total hoje</div>
+                <div style={{ marginTop: 10, fontSize: 22, fontWeight: 800 }}>
+                  {totalTodayBrl != null ? formatPriceBRL(totalTodayBrl) : planUi.price}
+                </div>
+                <div className="fine" style={{ marginTop: 6 }}>
+                  {isOneTimeCheckout
+                    ? 'Pagamento único + add-ons (quando selecionados).'
+                    : '1ª mensalidade + add-ons de pagamento único (quando selecionados).'}
+                </div>
+
+                <div className="kpis" style={{ marginTop: 14 }}>
+                  <div className="kpi">
+                    <strong>{isOneTimeCheckout ? 'Pagamento único' : 'Assinatura mensal'}</strong>
+                    <span className="fine">
+                      {planPriceBrl != null
+                        ? isOneTimeCheckout
+                          ? formatPriceBRL(planPriceBrl)
+                          : `${formatPriceBRL(planPriceBrl)}/mês`
+                        : planUi.billing}
+                    </span>
+                  </div>
+                  <div className="kpi">
+                    <strong>Add-ons</strong>
+                    <span className="fine">{oneTimeAddOnsTotal > 0 ? formatPriceBRL(oneTimeAddOnsTotal) : '—'}</span>
+                  </div>
+                </div>
+
+                <div className="fine" style={{ marginTop: 10 }}>
+                  {isOneTimeCheckout
+                    ? 'Sem cobranças futuras.'
+                    : `Próximas cobranças: ${planPriceBrl != null ? `${formatPriceBRL(planPriceBrl)}/mês` : planUi.price}.`}
+                </div>
+              </div>
+
+              <div className="sidebar-section">
                 <div className="label">Método de pagamento</div>
                 <div className="method-grid">
                   {PAYMENT_OPTIONS.map((method) => {
                     const selected = method.key === selectedMethod;
+                    const disabled = !isOneTimeCheckout && method.key === 'pix';
                     return (
                       <button
                         key={method.key}
                         type="button"
                         className={`method ${selected ? 'selected' : ''}`}
                         onClick={() => setSelectedMethod(method.key)}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || disabled}
                       >
                         <div>
                           <strong>{method.title}</strong>
-                          <div className="fine">{method.copy}</div>
+                          <div className="fine">
+                            {method.key === 'pix'
+                              ? disabled
+                                ? 'Assinaturas são cobradas no cartão.'
+                                : method.copy
+                              : method.copy}
+                          </div>
                         </div>
                         <div>{method.icon}</div>
                       </button>
@@ -429,12 +713,23 @@ export default function CheckoutPlanPage() {
                   type="button"
                   className="btn primary"
                   onClick={handleFinalizePayment}
-                  disabled={isSubmitting || !canProceedToPayment}
+                  disabled={isSubmitting || checkoutBlocked || !canProceedToPayment}
                 >
                   {isSubmitting ? 'Processando...' : 'Finalizar pagamento'}
                 </button>
 
                 {feedback ? <div className="checkout-feedback-error">{feedback}</div> : null}
+                {checkoutBlocked ? (
+                  <div className="cta-row" style={{ marginTop: 12 }}>
+                    <Link
+                      className="btn secondary"
+                      style={{ width: 'auto', padding: '10px 14px' }}
+                      to="/empresa"
+                    >
+                      Falar com Vendas
+                    </Link>
+                  </div>
+                ) : null}
 
                 <div className="footer-note">
                   Ao continuar, o usuário segue para o checkout Stripe. A página de sucesso não libera acesso sozinha.

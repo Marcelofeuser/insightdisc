@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-import { HOME_SECTION_LINKS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { HOME_SECTION_LINKS, PLAN_DROPDOWN_ITEMS, PRODUCT_TABS } from '@/modules/marketing/landingNavConfig';
 import ProductVisualShowcase from '@/components/marketing/ProductVisualShowcase';
 import '../styles/landing.css';
 
@@ -81,8 +83,19 @@ export default function ProductSegmentLandingBase({
 }) {
   const rootRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobilePlansOpen, setMobilePlansOpen] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
   const activePath = `/${slug}`;
+  const isPremiumLanding = slug === 'business-corporation' || slug === 'diamond-consulting';
+  const premiumVariant = slug === 'diamond-consulting' ? 'diamond' : 'corporation';
+  const heroSubtitleLines =
+    typeof hero?.subtitle === 'string'
+      ? hero.subtitle
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [];
+  const useSubtitleList = heroSubtitleLines.length > 1;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -174,28 +187,65 @@ export default function ProductSegmentLandingBase({
   const isCenteredFinalCta = finalCta?.layout === 'single-centered';
 
   return (
-    <div ref={rootRef} className="landing-page dossie-landing h-full gradient-bg text-white overflow-x-hidden overflow-y-auto">
-      <div className="min-h-full w-full">
+    <div
+      ref={rootRef}
+      className={`landing-page dossie-landing h-full gradient-bg text-white overflow-x-hidden overflow-y-auto relative isolate ${
+        isPremiumLanding ? `premium-landing premium-landing--${premiumVariant}` : ''
+      }`}
+    >
+      {isPremiumLanding ? (
+        <div aria-hidden="true" className={`premium-wallpaper premium-wallpaper--${premiumVariant}`} />
+      ) : null}
+      <div className="min-h-full w-full relative z-10">
         <nav id="navbar" className={`fixed left-0 right-0 top-0 z-50 glass-card transition-all duration-300 ${isNavSticky ? 'nav-sticky' : ''}`}>
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <Link to="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl disc-gradient flex items-center justify-center">
-                  <span className="text-white text-lg font-extrabold">ID</span>
-                </div>
+                <img
+                  src="/logos/insightDISC_logo4_transp.png"
+                  alt="InsightDISC"
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
                 <span className="text-xl font-bold">InsightDISC</span>
               </Link>
 
               <div className="hidden lg:flex items-center gap-5 text-sm">
-                {HOME_SECTION_LINKS.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {HOME_SECTION_LINKS.map((item) => {
+                  if (item.label === 'Planos') {
+                    return (
+                      <DropdownMenu key={item.label}>
+                        <DropdownMenuTrigger asChild>
+                          <button type="button" className="planos-nav-link gap-1.5" aria-label="Abrir planos">
+                            {item.label}
+                            <ChevronDown className="h-4 w-4 opacity-90" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="start"
+                          className="w-56 bg-slate-950/95 border-white/10 text-slate-100 backdrop-blur-xl shadow-2xl"
+                        >
+                          {PLAN_DROPDOWN_ITEMS.map((plan) => (
+                            <DropdownMenuItem key={plan.to} asChild className="cursor-pointer focus:bg-white/10 focus:text-slate-100">
+                              <Link to={plan.to} className="w-full">
+                                {plan.label}
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className={item.featured ? 'planos-nav-link' : 'text-slate-300 hover:text-white transition-colors'}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
                 {PRODUCT_TABS.map((tab) => (
                   <Link
                     key={tab.to}
@@ -218,7 +268,13 @@ export default function ProductSegmentLandingBase({
                 <button
                   type="button"
                   className="lg:hidden text-slate-300 hover:text-white"
-                  onClick={() => setMobileMenuOpen((prev) => !prev)}
+                  onClick={() => {
+                    setMobileMenuOpen((prev) => {
+                      const next = !prev;
+                      if (!next) setMobilePlansOpen(false);
+                      return next;
+                    });
+                  }}
                   aria-label="Abrir menu"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,25 +285,69 @@ export default function ProductSegmentLandingBase({
             </div>
 
             <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:hidden mt-4 pb-4 space-y-3 border-t border-slate-700 pt-4`}>
-              {HOME_SECTION_LINKS.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 transition-colors ${
-                    item.featured
-                      ? 'planos-nav-link-mobile'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {HOME_SECTION_LINKS.map((item) => {
+                if (item.label === 'Planos') {
+                  return (
+                    <div key={item.label} className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setMobilePlansOpen((prev) => !prev)}
+                        className="w-full flex items-center justify-between gap-2 py-2 transition-colors planos-nav-link-mobile"
+                        aria-expanded={mobilePlansOpen}
+                        aria-controls="mobile-plans-submenu"
+                      >
+                        <span>{item.label}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${mobilePlansOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <div
+                        id="mobile-plans-submenu"
+                        className={`${mobilePlansOpen ? 'block' : 'hidden'} space-y-1 pl-3 border-l border-white/10`}
+                      >
+                        {PLAN_DROPDOWN_ITEMS.map((plan) => (
+                          <Link
+                            key={plan.to}
+                            to={plan.to}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setMobilePlansOpen(false);
+                            }}
+                            className="block py-2 text-slate-300 hover:text-white transition-colors"
+                          >
+                            {plan.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobilePlansOpen(false);
+                    }}
+                    className={`block py-2 transition-colors ${
+                      item.featured
+                        ? 'planos-nav-link-mobile'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               {PRODUCT_TABS.map((tab) => (
                 <Link
                   key={tab.to}
                   to={tab.to}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setMobilePlansOpen(false);
+                  }}
                   className={`block py-2 transition-colors ${
                     tab.to === activePath ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'
                   }`}
@@ -276,9 +376,26 @@ export default function ProductSegmentLandingBase({
                 <h1 className="fade-up hero-gradient-title text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6" style={{ animationDelay: '.1s', animationDuration: '.55s' }}>
                   {renderHeadlineWithHighlight(hero.title, hero.titleHighlight)}
                 </h1>
-                <p className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8" style={{ animationDelay: '.2s', animationDuration: '.55s' }}>
-                  {hero.subtitle}
-                </p>
+                {useSubtitleList ? (
+                  <ul
+                    className="fade-up max-w-3xl mb-8 space-y-2 text-base md:text-xl text-slate-200 leading-relaxed"
+                    style={{ animationDelay: '.2s', animationDuration: '.55s' }}
+                  >
+                    {heroSubtitleLines.map((line) => (
+                      <li key={line} className="flex items-start gap-3">
+                        <span className="mt-[0.6em] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400/80" aria-hidden="true" />
+                        <span className="min-w-0">{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p
+                    className="fade-up text-lg md:text-2xl text-slate-300 leading-relaxed max-w-3xl mb-8"
+                    style={{ animationDelay: '.2s', animationDuration: '.55s' }}
+                  >
+                    {hero.subtitle}
+                  </p>
+                )}
 
                 <div className="fade-up flex flex-col sm:flex-row gap-4 mb-10" style={{ animationDelay: '.3s', animationDuration: '.55s' }}>
                   <CtaLink
@@ -485,9 +602,11 @@ export default function ProductSegmentLandingBase({
         <footer className="py-14 px-6 border-t border-slate-800">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="disc-gradient w-10 h-10 rounded-xl flex items-center justify-center">
-                <span className="text-lg font-extrabold text-white">ID</span>
-              </div>
+              <img
+                src="/logos/insightDISC_logo4_transp.png"
+                alt="InsightDISC"
+                className="h-10 w-10 rounded-xl object-contain"
+              />
               <span className="text-xl font-bold text-white">InsightDISC</span>
             </div>
             <p className="text-sm text-slate-500 text-center md:text-right">
