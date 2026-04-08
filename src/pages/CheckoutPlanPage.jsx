@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
-import { apiRequest } from '@/lib/apiClient';
+import { apiRequest, getApiToken, getApiUserEmail } from '@/lib/apiClient';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
 import { useAuth } from '@/lib/AuthContext';
 import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
@@ -341,7 +341,8 @@ export default function CheckoutPlanPage() {
   const [checkoutBlocked, setCheckoutBlocked] = useState(false);
   const [previewState, setPreviewState] = useState(() => getCheckoutPreviewState());
 
-  const previewRequired = requiresCheckoutPreview(access);
+  const previewRequired =
+    checkoutPlanKey === 'disc_individual' && requiresCheckoutPreview(access);
   const canProceedToPayment = !previewRequired || previewState.hasPreview;
   const canOfferAiOrderBump =
     checkoutPlanKey !== 'professional' &&
@@ -454,29 +455,17 @@ export default function CheckoutPlanPage() {
             whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
           };
 
-      const shouldUsePublicCheckout = !user?.id && !isOneTimeCheckout;
+      const hasAuthSession = Boolean(getApiToken()) || Boolean(getApiUserEmail());
+      const shouldUsePublicCheckout = !hasAuthSession;
       const checkoutEndpoint = shouldUsePublicCheckout
         ? '/payments/create-checkout-public'
         : '/payments/create-checkout';
 
-      let response;
-      try {
-        response = await apiRequest(checkoutEndpoint, {
-          method: 'POST',
-          requireAuth: !shouldUsePublicCheckout,
-          body: checkoutPayload,
-        });
-      } catch (error) {
-        if (error?.message === 'API_AUTH_MISSING' && !shouldUsePublicCheckout && !isOneTimeCheckout) {
-          response = await apiRequest('/payments/create-checkout-public', {
-            method: 'POST',
-            requireAuth: false,
-            body: checkoutPayload,
-          });
-        } else {
-          throw error;
-        }
-      }
+      const response = await apiRequest(checkoutEndpoint, {
+        method: 'POST',
+        requireAuth: !shouldUsePublicCheckout,
+        body: checkoutPayload,
+      });
 
       const checkoutUrl = String(response?.checkoutUrl || response?.url || '').trim();
       if (!checkoutUrl) {
@@ -714,8 +703,9 @@ export default function CheckoutPlanPage() {
                   className="btn primary"
                   onClick={handleFinalizePayment}
                   disabled={isSubmitting || checkoutBlocked || !canProceedToPayment}
+                  aria-busy={isSubmitting ? 'true' : 'false'}
                 >
-                  {isSubmitting ? 'Processando...' : 'Finalizar pagamento'}
+                  Finalizar pagamento
                 </button>
 
                 {feedback ? <div className="checkout-feedback-error">{feedback}</div> : null}

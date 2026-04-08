@@ -33,16 +33,32 @@ function resolveStatusCodeByError(code = '') {
   const normalized = String(code || '').trim().toUpperCase();
   if (normalized === 'AUTH_REQUIRED') return 401;
   if (normalized === 'FORBIDDEN') return 403;
+  if (normalized === 'RESOURCE_MISSING') return 404;
   if (
     normalized === 'INVALID_CHECKOUT_PRODUCT'
     || normalized === 'BILLING_PRICE_NOT_CONFIGURED'
     || normalized === 'INVALID_PRICE_FOR_PRODUCT'
     || normalized === 'CHECKOUT_SESSION_REQUIRED'
+    || normalized === 'INVALID_CHECKOUT_SESSION_ID'
   ) {
     return 400;
   }
   if (normalized === 'STRIPE_NOT_CONFIGURED') return 503;
   return 500;
+}
+
+function resolveRequestOrigin(req) {
+  const headerOrigin = String(req?.get?.('origin') || '').trim();
+  if (headerOrigin) return headerOrigin.replace(/\/$/, '');
+
+  const referer = String(req?.get?.('referer') || '').trim();
+  if (!referer) return '';
+
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return '';
+  }
 }
 
 function buildCheckoutInputFromLegacyPayload(input = {}) {
@@ -119,6 +135,7 @@ router.post('/create-checkout-public', async (req, res) => {
     const input = createCheckoutSchema.parse(req.body || {});
     const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
     const normalizedPlan = normalizePlan(checkoutInput.planId || checkoutInput.plan || checkoutInput.product || '');
+    const requestOrigin = resolveRequestOrigin(req);
 
     if (!PUBLIC_CHECKOUT_ALLOWED_PLANS.has(normalizedPlan)) {
       const error = new Error('Plano não disponível para checkout público.');
@@ -130,6 +147,9 @@ router.post('/create-checkout-public', async (req, res) => {
       input: {
         ...checkoutInput,
         flow: input.flow,
+        successUrl:
+          checkoutInput.successUrl ||
+          (requestOrigin ? `${requestOrigin}/checkout/success?session_id={CHECKOUT_SESSION_ID}` : ''),
       },
     });
 
@@ -146,6 +166,13 @@ router.post('/create-checkout-public', async (req, res) => {
       public: true,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        ok: false,
+        error: 'VALIDATION_FAILED',
+        message: 'Payload inválido.',
+      });
+    }
     const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_PUBLIC_CREATE_FAILED').toUpperCase();
     return res.status(resolveStatusCodeByError(code)).json({
       ok: false,
@@ -158,7 +185,17 @@ router.post('/create-checkout-public', async (req, res) => {
 router.post('/claim-checkout', requireAuth, attachUser, async (req, res) => {
   try {
     const schema = z.object({
-      sessionId: z.string().trim().min(1),
+      sessionId: z
+        .string()
+        .trim()
+        .min(1)
+        .max(255)
+        .refine(
+          (value) =>
+            /^cs_(test_|live_)?[a-zA-Z0-9_]+$/.test(value) ||
+            (env.nodeEnv !== 'production' && /^mock_[a-zA-Z0-9_]+$/.test(value)),
+          'checkoutSessionId inválido.',
+        ),
     });
     const input = schema.parse(req.body || {});
 
@@ -178,6 +215,13 @@ router.post('/claim-checkout', requireAuth, attachUser, async (req, res) => {
       ...status,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        ok: false,
+        error: 'VALIDATION_FAILED',
+        message: 'checkoutSessionId inválido.',
+      });
+    }
     const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_CLAIM_FAILED').toUpperCase();
     return res.status(resolveStatusCodeByError(code)).json({
       ok: false,
@@ -191,6 +235,7 @@ router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
   try {
     const input = createCheckoutSchema.parse(req.body || {});
     const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
+    const requestOrigin = resolveRequestOrigin(req);
 
     const payload = await createBillingCheckoutSession({
       userId: req.auth?.userId,
@@ -198,6 +243,9 @@ router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
       input: {
         ...checkoutInput,
         flow: input.flow,
+        successUrl:
+          checkoutInput.successUrl ||
+          (requestOrigin ? `${requestOrigin}/checkout/success?session_id={CHECKOUT_SESSION_ID}` : ''),
       },
     });
 
@@ -213,6 +261,13 @@ router.post('/create-checkout', requireAuth, attachUser, async (req, res) => {
       paymentMethods: payload.paymentMethods,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(422).json({
+        ok: false,
+        error: 'VALIDATION_FAILED',
+        message: 'Payload inválido.',
+      });
+    }
     const code = String(error?.code || error?.message || 'PAYMENTS_CHECKOUT_CREATE_FAILED').toUpperCase();
     return res.status(resolveStatusCodeByError(code)).json({
       ok: false,

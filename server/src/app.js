@@ -43,13 +43,13 @@ export function createApp() {
   const authLimiter = createIpRateLimiter({
     keyPrefix: 'auth',
     windowMs: 15 * 60 * 1000,
-    maxRequests: 60,
+    maxRequests: env.nodeEnv === 'production' ? 60 : 600,
     message: 'Muitas tentativas de autenticação. Tente novamente em instantes.',
   });
   const authLoginLimiter = createIpRateLimiter({
     keyPrefix: 'auth-login',
     windowMs: 15 * 60 * 1000,
-    maxRequests: 12,
+    maxRequests: env.nodeEnv === 'production' ? 12 : 200,
     message: 'Limite de tentativas de login excedido. Tente novamente em instantes.',
   });
   const aiLimiter = createIpRateLimiter({

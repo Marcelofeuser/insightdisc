@@ -6,7 +6,7 @@ import { Download, LayoutDashboard } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { apiRequest, getApiBaseUrl, getApiToken, resolveApiRequestUrl } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { PLANS, isPlanAtLeast, resolvePlanFromAccess } from '@/modules/billing';
@@ -209,25 +209,6 @@ export default function CandidateReport() {
     return resolveApiRequestUrl(raw, { baseUrl: apiBaseUrl }) || raw;
   };
 
-  const resolveSavePortalErrorMessage = (error) => {
-    const payloadReason = String(error?.payload?.reason || '').toUpperCase();
-    const payloadError = String(error?.payload?.error || '').toUpperCase();
-    const message = String(error?.message || '').toUpperCase();
-    const code = payloadReason || payloadError || message;
-
-    if (code.includes('UNAUTHORIZED_WORKSPACE_SAVE') || code.includes('EMAIL_MISMATCH')) {
-      return 'Este relatório só pode ser salvo por um usuário autorizado deste workspace.';
-    }
-    if (code.includes('REPORT_ALREADY_CLAIMED')) {
-      return 'Este relatório já está vinculado a outro usuário.';
-    }
-    if (code.includes('AUTH_REQUIRED')) {
-      return 'Faça login para salvar este relatório no portal.';
-    }
-
-    return 'Não foi possível salvar o relatório no portal agora. Tente novamente em instantes.';
-  };
-
   const resolveReportLoadErrorMessage = (error) => {
     const rawMessage = String(error?.payload?.message || error?.message || '')
       .replace(/\s+/g, ' ')
@@ -386,12 +367,6 @@ export default function CandidateReport() {
         model?.participant?.name &&
         model?.profile?.key
     );
-
-  const getAuthenticatedPortalToken = () => {
-    const appToken = getApiToken();
-    if (appToken) return appToken;
-    return getCandidateJwt();
-  };
 
   useEffect(() => {
     const loadReport = async () => {

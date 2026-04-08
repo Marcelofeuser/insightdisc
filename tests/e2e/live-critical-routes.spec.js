@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForApp } from './helpers/waitForApp';
+import { config as loadEnv } from 'dotenv';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Carrega server/.env para garantir as credenciais corretas mesmo quando não estão no shell
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+loadEnv({ path: resolve(__dirname, '../../server/.env'), override: false });
 
 const API_BASE_URL =
   process.env.E2E_API_URL ||

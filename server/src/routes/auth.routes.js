@@ -67,7 +67,6 @@ function maskEmailForLog(email = '') {
 function logAuthEvent(scope, req, details = {}) {
   if (env.nodeEnv === 'test') return;
 
-  // eslint-disable-next-line no-console
   console.info(`[${scope}]`, {
     origin: sanitizeLogText(req.headers.origin || 'direct', 96),
     ip: sanitizeLogText(parseClientIp(req), 96),
@@ -413,7 +412,6 @@ router.post('/login', async (req, res) => {
     try {
       await markPromoAccountActivated(user.id);
     } catch (activationError) {
-      // eslint-disable-next-line no-console
       console.warn('[auth/login] promo account activation skipped:', activationError?.message || activationError);
     }
 
@@ -430,7 +428,6 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
-      // eslint-disable-next-line no-console
       console.error('[auth/login] transient database error:', sanitizeLogText(error?.message || error));
       return sendSafeJsonError(res, {
         status: 503,
@@ -447,7 +444,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // eslint-disable-next-line no-console
     console.error('[auth/login] failed:', sanitizeLogText(error?.message || error));
     return sendSafeJsonError(res, {
       status: 500,
@@ -538,7 +534,6 @@ router.post('/oauth/exchange', async (req, res) => {
     try {
       await markPromoAccountActivated(user.id);
     } catch (activationError) {
-      // eslint-disable-next-line no-console
       console.warn('[auth/oauth-exchange] promo account activation skipped:', activationError?.message || activationError);
     }
 
@@ -674,6 +669,7 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
       return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
 
+    console.log('[DEBUG masterKey] input:', JSON.stringify(input.masterKey), 'env:', JSON.stringify(env.superAdminMasterKey));
     if (input.masterKey !== env.superAdminMasterKey) {
       registerFailedSuperAdminAttempt(key);
       logAuthEvent('auth/super-admin-login.invalid_master_key', req, {
@@ -701,7 +697,6 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
     });
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
-      // eslint-disable-next-line no-console
       console.error('[auth/super-admin-login] transient database error:', sanitizeLogText(error?.message || error));
       return sendSafeJsonError(res, {
         status: 503,
@@ -718,7 +713,6 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
       });
     }
 
-    // eslint-disable-next-line no-console
     console.error('[auth/super-admin-login] failed:', sanitizeLogText(error?.message || error));
     return sendSafeJsonError(res, {
       status: 500,
