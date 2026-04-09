@@ -9,7 +9,7 @@ async function ensureBillingPlanType() {
         FROM pg_type
         WHERE typname = 'BillingPlan'
       ) THEN
-        CREATE TYPE "BillingPlan" AS ENUM ('PERSONAL', 'PROFESSIONAL', 'BUSINESS', 'DIAMOND');
+        CREATE TYPE "BillingPlan" AS ENUM ('PERSONAL', 'PROFESSIONAL', 'BUSINESS', 'CORPORATION', 'DIAMOND');
       END IF;
     END
     $$;
@@ -32,6 +32,12 @@ async function ensureBillingPlanType() {
 
       BEGIN
         ALTER TYPE "BillingPlan" ADD VALUE IF NOT EXISTS 'BUSINESS';
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END;
+
+      BEGIN
+        ALTER TYPE "BillingPlan" ADD VALUE IF NOT EXISTS 'CORPORATION';
       EXCEPTION
         WHEN duplicate_object THEN NULL;
       END;
