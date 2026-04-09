@@ -16,6 +16,7 @@ import reportRoutes from './routes/report.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
 import checkoutRoutes from './routes/checkout.routes.js';
 import healthRoutes from './routes/health.routes.js';
+import synapsysRoutes from './routes/synapsys.routes.js';
 import brandingRoutes from './routes/branding.routes.js';
 import leadsRoutes from './routes/leads.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
@@ -161,6 +162,7 @@ export function createApp() {
 
   app.use('/health', healthRoutes);
   app.use('/ai', aiRoutes);
+  app.use('/synapsys', synapsysRoutes);
   app.use('/auth', authRoutes);
   app.use('/admin', adminRoutes);
   app.use('/assessments', assessmentsRoutes);
