@@ -568,19 +568,20 @@ export async function generateAiDiscContent(input = {}, options = {}) {
     options.providerChainOverride?.[0]?.name ||
     options.providerName ||
     (env.aiApiUrl ? 'ai_api_url' : env.aiProvider) ||
-    'groq';
+    'openai';
   const primaryProviderName = String(resolvedPrimaryName || '')
     .trim()
-    .toLowerCase() || 'groq';
+    .toLowerCase() || 'openai';
 
   const providers = options.providerChainOverride
     ? options.providerChainOverride
     : options.providerOverride
       ? [options.providerOverride]
       : buildAiProviderChain([
-        primaryProviderName,
+          primaryProviderName,
           env.aiFallback1,
           env.aiFallback2,
+          'deterministic_engine',
         ]);
 
   const attempts = [];
