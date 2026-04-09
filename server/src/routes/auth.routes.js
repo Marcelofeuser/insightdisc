@@ -19,6 +19,7 @@ import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
 import { normalizePlan, mapPlanForFeatures } from '../lib/plan-normalize.js';
+import { resolveUserPlan as resolveUserPlanModule } from '../modules/plans/feature-access.js';
 
 const router = Router();
 
@@ -113,25 +114,10 @@ function hasActivePaidPurchase(user = {}) {
 
 // use central normalizePlan helper
 
-function resolveRoleBasedPlan(role = '') {
-  const normalizedRole = String(role || '').trim().toUpperCase();
-  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'professional'; // Tier Business
-  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'premium';      // Tier Professional
-  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'standard';       // Tier Personal
-  return 'standard';
-}
+// resolveRoleBasedPlan removida — usa resolveUserPlanModule (feature-access.js)
 
-function resolveUserPlan(user = {}, { isSuperAdmin = false, hasPaidPurchase = false } = {}) {
-  const explicitPlan = mapPlanForFeatures(user?.plan || user?.workspace_plan || user?.subscription_plan);
-  if (explicitPlan && explicitPlan !== 'standard') return explicitPlan;
-
-  if (isSuperAdmin) return 'professional';
-
-  const rolePlan = resolveRoleBasedPlan(user?.role);
-  if (rolePlan && rolePlan !== 'standard') return rolePlan;
-
-  if (hasPaidPurchase) return 'premium';
-  return 'standard';
+function resolveUserPlan(user = {}) {
+  return resolveUserPlanModule(user);
 }
 
 function normalizeUserPayload(user = {}) {
@@ -141,7 +127,7 @@ function normalizeUserPayload(user = {}) {
   const isSuperAdmin = isSuperAdminUser(user);
   const isAdmin = role === 'ADMIN';
   const hasPaidPurchase = isSuperAdmin ? true : hasActivePaidPurchase(user);
-  const plan = resolveUserPlan(user, { isSuperAdmin, hasPaidPurchase });
+  const plan = resolveUserPlan(user);
   const creditsBalance = isSuperAdmin ? 999999 : getUserCreditsBalance(user);
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
