@@ -56,3 +56,4 @@ startServer().catch((error) => {
   console.error('[server] falha ao iniciar API:', error?.message || error);
   process.exit(1);
 });
+// railway redeploy qui  9 abr 2026 08:15:15 -03
