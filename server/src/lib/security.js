@@ -16,6 +16,9 @@ export async function hashPassword(password) {
 }
 
 export async function verifyPassword(password, passwordHash) {
+  if (typeof password !== 'string' || typeof passwordHash !== 'string') {
+    return false;
+  }
   return bcrypt.compare(password, passwordHash);
 }
 
