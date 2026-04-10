@@ -24,15 +24,8 @@ const CAN_USE_DEV_BASE44_FALLBACK = import.meta.env.DEV;
 const SHOULD_SKIP_BASE44_PUBLIC_SETTINGS =
   CAN_USE_DEV_BASE44_FALLBACK && Boolean(base44?.__isMock);
 
-function normalizeAuthPlanValue(value = '') {
-  const key = String(value || '').trim().toLowerCase();
-  if (!key) return '';
-  if (['personal', 'free', 'starter'].includes(key)) return 'personal';
-  if (['professional', 'pro', 'premium'].includes(key)) return 'professional';
-  if (['business', 'enterprise', 'diamond', 'business_corporation', 'diamond_consulting'].includes(key)) {
-    return 'business';
-  }
-  return '';
+function getExplicitAuthPlan(value = '') {
+  return String(value || '').trim().toLowerCase();
 }
 
 function buildDevShortcutUser() {
@@ -159,7 +152,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const inferPlan = (inputUser) => {
-    const explicitPlan = normalizeAuthPlanValue(
+    const explicitPlan = getExplicitAuthPlan(
       inputUser?.plan ||
         inputUser?.workspace_plan ||
         inputUser?.subscription_plan,

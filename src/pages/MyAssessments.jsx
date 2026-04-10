@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { PERMISSIONS, createAccessContext, hasPermission } from '@/modules/auth/access-control';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
 import { mapCandidateReports } from '@/modules/report/backendReports.js';
+import { downloadPdfBlob, exportAssessmentReportPdf } from '@/modules/reportExport';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports';
 import { usePanelMode } from '@/modules/navigation/panelModeContext';
@@ -227,6 +228,7 @@ export default function MyAssessments() {
   const [reportDateFilter, setReportDateFilter] = useState('all');
   const [profileFilter, setProfileFilter] = useState('all');
   const [isStartingSelfAssessment, setIsStartingSelfAssessment] = useState(false);
+  const [exportingPdfId, setExportingPdfId] = useState('');
   const [actionError, setActionError] = useState('');
 
   const isReportsView = String(location.hash || '').toLowerCase().includes('reports');
@@ -460,6 +462,49 @@ export default function MyAssessments() {
       return true;
     });
   }, [safeReports, search, reportTypeFilter, profileFilter, reportDateFilter]);
+
+  const handleExportPdf = async (reportItem = {}) => {
+    const assessmentId = String(reportItem?.assessmentId || reportItem?.id || '').trim();
+    if (!assessmentId) {
+      toast({
+        title: 'Não foi possível exportar',
+        description: 'ID da avaliação indisponível para gerar o PDF.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (exportingPdfId) return;
+
+    setExportingPdfId(assessmentId);
+    setActionError('');
+
+    try {
+      const payload = await exportAssessmentReportPdf({
+        assessmentId,
+        apiBaseUrl,
+        publicAccess: reportItem,
+        reportType: reportItem?.type || reportItem?.reportType || 'business',
+      });
+
+      downloadPdfBlob(payload.blob, payload.fileName);
+      toast({
+        title: 'PDF gerado com sucesso',
+        description: `Download iniciado (${(payload.bytes / 1024).toFixed(1)} KB).`,
+      });
+    } catch (error) {
+      const message =
+        error?.message || 'Não foi possível exportar o PDF do relatório oficial no momento.';
+      setActionError(message);
+      toast({
+        title: 'Falha na exportação',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setExportingPdfId('');
+    }
+  };
 
   const isLoading = isReportsView ? isLoadingReports : isLoadingAssessments;
   const rows = isReportsView ? filteredReports : filteredAssessments;
@@ -721,6 +766,7 @@ export default function MyAssessments() {
                   (item?.assessmentId ? `/assessment/${item.assessmentId}/result` : null);
                 const reportHref = assessmentId ? buildAssessmentReportPath(assessmentId) : '';
                 const pdfHref = item?.publicPdfUrl || '';
+                const isExportingPdf = Boolean(exportingPdfId && exportingPdfId === String(assessmentId || '').trim());
 
                 return (
                   <TableRow key={item?.id || assessmentId || `report-row-${index}`} className="border-slate-100 hover:bg-slate-50/70">
@@ -750,9 +796,14 @@ export default function MyAssessments() {
                           </Button>
                         )}
                         {pdfHref ? (
-                          <a href={pdfHref} target="_blank" rel="noreferrer">
-                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">PDF</Button>
-                          </a>
+                          <Button
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                            disabled={!assessmentId || isExportingPdf}
+                            onClick={() => handleExportPdf(item)}
+                          >
+                            {isExportingPdf ? 'Gerando...' : 'PDF'}
+                          </Button>
                         ) : (
                           <Button variant="outline" size="sm" disabled>
                             PDF indisponível

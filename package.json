@@ -108,7 +108,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.171.0",
     "vaul": "^1.1.2",
-    "vercel": "^50.32.5",
+    "vercel": "^50.42.0",
     "zod": "^3.24.2",
     "zustand": "^5.0.12"
   },

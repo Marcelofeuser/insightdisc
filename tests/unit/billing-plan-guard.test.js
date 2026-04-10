@@ -7,6 +7,7 @@ test('resolvePlanFromAccess normaliza planos legados para camada SaaS', () => {
   assert.equal(resolvePlanFromAccess({ plan: 'free' }), 'personal');
   assert.equal(resolvePlanFromAccess({ plan: 'premium' }), 'professional');
   assert.equal(resolvePlanFromAccess({ plan: 'enterprise' }), 'business');
+  assert.equal(resolvePlanFromAccess({ plan: 'corporation' }), 'business');
 });
 
 test('evaluateFeatureAccess bloqueia team map para plano personal', () => {

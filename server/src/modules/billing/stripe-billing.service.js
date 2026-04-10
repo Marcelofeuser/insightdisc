@@ -17,30 +17,19 @@ function createError(code = 'BILLING_ERROR', message = 'Erro de billing.') {
   return error;
 }
 
-const STRIPE_CHECKOUT_SESSION_PLACEHOLDER = '{CHECKOUT_SESSION_ID}';
-const STRIPE_CHECKOUT_SESSION_PLACEHOLDER_TOKEN = '__CHECKOUT_SESSION_ID__';
-
-function protectStripeCheckoutSessionPlaceholder(value = '') {
-  return String(value || '')
-    .replaceAll(STRIPE_CHECKOUT_SESSION_PLACEHOLDER, STRIPE_CHECKOUT_SESSION_PLACEHOLDER_TOKEN)
-    .replace(/%7BCHECKOUT_SESSION_ID%7D/gi, STRIPE_CHECKOUT_SESSION_PLACEHOLDER_TOKEN);
-}
-
-function restoreStripeCheckoutSessionPlaceholder(value = '') {
-  return String(value || '').replaceAll(
-    STRIPE_CHECKOUT_SESSION_PLACEHOLDER_TOKEN,
-    STRIPE_CHECKOUT_SESSION_PLACEHOLDER,
-  );
-}
-
 function appendQuery(urlValue, params = {}) {
-  const url = new URL(protectStripeCheckoutSessionPlaceholder(urlValue));
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, String(value));
-    }
-  });
-  return restoreStripeCheckoutSessionPlaceholder(url.toString());
+  const entries = Object.entries(params).filter(
+    ([, value]) => value !== undefined && value !== null && value !== '',
+  );
+  if (!entries.length) return urlValue;
+
+  // Constrói query string manualmente para não passar por new URL(),
+  // preservando literalmente {CHECKOUT_SESSION_ID} sem encoding.
+  const qs = entries
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+
+  return urlValue.includes('?') ? `${urlValue}&${qs}` : `${urlValue}?${qs}`;
 }
 
 function resolveSafeCheckoutRedirectUrl(requestedUrl, fallbackUrl) {
@@ -48,175 +37,26 @@ function resolveSafeCheckoutRedirectUrl(requestedUrl, fallbackUrl) {
   if (!raw) return fallbackUrl;
 
   try {
+    const requestedOrigin = new URL(raw).origin;
     const fallbackOrigin = new URL(fallbackUrl).origin;
-    const parsed = new URL(protectStripeCheckoutSessionPlaceholder(raw));
-    if (parsed.origin !== fallbackOrigin) {
-      console.warn('[billing] ignoring unsafe checkout redirect url', { requestedUrl: raw });
-      return fallbackUrl;
+
+    // Mesma origem que env.appUrl → sempre permitido
+    if (requestedOrigin === fallbackOrigin) {
+      return raw;
     }
-    return restoreStripeCheckoutSessionPlaceholder(parsed.toString());
+
+    // Em desenvolvimento, permite localhost e 127.0.0.1 como origens válidas
+    if (env.nodeEnv !== 'production') {
+      const hostname = new URL(raw).hostname.toLowerCase();
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+        return raw;
+      }
+    }
+
+    console.warn('[billing] ignoring unsafe checkout redirect url', { requestedUrl: raw });
+    return fallbackUrl;
   } catch {
     return fallbackUrl;
-  }
-}
-
-function normalizeBaseUrl(value) {
-  return String(value || '').trim().replace(/\/$/, '');
-}
-
-function isAllowedCheckoutReturnOrigin(origin = '', fallbackAppUrl = '') {
-  const normalizedOrigin = String(origin || '').trim();
-  if (!normalizedOrigin) return false;
-
-  try {
-    const fallbackOrigin = new URL(String(fallbackAppUrl || '')).origin;
-    if (normalizedOrigin === fallbackOrigin) return true;
-  } catch {
-    // ignore
-  }
-
-  if (env.nodeEnv === 'production') return false;
-
-  try {
-    const hostname = new URL(normalizedOrigin).hostname.toLowerCase();
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-  } catch {
-    return false;
-  }
-}
-
-function resolveCheckoutAppUrl(input = {}, fallbackAppUrl = '') {
-  const normalizedFallback = normalizeBaseUrl(fallbackAppUrl);
-  const candidates = [input?.successUrl, input?.cancelUrl];
-
-  for (const candidate of candidates) {
-    const raw = String(candidate || '').trim();
-    if (!raw) continue;
-
-    try {
-      const origin = new URL(raw).origin;
-      if (isAllowedCheckoutReturnOrigin(origin, normalizedFallback)) {
-        return normalizeBaseUrl(origin);
-      }
-    } catch {
-      // ignore invalid URL
-    }
-  }
-
-  return normalizedFallback;
-}
-
-const STRIPE_INLINE_PRICE_FALLBACK_CENTS = Object.freeze({
-  disc_individual: 5990,
-  personal: 9990,
-  insider: 12990,
-  professional: 19990,
-  business: 39990,
-  business_corporation: 99990,
-  diamond_consulting: 999000,
-  'advanced-analysis': 1990,
-  'white-label-one-time': 29900,
-});
-
-const STRIPE_INLINE_PRICE_FALLBACK_NAMES = Object.freeze({
-  disc_individual: 'DISC Individual',
-  personal: 'Plano Personal',
-  insider: 'Plano Insider',
-  professional: 'Plano Professional',
-  business: 'Plano Business',
-  business_corporation: 'Business Corporation',
-  diamond_consulting: 'Diamond Consulting',
-  'advanced-analysis': 'Análise avançada com IA',
-  'white-label-one-time': 'White Label (pagamento único)',
-});
-
-function isStripeNoSuchPriceError(error) {
-  const code = String(error?.code || '').trim().toLowerCase();
-  if (code !== 'resource_missing') return false;
-  const message = String(error?.message || '').trim().toLowerCase();
-  return message.includes('no such price');
-}
-
-function buildInlinePriceDataLineItem(entry, { currency = 'brl' } = {}) {
-  const id = String(entry?.id || '').trim();
-  const amountCents = STRIPE_INLINE_PRICE_FALLBACK_CENTS[id];
-  if (!id || !Number.isFinite(amountCents) || amountCents <= 0) return null;
-
-  const name = STRIPE_INLINE_PRICE_FALLBACK_NAMES[id] || id;
-  const quantity = Math.max(1, Number(entry?.quantity || 1));
-  const isRecurring = String(entry?.mode || '').trim().toLowerCase() === 'subscription';
-
-  return {
-    price_data: {
-      currency: String(currency || 'brl').trim().toLowerCase(),
-      unit_amount: Math.trunc(amountCents),
-      ...(isRecurring ? { recurring: { interval: 'month' } } : {}),
-      product_data: {
-        name,
-      },
-    },
-    quantity,
-  };
-}
-
-function buildInlinePriceDataLineItems({
-  checkoutItem,
-  orderBumpItem,
-  whiteLabelAddonItem,
-} = {}) {
-  const currency = String(checkoutItem?.currency || 'brl').trim().toLowerCase();
-
-  const lineItems = [];
-  const baseItem = buildInlinePriceDataLineItem(checkoutItem, { currency });
-  if (baseItem) lineItems.push(baseItem);
-
-  if (orderBumpItem?.id) {
-    const bumpItem = buildInlinePriceDataLineItem(orderBumpItem, { currency });
-    if (bumpItem) lineItems.push(bumpItem);
-  }
-
-  if (whiteLabelAddonItem?.id) {
-    const addonItem = buildInlinePriceDataLineItem(whiteLabelAddonItem, { currency });
-    if (addonItem) lineItems.push(addonItem);
-  }
-
-  return lineItems;
-}
-
-async function createStripeCheckoutSessionWithFallback({
-  stripe,
-  stripePayload,
-  checkoutItem,
-  orderBumpItem,
-  whiteLabelAddonItem,
-} = {}) {
-  try {
-    return await stripe.checkout.sessions.create(stripePayload);
-  } catch (error) {
-    if (env.nodeEnv === 'production' || !isStripeNoSuchPriceError(error)) {
-      throw error;
-    }
-
-    const fallbackLineItems = buildInlinePriceDataLineItems({
-      checkoutItem,
-      orderBumpItem,
-      whiteLabelAddonItem,
-    });
-
-    if (!fallbackLineItems.length) {
-      throw error;
-    }
-
-    console.warn('[billing] falling back to inline price_data for checkout session', {
-      checkoutItemId: checkoutItem?.id || 'n/a',
-      mode: stripePayload?.mode,
-      error: String(error?.message || error),
-    });
-
-    return stripe.checkout.sessions.create({
-      ...stripePayload,
-      line_items: fallbackLineItems,
-    });
   }
 }
 
@@ -1024,8 +864,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
   const stripe = getStripeClient();
   const creditsToApplyNow = checkoutItem.mode === 'subscription' ? 0 : Number(checkoutItem.creditsToGrant || 0);
 
-  const checkoutAppUrl = resolveCheckoutAppUrl(input, env.appUrl) || normalizeBaseUrl(env.appUrl);
-  const defaultSuccessUrl = `${checkoutAppUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+  const defaultSuccessUrl = `${env.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const successUrl = appendQuery(
     resolveSafeCheckoutRedirectUrl(input.successUrl, defaultSuccessUrl),
     {
@@ -1033,7 +872,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
       flow: String(input.flow || ''),
     },
   );
-  const defaultCancelUrl = `${checkoutAppUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
+  const defaultCancelUrl = `${env.appUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
   const cancelUrl = resolveSafeCheckoutRedirectUrl(input.cancelUrl, defaultCancelUrl);
 
   const metadata = buildStripeCheckoutMetadata({
@@ -1087,13 +926,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
     };
   }
 
-  const session = await createStripeCheckoutSessionWithFallback({
-    stripe,
-    stripePayload,
-    checkoutItem,
-    orderBumpItem,
-    whiteLabelAddonItem,
-  });
+  const session = await stripe.checkout.sessions.create(stripePayload);
 
   return {
     ok: true,
@@ -1169,20 +1002,18 @@ export async function claimStripeCheckoutSessionForUser({ sessionId, userId, use
       },
     });
   } catch (err) {
-    if (String(err?.code || '') !== 'P2002') {
-      throw err;
-    }
-
-    const existing = await prisma.payment.findUnique({
-      where: { stripeSession: normalizedSessionId },
-      select: { userId: true },
+    // Unique constraint means a payment already exists for this session.
+    // Attempt to set userId only when it's NULL or already belongs to requester.
+    // If no rows are affected, another user owns it -> forbidden.
+    const updated = await prisma.payment.updateMany({
+      where: {
+        stripeSession: normalizedSessionId,
+        OR: [{ userId: null }, { userId: normalizedUserId }],
+      },
+      data: { userId: normalizedUserId },
     });
 
-    if (!existing?.userId) {
-      throw err;
-    }
-
-    if (String(existing.userId) !== normalizedUserId) {
+    if (!updated || updated.count === 0) {
       throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
     }
   }
@@ -1232,8 +1063,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     inputWorkspaceId: input.workspaceId,
   });
 
-  const checkoutAppUrl = resolveCheckoutAppUrl(input, env.appUrl) || normalizeBaseUrl(env.appUrl);
-  const defaultSuccessUrl = `${checkoutAppUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+  const defaultSuccessUrl = `${env.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const successUrl = appendQuery(
     resolveSafeCheckoutRedirectUrl(input.successUrl, defaultSuccessUrl),
     {
@@ -1241,7 +1071,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
       flow: String(input.flow || ''),
     },
   );
-  const defaultCancelUrl = `${checkoutAppUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
+  const defaultCancelUrl = `${env.appUrl}/checkout/cancel?product=${encodeURIComponent(checkoutItem.id)}`;
   const cancelUrl = resolveSafeCheckoutRedirectUrl(input.cancelUrl, defaultCancelUrl);
 
   const metadata = buildStripeCheckoutMetadata({
@@ -1301,13 +1131,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     };
   }
 
-  const session = await createStripeCheckoutSessionWithFallback({
-    stripe,
-    stripePayload,
-    checkoutItem,
-    orderBumpItem,
-    whiteLabelAddonItem,
-  });
+  const session = await stripe.checkout.sessions.create(stripePayload);
 
   await prisma.payment.upsert({
     where: { stripeSession: session.id },

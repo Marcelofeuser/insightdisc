@@ -49,12 +49,31 @@ export const PRODUCT_FEATURES = Object.freeze({
 });
 
 const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
+  disc_individual: Object.freeze([]),
   personal: Object.freeze([]),
+  insider: Object.freeze([
+    PRODUCT_FEATURES.AI_LAB,   // ainda não ativo — marcado para lock no nav V3
+  ].filter(() => false)),       // Insider não tem AI Lab nem Coach — array vazio
   professional: Object.freeze([
     PRODUCT_FEATURES.AI_LAB,
     PRODUCT_FEATURES.COACH,
   ]),
   business: Object.freeze([
+    PRODUCT_FEATURES.AI_LAB,
+    PRODUCT_FEATURES.COACH,
+    PRODUCT_FEATURES.JOBS,
+    PRODUCT_FEATURES.INSIGHTS,
+    // teamMap fica bloqueado para business no V3 — só libera no corporation
+  ]),
+  // V3.0 — corporation e diamond_consulting como tiers próprios
+  corporation: Object.freeze([
+    PRODUCT_FEATURES.AI_LAB,
+    PRODUCT_FEATURES.COACH,
+    PRODUCT_FEATURES.TEAM_MAP,
+    PRODUCT_FEATURES.JOBS,
+    PRODUCT_FEATURES.INSIGHTS,
+  ]),
+  diamond_consulting: Object.freeze([
     PRODUCT_FEATURES.AI_LAB,
     PRODUCT_FEATURES.COACH,
     PRODUCT_FEATURES.TEAM_MAP,
@@ -80,15 +99,23 @@ const FEATURE_ALIASES = Object.freeze({
 const FEATURE_META = Object.freeze({
   [FEATURE_KEYS.AI_LAB]: { label: 'AI Lab', minPlan: 'professional' },
   [FEATURE_KEYS.COACH]: { label: 'Coach', minPlan: 'professional' },
-  [FEATURE_KEYS.TEAM_MAP]: { label: 'Mapa Organizacional', minPlan: 'business' },
+  // V3.0: Team Map agora requer corporation (não mais business)
+  [FEATURE_KEYS.TEAM_MAP]: { label: 'Team Map', minPlan: 'corporation' },
   [FEATURE_KEYS.JOB_MATCHING]: { label: 'Criador de Vagas', minPlan: 'business' },
   [FEATURE_KEYS.ADVANCED_COMPARISON]: { label: 'Comparação Avançada', minPlan: 'professional' },
   [FEATURE_KEYS.PREMIUM_REPORTS]: { label: 'Relatórios Premium', minPlan: 'professional' },
   [FEATURE_KEYS.REPORT_PDF]: { label: 'Exportação PDF', minPlan: 'professional' },
-  [FEATURE_KEYS.BEHAVIOR_ANALYTICS]: { label: 'Analytics Comportamental', minPlan: 'business' },
-  [FEATURE_KEYS.BENCHMARK]: { label: 'Benchmark Organizacional', minPlan: 'business' },
+  [FEATURE_KEYS.BEHAVIOR_ANALYTICS]: { label: 'Analytics Comportamental', minPlan: 'corporation' },
+  [FEATURE_KEYS.BENCHMARK]: { label: 'Benchmark Organizacional', minPlan: 'corporation' },
   [FEATURE_KEYS.HISTORY_EVOLUTION]: { label: 'Histórico Comportamental', minPlan: 'personal' },
-  [FEATURE_KEYS.ORGANIZATIONAL_REPORT]: { label: 'Relatório Executivo', minPlan: 'business' },
+  [FEATURE_KEYS.ORGANIZATIONAL_REPORT]: { label: 'Relatório Executivo', minPlan: 'corporation' },
+  // V3.0 — novas features
+  rh_gestao: { label: 'RH & Gestão de Pessoas', minPlan: 'corporation' },
+  users: { label: 'Usuários', minPlan: 'corporation' },
+  analytics: { label: 'Analytics', minPlan: 'corporation' },
+  white_label: { label: 'White Label', minPlan: 'corporation' },
+  consultorio: { label: 'Consultório & Ferramentas', minPlan: 'diamond_consulting' },
+  estrategia_executiva: { label: 'Estratégia Executiva', minPlan: 'diamond_consulting' },
 });
 
 function hasPermissionByFeature(access, feature) {

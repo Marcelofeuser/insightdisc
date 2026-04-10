@@ -145,7 +145,7 @@ export default function Login() {
             email: normalizedEmail,
             role: 'user',
             lifecycle_status: 'registered_no_purchase',
-            plan: 'free',
+            plan: 'personal',
           };
         } else if (normalizedEmail === 'superadmin@example.com') {
           mockUser = {
@@ -154,7 +154,7 @@ export default function Login() {
             role: 'SUPER_ADMIN',
             global_role: 'SUPER_ADMIN',
             lifecycle_status: 'super_admin',
-            plan: 'enterprise',
+            plan: 'business',
           };
         } else {
           mockUser = {
@@ -162,7 +162,7 @@ export default function Login() {
             email: normalizedEmail,
             role: 'professional',
             lifecycle_status: 'customer_active',
-            plan: 'premium',
+            plan: 'professional',
             has_paid_purchase: true,
             credits: 100,
           };

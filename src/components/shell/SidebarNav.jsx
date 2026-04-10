@@ -1,5 +1,14 @@
+/**
+ * SidebarNav.jsx
+ *
+ * V3.0: Suporte a itens locked (cadeado, visual apagado, tooltip de upgrade).
+ * Items com locked: true são renderizados de forma diferenciada mas ainda clicáveis
+ * — levam para a página de upgrade/placeholder da feature.
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 
 function normalizePath(value = '') {
   const path = String(value || '').trim();
@@ -9,6 +18,9 @@ function normalizePath(value = '') {
 }
 
 function isItemActive(item, currentPageName, currentPath, activeItemKey) {
+  // Itens locked nunca ficam ativos
+  if (item?.locked) return false;
+
   if (typeof item?.activeMatch === 'function') {
     return Boolean(item.activeMatch({ item, currentPageName, currentPath, activeItemKey }));
   }
@@ -22,6 +34,14 @@ function isItemActive(item, currentPageName, currentPath, activeItemKey) {
   return false;
 }
 
+function LockedBadge() {
+  return (
+    <span className="ml-auto inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200/80 text-slate-400 flex-shrink-0">
+      <Lock className="h-2.5 w-2.5" />
+    </span>
+  );
+}
+
 export default function SidebarNav({ items = [], currentPageName, currentPath, onItemClick }) {
   const normalizedItems = (Array.isArray(items) ? items : []).map((item, index) => ({
     ...item,
@@ -30,6 +50,7 @@ export default function SidebarNav({ items = [], currentPageName, currentPath, o
   }));
 
   const firstPathMatch = normalizedItems.find((item) => {
+    if (item?.locked) return false;
     const itemPath = normalizePath(item.to || '/');
     const pagePath = normalizePath(currentPath || '/');
     return itemPath === pagePath;
@@ -54,6 +75,30 @@ export default function SidebarNav({ items = [], currentPageName, currentPath, o
 
           {sectionItems.map((item) => {
             const active = isItemActive(item, currentPageName, currentPath, firstPathMatch?.key);
+            const isLocked = Boolean(item.locked);
+
+            if (isLocked) {
+              return (
+                <Link
+                  key={item.key}
+                  to={item.to}
+                  onClick={onItemClick}
+                  title={item.upgradeLabel || 'Disponível em planos superiores'}
+                  className="group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition-all opacity-50 hover:opacity-70 cursor-pointer"
+                >
+                  <span
+                    className="absolute left-1 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-transparent"
+                    aria-hidden="true"
+                  />
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-400 transition flex-shrink-0">
+                    <item.icon className="h-4 w-4" />
+                  </span>
+                  <span className="font-medium text-slate-500 truncate">{item.label}</span>
+                  <LockedBadge />
+                </Link>
+              );
+            }
+
             return (
               <Link
                 key={item.key}
@@ -72,7 +117,7 @@ export default function SidebarNav({ items = [], currentPageName, currentPath, o
                   aria-hidden="true"
                 />
                 <span
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition flex-shrink-0 ${
                     active
                       ? 'bg-white text-indigo-700'
                       : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-700'
@@ -80,7 +125,6 @@ export default function SidebarNav({ items = [], currentPageName, currentPath, o
                 >
                   <item.icon className="h-4 w-4" />
                 </span>
-
                 <span className={active ? 'font-semibold' : 'font-medium'}>{item.label}</span>
               </Link>
             );

@@ -1542,52 +1542,77 @@ export default function Dossier() {
                   <CardTitle className="text-base">Identificação</CardTitle>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-3">
-                  <Input
-                    value={anamnesisForm.fullName}
-                    onChange={(event) => handleAnamnesisChange('fullName', event.target.value)}
-                    placeholder="Nome completo"
-                  />
-                  <Input
-                    type="date"
-                    value={anamnesisForm.birthDate}
-                    onChange={(event) => handleAnamnesisChange('birthDate', event.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    max={120}
-                    value={anamnesisForm.age}
-                    onChange={(event) => handleAnamnesisChange('age', event.target.value)}
-                    placeholder="Idade"
-                  />
-                  <Input
-                    value={anamnesisForm.sex}
-                    onChange={(event) => handleAnamnesisChange('sex', event.target.value)}
-                    placeholder="Sexo"
-                  />
-                  <Input
-                    value={anamnesisForm.maritalStatus}
-                    onChange={(event) =>
-                      handleAnamnesisChange('maritalStatus', event.target.value)
-                    }
-                    placeholder="Estado civil"
-                  />
-                  <Input
-                    value={anamnesisForm.profession}
-                    onChange={(event) => handleAnamnesisChange('profession', event.target.value)}
-                    placeholder="Profissão"
-                  />
-                  <Input
-                    value={anamnesisForm.education}
-                    onChange={(event) => handleAnamnesisChange('education', event.target.value)}
-                    placeholder="Escolaridade"
-                  />
-                  <Input
-                    value={anamnesisForm.city}
-                    onChange={(event) => handleAnamnesisChange('city', event.target.value)}
-                    placeholder="Cidade"
-                  />
-                  <div className="md:col-span-2">
+                  <div className="space-y-1">
+                    <Label>Nome completo</Label>
+                    <Input
+                      value={anamnesisForm.fullName}
+                      onChange={(event) => handleAnamnesisChange('fullName', event.target.value)}
+                      placeholder="Nome completo"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Data de nascimento</Label>
+                    <Input
+                      type="date"
+                      value={anamnesisForm.birthDate}
+                      onChange={(event) => handleAnamnesisChange('birthDate', event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Idade</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={120}
+                      value={anamnesisForm.age}
+                      onChange={(event) => handleAnamnesisChange('age', event.target.value)}
+                      placeholder="Idade"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Sexo</Label>
+                    <Input
+                      value={anamnesisForm.sex}
+                      onChange={(event) => handleAnamnesisChange('sex', event.target.value)}
+                      placeholder="Sexo"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Estado civil</Label>
+                    <Input
+                      value={anamnesisForm.maritalStatus}
+                      onChange={(event) =>
+                        handleAnamnesisChange('maritalStatus', event.target.value)
+                      }
+                      placeholder="Estado civil"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Profissão</Label>
+                    <Input
+                      value={anamnesisForm.profession}
+                      onChange={(event) => handleAnamnesisChange('profession', event.target.value)}
+                      placeholder="Profissão"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Escolaridade</Label>
+                    <Input
+                      value={anamnesisForm.education}
+                      onChange={(event) => handleAnamnesisChange('education', event.target.value)}
+                      placeholder="Escolaridade"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Cidade</Label>
+                    <Input
+                      value={anamnesisForm.city}
+                      onChange={(event) => handleAnamnesisChange('city', event.target.value)}
+                      placeholder="Cidade"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <Label>Endereço</Label>
                     <Input
                       value={anamnesisForm.address}
                       onChange={(event) => handleAnamnesisChange('address', event.target.value)}
@@ -1602,33 +1627,46 @@ export default function Dossier() {
                   <CardTitle className="text-base">Família</CardTitle>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-3">
-                  <Input
-                    value={anamnesisForm.spouseName}
-                    onChange={(event) => handleAnamnesisChange('spouseName', event.target.value)}
-                    placeholder="Nome do cônjuge"
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    max={120}
-                    value={anamnesisForm.spouseAge}
-                    onChange={(event) => handleAnamnesisChange('spouseAge', event.target.value)}
-                    placeholder="Idade do cônjuge"
-                  />
-                  <Input
-                    value={anamnesisForm.hasChildren}
-                    onChange={(event) => handleAnamnesisChange('hasChildren', event.target.value)}
-                    placeholder="Tem filhos? (sim/não)"
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={anamnesisForm.childrenCount}
-                    onChange={(event) => handleAnamnesisChange('childrenCount', event.target.value)}
-                    placeholder="Quantidade de filhos"
-                  />
-                  <div className="md:col-span-2">
+                  <div className="space-y-1">
+                    <Label>Nome do cônjuge</Label>
+                    <Input
+                      value={anamnesisForm.spouseName}
+                      onChange={(event) => handleAnamnesisChange('spouseName', event.target.value)}
+                      placeholder="Nome do cônjuge"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Idade do cônjuge</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={120}
+                      value={anamnesisForm.spouseAge}
+                      onChange={(event) => handleAnamnesisChange('spouseAge', event.target.value)}
+                      placeholder="Idade do cônjuge"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Tem filhos?</Label>
+                    <Input
+                      value={anamnesisForm.hasChildren}
+                      onChange={(event) => handleAnamnesisChange('hasChildren', event.target.value)}
+                      placeholder="sim / não"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Quantidade de filhos</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={anamnesisForm.childrenCount}
+                      onChange={(event) => handleAnamnesisChange('childrenCount', event.target.value)}
+                      placeholder="Quantidade de filhos"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <Label>Informações dos filhos</Label>
                     <Textarea
                       rows={3}
                       value={anamnesisForm.childrenInfo}
@@ -1717,22 +1755,28 @@ export default function Dossier() {
                   <CardTitle className="text-base">Histórico de saúde</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Textarea
-                    rows={3}
-                    value={anamnesisForm.healthConditions}
-                    onChange={(event) =>
-                      handleAnamnesisChange('healthConditions', event.target.value)
-                    }
-                    placeholder="Condições de saúde"
-                  />
-                  <Textarea
-                    rows={3}
-                    value={anamnesisForm.familyHealthHistory}
-                    onChange={(event) =>
-                      handleAnamnesisChange('familyHealthHistory', event.target.value)
-                    }
-                    placeholder="Histórico familiar de doenças"
-                  />
+                  <div className="space-y-1">
+                    <Label>Condições de saúde</Label>
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.healthConditions}
+                      onChange={(event) =>
+                        handleAnamnesisChange('healthConditions', event.target.value)
+                      }
+                      placeholder="Condições de saúde"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Histórico familiar de doenças</Label>
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.familyHealthHistory}
+                      onChange={(event) =>
+                        handleAnamnesisChange('familyHealthHistory', event.target.value)
+                      }
+                      placeholder="Histórico familiar de doenças"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1741,14 +1785,17 @@ export default function Dossier() {
                   <CardTitle className="text-base">Histórico psicológico</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    rows={4}
-                    value={anamnesisForm.psychologicalHistory}
-                    onChange={(event) =>
-                      handleAnamnesisChange('psychologicalHistory', event.target.value)
-                    }
-                    placeholder="Já fez terapia? Diagnósticos anteriores?"
-                  />
+                  <div className="space-y-1">
+                    <Label>Histórico psicológico</Label>
+                    <Textarea
+                      rows={4}
+                      value={anamnesisForm.psychologicalHistory}
+                      onChange={(event) =>
+                        handleAnamnesisChange('psychologicalHistory', event.target.value)
+                      }
+                      placeholder="Já fez terapia? Diagnósticos anteriores?"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1757,20 +1804,26 @@ export default function Dossier() {
                   <CardTitle className="text-base">Motivo da avaliação</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Textarea
-                    rows={3}
-                    value={anamnesisForm.evaluationReason}
-                    onChange={(event) =>
-                      handleAnamnesisChange('evaluationReason', event.target.value)
-                    }
-                    placeholder="Motivo principal"
-                  />
-                  <Textarea
-                    rows={3}
-                    value={anamnesisForm.mainComplaint}
-                    onChange={(event) => handleAnamnesisChange('mainComplaint', event.target.value)}
-                    placeholder="Queixa principal"
-                  />
+                  <div className="space-y-1">
+                    <Label>Motivo principal</Label>
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.evaluationReason}
+                      onChange={(event) =>
+                        handleAnamnesisChange('evaluationReason', event.target.value)
+                      }
+                      placeholder="Motivo principal"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Queixa principal</Label>
+                    <Textarea
+                      rows={3}
+                      value={anamnesisForm.mainComplaint}
+                      onChange={(event) => handleAnamnesisChange('mainComplaint', event.target.value)}
+                      placeholder="Queixa principal"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1779,14 +1832,17 @@ export default function Dossier() {
                   <CardTitle className="text-base">Observações do profissional</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    rows={7}
-                    value={anamnesisForm.professionalNotes}
-                    onChange={(event) =>
-                      handleAnamnesisChange('professionalNotes', event.target.value)
-                    }
-                    placeholder="Campo livre para observações relevantes."
-                  />
+                  <div className="space-y-1">
+                    <Label>Observações</Label>
+                    <Textarea
+                      rows={7}
+                      value={anamnesisForm.professionalNotes}
+                      onChange={(event) =>
+                        handleAnamnesisChange('professionalNotes', event.target.value)
+                      }
+                      placeholder="Campo livre para observações relevantes."
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </>

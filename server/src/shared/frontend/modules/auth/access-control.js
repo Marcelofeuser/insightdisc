@@ -89,7 +89,17 @@ export function deriveUserLifecycle(user = {}) {
     toNumber(user.credits) ||
     toNumber(user.credits_balance) ||
     toNumber(user.creditsBalance);
-  const hasPremiumPlan = ['premium', 'pro', 'enterprise'].includes(
+  const hasPremiumPlan = [
+    'premium',
+    'pro',
+    'professional',
+    'business',
+    'enterprise',
+    'corporation',
+    'diamond',
+    'business_corporation',
+    'diamond_consulting',
+  ].includes(
     String(user.plan || user.workspace_plan || user.subscription_plan || '')
       .trim()
       .toLowerCase()
@@ -240,7 +250,15 @@ export function showUpgradeModal(message = 'Recurso premium') {
   );
 }
 
-const DOSSIER_PREMIUM_PLANS = new Set(['professional', 'business', 'enterprise']);
+const DOSSIER_PREMIUM_PLANS = new Set([
+  'professional',
+  'business',
+  'enterprise',
+  'corporation',
+  'diamond',
+  'business_corporation',
+  'diamond_consulting',
+]);
 
 export function canAccessDossier(access, { notify = false } = {}) {
   if (isSuperAdminAccess(access)) {

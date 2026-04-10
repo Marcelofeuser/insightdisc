@@ -14,6 +14,10 @@ const PLAN_ALIASES = Object.freeze({
   professional: PLANS.PROFESSIONAL,
   business: PLANS.BUSINESS,
   enterprise: PLANS.BUSINESS,
+  diamond: PLANS.BUSINESS,
+  business_corporation: PLANS.BUSINESS,
+  corporation: PLANS.BUSINESS,
+  diamond_consulting: PLANS.BUSINESS,
 });
 
 export const PLAN_META = Object.freeze({

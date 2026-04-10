@@ -145,7 +145,6 @@ export function createApp() {
     '/webhooks/stripe',
     stripeWebhookRawParser,
     (_req, _res, next) => {
-      // eslint-disable-next-line no-console
       console.log('[STRIPE WEBHOOK] event recebido');
       next();
     },
@@ -276,7 +275,6 @@ export function createApp() {
       });
     }
 
-    // eslint-disable-next-line no-console
     console.error('[app/error]', {
       message: sanitizeLogText(error?.message || error),
       code: sanitizeLogText(error?.code || 'INTERNAL_ERROR', 64),

@@ -1,12 +1,36 @@
+/**
+ * roleNavigationConfig.js — Construção da navegação lateral por role/plano
+ *
+ * V3.0: Quando V3_FLAGS.PLAN_DIFFERENTIATION está ativo, a navegação é construída
+ * a partir de dashboardConfigByPlan (com estados enabled/locked) em vez de
+ * deduzida a partir de capabilities.
+ *
+ * O sistema V2 permanece intacto como fallback.
+ */
+
 import {
+  BarChart3,
+  BookMarked,
   BookOpen,
+  BrainCircuit,
   Briefcase,
   Building2,
+  ClipboardList,
+  Clock,
+  FileBarChart2,
+  FileDown,
   LayoutDashboard,
   Megaphone,
+  MessageCircle,
+  Network,
+  Palette,
   Radar,
   Sparkles,
+  Stethoscope,
+  TrendingUp,
+  UserCog,
   Users,
+  Users2,
 } from 'lucide-react';
 import {
   GLOBAL_ROLES,
@@ -23,8 +47,46 @@ import {
   hasFeatureAccessByPlan,
 } from '@/modules/billing/planGuard';
 import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
+import { V3_FLAGS, v3ResolvePlanFromAccess } from '@/modules/billing/v3Config';
+import { getTabsForPlan, TAB_STATE } from '@/modules/billing/dashboardConfigByPlan';
 import { DOSSIER_BASE_PATH } from '@/modules/dossier/routes';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
+
+// ---------------------------------------------------------------------------
+// Mapa de ícones (iconKey → componente Lucide)
+// ---------------------------------------------------------------------------
+const ICON_MAP = {
+  LayoutDashboard,
+  FileBarChart2,
+  FileDown,
+  ClipboardList,
+  Clock,
+  BookOpen,
+  Radar,
+  BookMarked,
+  Sparkles,
+  MessageCircle,
+  BrainCircuit,
+  Network,
+  Users2,
+  UserCog,
+  BarChart3,
+  Palette,
+  Stethoscope,
+  TrendingUp,
+  Briefcase,
+  Building2,
+  Users,
+  Megaphone,
+};
+
+function resolveIcon(iconKey) {
+  return ICON_MAP[iconKey] || LayoutDashboard;
+}
+
+// ---------------------------------------------------------------------------
+// V2 helpers (mantidos intactos)
+// ---------------------------------------------------------------------------
 
 function makeItem(icon, label, page, to, section = 'Principal', options = {}) {
   return { icon, label, page, to, section, ...options };
@@ -75,13 +137,9 @@ function buildBusinessNavigation(capabilities) {
     makeItem(LayoutDashboard, 'Dashboard Business', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
-          activeMatch: ({ currentPageName, currentPath }) => {
-            // CRITICAL FIX: Only match if onMyAssessments AND NO #reports hash
-            return (
-              currentPageName === 'MyAssessments' &&
-              !String(currentPath || '').includes('#reports')
-            );
-          },
+          activeMatch: ({ currentPageName, currentPath }) =>
+            currentPageName === 'MyAssessments' &&
+            !String(currentPath || '').includes('#reports'),
         })
       : null,
     capabilities.canUseTeamMapByPlan
@@ -92,13 +150,9 @@ function buildBusinessNavigation(capabilities) {
       : null,
     capabilities.canViewAssessments
       ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Resultado', {
-          activeMatch: ({ currentPageName, currentPath }) => {
-            // CRITICAL FIX: Only match if onMyAssessments AND #reports hash is present
-            return (
-              currentPageName === 'MyAssessments' &&
-              String(currentPath || '').includes('#reports')
-            );
-          },
+          activeMatch: ({ currentPageName, currentPath }) =>
+            currentPageName === 'MyAssessments' &&
+            String(currentPath || '').includes('#reports'),
         })
       : null,
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
@@ -136,13 +190,9 @@ function buildProfessionalNavigation(capabilities) {
     makeItem(LayoutDashboard, 'Dashboard Profissional', 'Dashboard', '/painel', 'Visão Geral'),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
-          activeMatch: ({ currentPageName, currentPath }) => {
-            // CRITICAL FIX: Only match if on MyAssessments AND NO #reports hash
-            return (
-              currentPageName === 'MyAssessments' &&
-              !String(currentPath || '').includes('#reports')
-            );
-          },
+          activeMatch: ({ currentPageName, currentPath }) =>
+            currentPageName === 'MyAssessments' &&
+            !String(currentPath || '').includes('#reports'),
         })
       : null,
     capabilities.canManageAssessments
@@ -153,13 +203,9 @@ function buildProfessionalNavigation(capabilities) {
       : null,
     capabilities.canViewAssessments
       ? makeItem(Briefcase, 'Relatórios', 'MyAssessments', '/MyAssessments#reports', 'Resultado', {
-          activeMatch: ({ currentPageName, currentPath }) => {
-            // CRITICAL FIX: Only match if on MyAssessments AND #reports hash is present
-            return (
-              currentPageName === 'MyAssessments' &&
-              String(currentPath || '').includes('#reports')
-            );
-          },
+          activeMatch: ({ currentPageName, currentPath }) =>
+            currentPageName === 'MyAssessments' &&
+            String(currentPath || '').includes('#reports'),
         })
       : null,
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
@@ -206,7 +252,70 @@ function buildPersonalNavigation(capabilities) {
   ].filter(Boolean);
 }
 
+// ---------------------------------------------------------------------------
+// V3.0 — Navegação por plano com itens locked
+// ---------------------------------------------------------------------------
+
+/**
+ * Constrói navegação V3.0 com base no plano real do usuário.
+ * Itens com state === 'locked' aparecem no menu com visual bloqueado.
+ */
+function buildV3Navigation(access) {
+  const plan = v3ResolvePlanFromAccess(access);
+  const tabs = getTabsForPlan(plan);
+  const canAccessSuperAdminConsole = hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]);
+
+  const items = tabs.map(({ tab, state }) => {
+    const icon = resolveIcon(tab.iconKey);
+    const isLocked = state === TAB_STATE.LOCKED;
+
+    return {
+      icon,
+      label: tab.label,
+      page: tab.page,
+      to: isLocked ? `/painel/upgrade?feature=${tab.key}` : tab.to,
+      section: tab.section,
+      locked: isLocked,
+      upgradeLabel: tab.upgradeLabel,
+      // activeMatch padrão para relatórios e avaliações
+      ...(tab.key === 'reports'
+        ? {
+            activeMatch: ({ currentPageName, currentPath }) =>
+              currentPageName === 'MyAssessments' &&
+              String(currentPath || '').includes('#reports'),
+          }
+        : {}),
+      ...(tab.key === 'assessments'
+        ? {
+            activeMatch: ({ currentPageName, currentPath }) =>
+              currentPageName === 'MyAssessments' &&
+              !String(currentPath || '').includes('#reports'),
+          }
+        : {}),
+    };
+  });
+
+  if (canAccessSuperAdminConsole) {
+    items.push(
+      makeItem(Megaphone, 'Campanhas', 'SuperAdminDashboard', '/super-admin#campaigns', 'Plataforma')
+    );
+    items.push(makeItem(Building2, 'Super Admin', 'SuperAdminDashboard', '/super-admin', 'Plataforma'));
+  }
+
+  return items;
+}
+
+// ---------------------------------------------------------------------------
+// Exports públicos
+// ---------------------------------------------------------------------------
+
 export function buildRoleNavigation(access, options = {}) {
+  // V3.0: usa navegação por plano quando flag ativo
+  if (V3_FLAGS.PLAN_DIFFERENTIATION) {
+    return buildV3Navigation(access);
+  }
+
+  // V2 legado — mantido intacto
   const capabilities = resolveCapabilities(access);
   const requestedMode = normalizePanelMode(options?.panelMode);
   const autoMode = resolveAutoPanelMode(access);

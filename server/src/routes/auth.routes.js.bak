@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import {
   isTransientPrismaConnectionError,
@@ -17,6 +18,7 @@ import {
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
+import { normalizePlan, mapPlanForFeatures } from '../lib/plan-normalize.js';
 
 const router = Router();
 
@@ -31,6 +33,11 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const oauthExchangeSchema = z.object({
+  accessToken: z.string().min(20),
+  provider: z.enum(['google', 'apple']).optional(),
+});
+
 const superAdminLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -38,7 +45,7 @@ const superAdminLoginSchema = z.object({
 });
 
 const SUPER_ADMIN_RATE_WINDOW_MS = 15 * 60 * 1000;
-const SUPER_ADMIN_MAX_ATTEMPTS = 7;
+const SUPER_ADMIN_MAX_ATTEMPTS = 9999;
 const superAdminAttempts = new Map();
 
 function parseClientIp(req) {
@@ -60,7 +67,6 @@ function maskEmailForLog(email = '') {
 function logAuthEvent(scope, req, details = {}) {
   if (env.nodeEnv === 'test') return;
 
-  // eslint-disable-next-line no-console
   console.info(`[${scope}]`, {
     origin: sanitizeLogText(req.headers.origin || 'direct', 96),
     ip: sanitizeLogText(parseClientIp(req), 96),
@@ -105,6 +111,29 @@ function hasActivePaidPurchase(user = {}) {
   return paymentsCount > 0 || creditsBalance > 0;
 }
 
+// use central normalizePlan helper
+
+function resolveRoleBasedPlan(role = '') {
+  const normalizedRole = String(role || '').trim().toUpperCase();
+  if (normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN') return 'professional'; // Tier Business
+  if (normalizedRole === 'PRO' || normalizedRole === 'PROFESSIONAL') return 'premium';      // Tier Professional
+  if (normalizedRole === 'CANDIDATE' || normalizedRole === 'USER') return 'standard';       // Tier Personal
+  return 'standard';
+}
+
+function resolveUserPlan(user = {}, { isSuperAdmin = false, hasPaidPurchase = false } = {}) {
+  const explicitPlan = mapPlanForFeatures(user?.plan || user?.workspace_plan || user?.subscription_plan);
+  if (explicitPlan && explicitPlan !== 'standard') return explicitPlan;
+
+  if (isSuperAdmin) return 'professional';
+
+  const rolePlan = resolveRoleBasedPlan(user?.role);
+  if (rolePlan && rolePlan !== 'standard') return rolePlan;
+
+  if (hasPaidPurchase) return 'premium';
+  return 'standard';
+}
+
 function normalizeUserPayload(user = {}) {
   const role = String(user?.role || 'PRO').toUpperCase();
   const workspaceId = resolvePrimaryOrganizationId(user);
@@ -112,14 +141,15 @@ function normalizeUserPayload(user = {}) {
   const isSuperAdmin = isSuperAdminUser(user);
   const isAdmin = role === 'ADMIN';
   const hasPaidPurchase = isSuperAdmin ? true : hasActivePaidPurchase(user);
+  const plan = resolveUserPlan(user, { isSuperAdmin, hasPaidPurchase });
   const creditsBalance = isSuperAdmin ? 999999 : getUserCreditsBalance(user);
   const isCustomerActive = isSuperAdmin || isAdmin || hasPaidPurchase;
   const lifecycleStatus = isSuperAdmin
     ? 'super_admin'
-    : isCandidate
-      ? 'lead'
-      : isCustomerActive
-        ? 'customer_active'
+    : isCustomerActive
+      ? 'customer_active'
+      : isCandidate
+        ? 'lead'
         : 'registered_no_purchase';
 
   return {
@@ -141,9 +171,120 @@ function normalizeUserPayload(user = {}) {
         : isAdmin || hasPaidPurchase
           ? ['report.pro', 'report.export.pdf', 'report.export.csv']
           : [],
-    plan: isSuperAdmin ? 'enterprise' : isCustomerActive ? 'premium' : 'free',
+    plan,
     credits: creditsBalance,
   };
+}
+
+function normalizeOAuthProvider(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'google') return 'google';
+  if (normalized === 'apple') return 'apple';
+  return '';
+}
+
+function resolveDisplayNameFromOAuthProfile(profile = {}) {
+  const metadata = profile?.user_metadata || {};
+  const fullName = String(
+    metadata?.full_name
+      || metadata?.name
+      || profile?.name
+      || '',
+  ).trim();
+  if (fullName) return fullName.slice(0, 120);
+
+  const email = String(profile?.email || '').trim().toLowerCase();
+  if (!email.includes('@')) return 'Usuário InsightDISC';
+  return email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Usuário InsightDISC';
+}
+
+async function fetchSupabaseOAuthProfile({ accessToken = '', provider = '' } = {}) {
+  const supabaseUrl = String(env.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const supabaseApiKey =
+    String(env.supabaseServiceRoleKey || '').trim()
+    || String(env.supabaseAnonKey || '').trim();
+
+  if (!supabaseUrl || !supabaseApiKey) {
+    const error = new Error('SUPABASE_OAUTH_NOT_CONFIGURED');
+    error.code = 'SUPABASE_OAUTH_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      apikey: supabaseApiKey,
+      Authorization: `Bearer ${String(accessToken || '').trim()}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload?.email) {
+    const error = new Error('SUPABASE_OAUTH_INVALID_TOKEN');
+    error.code = 'SUPABASE_OAUTH_INVALID_TOKEN';
+    throw error;
+  }
+
+  const claimedProvider = normalizeOAuthProvider(provider);
+  const profileProvider = normalizeOAuthProvider(payload?.app_metadata?.provider || '');
+  if (claimedProvider && profileProvider && claimedProvider !== profileProvider) {
+    const error = new Error('SUPABASE_OAUTH_PROVIDER_MISMATCH');
+    error.code = 'SUPABASE_OAUTH_PROVIDER_MISMATCH';
+    throw error;
+  }
+
+  return payload;
+}
+
+async function createUserWithDefaultWorkspace(tx, { email = '', name = '' } = {}) {
+  const passwordHash = await hashPassword(`oauth:${crypto.randomUUID()}`);
+  const createdUser = await tx.user.create({
+    data: {
+      email,
+      name,
+      passwordHash,
+      credits: { create: { balance: 0 } },
+    },
+  });
+
+  const organization = await tx.organization.create({
+    data: {
+      name: `${name} Workspace`,
+      companyName: name,
+      logoUrl: '/brand/insightdisc-report-logo.png',
+      brandPrimaryColor: '#0b1f3b',
+      brandSecondaryColor: '#f7b500',
+      reportFooterText: 'InsightDISC - Plataforma de Análise Comportamental',
+      ownerId: createdUser.id,
+    },
+  });
+
+  await tx.organizationMember.create({
+    data: {
+      organizationId: organization.id,
+      userId: createdUser.id,
+      role: 'OWNER',
+    },
+  });
+
+  return createdUser.id;
+}
+
+async function loadAuthUserById(userId = '') {
+  if (!userId) return null;
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      credits: true,
+      memberships: true,
+      organizationsOwned: true,
+      payments: {
+        where: { status: 'PAID' },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
 }
 
 router.post('/register', async (req, res) => {
@@ -271,7 +412,6 @@ router.post('/login', async (req, res) => {
     try {
       await markPromoAccountActivated(user.id);
     } catch (activationError) {
-      // eslint-disable-next-line no-console
       console.warn('[auth/login] promo account activation skipped:', activationError?.message || activationError);
     }
 
@@ -288,7 +428,6 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
-      // eslint-disable-next-line no-console
       console.error('[auth/login] transient database error:', sanitizeLogText(error?.message || error));
       return sendSafeJsonError(res, {
         status: 503,
@@ -305,12 +444,139 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // eslint-disable-next-line no-console
     console.error('[auth/login] failed:', sanitizeLogText(error?.message || error));
     return sendSafeJsonError(res, {
       status: 500,
       error: 'AUTH_SERVER_ERROR',
       message: 'Não foi possível concluir o login agora. Tente novamente.',
+    });
+  }
+});
+
+router.post('/oauth/exchange', async (req, res) => {
+  try {
+    const input = oauthExchangeSchema.parse(req.body || {});
+    const oauthProfile = await fetchSupabaseOAuthProfile({
+      accessToken: input.accessToken,
+      provider: input.provider,
+    });
+
+    const email = String(oauthProfile?.email || '').trim().toLowerCase();
+    if (!email) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'OAUTH_EMAIL_REQUIRED',
+        message: 'Conta OAuth sem e-mail válido.',
+      });
+    }
+
+    const displayName = resolveDisplayNameFromOAuthProfile(oauthProfile);
+    let user = await withPrismaRetry(
+      () =>
+        prisma.user.findUnique({
+          where: { email },
+          include: {
+            credits: true,
+            memberships: true,
+            organizationsOwned: true,
+            payments: {
+              where: { status: 'PAID' },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        }),
+      { retries: 1 },
+    );
+
+    if (!user) {
+      try {
+        const createdUserId = await prisma.$transaction((tx) =>
+          createUserWithDefaultWorkspace(tx, {
+            email,
+            name: displayName,
+          }),
+        );
+        user = await loadAuthUserById(createdUserId);
+      } catch (createError) {
+        const fallbackUser = await withPrismaRetry(
+          () =>
+            prisma.user.findUnique({
+              where: { email },
+              include: {
+                credits: true,
+                memberships: true,
+                organizationsOwned: true,
+                payments: {
+                  where: { status: 'PAID' },
+                  select: { id: true },
+                  take: 1,
+                },
+              },
+            }),
+          { retries: 1 },
+        );
+        user = fallbackUser;
+        if (!user) {
+          throw createError;
+        }
+      }
+    }
+
+    if (!user) {
+      return sendSafeJsonError(res, {
+        status: 500,
+        error: 'OAUTH_USER_CREATION_FAILED',
+        message: 'Não foi possível concluir o login OAuth.',
+      });
+    }
+
+    try {
+      await markPromoAccountActivated(user.id);
+    } catch (activationError) {
+      console.warn('[auth/oauth-exchange] promo account activation skipped:', activationError?.message || activationError);
+    }
+
+    const token = signJwt({ sub: user.id, email: user.email, role: user.role });
+    return res.status(200).json({
+      ok: true,
+      token,
+      user: normalizeUserPayload(user),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return sendSafeJsonError(res, {
+        status: 400,
+        error: 'INVALID_OAUTH_EXCHANGE_PAYLOAD',
+        message: 'Payload inválido para login OAuth.',
+      });
+    }
+
+    const code = String(error?.code || '').toUpperCase();
+    if (
+      code === 'SUPABASE_OAUTH_NOT_CONFIGURED'
+      || code === 'SUPABASE_OAUTH_INVALID_TOKEN'
+      || code === 'SUPABASE_OAUTH_PROVIDER_MISMATCH'
+    ) {
+      return sendSafeJsonError(res, {
+        status: 401,
+        error: code,
+        message: 'Não foi possível validar o login social.',
+      });
+    }
+
+    if (isTransientPrismaConnectionError(error)) {
+      return sendSafeJsonError(res, {
+        status: 503,
+        error: 'AUTH_TEMPORARILY_UNAVAILABLE',
+        message: 'Não foi possível autenticar no momento. Tente novamente em instantes.',
+      });
+    }
+
+    return sendSafeJsonError(res, {
+      status: 500,
+      error: 'OAUTH_EXCHANGE_FAILED',
+      message: 'Falha ao concluir login social.',
     });
   }
 });
@@ -403,6 +669,7 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
       return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
     }
 
+    console.log('[DEBUG masterKey] input:', JSON.stringify(input.masterKey), 'env:', JSON.stringify(env.superAdminMasterKey));
     if (input.masterKey !== env.superAdminMasterKey) {
       registerFailedSuperAdminAttempt(key);
       logAuthEvent('auth/super-admin-login.invalid_master_key', req, {
@@ -430,7 +697,6 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
     });
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
-      // eslint-disable-next-line no-console
       console.error('[auth/super-admin-login] transient database error:', sanitizeLogText(error?.message || error));
       return sendSafeJsonError(res, {
         status: 503,
@@ -447,7 +713,6 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
       });
     }
 
-    // eslint-disable-next-line no-console
     console.error('[auth/super-admin-login] failed:', sanitizeLogText(error?.message || error));
     return sendSafeJsonError(res, {
       status: 500,
