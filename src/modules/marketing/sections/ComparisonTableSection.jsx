@@ -2,8 +2,16 @@ import React from 'react';
 import SectionShell from './SectionShell';
 
 export default function ComparisonTableSection({ title, rows }) {
-  const isPlanComparison = Array.isArray(rows) && rows.length > 0 && Object.prototype.hasOwnProperty.call(rows[0], 'personal');
-  const resolveCellTone = (value) => (value === '✓' ? 'text-green-400 font-bold' : 'text-slate-500');
+  const isPlanComparison =
+    Array.isArray(rows) &&
+    rows.length > 0 &&
+    Object.prototype.hasOwnProperty.call(rows[0], 'disc');
+
+  const resolveCellTone = (value) => {
+    if (value === '✓') return 'text-green-400 font-bold';
+    if (value === 'Opcional') return 'text-amber-300 font-semibold';
+    return 'text-slate-500';
+  };
 
   return (
     <SectionShell
@@ -11,7 +19,7 @@ export default function ComparisonTableSection({ title, rows }) {
       title={title}
       description={
         isPlanComparison
-          ? 'Veja exatamente o que você ganha em cada plano.'
+          ? 'Compare recursos, escala e diferenciais de cada plano.'
           : 'Entenda de forma objetiva como a plataforma amplia o valor do DISC em relacao a uma leitura simples.'
       }
       centered
@@ -20,24 +28,32 @@ export default function ComparisonTableSection({ title, rows }) {
       {isPlanComparison ? (
         <div className="scroll-reveal overflow-x-auto">
           <div className="overflow-x-auto">
-            <table className="comparison-table w-full min-w-[980px] text-left">
+            <table className="comparison-table w-full min-w-[1680px] text-left">
               <thead className="border-b border-white/10">
                 <tr>
                   <th className="p-5 font-semibold text-slate-300">Recurso</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">DISC Individual</th>
                   <th className="p-5 text-center font-semibold text-slate-300">Personal</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">Insider</th>
                   <th className="featured-col p-5 text-center font-semibold text-blue-300">Professional</th>
                   <th className="p-5 text-center font-semibold text-slate-300">Business</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">Business Corporation</th>
+                  <th className="p-5 text-center font-semibold text-slate-300">Diamond Consulting</th>
                 </tr>
               </thead>
               <tbody className="text-sm md:text-base">
                 {rows.map((row) => (
                   <tr key={row.metric} className="transition-colors hover:bg-white/5">
                     <td className="p-5 text-slate-300">{row.metric}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.disc)}`}>{row.disc}</td>
                     <td className={`p-5 text-center ${resolveCellTone(row.personal)}`}>{row.personal}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.insider)}`}>{row.insider}</td>
                     <td className={`featured-col p-5 text-center ${resolveCellTone(row.professional)}`}>
                       {row.professional}
                     </td>
                     <td className={`p-5 text-center ${resolveCellTone(row.business)}`}>{row.business}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.corporation)}`}>{row.corporation}</td>
+                    <td className={`p-5 text-center ${resolveCellTone(row.diamond)}`}>{row.diamond}</td>
                   </tr>
                 ))}
               </tbody>
