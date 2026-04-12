@@ -11,12 +11,13 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push --accept-data-loss",
+    "prisma:push": "prisma db push",
     "seed:super-admin": "node scripts/seed-super-admin.js",
     "create:super-admin": "node scripts/create-super-admin.js",
     "check:business-pdf": "node scripts/check-business-pdf-layout.mjs",
     "check:personal-pdf": "node scripts/check-personal-pdf-layout.mjs",
-    "check:professional-pdf": "node scripts/check-professional-pdf-layout.mjs"
+    "check:professional-pdf": "node scripts/check-professional-pdf-layout.mjs",
+    "prisma:pull": "prisma db pull"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",

@@ -12,8 +12,6 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
-  BrainCircuit,
-  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardList,

@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  url = env("DIRECT_URL")
+  
 }
 
 model User {
@@ -16,9 +16,9 @@ model User {
   role                        UserRole                     @default(PRO)
   createdAt                   DateTime                     @default(now()) @map("created_at")
   plan                        BillingPlan                  @default(PERSONAL)
-  subscriptionStatus          SubscriptionStatus?          @map("subscription_status")
   stripeCustomerId            String?                      @map("stripe_customer_id")
   stripeSubscriptionId        String?                      @map("stripe_subscription_id")
+  subscriptionStatus          SubscriptionStatus?          @map("subscription_status")
   whiteLabelEnabled           Boolean                      @default(false) @map("white_label_enabled")
   candidateAssessments        Assessment[]                 @relation("AssessmentCandidate")
   assessmentsCreated          Assessment[]                 @relation("AssessmentCreator")
@@ -192,30 +192,25 @@ model Response {
 }
 
 model Report {
-  id           String  @id @default(cuid())
-  assessmentId String  @unique @map("assessment_id")
-  discProfile  Json    @map("disc_profile")
-  pdfUrl       String? @map("pdf_url")
-
-  reportType      String @default("business") @map("report_type")
-  templateVersion String @default("v1") @map("template_version")
-  status          String @default("pending")
-
-  storagePath     String? @map("storage_path")
-  fileName        String? @map("file_name")
-  mimeType        String? @default("application/pdf") @map("mime_type")
-  fileSizeBytes   Int?    @map("file_size_bytes")
-  checksumSha256  String? @map("checksum_sha256")
-  publicTokenHash String? @map("public_token_hash")
-
-  generatedAt  DateTime? @map("generated_at")
-  failedAt     DateTime? @map("failed_at")
-  errorMessage String?   @map("error_message") @db.Text
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  id              String     @id @default(cuid())
+  assessmentId    String     @unique @map("assessment_id")
+  discProfile     Json       @map("disc_profile")
+  pdfUrl          String?    @map("pdf_url")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  checksumSha256  String?    @map("checksum_sha256")
+  errorMessage    String?    @map("error_message")
+  failedAt        DateTime?  @map("failed_at")
+  fileName        String?    @map("file_name")
+  fileSizeBytes   Int?       @map("file_size_bytes")
+  generatedAt     DateTime?  @map("generated_at")
+  mimeType        String?    @default("application/pdf") @map("mime_type")
+  publicTokenHash String?    @map("public_token_hash")
+  reportType      String     @default("business") @map("report_type")
+  status          String     @default("pending")
+  storagePath     String?    @map("storage_path")
+  templateVersion String     @default("v1") @map("template_version")
+  updatedAt       DateTime   @default(now()) @updatedAt @map("updated_at")
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([reportType])
@@ -574,8 +569,8 @@ enum BillingPlan {
   PERSONAL
   PROFESSIONAL
   BUSINESS
-  CORPORATION
   DIAMOND
+  CORPORATION
 }
 
 enum SubscriptionStatus {

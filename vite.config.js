@@ -14,9 +14,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
+        // Preserve the `/api` prefix. In production the app uses `/api/*` routes
+        // (Vercel functions) and in local dev we want `/api/report/pdf` to map
+        // to the backend route without rewriting the path.
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       }
     }
   }

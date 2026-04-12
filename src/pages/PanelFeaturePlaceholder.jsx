@@ -18,16 +18,11 @@
 import React from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
-  BarChart3,
-  BookOpen,
   Brain,
-  Building2,
   ClipboardList,
   Lock,
-  Sparkles,
   Stethoscope,
   TrendingUp,
-  Users,
   UserCog,
   Users2,
   Zap,

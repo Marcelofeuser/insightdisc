@@ -61,9 +61,9 @@ const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
   business: Object.freeze([
     PRODUCT_FEATURES.AI_LAB,
     PRODUCT_FEATURES.COACH,
+    PRODUCT_FEATURES.TEAM_MAP,
     PRODUCT_FEATURES.JOBS,
     PRODUCT_FEATURES.INSIGHTS,
-    // teamMap fica bloqueado para business no V3 — só libera no corporation
   ]),
   // V3.0 — corporation e diamond_consulting como tiers próprios
   corporation: Object.freeze([
@@ -99,8 +99,7 @@ const FEATURE_ALIASES = Object.freeze({
 const FEATURE_META = Object.freeze({
   [FEATURE_KEYS.AI_LAB]: { label: 'AI Lab', minPlan: 'professional' },
   [FEATURE_KEYS.COACH]: { label: 'Coach', minPlan: 'professional' },
-  // V3.0: Team Map agora requer corporation (não mais business)
-  [FEATURE_KEYS.TEAM_MAP]: { label: 'Team Map', minPlan: 'corporation' },
+  [FEATURE_KEYS.TEAM_MAP]: { label: 'Team Map', minPlan: 'business' },
   [FEATURE_KEYS.JOB_MATCHING]: { label: 'Criador de Vagas', minPlan: 'business' },
   [FEATURE_KEYS.ADVANCED_COMPARISON]: { label: 'Comparação Avançada', minPlan: 'professional' },
   [FEATURE_KEYS.PREMIUM_REPORTS]: { label: 'Relatórios Premium', minPlan: 'professional' },
