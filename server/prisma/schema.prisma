@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url = env("DIRECT_URL")
+  url = env("DATABASE_URL")
   
 }
 
@@ -600,4 +600,14 @@ enum PromoAccountStatus {
   ACTIVATED
   EXPORTED
   DISABLED
+}
+
+
+model SynapsysLog {
+  id        String   @id @default(cuid())
+  input     String
+  output    String
+  source    String
+  mode      String
+  createdAt DateTime @default(now())
 }
