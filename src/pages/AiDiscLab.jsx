@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, FileText, Loader2 } from 'lucide-react';
-import { apiRequest, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
+import { getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
+import { analyzeWithSynapsys } from '@/lib/synapsysApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,64 @@ function buildReportUrl(form) {
   });
 }
 
+function toText(value) {
+  return String(value || '').trim();
+}
+
+function extractHighlightLines(text = '', maxItems = 8) {
+  const bulletLines = String(text || '')
+    .split('\n')
+    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .filter(Boolean)
+    .filter((line) => line.length > 18);
+
+  if (bulletLines.length) {
+    return [...new Set(bulletLines)].slice(0, maxItems);
+  }
+
+  return String(text || '')
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function buildAiDiscLabInput(form) {
+  return [
+    'Objetivo: gerar uma leitura DISC com insights aplicados para preview do InsightDISC.',
+    '',
+    `Modo do relatório: ${toText(form.mode)}`,
+    `Nome: ${toText(form.nome)}`,
+    `Cargo: ${toText(form.cargo) || 'Não informado'}`,
+    `Empresa: ${toText(form.empresa) || 'Não informada'}`,
+    `Pontuações DISC: D ${Number(form.D) || 0}% | I ${Number(form.I) || 0}% | S ${Number(form.S) || 0}% | C ${Number(form.C) || 0}%`,
+    '',
+    'Instruções:',
+    '- Responda em português do Brasil.',
+    '- Traga uma síntese prática do perfil.',
+    '- Destaque pontos fortes, riscos de atenção e sugestões de desenvolvimento.',
+    '- Considere o contexto profissional informado.',
+  ].join('\n');
+}
+
+function normalizeAiDiscLabResult(payload) {
+  const responseText = toText(payload?.response);
+  const highlights = extractHighlightLines(responseText, 8);
+
+  return {
+    provider: toText(payload?.provider || 'synapsys'),
+    source: toText(payload?.source || 'synapsys'),
+    usedFallback: false,
+    mode: toText(payload?.mode || 'builder'),
+    raw: payload?.raw || null,
+    content: {
+      summary: responseText,
+      strengths: highlights.slice(0, 4),
+      developmentRecommendations: highlights.slice(4, 8),
+    },
+  };
+}
+
 export default function AiDiscLab() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
@@ -57,11 +116,11 @@ export default function AiDiscLab() {
     setError('');
 
     try {
-      const payload = await apiRequest('/ai/report-preview', {
-        method: 'POST',
-        body: form,
+      const payload = await analyzeWithSynapsys({
+        mode: 'builder',
+        input: buildAiDiscLabInput(form),
       });
-      setResult(payload);
+      setResult(normalizeAiDiscLabResult(payload));
     } catch (requestError) {
       setError(requestError?.message || 'Falha ao gerar insights com IA.');
       setResult(null);
@@ -238,7 +297,7 @@ export default function AiDiscLab() {
               <CardContent>
                 <Textarea
                   readOnly
-                  value={result ? JSON.stringify(result, null, 2) : ''}
+                  value={result ? JSON.stringify(result.raw || result, null, 2) : ''}
                   className="min-h-[380px] border-slate-800 bg-slate-950/90 font-mono text-xs text-cyan-100"
                 />
               </CardContent>

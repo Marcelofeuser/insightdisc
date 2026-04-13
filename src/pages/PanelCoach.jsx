@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
+import { analyzeWithSynapsys } from '@/lib/synapsysApi';
 import { useAuth } from '@/lib/AuthContext';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelState from '@/components/ui/PanelState';
@@ -139,7 +140,7 @@ function buildHistoryEntry(payload, prompt) {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     question: prompt,
-    answer: toText(payload?.answer),
+    answer: toText(payload?.answer || payload?.response),
     source: toText(payload?.source),
     provider: toText(payload?.provider),
     model: toText(payload?.model),
@@ -147,6 +148,50 @@ function buildHistoryEntry(payload, prompt) {
     supporting: payload?.supporting || null,
     createdAt: new Date().toISOString(),
   };
+}
+
+function formatContextList(title, items = []) {
+  const rows = Array.isArray(items) ? items.map((item) => toText(item)).filter(Boolean) : [];
+  if (!rows.length) return '';
+
+  return `${title}:\n${rows.map((item) => `- ${item}`).join('\n')}`;
+}
+
+function buildCoachSynapsysInput({ context, segment, prompt }) {
+  const segmentLabel = COACH_SEGMENTS.find((item) => item.value === segment)?.label || segment;
+
+  return [
+    'Objetivo: responder uma pergunta de coach comportamental com base em um relatório DISC real.',
+    '',
+    'Pergunta do usuário:',
+    prompt,
+    '',
+    `Segmento de análise: ${segmentLabel}`,
+    '',
+    'Contexto do participante:',
+    `Nome: ${toText(context?.respondentName) || 'Participante'}`,
+    `E-mail: ${toText(context?.candidateEmail) || 'Não informado'}`,
+    `Tipo de relatório: ${formatReportTypeLabel(context?.reportType)}`,
+    `Perfil DISC: ${toText(context?.profileCode) || 'Não informado'}`,
+    `Fator dominante: ${toText(context?.dominantFactor) || 'Não informado'}`,
+    `Fator secundário: ${toText(context?.secondaryFactor) || 'Não informado'}`,
+    `Pontuações DISC: D ${context?.scores?.D ?? 0}% | I ${context?.scores?.I ?? 0}% | S ${context?.scores?.S ?? 0}% | C ${context?.scores?.C ?? 0}%`,
+    '',
+    toText(context?.summary) ? `Resumo comportamental:\n${toText(context.summary)}` : '',
+    formatContextList('Pontos fortes', context?.strengths),
+    formatContextList('Limitações', context?.limitations),
+    toText(context?.riskProfile) ? `Perfil de risco:\n${toText(context.riskProfile)}` : '',
+    formatContextList('Sinais de risco', context?.riskSignals),
+    formatContextList('Recomendações de desenvolvimento', context?.developmentRecommendations),
+    '',
+    'Instruções para a resposta:',
+    '- Responda em português do Brasil.',
+    '- Seja objetivo, prático e acionável.',
+    '- Considere apenas o contexto informado.',
+    '- Organize a resposta com orientação aplicada à situação descrita.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export default function PanelCoach() {
@@ -228,38 +273,13 @@ export default function PanelCoach() {
     setErrorMessage('');
 
     try {
-      const payload = await apiRequest('/ai/coach', {
-        method: 'POST',
-        requireAuth: true,
-        body: {
-          mode: selectedContext.reportType,
+      const payload = await analyzeWithSynapsys({
+        mode: 'architect',
+        input: buildCoachSynapsysInput({
+          context: selectedContext,
           segment: selectedSegment,
-          nome: selectedContext.respondentName,
-          cargo: '',
-          empresa: '',
-          D: selectedContext.scores.D,
-          I: selectedContext.scores.I,
-          S: selectedContext.scores.S,
-          C: selectedContext.scores.C,
-          question: prompt,
-          context: {
-            reportId: selectedContext.reportId,
-            assessmentId: selectedContext.assessmentId,
-            reportType: selectedContext.reportType,
-            profileCode: selectedContext.profileCode,
-            dominantFactor: selectedContext.dominantFactor,
-            secondaryFactor: selectedContext.secondaryFactor,
-            respondentName: selectedContext.respondentName,
-            candidateEmail: selectedContext.candidateEmail,
-            completedAt: selectedContext.completedAt,
-            summary: selectedContext.summary,
-            strengths: selectedContext.strengths,
-            limitations: selectedContext.limitations,
-            riskProfile: selectedContext.riskProfile,
-            riskSignals: selectedContext.riskSignals,
-            developmentRecommendations: selectedContext.developmentRecommendations,
-          },
-        },
+          prompt,
+        }),
       });
 
       const entry = buildHistoryEntry(payload, prompt);
