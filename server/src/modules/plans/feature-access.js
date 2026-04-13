@@ -1,5 +1,7 @@
 const PLAN_ORDER = Object.freeze([
+  'disc_individual',
   'personal',
+  'insider',
   'professional',
   'business',
   'corporation',
@@ -7,17 +9,29 @@ const PLAN_ORDER = Object.freeze([
 ]);
 
 const LEGACY_PLAN_ALIASES = Object.freeze({
+  // disc_individual
+  disc: 'disc_individual',
+  disc_individual: 'disc_individual',
+  'disc-individual': 'disc_individual',
+
+  // personal
   free: 'personal',
   standard: 'personal',
   starter: 'personal',
   personal: 'personal',
 
+  // insider
+  insider: 'insider',
+
+  // professional
   premium: 'professional',
   pro: 'professional',
   professional: 'professional',
 
+  // business
   business: 'business',
 
+  // corporation
   enterprise: 'corporation',
   corporation: 'corporation',
   corp: 'corporation',
@@ -25,29 +39,148 @@ const LEGACY_PLAN_ALIASES = Object.freeze({
   businesscorporation: 'corporation',
   'business-corporation': 'corporation',
 
+  // diamond
   diamond: 'diamond_consulting',
   diamondconsulting: 'diamond_consulting',
   diamond_consulting: 'diamond_consulting',
   'diamond-consulting': 'diamond_consulting',
 });
 
+// Créditos mensais por plano
+export const PLAN_CREDITS = Object.freeze({
+  disc_individual: 1,
+  personal: null,       // uso individual sem créditos
+  insider: null,        // uso individual avançado sem créditos
+  professional: 10,
+  business: 25,
+  corporation: Infinity,
+  diamond_consulting: Infinity,
+});
+
+// Recorrência por plano
+export const PLAN_RECURRENCE = Object.freeze({
+  disc_individual: 'one_time',
+  personal: 'monthly',
+  insider: 'monthly',
+  professional: 'monthly',
+  business: 'monthly',
+  corporation: 'monthly',
+  diamond_consulting: 'monthly',
+});
+
+// Matriz oficial de features por plano
 export const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
-  personal: Object.freeze(['report_view', 'report_download', 'basic_dashboard']),
-  professional: Object.freeze(['report_view', 'report_download', 'basic_dashboard', 'ai_lab', 'coach']),
-  business: Object.freeze([
-    'report_view',
-    'report_download',
-    'basic_dashboard',
+  disc_individual: Object.freeze([
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+  ]),
+  personal: Object.freeze([
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'history_tracking',
+    'operational_history',
+  ]),
+  insider: Object.freeze([
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'profile_comparison',
+    'ai_insights',
+    'advanced_reports',
+    'archetype_reading',
+    'archetype_evolution',
+    'history_tracking',
+    'operational_history',
+    // painel
     'ai_lab',
     'coach',
+  ]),
+  professional: Object.freeze([
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'profile_comparison',
+    'ai_insights',
+    'advanced_reports',
+    'archetype_reading',
+    'archetype_evolution',
+    'history_tracking',
+    'operational_history',
+    'dossier_completo',
+    'credit_system',
+    // painel
+    'ai_lab',
+    'coach',
+  ]),
+  business: Object.freeze([
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'profile_comparison',
+    'ai_insights',
+    'advanced_reports',
+    'archetype_reading',
+    'archetype_evolution',
+    'history_tracking',
+    'operational_history',
+    'dossier_completo',
+    'credit_system',
     'team_map',
+    'team_analysis',
+    'employee_comparison',
+    'leadership_support',
+    'strategic_team_view',
+    'internal_process_application',
+    'hr_structure',
+    'multi_user_management',
+    // painel
+    'ai_lab',
+    'coach',
     'jobs',
     'insights',
   ]),
   corporation: Object.freeze([
-    'report_view',
-    'report_download',
-    'basic_dashboard',
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'profile_comparison',
+    'ai_insights',
+    'advanced_reports',
+    'archetype_reading',
+    'archetype_evolution',
+    'history_tracking',
+    'operational_history',
+    'dossier_completo',
+    'credit_system',
+    'team_map',
+    'team_analysis',
+    'employee_comparison',
+    'leadership_support',
+    'strategic_team_view',
+    'internal_process_application',
+    'hr_structure',
+    'multi_user_management',
+    'scale_operation',
+    'unlimited_usage',
+    'white_label',
+    // painel
     'ai_lab',
     'coach',
     'team_map',
@@ -57,9 +190,35 @@ export const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
     'advanced_analytics',
   ]),
   diamond_consulting: Object.freeze([
-    'report_view',
-    'report_download',
-    'basic_dashboard',
+    'disc_individual',
+    'pdf_download',
+    'export_pdf_professional',
+    'continuous_profile_tracking',
+    'disc_management',
+    'development_guidance',
+    'profile_comparison',
+    'ai_insights',
+    'advanced_reports',
+    'archetype_reading',
+    'archetype_evolution',
+    'history_tracking',
+    'operational_history',
+    'dossier_completo',
+    'credit_system',
+    'team_map',
+    'team_analysis',
+    'employee_comparison',
+    'leadership_support',
+    'strategic_team_view',
+    'internal_process_application',
+    'hr_structure',
+    'multi_user_management',
+    'scale_operation',
+    'unlimited_usage',
+    'white_label',
+    'specialist_support_psychoanalyst',
+    'executive_feedback',
+    // painel
     'ai_lab',
     'coach',
     'team_map',
@@ -67,7 +226,6 @@ export const PLAN_FEATURE_ACCESS_MAP = Object.freeze({
     'insights',
     'api_access',
     'advanced_analytics',
-    'white_label',
     'consulting_suite',
   ]),
 });
@@ -160,7 +318,7 @@ export function resolveUserPlan(user = {}) {
 
   const explicitPlan = normalizePlan(rawExplicitPlan);
 
-  // REGRA 1: plano explícito sempre vence (inclusive personal)
+  // REGRA 1: plano explícito sempre vence
   if (explicitPlan) {
     return mapPlanForFeatures(explicitPlan);
   }
@@ -192,20 +350,9 @@ export function resolveFeatureMinimumPlan(feature = '') {
 
   if (!normalizedFeature) return 'personal';
 
-  if (['ai_lab', 'coach'].includes(normalizedFeature)) {
-    return 'professional';
-  }
-
-  if (['team_map', 'jobs', 'insights'].includes(normalizedFeature)) {
-    return 'business';
-  }
-
-  if (['api_access', 'advanced_analytics'].includes(normalizedFeature)) {
-    return 'corporation';
-  }
-
-  if (['white_label', 'consulting_suite'].includes(normalizedFeature)) {
-    return 'diamond_consulting';
+  for (const plan of PLAN_ORDER) {
+    const features = PLAN_FEATURE_ACCESS_MAP[plan] || [];
+    if (features.includes(normalizedFeature)) return plan;
   }
 
   return 'personal';
@@ -213,8 +360,8 @@ export function resolveFeatureMinimumPlan(feature = '') {
 
 export function hasFeatureAccess(plan = 'personal', feature = '') {
   const currentPlan = mapPlanForFeatures(plan);
-  const minimumPlan = resolveFeatureMinimumPlan(feature);
-  return isPlanAtLeast(currentPlan, minimumPlan);
+  const features = PLAN_FEATURE_ACCESS_MAP[currentPlan] || [];
+  return features.includes(feature);
 }
 
 export function hasUserFeatureAccess(user = {}, feature = '') {
