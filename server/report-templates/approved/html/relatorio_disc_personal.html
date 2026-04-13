@@ -379,6 +379,62 @@ p{font-size:13px;line-height:1.6;color:var(--t2);}
 }
 
 </style>
+
+<style id="ajuste-leve-paginas-7-8">
+
+@media print {
+  #sg-radar .slide-content,
+  #sg-bars .slide-content {
+    display: grid !important;
+    grid-template-columns: 55% 45% !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  #sg-radar .slide-content > div:first-child,
+  #sg-bars .slide-content > div:first-child {
+    position: relative !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+  }
+
+  #sg-radar .slide-content > div:first-child > *,
+  #sg-bars .slide-content > div:first-child > * {
+    transform: scale(0.96) !important;
+    transform-origin: center left !important;
+    max-width: 100% !important;
+  }
+
+  #sg-radar .slide-content > div:last-child,
+  #sg-bars .slide-content > div:last-child {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  #sg-radar .slide-content > div:last-child p,
+  #sg-bars .slide-content > div:last-child p,
+  #sg-radar .slide-content > div:last-child li,
+  #sg-bars .slide-content > div:last-child li,
+  #sg-radar .slide-content > div:last-child div,
+  #sg-bars .slide-content > div:last-child div {
+    font-size: 12px !important;
+    line-height: 1.28 !important;
+  }
+
+  #sg-radar h2, #sg-bars h2,
+  #sg-radar h3, #sg-bars h3 {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+    margin-bottom: 6px !important;
+  }
+
+  #sg-radar [style*="padding:20px"],
+  #sg-bars [style*="padding:20px"] {
+    padding: 12px 14px !important;
+  }
+}
+
+</style>
 </head>
 <body>
 

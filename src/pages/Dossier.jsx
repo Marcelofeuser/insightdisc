@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { apiRequest, getApiBaseUrl } from '@/lib/apiClient';
 import { usePremium } from '@/modules/billing/usePremium';
 import { canAccessDossier, isSuperAdminAccess } from '@/modules/auth/access-control';
+import { buildAssessmentReportPath } from '@/modules/reports';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1239,15 +1240,29 @@ export default function Dossier() {
                   {assessmentsHistory.map((item, index) => (
                     <div key={String(item?.id || index)} className="rounded-xl border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="font-medium text-slate-900">
-                          {item?.candidateName || candidate?.name || 'Avaliado'}
+                        <div>
+                          <div className="font-medium text-slate-900">
+                            {item?.candidateName || candidate?.name || 'Avaliado'}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Criada em {formatDateTime(item?.createdAt)}
+                            {item?.completedAt ? ` • Concluída em ${formatDateTime(item?.completedAt)}` : ''}
+                          </p>
                         </div>
-                        <Badge variant="outline">{toUpperProfile(item?.profileKey)}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{toUpperProfile(item?.profileKey)}</Badge>
+                          {item?.id ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(buildAssessmentReportPath(item.id))}
+                            >
+                              Abrir relatório
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Criada em {formatDateTime(item?.createdAt)}
-                        {item?.completedAt ? ` • Concluída em ${formatDateTime(item?.completedAt)}` : ''}
-                      </p>
                     </div>
                   ))}
                 </div>

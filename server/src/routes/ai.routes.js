@@ -6,6 +6,7 @@ import { sendSafeJsonError } from '../lib/http-security.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
 import { generateAiDiscContent } from '../modules/ai/ai-report.service.js';
+import { listConfiguredAiProviders } from '../modules/ai/provider.js';
 import {
   isAiApiUrlConfigured,
   requestCoach,
@@ -14,6 +15,7 @@ import {
 } from '../modules/ai/ai-http-client.js';
 import { parseProviderJsonSafely } from '../modules/ai/json-utils.js';
 import { generateWithGroq } from '../modules/ai/groq-provider.js';
+import { generateWithGemini } from '../modules/ai/gemini-provider.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { buildCoachReportContext } from '../shared/frontend/modules/coach/reportContext.js';
 import {
@@ -124,9 +126,128 @@ function toText(value) {
   return String(value || '').trim();
 }
 
+const LOCAL_PROMPT_PROVIDER_RUNNERS = {
+  groq: generateWithGroq,
+  gemini: generateWithGemini,
+};
+
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function resolvePromptProviderModel(providerName = '') {
+  const normalized = toText(providerName).toLowerCase();
+  if (normalized === 'groq') return toText(env.groqModel) || 'unknown';
+  if (normalized === 'gemini') return toText(env.geminiModel) || 'unknown';
+  if (normalized === 'ai_api_url' || normalized === 'ai_http') return 'ai_api_url';
+  return 'unknown';
+}
+
+function buildLocalPromptProviderNames() {
+  return [
+    ...new Set(
+      [
+        env.aiProvider,
+        env.aiFallback1,
+        env.aiFallback2,
+        ...listConfiguredAiProviders(),
+      ]
+        .map((value) => toText(value).toLowerCase())
+        .filter(
+          (name) =>
+            name &&
+            name !== 'ai_api_url' &&
+            name !== 'ai_http' &&
+            typeof LOCAL_PROMPT_PROVIDER_RUNNERS[name] === 'function',
+        ),
+    ),
+  ];
+}
+
+function hasProviderContentPayload(result) {
+  return Boolean(
+    (typeof result?.text === 'string' && result.text.trim()) ||
+      (result?.content && typeof result.content === 'object' && !Array.isArray(result.content)),
+  );
+}
+
+function sanitizePromptAttemptError(error) {
+  return toText(error?.message || error?.code || error).slice(0, 280) || 'AI_PROVIDER_FAILED';
+}
+
+async function resolvePromptProviderResult({
+  aiRequest,
+  httpRequest,
+  terminalResponseKey = '',
+}) {
+  const attempts = [];
+
+  if (typeof httpRequest === 'function') {
+    try {
+      if (!isAiApiUrlConfigured()) {
+        throw new Error('AI_API_URL_NOT_CONFIGURED');
+      }
+
+      const providerResult = await httpRequest(aiRequest);
+      if (providerResult?.ok === true && terminalResponseKey && providerResult?.[terminalResponseKey]) {
+        return {
+          providerResult,
+          providerSource: 'ai_api_url',
+          attempts,
+          terminalResponse: providerResult,
+        };
+      }
+
+      if (!hasProviderContentPayload(providerResult)) {
+        throw new Error('AI_HTTP_INVALID_RESPONSE');
+      }
+
+      return {
+        providerResult,
+        providerSource: 'ai_api_url',
+        attempts,
+        terminalResponse: null,
+      };
+    } catch (error) {
+      attempts.push({
+        provider: 'ai_api_url',
+        model: resolvePromptProviderModel('ai_api_url'),
+        status: 'error',
+        error: sanitizePromptAttemptError(error),
+      });
+    }
+  }
+
+  const providerNames = buildLocalPromptProviderNames();
+  if (!providerNames.length) {
+    const unavailableError = new Error('AI_PROVIDER_UNAVAILABLE');
+    unavailableError.code = 'AI_PROVIDER_UNAVAILABLE';
+    throw unavailableError;
+  }
+
+  let lastError = null;
+  for (const providerName of providerNames) {
+    try {
+      const providerResult = await LOCAL_PROMPT_PROVIDER_RUNNERS[providerName](aiRequest);
+      return {
+        providerResult,
+        providerSource: providerName,
+        attempts,
+        terminalResponse: null,
+      };
+    } catch (error) {
+      lastError = error;
+      attempts.push({
+        provider: providerName,
+        model: resolvePromptProviderModel(providerName),
+        status: 'error',
+        error: sanitizePromptAttemptError(error),
+      });
+    }
+  }
+
+  throw lastError || new Error('AI_PROVIDER_UNAVAILABLE');
 }
 
 function normalizeList(value = [], maxItems = 6) {
@@ -895,34 +1016,23 @@ router.post('/report-preview', requireAiAccess, async (req, res) => {
       logLabel: `report_preview:${normalizedSegment}`,
     };
 
-    let providerResult = null;
-    let providerSource = 'ai_api_url';
+    const {
+      providerResult,
+      providerSource,
+      attempts,
+      terminalResponse,
+    } = await resolvePromptProviderResult({
+      aiRequest,
+      httpRequest: requestReportPreview,
+      terminalResponseKey: 'preview',
+    });
 
-    try {
-      if (!isAiApiUrlConfigured()) {
-        throw new Error('AI_API_URL_NOT_CONFIGURED');
-      }
-      providerResult = await requestReportPreview(aiRequest);
-      if (providerResult?.ok === true && providerResult?.preview) {
-        return res.status(200).json(providerResult);
-      }
-      if (
-        !(
-          (typeof providerResult?.text === 'string' && providerResult.text.trim()) ||
-          (providerResult?.content && typeof providerResult.content === 'object')
-        )
-      ) {
-        throw new Error('AI_HTTP_INVALID_RESPONSE');
-      }
-    } catch (httpError) {
-      providerSource = 'groq';
-      providerResult = await generateWithGroq(aiRequest);
+    if (terminalResponse) {
+      return res.status(200).json(terminalResponse);
     }
 
-    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
-    const providerModel =
-      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
-      'unknown';
+    const providerName = toText(providerResult?.provider || providerSource) || 'ai_api_url';
+    const providerModel = toText(providerResult?.model || resolvePromptProviderModel(providerSource)) || 'unknown';
     const parsedContent =
       providerResult?.content && typeof providerResult.content === 'object'
         ? providerResult.content
@@ -938,8 +1048,9 @@ router.post('/report-preview', requireAiAccess, async (req, res) => {
       model: providerModel,
       source: providerSource,
       segment: normalizedSegment,
-      usedFallback: false,
+      usedFallback: providerSource !== 'ai_api_url',
       attempts: [
+        ...attempts,
         {
           provider: providerName,
           model: providerModel,
@@ -1071,34 +1182,23 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
       logLabel: `strategic:${moduleKey}:${segment}`,
     };
 
-    let providerResult = null;
-    let providerSource = 'ai_api_url';
+    const {
+      providerResult,
+      providerSource,
+      attempts,
+      terminalResponse,
+    } = await resolvePromptProviderResult({
+      aiRequest,
+      httpRequest: requestStrategicInsights,
+      terminalResponseKey: 'data',
+    });
 
-    try {
-      if (!isAiApiUrlConfigured()) {
-        throw new Error('AI_API_URL_NOT_CONFIGURED');
-      }
-      providerResult = await requestStrategicInsights(aiRequest);
-      if (providerResult?.ok === true && providerResult?.data) {
-        return res.status(200).json(providerResult);
-      }
-      if (
-        !(
-          (typeof providerResult?.text === 'string' && providerResult.text.trim()) ||
-          (providerResult?.content && typeof providerResult.content === 'object')
-        )
-      ) {
-        throw new Error('AI_HTTP_INVALID_RESPONSE');
-      }
-    } catch (httpError) {
-      providerSource = 'groq';
-      providerResult = await generateWithGroq(aiRequest);
+    if (terminalResponse) {
+      return res.status(200).json(terminalResponse);
     }
 
-    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
-    const providerModel =
-      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
-      'unknown';
+    const providerName = toText(providerResult?.provider || providerSource) || 'ai_api_url';
+    const providerModel = toText(providerResult?.model || resolvePromptProviderModel(providerSource)) || 'unknown';
     const parsed = providerResult?.content && typeof providerResult.content === 'object'
       ? providerResult.content
       : parseProviderJsonSafely(toText(providerResult?.text), {
@@ -1120,7 +1220,7 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
       provider: providerName,
       model: providerModel,
       source: providerSource,
-      usedFallback: false,
+      usedFallback: providerSource !== 'ai_api_url',
       module: moduleKey,
       segment,
       durationMs: Date.now() - startedAt,
@@ -1148,6 +1248,7 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
           : null,
       },
       attempts: [
+        ...attempts,
         {
           provider: providerName,
           model: providerModel,
@@ -1225,36 +1326,30 @@ async function handleCoachRequest(req, res) {
       logLabel: `coach:${segment}`,
     };
 
-    let providerResult = null;
-    let providerSource = 'ai_api_url';
+    const {
+      providerResult,
+      providerSource,
+      attempts,
+      terminalResponse,
+    } = await resolvePromptProviderResult({
+      aiRequest,
+      httpRequest: requestCoach,
+      terminalResponseKey: 'answer',
+    });
 
-    try {
-      if (!isAiApiUrlConfigured()) {
-        throw new Error('AI_API_URL_NOT_CONFIGURED');
-      }
-      providerResult = await requestCoach(aiRequest);
-      if (providerResult?.ok === true && providerResult?.answer) {
-        return res.status(200).json(providerResult);
-      }
-      if (!(typeof providerResult?.text === 'string' && providerResult.text.trim())) {
-        throw new Error('AI_HTTP_INVALID_RESPONSE');
-      }
-    } catch (httpError) {
-      providerSource = 'groq';
-      providerResult = await generateWithGroq(aiRequest);
+    if (terminalResponse) {
+      return res.status(200).json(terminalResponse);
     }
 
-    const providerName = toText(providerResult?.provider || (providerSource === 'groq' ? 'groq' : 'ai_api_url')) || 'ai_api_url';
-    const providerModel =
-      toText(providerResult?.model || (providerSource === 'groq' ? env.groqModel : env.geminiModel)) ||
-      'unknown';
+    const providerName = toText(providerResult?.provider || providerSource) || 'ai_api_url';
+    const providerModel = toText(providerResult?.model || resolvePromptProviderModel(providerSource)) || 'unknown';
 
     return res.status(200).json({
       ok: true,
       provider: providerName,
       model: providerModel,
       source: providerSource,
-      usedFallback: false,
+      usedFallback: providerSource !== 'ai_api_url',
       segment,
       question: input.question,
       answer: toText(providerResult?.text),
@@ -1283,6 +1378,7 @@ async function handleCoachRequest(req, res) {
         developmentRecommendations: context.developmentRecommendations,
       },
       attempts: [
+        ...attempts,
         {
           provider: providerName,
           model: providerModel,

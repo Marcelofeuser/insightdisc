@@ -36,6 +36,26 @@ const PROVIDERS = {
   },
 };
 
+function isProviderConfigured(providerName = '') {
+  const normalized = String(providerName || '')
+    .trim()
+    .toLowerCase();
+
+  if (normalized === 'ai_api_url' || normalized === 'ai_http') {
+    return Boolean(env.aiApiUrl);
+  }
+
+  if (normalized === 'groq') {
+    return Boolean(env.groqApiKey);
+  }
+
+  if (normalized === 'gemini') {
+    return Boolean(env.geminiApiKey);
+  }
+
+  return false;
+}
+
 export function resolveAiProvider(providerName = env.aiProvider) {
   const normalized = String(providerName || '')
     .trim()
@@ -52,7 +72,12 @@ export function resolveAiProvider(providerName = env.aiProvider) {
 export function buildAiProviderChain(
   providerNames = [env.aiProvider].filter(Boolean),
 ) {
-  const uniqueNames = [...new Set(providerNames.map((value) => String(value || '').trim().toLowerCase()))];
+  const uniqueNames = [
+    ...new Set([
+      ...providerNames,
+      ...Object.keys(PROVIDERS).filter((name) => name !== 'ai_api_url' && isProviderConfigured(name)),
+    ].map((value) => String(value || '').trim().toLowerCase())),
+  ];
 
   return uniqueNames
     .filter((name) => name && name !== 'deterministic_engine')
@@ -71,4 +96,8 @@ export function buildAiProviderChain(
 
 export function listAiProviders() {
   return Object.keys(PROVIDERS);
+}
+
+export function listConfiguredAiProviders() {
+  return Object.keys(PROVIDERS).filter((name) => isProviderConfigured(name));
 }
