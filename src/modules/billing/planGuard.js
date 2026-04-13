@@ -172,3 +172,12 @@ export function hasFeatureAccess(access = {}, feature = '', options = {}) {
   }
   return evaluateFeatureAccess(access, feature, options).allowed;
 }
+
+// Alias de compatibilidade para imports existentes
+export const PRODUCT_FEATURES = Object.freeze({
+  AI_LAB: 'ai_lab',
+  COACH: 'coach',
+  TEAM_MAP: 'team_map',
+  JOBS: 'jobs',
+  INSIGHTS: 'insights',
+});
