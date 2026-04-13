@@ -179,6 +179,146 @@ test('processStripeWebhookEvent ativa plano e identidade no evento de subscripti
   }
 });
 
+test('processStripeWebhookEvent remove acesso premium quando a assinatura é cancelada', async () => {
+  process.env.STRIPE_PRICE_BUSINESS_CORPORATION = 'price_corporation_unit';
+
+  const eventStore = new Map();
+  const stripeWebhookEventMocks = createStripeWebhookMocks(eventStore);
+  const originalStripeWebhookEventDelegate = prisma.stripeWebhookEvent;
+  const originalBillingSubscriptionDelegate = prisma.billingSubscription;
+  const originalTransaction = prisma.$transaction;
+
+  const userUpdates = [];
+  const subscriptionUpdates = [];
+
+  prisma.stripeWebhookEvent = {
+    ...originalStripeWebhookEventDelegate,
+    ...stripeWebhookEventMocks,
+  };
+  prisma.billingSubscription = {
+    ...originalBillingSubscriptionDelegate,
+    findUnique: async () => ({
+      stripeSubscriptionId: 'sub_unit_deleted',
+      userId: 'user_unit_deleted',
+      stripeCustomerId: 'cus_unit_deleted',
+      stripePriceId: 'price_corporation_unit',
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+    }),
+  };
+  prisma.$transaction = async (callback) => {
+    const tx = {
+      billingSubscription: {
+        update: async (args) => {
+          subscriptionUpdates.push(args);
+          return {};
+        },
+      },
+      user: {
+        update: async (args) => {
+          userUpdates.push(args);
+          return {};
+        },
+      },
+    };
+    return callback(tx);
+  };
+
+  try {
+    const payload = buildStripeEventPayload({
+      id: 'evt_unit_subscription_deleted',
+      type: 'customer.subscription.deleted',
+      dataObject: {
+        id: 'sub_unit_deleted',
+        customer: 'cus_unit_deleted',
+        status: 'canceled',
+        canceled_at: Math.floor(Date.now() / 1000),
+        items: {
+          data: [
+            {
+              price: { id: 'price_corporation_unit' },
+            },
+          ],
+        },
+      },
+    });
+
+    const rawBody = Buffer.from(payload);
+    const signature = createStripeSignatureHeader(payload, process.env.STRIPE_WEBHOOK_SECRET);
+    const result = await processStripeWebhookEvent({ rawBody, signature });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.eventId, 'evt_unit_subscription_deleted');
+    assert.equal(subscriptionUpdates.length, 1);
+    assert.ok(userUpdates.some((call) => call?.data?.plan === 'PERSONAL'));
+    assert.ok(
+      userUpdates.some(
+        (call) =>
+          call?.data?.subscriptionStatus === 'CANCELED'
+          && call?.data?.whiteLabelEnabled === false,
+      ),
+    );
+    assert.equal(eventStore.get('evt_unit_subscription_deleted')?.status, 'PROCESSED');
+  } finally {
+    prisma.stripeWebhookEvent = originalStripeWebhookEventDelegate;
+    prisma.billingSubscription = originalBillingSubscriptionDelegate;
+    prisma.$transaction = originalTransaction;
+  }
+});
+
+test('processStripeWebhookEvent marca payment como FAILED em payment_intent.payment_failed', async () => {
+  const eventStore = new Map();
+  const stripeWebhookEventMocks = createStripeWebhookMocks(eventStore);
+  const originalStripeWebhookEventDelegate = prisma.stripeWebhookEvent;
+  const originalPaymentDelegate = prisma.payment;
+
+  const paymentUpdates = [];
+
+  prisma.stripeWebhookEvent = {
+    ...originalStripeWebhookEventDelegate,
+    ...stripeWebhookEventMocks,
+  };
+  prisma.payment = {
+    ...originalPaymentDelegate,
+    findFirst: async () => ({
+      stripeSession: 'cs_unit_payment_failed',
+      amount: 12_900,
+      currency: 'BRL',
+    }),
+    update: async (args) => {
+      paymentUpdates.push(args);
+      return {};
+    },
+  };
+
+  try {
+    const payload = buildStripeEventPayload({
+      id: 'evt_unit_payment_failed',
+      type: 'payment_intent.payment_failed',
+      dataObject: {
+        id: 'pi_unit_payment_failed',
+        status: 'requires_payment_method',
+        currency: 'brl',
+      },
+    });
+
+    const rawBody = Buffer.from(payload);
+    const signature = createStripeSignatureHeader(payload, process.env.STRIPE_WEBHOOK_SECRET);
+    const result = await processStripeWebhookEvent({ rawBody, signature });
+
+    assert.equal(result.ok, true);
+    assert.equal(paymentUpdates.length, 1);
+    assert.equal(paymentUpdates[0]?.data?.status, 'FAILED');
+    assert.equal(paymentUpdates[0]?.data?.amount, 12_900);
+    assert.equal(eventStore.get('evt_unit_payment_failed')?.status, 'PROCESSED');
+  } finally {
+    prisma.stripeWebhookEvent = originalStripeWebhookEventDelegate;
+    prisma.payment = originalPaymentDelegate;
+  }
+});
+
 test('processStripeWebhookEvent falha com BILLING_PRICE_NOT_CONFIGURED quando price_id é desconhecido', async () => {
   delete process.env.STRIPE_PRICE_DIAMOND_CONSULTING;
 
@@ -237,4 +377,3 @@ test('processStripeWebhookEvent falha com BILLING_PRICE_NOT_CONFIGURED quando pr
     prisma.$transaction = originalTransaction;
   }
 });
-

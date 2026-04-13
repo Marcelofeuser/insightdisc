@@ -1276,6 +1276,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
   const resolvedPaymentMethods = resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency, preferredMethod);
 
   const stripePayload = {
+    payment_method_types: ['card'],
     mode: checkoutItem.mode,
     line_items: lineItems,
     ...(checkoutItem.mode === 'payment'
@@ -1523,6 +1524,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
   const resolvedPaymentMethods = resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency, preferredMethod);
 
   const stripePayload = {
+    payment_method_types: ['card'],
     mode: checkoutItem.mode,
     line_items: lineItems,
     ...(checkoutItem.mode === 'payment'

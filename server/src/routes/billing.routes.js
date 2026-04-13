@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { env } from '../config/env.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachUser } from '../middleware/rbac.js';
 import {
+  createBillingPortalSession,
   createBillingCheckoutSession,
   getCheckoutSessionStatusForUser,
 } from '../modules/billing/stripe-billing.service.js';
@@ -76,6 +76,7 @@ const createCheckoutSchema = z
     cancelUrl: z.string().url().optional(),
     workspaceId: z.string().trim().optional(),
     orderBumpAdvancedAnalysis: booleanLikeSchema.optional(),
+    whiteLabelAddon: booleanLikeSchema.optional(),
     paymentMethod: z.enum(['card', 'pix']).optional(),
   })
   .refine(
@@ -101,6 +102,7 @@ function resolveStatusByCode(code = '') {
     || normalized === 'BILLING_PRICE_NOT_CONFIGURED'
     || normalized === 'CHECKOUT_SESSION_REQUIRED'
     || normalized === 'INVALID_PAYLOAD'
+    || normalized === 'BILLING_PORTAL_CUSTOMER_MISSING'
   ) {
     return 400;
   }
@@ -171,11 +173,31 @@ router.get('/checkout-session/:sessionId/status', async (req, res) => {
   }
 });
 
-router.post('/portal', (_req, res) => {
-  return res.status(200).json({
-    ok: true,
-    url: `${env.appUrl}/Pricing?billingPortal=1`,
-  });
+router.post('/portal', async (req, res) => {
+  try {
+    const schema = z.object({
+      returnUrl: z.string().url().optional(),
+    });
+    const input = schema.parse(req.body || {});
+
+    const payload = await createBillingPortalSession({
+      userId: req.auth?.userId,
+      user: req.user,
+      returnUrl: input.returnUrl,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      url: payload.url,
+    });
+  } catch (error) {
+    const code = String(error?.code || '').trim().toUpperCase() || 'BILLING_PORTAL_FAILED';
+    return res.status(resolveStatusByCode(code)).json({
+      ok: false,
+      error: code,
+      message: error?.message || 'Falha ao abrir portal de cobrança.',
+    });
+  }
 });
 
 router.post('/change-plan', async (req, res) => {
@@ -188,7 +210,6 @@ router.post('/change-plan', async (req, res) => {
         user: req.user,
         input: {
           planId: input.targetPlan,
-          mode: input.targetPlan === 'personal' ? 'payment' : 'subscription',
         },
       });
 
