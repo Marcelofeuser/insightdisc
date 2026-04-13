@@ -29,7 +29,10 @@ function normalizeAuthPlanValue(value = '') {
   if (!key) return '';
   if (['personal', 'free', 'starter'].includes(key)) return 'personal';
   if (['professional', 'pro', 'premium'].includes(key)) return 'professional';
-  if (['business', 'enterprise', 'diamond', 'business_corporation', 'diamond_consulting'].includes(key)) {
+  if (['insider'].includes(key)) return 'insider';
+  if (['corporation', 'business_corporation', 'corp'].includes(key)) return 'corporation';
+  if (['diamond_consulting', 'diamond'].includes(key)) return 'diamond_consulting';
+  if (['business', 'enterprise'].includes(key)) {
     return 'business';
   }
   return '';
