@@ -1,47 +1,112 @@
 export const PLANS = Object.freeze({
+  DISC_INDIVIDUAL: 'disc_individual',
   PERSONAL: 'personal',
+  INSIDER: 'insider',
   PROFESSIONAL: 'professional',
   BUSINESS: 'business',
+  CORPORATION: 'corporation',
+  DIAMOND_CONSULTING: 'diamond_consulting',
 });
 
 const PLAN_ALIASES = Object.freeze({
+  disc: PLANS.DISC_INDIVIDUAL,
+  disc_individual: PLANS.DISC_INDIVIDUAL,
+
   free: PLANS.PERSONAL,
   starter: PLANS.PERSONAL,
   personal: PLANS.PERSONAL,
   user: PLANS.PERSONAL,
+
+  insider: PLANS.INSIDER,
+
   premium: PLANS.PROFESSIONAL,
   pro: PLANS.PROFESSIONAL,
   professional: PLANS.PROFESSIONAL,
+
   business: PLANS.BUSINESS,
-  enterprise: PLANS.BUSINESS,
-  diamond: PLANS.BUSINESS,
-  business_corporation: PLANS.BUSINESS,
-  corporation: PLANS.BUSINESS,
-  diamond_consulting: PLANS.BUSINESS,
+
+  enterprise: PLANS.CORPORATION,
+  corporation: PLANS.CORPORATION,
+  corp: PLANS.CORPORATION,
+  business_corporation: PLANS.CORPORATION,
+  businesscorporation: PLANS.CORPORATION,
+
+  diamond: PLANS.DIAMOND_CONSULTING,
+  diamond_consulting: PLANS.DIAMOND_CONSULTING,
+  diamondconsulting: PLANS.DIAMOND_CONSULTING,
 });
 
 export const PLAN_META = Object.freeze({
+  [PLANS.DISC_INDIVIDUAL]: Object.freeze({
+    key: PLANS.DISC_INDIVIDUAL,
+    label: 'DISC Individual',
+    description: 'Avaliação pontual e imediata.',
+    recurrence: 'one_time',
+    price: 59.90,
+    credits: 1,
+  }),
   [PLANS.PERSONAL]: Object.freeze({
     key: PLANS.PERSONAL,
     label: 'Personal',
-    description: 'Plano individual para autoconhecimento e evolução pessoal.',
+    description: 'Autoconhecimento com acompanhamento.',
+    recurrence: 'monthly',
+    price: 99.90,
+    credits: null,
+  }),
+  [PLANS.INSIDER]: Object.freeze({
+    key: PLANS.INSIDER,
+    label: 'Insider',
+    description: 'Uso individual avançado com foco em profundidade.',
+    recurrence: 'monthly',
+    price: 129.90,
+    credits: null,
   }),
   [PLANS.PROFESSIONAL]: Object.freeze({
     key: PLANS.PROFESSIONAL,
     label: 'Professional',
-    description: 'Plano para consultores, analistas e operação técnica DISC.',
+    description: 'RH, consultores e gestores de pessoas.',
+    recurrence: 'monthly',
+    price: 199.90,
+    credits: 10,
   }),
   [PLANS.BUSINESS]: Object.freeze({
     key: PLANS.BUSINESS,
     label: 'Business',
-    description: 'Plano para empresas com escala, equipe e inteligência organizacional.',
+    description: 'Empresas com equipes a desenvolver.',
+    recurrence: 'monthly',
+    price: 399.90,
+    credits: 25,
+  }),
+  [PLANS.CORPORATION]: Object.freeze({
+    key: PLANS.CORPORATION,
+    label: 'Business Corporation',
+    description: 'Empresas estruturadas e operação em escala.',
+    recurrence: 'monthly',
+    price: 999.90,
+    credits: Infinity,
+  }),
+  [PLANS.DIAMOND_CONSULTING]: Object.freeze({
+    key: PLANS.DIAMOND_CONSULTING,
+    label: 'Diamond Consulting',
+    description: 'Operação executiva e consultiva premium.',
+    recurrence: 'monthly',
+    price: 9990.00,
+    credits: Infinity,
   }),
 });
 
-const PLAN_ORDER = Object.freeze([PLANS.PERSONAL, PLANS.PROFESSIONAL, PLANS.BUSINESS]);
+export const PLAN_ORDER = Object.freeze([
+  PLANS.DISC_INDIVIDUAL,
+  PLANS.PERSONAL,
+  PLANS.INSIDER,
+  PLANS.PROFESSIONAL,
+  PLANS.BUSINESS,
+  PLANS.CORPORATION,
+  PLANS.DIAMOND_CONSULTING,
+]);
 
 function normalizePlanValue(value = '') {
-  const key = String(value || '').trim().toLowerCase();
+  const key = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   return PLAN_ALIASES[key] || null;
 }
 
@@ -51,7 +116,7 @@ export function normalizePlan(plan = '') {
 
 export function resolvePlanFromAccess(access = {}) {
   const lifecycle = String(access?.lifecycleStatus || access?.user?.lifecycle_status || '').trim();
-  if (lifecycle === 'super_admin') return PLANS.BUSINESS;
+  if (lifecycle === 'super_admin') return PLANS.DIAMOND_CONSULTING;
 
   const directPlan = normalizePlanValue(
     access?.plan ||
