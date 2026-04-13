@@ -13,6 +13,9 @@ Production-oriented backend scaffold for InsightDISC.
 ## Quick start
 1. Copy `.env.example` to `.env`.
 2. Configure `DATABASE_URL`, `DIRECT_URL` and `JWT_SECRET`.
+   - `DATABASE_URL`: URL pooled/proxy para runtime do backend.
+   - `DIRECT_URL`: URL direta para `prisma migrate deploy` e comandos de schema.
+   - Em Railway, evite usar a URL direta como `DATABASE_URL` da API.
 3. Install dependencies:
    - `cd server && npm install`
 4. Initialize database:

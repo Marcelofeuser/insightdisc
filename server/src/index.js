@@ -2,8 +2,15 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { printSuperAdminBootstrapStatus } from './modules/auth/super-admin-bootstrap.js';
 import { ensureDatabaseCompatibility } from './lib/database-compat.js';
+import {
+  connectPrismaWithRetry,
+  disconnectPrisma,
+  logPrismaConnectionSummary,
+} from './lib/prisma.js';
 
 async function startServer() {
+  logPrismaConnectionSummary();
+  await connectPrismaWithRetry();
   await ensureDatabaseCompatibility();
 
   const app = createApp();
@@ -29,16 +36,23 @@ async function startServer() {
     throw error;
   });
 
+  let shuttingDown = false;
+
   function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log(`[server] recebendo ${signal}, encerrando servidor HTTP...`);
 
-    server.close((error) => {
+    server.close(async (error) => {
       if (error) {
         console.error('[server] erro ao encerrar servidor:', error);
         process.exit(1);
         return;
       }
 
+      await disconnectPrisma().catch((disconnectError) => {
+        console.error('[server] erro ao encerrar conexões Prisma:', disconnectError?.message || disconnectError);
+      });
       process.exit(0);
     });
 
