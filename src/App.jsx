@@ -586,17 +586,6 @@ const AuthenticatedApp = () => {
 };
 
 function RouteAwareChatWidget() {
-  const location = useLocation();
-  if (
-    location.pathname === '/' ||
-    location.pathname === '/dossie' ||
-    location.pathname === '/personal' ||
-    location.pathname === '/profissional' ||
-    location.pathname === '/business' ||
-    location.pathname === '/planos'
-  ) {
-    return null;
-  }
   return <InsightChatWidget />;
 }
 
