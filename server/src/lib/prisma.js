@@ -110,6 +110,16 @@ export async function disconnectPrisma() {
   await prisma.$disconnect();
 }
 
+export async function pingPrisma({ retries = 1, initialDelayMs = 150 } = {}) {
+  return withPrismaRetry(
+    () => prisma.$queryRawUnsafe('SELECT 1'),
+    {
+      retries,
+      initialDelayMs,
+    },
+  );
+}
+
 export async function withPrismaRetry(
   operation,
   {
@@ -132,23 +142,23 @@ export async function withPrismaRetry(
         throw error;
       }
 
-       let reconnectError = null;
-       try {
-         await resetPrismaConnection();
-       } catch (connectionResetError) {
-         reconnectError = connectionResetError;
-       }
+      let reconnectError = null;
+      try {
+        await resetPrismaConnection();
+      } catch (connectionResetError) {
+        reconnectError = connectionResetError;
+      }
 
-       if (typeof onRetry === 'function') {
-         await onRetry({
-           attempt: attempts,
-           maxAttempts,
-           error,
-           reconnectError,
-         });
-       }
+      if (typeof onRetry === 'function') {
+        await onRetry({
+          attempt: attempts,
+          maxAttempts,
+          error,
+          reconnectError,
+        });
+      }
 
-       await sleep(initialDelayMs * attempts);
+      await sleep(initialDelayMs * attempts);
     }
   }
 

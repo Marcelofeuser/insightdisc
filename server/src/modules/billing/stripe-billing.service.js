@@ -1,5 +1,10 @@
 import Stripe from 'stripe';
-import { prisma } from '../../lib/prisma.js';
+import {
+  isTransientPrismaConnectionError,
+  prisma,
+  withPrismaRetry,
+  withPrismaTransactionRetry,
+} from '../../lib/prisma.js';
 import { env } from '../../config/env.js';
 import { sendEmail } from '../../services/email.service.js';
 import {
@@ -375,6 +380,88 @@ function getStripeClient() {
   return new Stripe(secret, { apiVersion: '2024-12-18.acacia' });
 }
 
+const BILLING_DB_RETRY_OPTIONS = Object.freeze({
+  retries: env.nodeEnv === 'production' ? 2 : 1,
+  initialDelayMs: env.nodeEnv === 'production' ? 250 : 150,
+});
+
+function truncateLogMessage(value = '', maxLength = 240) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+}
+
+function buildBillingLogContext(context = {}) {
+  return Object.fromEntries(
+    Object.entries(context).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+  );
+}
+
+function formatBillingErrorLog(error, reconnectError = null) {
+  return buildBillingLogContext({
+    transient: isTransientPrismaConnectionError(error),
+    code: String(error?.code || '').trim() || null,
+    message: truncateLogMessage(error?.message || error),
+    reconnectError: reconnectError ? truncateLogMessage(reconnectError?.message || reconnectError) : null,
+  });
+}
+
+function logBillingEvent(message, context = {}) {
+  console.info(`[billing][webhook] ${message}`, buildBillingLogContext(context));
+}
+
+function logBillingDbFailure(operationName, context = {}, error, reconnectError = null, level = 'error') {
+  const logger = level === 'warn' ? console.warn : console.error;
+  logger(`[billing][db] ${operationName}`, {
+    ...buildBillingLogContext(context),
+    ...formatBillingErrorLog(error, reconnectError),
+  });
+}
+
+function createBillingDbRetryHandler(operationName, context = {}) {
+  return async ({ attempt, maxAttempts, error, reconnectError }) => {
+    logBillingDbFailure(
+      operationName,
+      {
+        ...buildBillingLogContext(context),
+        attempt,
+        maxAttempts,
+      },
+      error,
+      reconnectError,
+      'warn',
+    );
+  };
+}
+
+async function runBillingDbOperation(operationName, context = {}, operation) {
+  try {
+    return await withPrismaRetry(operation, {
+      ...BILLING_DB_RETRY_OPTIONS,
+      onRetry: createBillingDbRetryHandler(operationName, context),
+    });
+  } catch (error) {
+    if (isTransientPrismaConnectionError(error)) {
+      logBillingDbFailure(operationName, context, error);
+    }
+    throw error;
+  }
+}
+
+async function runBillingDbTransaction(operationName, context = {}, operation) {
+  try {
+    return await withPrismaTransactionRetry(operation, {
+      ...BILLING_DB_RETRY_OPTIONS,
+      onRetry: createBillingDbRetryHandler(operationName, context),
+    });
+  } catch (error) {
+    if (isTransientPrismaConnectionError(error)) {
+      logBillingDbFailure(operationName, context, error);
+    }
+    throw error;
+  }
+}
+
 async function applyCreditLedgerEntry(tx, {
   userId,
   paymentId,
@@ -608,141 +695,161 @@ async function processCheckoutSessionEvent(eventType, session) {
   const amountFromSession = toInteger(session?.amount_total, 0);
   const currencyFromSession = toUpperText(session?.currency, '');
 
-  await prisma.$transaction(async (tx) => {
-    const existingPayment = await tx.payment.findUnique({
-      where: { stripeSession: stripeSessionId },
-      select: {
-        userId: true,
-        stripeSubscriptionId: true,
-        stripeCustomerId: true,
-        stripePaymentIntent: true,
-        amount: true,
-        currency: true,
-      },
-    });
+  logBillingEvent('processando checkout session', {
+    eventType,
+    stripeSessionId,
+    checkoutMode,
+    paymentStatus,
+    subscription: isSubscriptionCheckout,
+  });
 
-    const existingUserId = String(existingPayment?.userId || '').trim();
-    if (existingUserId && requestedUserId && existingUserId !== requestedUserId) {
-      throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
-    }
-
-    let effectiveUserId = existingUserId || requestedUserId;
-    if (!effectiveUserId && emailCandidate) {
-      const userByEmail = await tx.user.findUnique({
-        where: { email: emailCandidate },
-        select: { id: true },
-      });
-      effectiveUserId = String(userByEmail?.id || '').trim();
-    }
-
-    if (!effectiveUserId) {
-      console.warn('[STRIPE WEBHOOK] checkout sem usuário associado, ignorando processamento automático', {
-        stripeSessionId,
-        email: emailCandidate || 'n/a',
-      });
-      return;
-    }
-
-    if (!existingUserId && requestedUserId && emailCandidate) {
-      const claimedUser = await tx.user.findUnique({
-        where: { id: requestedUserId },
-        select: { email: true },
-      });
-      const claimedEmail = String(claimedUser?.email || '').trim().toLowerCase();
-      if (claimedEmail && claimedEmail !== emailCandidate) {
-        throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro e-mail.');
-      }
-    }
-
-    const stripeSubscriptionId = String(
-      stripeSubscriptionFromSession || existingPayment?.stripeSubscriptionId || '',
-    ).trim();
-    const stripeCustomerId = String(stripeCustomerFromSession || existingPayment?.stripeCustomerId || '').trim();
-    const stripePaymentIntent = String(
-      stripePaymentIntentFromSession || existingPayment?.stripePaymentIntent || '',
-    ).trim();
-    const amount = amountFromSession > 0 ? amountFromSession : toInteger(existingPayment?.amount, 0);
-    const currency = currencyFromSession || toUpperText(existingPayment?.currency, 'BRL');
-
-    const payment = await tx.payment.upsert({
-      where: { stripeSession: stripeSessionId },
-      create: {
-        userId: effectiveUserId,
-        creditsAdded: creditsToApplyNow,
-        amount,
-        stripeSession: stripeSessionId,
-        status: resolvePaymentStatus(paymentStatus),
-        productId: String(metadata?.checkoutItemId || metadata?.product || ''),
-        mode: String(metadata?.checkoutMode || session?.mode || ''),
-        currency,
-        stripePaymentIntent: stripePaymentIntent || null,
-        stripeCustomerId: stripeCustomerId || null,
-        stripeSubscriptionId: stripeSubscriptionId || null,
-        metadata,
-      },
-      update: {
-        creditsAdded: creditsToApplyNow,
-        amount,
-        status: resolvePaymentStatus(paymentStatus),
-        productId: String(metadata?.checkoutItemId || metadata?.product || ''),
-        mode: String(metadata?.checkoutMode || session?.mode || ''),
-        currency,
-        stripePaymentIntent: stripePaymentIntent || null,
-        stripeCustomerId: stripeCustomerId || null,
-        stripeSubscriptionId: stripeSubscriptionId || null,
-        metadata,
-      },
-    });
-
-    if (requestedUserId && payment.userId !== requestedUserId) {
-      throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
-    }
-
-    const resolvedUserId = payment.userId;
-    if (paid && planTarget) {
-      await applyPlan(tx, resolvedUserId, planTarget);
-    }
-
-    if (paid && creditsToApplyNow > 0) {
-      await applyCreditLedgerEntry(tx, {
-        userId: resolvedUserId,
-        paymentId: payment.id,
-        amount: creditsToApplyNow,
-        source: 'stripe_checkout_session',
-        externalRef: stripeSessionId,
-        metadata: {
-          eventType,
-          checkoutItemId: String(metadata?.checkoutItemId || ''),
+  await runBillingDbTransaction(
+    'checkout_session_persist',
+    {
+      eventType,
+      stripeSessionId,
+      requestedUserId,
+      checkoutMode,
+      paymentStatus,
+    },
+    async (tx) => {
+      const existingPayment = await tx.payment.findUnique({
+        where: { stripeSession: stripeSessionId },
+        select: {
+          userId: true,
+          stripeSubscriptionId: true,
+          stripeCustomerId: true,
+          stripePaymentIntent: true,
+          amount: true,
+          currency: true,
         },
       });
-    }
 
-    if (stripeSubscriptionId) {
-      await upsertSubscription(tx, {
-        userId: resolvedUserId,
-        plan: planTarget || rawPlanTarget,
-        status: paid ? 'active' : failed ? 'past_due' : 'incomplete',
-        stripeCustomerId,
-        stripeSubscriptionId,
-        stripePriceId: stripeCheckoutPriceId,
-      });
-    }
+      const existingUserId = String(existingPayment?.userId || '').trim();
+      if (existingUserId && requestedUserId && existingUserId !== requestedUserId) {
+        throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
+      }
 
-    if (isSubscriptionCheckout) {
-      await syncSubscriptionAccess(tx, resolvedUserId, {
-        plan: planTarget || rawPlanTarget || 'personal',
-        stripeCustomerId,
-        stripeSubscriptionId,
-        subscriptionStatus: paid ? 'active' : failed ? 'past_due' : 'incomplete',
-        whiteLabelEnabled: shouldEnableWhiteLabel,
+      let effectiveUserId = existingUserId || requestedUserId;
+      if (!effectiveUserId && emailCandidate) {
+        const userByEmail = await tx.user.findUnique({
+          where: { email: emailCandidate },
+          select: { id: true },
+        });
+        effectiveUserId = String(userByEmail?.id || '').trim();
+      }
+
+      if (!effectiveUserId) {
+        console.warn('[STRIPE WEBHOOK] checkout sem usuário associado, ignorando processamento automático', {
+          stripeSessionId,
+          email: emailCandidate || 'n/a',
+        });
+        return;
+      }
+
+      if (!existingUserId && requestedUserId && emailCandidate) {
+        const claimedUser = await tx.user.findUnique({
+          where: { id: requestedUserId },
+          select: { email: true },
+        });
+        const claimedEmail = String(claimedUser?.email || '').trim().toLowerCase();
+        if (claimedEmail && claimedEmail !== emailCandidate) {
+          throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro e-mail.');
+        }
+      }
+
+      const stripeSubscriptionId = String(
+        stripeSubscriptionFromSession || existingPayment?.stripeSubscriptionId || '',
+      ).trim();
+      const stripeCustomerId = String(
+        stripeCustomerFromSession || existingPayment?.stripeCustomerId || '',
+      ).trim();
+      const stripePaymentIntent = String(
+        stripePaymentIntentFromSession || existingPayment?.stripePaymentIntent || '',
+      ).trim();
+      const amount = amountFromSession > 0 ? amountFromSession : toInteger(existingPayment?.amount, 0);
+      const currency = currencyFromSession || toUpperText(existingPayment?.currency, 'BRL');
+
+      const payment = await tx.payment.upsert({
+        where: { stripeSession: stripeSessionId },
+        create: {
+          userId: effectiveUserId,
+          creditsAdded: creditsToApplyNow,
+          amount,
+          stripeSession: stripeSessionId,
+          status: resolvePaymentStatus(paymentStatus),
+          productId: String(metadata?.checkoutItemId || metadata?.product || ''),
+          mode: String(metadata?.checkoutMode || session?.mode || ''),
+          currency,
+          stripePaymentIntent: stripePaymentIntent || null,
+          stripeCustomerId: stripeCustomerId || null,
+          stripeSubscriptionId: stripeSubscriptionId || null,
+          metadata,
+        },
+        update: {
+          creditsAdded: creditsToApplyNow,
+          amount,
+          status: resolvePaymentStatus(paymentStatus),
+          productId: String(metadata?.checkoutItemId || metadata?.product || ''),
+          mode: String(metadata?.checkoutMode || session?.mode || ''),
+          currency,
+          stripePaymentIntent: stripePaymentIntent || null,
+          stripeCustomerId: stripeCustomerId || null,
+          stripeSubscriptionId: stripeSubscriptionId || null,
+          metadata,
+        },
       });
-    } else if (paid && shouldEnableWhiteLabel) {
-      await applyStripeIdentity(tx, resolvedUserId, {
-        subscriptionStatus: 'active',
-        whiteLabelEnabled: true,
-      });
-    }
-  });
+
+      if (requestedUserId && payment.userId !== requestedUserId) {
+        throw createError('FORBIDDEN', 'Sessão de checkout pertence a outro usuário.');
+      }
+
+      const resolvedUserId = payment.userId;
+      if (paid && planTarget) {
+        await applyPlan(tx, resolvedUserId, planTarget);
+      }
+
+      if (paid && creditsToApplyNow > 0) {
+        await applyCreditLedgerEntry(tx, {
+          userId: resolvedUserId,
+          paymentId: payment.id,
+          amount: creditsToApplyNow,
+          source: 'stripe_checkout_session',
+          externalRef: stripeSessionId,
+          metadata: {
+            eventType,
+            checkoutItemId: String(metadata?.checkoutItemId || ''),
+          },
+        });
+      }
+
+      if (stripeSubscriptionId) {
+        await upsertSubscription(tx, {
+          userId: resolvedUserId,
+          plan: planTarget || rawPlanTarget,
+          status: paid ? 'active' : failed ? 'past_due' : 'incomplete',
+          stripeCustomerId,
+          stripeSubscriptionId,
+          stripePriceId: stripeCheckoutPriceId,
+        });
+      }
+
+      if (isSubscriptionCheckout) {
+        await syncSubscriptionAccess(tx, resolvedUserId, {
+          plan: planTarget || rawPlanTarget || 'personal',
+          stripeCustomerId,
+          stripeSubscriptionId,
+          subscriptionStatus: paid ? 'active' : failed ? 'past_due' : 'incomplete',
+          whiteLabelEnabled: shouldEnableWhiteLabel,
+        });
+      } else if (paid && shouldEnableWhiteLabel) {
+        await applyStripeIdentity(tx, resolvedUserId, {
+          subscriptionStatus: 'active',
+          whiteLabelEnabled: true,
+        });
+      }
+    },
+  );
 
   if (!isSubscriptionCheckout && emailCandidate && (paid || failed)) {
     void sendBillingStatusEmail({
@@ -780,35 +887,64 @@ async function processInvoiceEvent(eventType, invoice) {
     .find((entry) =>
       entry.priceId
       && entry.planKey
-      && entry.planKey !== 'white_label_one_time'
-      && entry.planKey !== 'disc_individual'
+        && entry.planKey !== 'white_label_one_time'
+        && entry.planKey !== 'disc_individual'
     );
 
-  const subscription = await prisma.billingSubscription.findUnique({
-    where: { stripeSubscriptionId: subscriptionId },
+  logBillingEvent('processando invoice', {
+    eventType,
+    invoiceId,
+    subscriptionId,
+    stripeCustomerId,
   });
+
+  const billingContext = {
+    eventType,
+    invoiceId,
+    subscriptionId,
+    stripeCustomerId,
+  };
+
+  const subscription = await runBillingDbOperation(
+    'invoice_lookup_subscription',
+    billingContext,
+    () =>
+      prisma.billingSubscription.findUnique({
+        where: { stripeSubscriptionId: subscriptionId },
+      }),
+  );
 
   let userId = String(subscription?.userId || '').trim();
   if (!userId) {
-    const payment = await prisma.payment.findFirst({
-      where: {
-        OR: [
-          { stripeSubscriptionId: subscriptionId },
-          ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        userId: true,
-      },
-    });
+    const payment = await runBillingDbOperation(
+      'invoice_lookup_payment',
+      billingContext,
+      () =>
+        prisma.payment.findFirst({
+          where: {
+            OR: [
+              { stripeSubscriptionId: subscriptionId },
+              ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            userId: true,
+          },
+        }),
+    );
     userId = String(payment?.userId || '').trim();
   }
   if (!userId && stripeCustomerId) {
-    const user = await prisma.user.findFirst({
-      where: { stripeCustomerId },
-      select: { id: true },
-    });
+    const user = await runBillingDbOperation(
+      'invoice_lookup_user',
+      billingContext,
+      () =>
+        prisma.user.findFirst({
+          where: { stripeCustomerId },
+          select: { id: true },
+        }),
+    );
     userId = String(user?.id || '').trim();
   }
 
@@ -838,98 +974,115 @@ async function processInvoiceEvent(eventType, invoice) {
     ? Math.max(0, getRecurringCreditsByPlan(planKey))
     : 0;
 
-  await prisma.$transaction(async (tx) => {
-    const payment = await tx.payment.upsert({
-      where: { stripeSession: invoiceId },
-      create: {
-        userId,
-        creditsAdded: recurringCredits,
-        amount,
-        stripeSession: invoiceId,
-        status: resolvePaymentStatus(paymentStatus),
-        productId: planKey,
-        mode: 'subscription',
-        currency,
-        stripePaymentIntent: String(invoice?.payment_intent || '') || null,
-        stripeCustomerId: stripeCustomerId || null,
-        stripeSubscriptionId: subscriptionId,
-        metadata: {
-          eventType,
-          invoiceId,
-          subscriptionId,
-          planKey,
-          planPriceId,
-          linePriceIds,
-          whiteLabelPurchased,
-          whiteLabelIncluded: whiteLabelIncludedByPlan,
-        },
-      },
-      update: {
-        userId,
-        creditsAdded: recurringCredits,
-        amount,
-        status: resolvePaymentStatus(paymentStatus),
-        productId: planKey,
-        mode: 'subscription',
-        currency,
-        stripePaymentIntent: String(invoice?.payment_intent || '') || null,
-        stripeCustomerId: stripeCustomerId || null,
-        stripeSubscriptionId: subscriptionId,
-        metadata: {
-          eventType,
-          invoiceId,
-          subscriptionId,
-          planKey,
-          planPriceId,
-          linePriceIds,
-          whiteLabelPurchased,
-          whiteLabelIncluded: whiteLabelIncludedByPlan,
-        },
-      },
-    });
-
-    if (paymentStatus === 'PAID' && recurringCredits > 0) {
-      await applyCreditLedgerEntry(tx, {
-        userId,
-        paymentId: payment.id,
-        amount: recurringCredits,
-        source: 'stripe_invoice',
-        externalRef: invoiceId,
-        metadata: { subscriptionId },
-      });
-    }
-
-    await upsertSubscription(tx, {
+  await runBillingDbTransaction(
+    'invoice_persist',
+    {
+      ...billingContext,
       userId,
-      plan: planKey,
-      status: paymentStatus === 'PAID' ? 'active' : 'past_due',
-      stripeCustomerId: stripeCustomerId || null,
-      stripeSubscriptionId: subscriptionId,
-      stripePriceId: planPriceId,
-      currentPeriodStart: resolvedPlanLine?.item?.period?.start
-        ? new Date(Number(resolvedPlanLine.item.period.start) * 1000)
-        : subscription?.currentPeriodStart,
-      currentPeriodEnd: resolvedPlanLine?.item?.period?.end
-        ? new Date(Number(resolvedPlanLine.item.period.end) * 1000)
-        : subscription?.currentPeriodEnd,
-      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
-      canceledAt: subscription?.canceledAt,
-    });
+      planKey,
+      paymentStatus,
+    },
+    async (tx) => {
+      const payment = await tx.payment.upsert({
+        where: { stripeSession: invoiceId },
+        create: {
+          userId,
+          creditsAdded: recurringCredits,
+          amount,
+          stripeSession: invoiceId,
+          status: resolvePaymentStatus(paymentStatus),
+          productId: planKey,
+          mode: 'subscription',
+          currency,
+          stripePaymentIntent: String(invoice?.payment_intent || '') || null,
+          stripeCustomerId: stripeCustomerId || null,
+          stripeSubscriptionId: subscriptionId,
+          metadata: {
+            eventType,
+            invoiceId,
+            subscriptionId,
+            planKey,
+            planPriceId,
+            linePriceIds,
+            whiteLabelPurchased,
+            whiteLabelIncluded: whiteLabelIncludedByPlan,
+          },
+        },
+        update: {
+          userId,
+          creditsAdded: recurringCredits,
+          amount,
+          status: resolvePaymentStatus(paymentStatus),
+          productId: planKey,
+          mode: 'subscription',
+          currency,
+          stripePaymentIntent: String(invoice?.payment_intent || '') || null,
+          stripeCustomerId: stripeCustomerId || null,
+          stripeSubscriptionId: subscriptionId,
+          metadata: {
+            eventType,
+            invoiceId,
+            subscriptionId,
+            planKey,
+            planPriceId,
+            linePriceIds,
+            whiteLabelPurchased,
+            whiteLabelIncluded: whiteLabelIncludedByPlan,
+          },
+        },
+      });
 
-    await syncSubscriptionAccess(tx, userId, {
-      plan: planKey,
-      stripeCustomerId,
-      stripeSubscriptionId: subscriptionId,
-      subscriptionStatus: paymentStatus === 'PAID' ? 'active' : 'past_due',
-      whiteLabelEnabled: shouldEnableWhiteLabel,
-    });
-  });
+      if (paymentStatus === 'PAID' && recurringCredits > 0) {
+        await applyCreditLedgerEntry(tx, {
+          userId,
+          paymentId: payment.id,
+          amount: recurringCredits,
+          source: 'stripe_invoice',
+          externalRef: invoiceId,
+          metadata: { subscriptionId },
+        });
+      }
+
+      await upsertSubscription(tx, {
+        userId,
+        plan: planKey,
+        status: paymentStatus === 'PAID' ? 'active' : 'past_due',
+        stripeCustomerId: stripeCustomerId || null,
+        stripeSubscriptionId: subscriptionId,
+        stripePriceId: planPriceId,
+        currentPeriodStart: resolvedPlanLine?.item?.period?.start
+          ? new Date(Number(resolvedPlanLine.item.period.start) * 1000)
+          : subscription?.currentPeriodStart,
+        currentPeriodEnd: resolvedPlanLine?.item?.period?.end
+          ? new Date(Number(resolvedPlanLine.item.period.end) * 1000)
+          : subscription?.currentPeriodEnd,
+        cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
+        canceledAt: subscription?.canceledAt,
+      });
+
+      await syncSubscriptionAccess(tx, userId, {
+        plan: planKey,
+        stripeCustomerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: paymentStatus === 'PAID' ? 'active' : 'past_due',
+        whiteLabelEnabled: shouldEnableWhiteLabel,
+      });
+    },
+  );
 
   if (eventType === 'invoice.paid' || eventType === 'invoice.payment_failed') {
-    const billingUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
+    const billingUser = await runBillingDbOperation(
+      'invoice_lookup_email',
+      {
+        ...billingContext,
+        userId,
+      },
+      () =>
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        }),
+    );
     const billingEmail = String(billingUser?.email || '').trim().toLowerCase();
     if (billingEmail) {
       void sendBillingStatusEmail({
@@ -948,11 +1101,22 @@ async function processSubscriptionLifecycleEvent(subscription) {
   const subscriptionId = String(subscription?.id || '').trim();
   if (!subscriptionId) return;
 
-  const existingSubscription = await prisma.billingSubscription.findUnique({
-    where: { stripeSubscriptionId: subscriptionId },
-  });
-
   const stripeCustomerId = String(subscription?.customer || '').trim();
+  const billingContext = {
+    eventType: `customer.subscription.${String(subscription?.status || '').trim().toLowerCase() || 'updated'}`,
+    subscriptionId,
+    stripeCustomerId,
+  };
+
+  const existingSubscription = await runBillingDbOperation(
+    'subscription_lookup_existing',
+    billingContext,
+    () =>
+      prisma.billingSubscription.findUnique({
+        where: { stripeSubscriptionId: subscriptionId },
+      }),
+  );
+
   const stripePriceId = String(subscription?.items?.data?.[0]?.price?.id || '').trim();
   const planKey = resolvePlanFromPrice(stripePriceId);
   if (!planKey) {
@@ -965,103 +1129,150 @@ async function processSubscriptionLifecycleEvent(subscription) {
     planKey === 'business_corporation' || planKey === 'diamond_consulting';
   const subscriptionStatus = resolveSubscriptionStatus(subscription?.status);
 
+  logBillingEvent('processando lifecycle de assinatura', {
+    subscriptionId,
+    stripeCustomerId,
+    stripePriceId,
+    subscriptionStatus,
+  });
+
   if (!existingSubscription?.userId) {
-    const payment = await prisma.payment.findFirst({
-      where: {
-        OR: [
-          { stripeSubscriptionId: subscriptionId },
-          ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        userId: true,
-      },
-    });
+    const payment = await runBillingDbOperation(
+      'subscription_lookup_payment',
+      billingContext,
+      () =>
+        prisma.payment.findFirst({
+          where: {
+            OR: [
+              { stripeSubscriptionId: subscriptionId },
+              ...(stripeCustomerId ? [{ stripeCustomerId }] : []),
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            userId: true,
+          },
+        }),
+    );
 
     let userId = String(payment?.userId || '').trim();
     if (!userId && stripeCustomerId) {
-      const user = await prisma.user.findFirst({
-        where: { stripeCustomerId },
-        select: { id: true },
-      });
+      const user = await runBillingDbOperation(
+        'subscription_lookup_user',
+        billingContext,
+        () =>
+          prisma.user.findFirst({
+            where: { stripeCustomerId },
+            select: { id: true },
+          }),
+      );
       userId = String(user?.id || '').trim();
     }
     if (!userId) return;
 
-    await prisma.$transaction(async (tx) => {
-      await upsertSubscription(tx, {
+    await runBillingDbTransaction(
+      'subscription_persist_missing_record',
+      {
+        ...billingContext,
         userId,
-        plan: planKey,
-        status: subscription?.status,
-        stripeCustomerId: stripeCustomerId || null,
-        stripeSubscriptionId: subscriptionId,
-        stripePriceId: stripePriceId || null,
-        currentPeriodStart: subscription?.current_period_start
-          ? new Date(Number(subscription.current_period_start) * 1000)
-          : null,
-        currentPeriodEnd: subscription?.current_period_end
-          ? new Date(Number(subscription.current_period_end) * 1000)
-          : null,
-        cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
-        canceledAt: subscription?.canceled_at
-          ? new Date(Number(subscription.canceled_at) * 1000)
-          : null,
+        planKey,
+        subscriptionStatus,
+      },
+      async (tx) => {
+        await upsertSubscription(tx, {
+          userId,
+          plan: planKey,
+          status: subscription?.status,
+          stripeCustomerId: stripeCustomerId || null,
+          stripeSubscriptionId: subscriptionId,
+          stripePriceId: stripePriceId || null,
+          currentPeriodStart: subscription?.current_period_start
+            ? new Date(Number(subscription.current_period_start) * 1000)
+            : null,
+          currentPeriodEnd: subscription?.current_period_end
+            ? new Date(Number(subscription.current_period_end) * 1000)
+            : null,
+          cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
+          canceledAt: subscription?.canceled_at
+            ? new Date(Number(subscription.canceled_at) * 1000)
+            : null,
+        });
+
+        await syncSubscriptionAccess(tx, userId, {
+          plan: planKey,
+          stripeCustomerId,
+          stripeSubscriptionId: subscriptionId,
+          subscriptionStatus: subscription?.status,
+          whiteLabelEnabled: whiteLabelIncludedByPlan,
+        });
+      },
+    );
+
+    return;
+  }
+
+  await runBillingDbTransaction(
+    'subscription_persist_existing_record',
+    {
+      ...billingContext,
+      userId: existingSubscription.userId,
+      planKey,
+      subscriptionStatus,
+    },
+    async (tx) => {
+      await tx.billingSubscription.update({
+        where: { stripeSubscriptionId: subscriptionId },
+        data: {
+          plan: resolveBillingPlanEnum(planKey),
+          status: subscriptionStatus,
+          currentPeriodStart: subscription?.current_period_start
+            ? new Date(Number(subscription.current_period_start) * 1000)
+            : existingSubscription.currentPeriodStart,
+          currentPeriodEnd: subscription?.current_period_end
+            ? new Date(Number(subscription.current_period_end) * 1000)
+            : existingSubscription.currentPeriodEnd,
+          cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
+          canceledAt: subscription?.canceled_at
+            ? new Date(Number(subscription.canceled_at) * 1000)
+            : existingSubscription.canceledAt,
+          stripeCustomerId: stripeCustomerId || existingSubscription.stripeCustomerId || null,
+          stripePriceId: stripePriceId || existingSubscription.stripePriceId || null,
+        },
       });
 
-      await syncSubscriptionAccess(tx, userId, {
+      await syncSubscriptionAccess(tx, existingSubscription.userId, {
         plan: planKey,
         stripeCustomerId,
         stripeSubscriptionId: subscriptionId,
         subscriptionStatus: subscription?.status,
         whiteLabelEnabled: whiteLabelIncludedByPlan,
       });
-    });
-
-    return;
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.billingSubscription.update({
-      where: { stripeSubscriptionId: subscriptionId },
-      data: {
-        plan: resolveBillingPlanEnum(planKey),
-        status: subscriptionStatus,
-        currentPeriodStart: subscription?.current_period_start
-          ? new Date(Number(subscription.current_period_start) * 1000)
-          : existingSubscription.currentPeriodStart,
-        currentPeriodEnd: subscription?.current_period_end
-          ? new Date(Number(subscription.current_period_end) * 1000)
-          : existingSubscription.currentPeriodEnd,
-        cancelAtPeriodEnd: Boolean(subscription?.cancel_at_period_end),
-        canceledAt: subscription?.canceled_at
-          ? new Date(Number(subscription.canceled_at) * 1000)
-          : existingSubscription.canceledAt,
-        stripeCustomerId: stripeCustomerId || existingSubscription.stripeCustomerId || null,
-        stripePriceId: stripePriceId || existingSubscription.stripePriceId || null,
-      },
-    });
-
-    await syncSubscriptionAccess(tx, existingSubscription.userId, {
-      plan: planKey,
-      stripeCustomerId,
-      stripeSubscriptionId: subscriptionId,
-      subscriptionStatus: subscription?.status,
-      whiteLabelEnabled: whiteLabelIncludedByPlan,
-    });
-  });
+    },
+  );
 }
 
 async function processPaymentIntentEvent(eventType, paymentIntent) {
   const paymentIntentId = String(paymentIntent?.id || '').trim();
   if (!paymentIntentId) return;
 
-  const payment = await prisma.payment.findFirst({
-    where: {
-      stripePaymentIntent: paymentIntentId,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const billingContext = {
+    eventType,
+    paymentIntentId,
+  };
+
+  logBillingEvent('processando payment intent', billingContext);
+
+  const payment = await runBillingDbOperation(
+    'payment_intent_lookup_payment',
+    billingContext,
+    () =>
+      prisma.payment.findFirst({
+        where: {
+          stripePaymentIntent: paymentIntentId,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+  );
 
   if (!payment) return;
 
@@ -1074,28 +1285,44 @@ async function processPaymentIntentEvent(eventType, paymentIntent) {
       ? 'FAILED'
       : 'PAID';
 
-  await prisma.payment.update({
-    where: { stripeSession: payment.stripeSession },
-    data: {
-      status: nextPaymentStatus,
-      amount:
-        nextPaymentStatus === 'FAILED'
-          ? payment.amount
-          : toInteger(paymentIntent?.amount_received, payment.amount),
-      currency: toUpperText(paymentIntent?.currency, payment.currency || 'BRL'),
+  await runBillingDbOperation(
+    'payment_intent_update_payment',
+    {
+      ...billingContext,
+      stripeSessionId: payment.stripeSession,
+      nextPaymentStatus,
     },
-  });
+    () =>
+      prisma.payment.update({
+        where: { stripeSession: payment.stripeSession },
+        data: {
+          status: nextPaymentStatus,
+          amount:
+            nextPaymentStatus === 'FAILED'
+              ? payment.amount
+              : toInteger(paymentIntent?.amount_received, payment.amount),
+          currency: toUpperText(paymentIntent?.currency, payment.currency || 'BRL'),
+        },
+      }),
+  );
 }
 
 async function markWebhookEventAsFailed(stripeEventId, error) {
-  await prisma.stripeWebhookEvent.update({
-    where: { stripeEventId },
-    data: {
-      status: 'FAILED',
-      errorMessage: String(error?.message || error || 'WEBHOOK_PROCESSING_FAILED').slice(0, 1024),
-      processedAt: new Date(),
+  await runBillingDbOperation(
+    'webhook_mark_failed',
+    {
+      stripeEventId,
     },
-  });
+    () =>
+      prisma.stripeWebhookEvent.update({
+        where: { stripeEventId },
+        data: {
+          status: 'FAILED',
+          errorMessage: String(error?.message || error || 'WEBHOOK_PROCESSING_FAILED').slice(0, 1024),
+          processedAt: new Date(),
+        },
+      }),
+  );
 }
 
 function toDateOrNull(value) {
@@ -1366,27 +1593,43 @@ export async function claimStripeCheckoutSessionForUser({ sessionId, userId, use
   // Strategy: try creating the payment row (won't overwrite existing),
   // fallback to conditional update (only when userId is NULL or already equals requester).
   try {
-    await prisma.payment.create({
-      data: {
-        stripeSession: normalizedSessionId,
+    await runBillingDbOperation(
+      'checkout_claim_create_payment',
+      {
+        stripeSessionId: normalizedSessionId,
         userId: normalizedUserId,
-        creditsAdded: 0,
-        amount: 0,
-        status: 'PENDING',
-        productId: '',
-        mode: '',
-        currency: 'BRL',
       },
-    });
+      () =>
+        prisma.payment.create({
+          data: {
+            stripeSession: normalizedSessionId,
+            userId: normalizedUserId,
+            creditsAdded: 0,
+            amount: 0,
+            status: 'PENDING',
+            productId: '',
+            mode: '',
+            currency: 'BRL',
+          },
+        }),
+    );
   } catch (err) {
     if (String(err?.code || '') !== 'P2002') {
       throw err;
     }
 
-    const existing = await prisma.payment.findUnique({
-      where: { stripeSession: normalizedSessionId },
-      select: { userId: true },
-    });
+    const existing = await runBillingDbOperation(
+      'checkout_claim_lookup_existing',
+      {
+        stripeSessionId: normalizedSessionId,
+        userId: normalizedUserId,
+      },
+      () =>
+        prisma.payment.findUnique({
+          where: { stripeSession: normalizedSessionId },
+          select: { userId: true },
+        }),
+    );
 
     if (!existing?.userId) {
       throw err;
@@ -1425,10 +1668,17 @@ export async function createBillingPortalSession({ userId, user = null, returnUr
     throw createError('AUTH_REQUIRED', 'Autenticação necessária para abrir o portal Stripe.');
   }
 
-  const stripeCustomerId = await resolveStripeCustomerIdForUser({
-    userId: normalizedUserId,
-    user,
-  });
+  const stripeCustomerId = await runBillingDbOperation(
+    'billing_portal_resolve_customer',
+    {
+      userId: normalizedUserId,
+    },
+    () =>
+      resolveStripeCustomerIdForUser({
+        userId: normalizedUserId,
+        user,
+      }),
+  );
   if (!stripeCustomerId) {
     throw createError(
       'BILLING_PORTAL_CUSTOMER_MISSING',
@@ -1470,11 +1720,19 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
   const whiteLabelAddonItem = resolveWhiteLabelAddonEntry(input);
   const stripe = getStripeClient();
   const creditsToApplyNow = checkoutItem.mode === 'subscription' ? 0 : Number(checkoutItem.creditsToGrant || 0);
-  const resolvedWorkspaceId = await resolveCheckoutWorkspaceId({
-    userId,
-    user,
-    inputWorkspaceId: input.workspaceId,
-  });
+  const resolvedWorkspaceId = await runBillingDbOperation(
+    'checkout_resolve_workspace',
+    {
+      userId,
+      checkoutItemId: checkoutItem.id,
+    },
+    () =>
+      resolveCheckoutWorkspaceId({
+        userId,
+        user,
+        inputWorkspaceId: input.workspaceId,
+      }),
+  );
 
   const checkoutAppUrl = resolveCheckoutAppUrl(input, env.appUrl) || normalizeBaseUrl(env.appUrl);
   const defaultSuccessUrl = `${checkoutAppUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
@@ -1559,36 +1817,46 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     whiteLabelAddonItem,
   });
 
-  await prisma.payment.upsert({
-    where: { stripeSession: session.id },
-    create: {
+  await runBillingDbOperation(
+    'checkout_session_store_pending_payment',
+    {
       userId,
-      creditsAdded: creditsToApplyNow,
-      amount: toInteger(session?.amount_total, 0),
-      stripeSession: session.id,
-      status: 'PENDING',
-      productId: checkoutItem.id,
-      mode: checkoutItem.mode,
-      currency: toUpperText(session?.currency, 'BRL'),
-      stripePaymentIntent: String(session?.payment_intent || '') || null,
-      stripeCustomerId: String(session?.customer || '') || null,
-      stripeSubscriptionId: String(session?.subscription || '') || null,
-      metadata,
+      stripeSessionId: session.id,
+      checkoutItemId: checkoutItem.id,
+      checkoutMode: checkoutItem.mode,
     },
-    update: {
-      userId,
-      creditsAdded: creditsToApplyNow,
-      amount: toInteger(session?.amount_total, 0),
-      status: 'PENDING',
-      productId: checkoutItem.id,
-      mode: checkoutItem.mode,
-      currency: toUpperText(session?.currency, 'BRL'),
-      stripePaymentIntent: String(session?.payment_intent || '') || null,
-      stripeCustomerId: String(session?.customer || '') || null,
-      stripeSubscriptionId: String(session?.subscription || '') || null,
-      metadata,
-    },
-  });
+    () =>
+      prisma.payment.upsert({
+        where: { stripeSession: session.id },
+        create: {
+          userId,
+          creditsAdded: creditsToApplyNow,
+          amount: toInteger(session?.amount_total, 0),
+          stripeSession: session.id,
+          status: 'PENDING',
+          productId: checkoutItem.id,
+          mode: checkoutItem.mode,
+          currency: toUpperText(session?.currency, 'BRL'),
+          stripePaymentIntent: String(session?.payment_intent || '') || null,
+          stripeCustomerId: String(session?.customer || '') || null,
+          stripeSubscriptionId: String(session?.subscription || '') || null,
+          metadata,
+        },
+        update: {
+          userId,
+          creditsAdded: creditsToApplyNow,
+          amount: toInteger(session?.amount_total, 0),
+          status: 'PENDING',
+          productId: checkoutItem.id,
+          mode: checkoutItem.mode,
+          currency: toUpperText(session?.currency, 'BRL'),
+          stripePaymentIntent: String(session?.payment_intent || '') || null,
+          stripeCustomerId: String(session?.customer || '') || null,
+          stripeSubscriptionId: String(session?.subscription || '') || null,
+          metadata,
+        },
+      }),
+  );
 
   return {
     ok: true,
@@ -1625,9 +1893,17 @@ export async function getCheckoutSessionStatusForUser({ sessionId, userId } = {}
     throw createError('CHECKOUT_SESSION_REQUIRED', 'sessionId é obrigatório.');
   }
 
-  const payment = await prisma.payment.findUnique({
-    where: { stripeSession: sessionId },
-  });
+  const payment = await runBillingDbOperation(
+    'checkout_status_lookup_payment',
+    {
+      stripeSessionId: sessionId,
+      userId,
+    },
+    () =>
+      prisma.payment.findUnique({
+        where: { stripeSession: sessionId },
+      }),
+  );
 
   if (!payment) {
     return {
@@ -1646,18 +1922,34 @@ export async function getCheckoutSessionStatusForUser({ sessionId, userId } = {}
   }
 
   const normalizedStatus = resolvePaymentStatus(payment.status);
-  const credit = await prisma.credit.findUnique({
-    where: {
+  const credit = await runBillingDbOperation(
+    'checkout_status_lookup_credit',
+    {
+      stripeSessionId: sessionId,
       userId: payment.userId,
     },
-  });
-  const user = await prisma.user.findUnique({
-    where: { id: payment.userId },
-    select: {
-      id: true,
-      plan: true,
+    () =>
+      prisma.credit.findUnique({
+        where: {
+          userId: payment.userId,
+        },
+      }),
+  );
+  const user = await runBillingDbOperation(
+    'checkout_status_lookup_user',
+    {
+      stripeSessionId: sessionId,
+      userId: payment.userId,
     },
-  });
+    () =>
+      prisma.user.findUnique({
+        where: { id: payment.userId },
+        select: {
+          id: true,
+          plan: true,
+        },
+      }),
+  );
 
   return {
     ok: true,
@@ -1695,44 +1987,66 @@ export async function processStripeWebhookEvent({ rawBody, signature } = {}) {
     throw createError('INVALID_STRIPE_EVENT', 'Evento Stripe sem id.');
   }
 
-  const alreadyProcessed = await prisma.stripeWebhookEvent.findUnique({
-    where: { stripeEventId },
-  });
+  const type = String(event?.type || '').trim();
+  const webhookContext = {
+    stripeEventId,
+    eventType: type,
+    livemode: Boolean(event?.livemode),
+  };
+
+  logBillingEvent('evento recebido', webhookContext);
+
+  const alreadyProcessed = await runBillingDbOperation(
+    'webhook_lookup_event',
+    webhookContext,
+    () =>
+      prisma.stripeWebhookEvent.findUnique({
+        where: { stripeEventId },
+      }),
+  );
   if (alreadyProcessed?.status === 'PROCESSED') {
     return {
       ok: true,
       duplicate: true,
       eventId: stripeEventId,
-      eventType: String(event?.type || ''),
+      eventType: type,
     };
   }
 
   if (!alreadyProcessed) {
-    await prisma.stripeWebhookEvent.create({
-      data: {
-        stripeEventId,
-        eventType: String(event?.type || ''),
-        livemode: Boolean(event?.livemode),
-        payload: event,
-        status: 'PROCESSING',
-      },
-    });
+    await runBillingDbOperation(
+      'webhook_create_event',
+      webhookContext,
+      () =>
+        prisma.stripeWebhookEvent.create({
+          data: {
+            stripeEventId,
+            eventType: type,
+            livemode: Boolean(event?.livemode),
+            payload: event,
+            status: 'PROCESSING',
+          },
+        }),
+    );
   } else {
-    await prisma.stripeWebhookEvent.update({
-      where: { stripeEventId },
-      data: {
-        eventType: String(event?.type || ''),
-        livemode: Boolean(event?.livemode),
-        payload: event,
-        status: 'PROCESSING',
-        errorMessage: null,
-      },
-    });
+    await runBillingDbOperation(
+      'webhook_mark_processing',
+      webhookContext,
+      () =>
+        prisma.stripeWebhookEvent.update({
+          where: { stripeEventId },
+          data: {
+            eventType: type,
+            livemode: Boolean(event?.livemode),
+            payload: event,
+            status: 'PROCESSING',
+            errorMessage: null,
+          },
+        }),
+    );
   }
 
   try {
-    const type = String(event?.type || '').trim();
-
     if (
       type === 'checkout.session.completed'
       || type === 'checkout.session.async_payment_succeeded'
@@ -1755,14 +2069,19 @@ export async function processStripeWebhookEvent({ rawBody, signature } = {}) {
       await processPaymentIntentEvent(type, event?.data?.object || {});
     }
 
-    await prisma.stripeWebhookEvent.update({
-      where: { stripeEventId },
-      data: {
-        status: 'PROCESSED',
-        processedAt: new Date(),
-        errorMessage: null,
-      },
-    });
+    await runBillingDbOperation(
+      'webhook_mark_processed',
+      webhookContext,
+      () =>
+        prisma.stripeWebhookEvent.update({
+          where: { stripeEventId },
+          data: {
+            status: 'PROCESSED',
+            processedAt: new Date(),
+            errorMessage: null,
+          },
+        }),
+    );
 
     return {
       ok: true,
@@ -1771,7 +2090,21 @@ export async function processStripeWebhookEvent({ rawBody, signature } = {}) {
       eventType: type,
     };
   } catch (error) {
-    await markWebhookEventAsFailed(stripeEventId, error);
+    console.error('[billing][webhook] falha ao processar evento', {
+      ...webhookContext,
+      ...formatBillingErrorLog(error),
+    });
+
+    try {
+      await markWebhookEventAsFailed(stripeEventId, error);
+    } catch (markError) {
+      console.error('[billing][webhook] falha ao persistir status FAILED do evento', {
+        ...webhookContext,
+        originalError: truncateLogMessage(error?.message || error),
+        markFailedError: truncateLogMessage(markError?.message || markError),
+      });
+    }
+
     throw error;
   }
 }

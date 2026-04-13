@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { sendSafeJsonError } from '../lib/http-security.js';
+import { isTransientPrismaConnectionError } from '../lib/prisma.js';
 import { processStripeWebhookEvent } from '../modules/billing/stripe-billing.service.js';
 
 const router = Router();
@@ -34,6 +35,14 @@ export async function handleStripeWebhook(req, res) {
         status: 400,
         error: code || 'STRIPE_WEBHOOK_INVALID_SIGNATURE',
         message: error?.message || 'Webhook Stripe inválido.',
+      });
+    }
+
+    if (isTransientPrismaConnectionError(error)) {
+      return sendSafeJsonError(res, {
+        status: 503,
+        error: 'STRIPE_WEBHOOK_DATABASE_UNAVAILABLE',
+        message: 'Banco temporariamente indisponível para persistir o webhook Stripe.',
       });
     }
 
