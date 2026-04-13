@@ -1280,7 +1280,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
     mode: checkoutItem.mode,
     line_items: lineItems,
     ...(checkoutItem.mode === 'payment'
-      ? { automatic_payment_methods: { enabled: true } }
+      ? { payment_method_types: resolvedPaymentMethods }
       : { payment_method_types: resolvedPaymentMethods }),
     success_url: successUrl,
     cancel_url: cancelUrl,
@@ -1528,7 +1528,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     mode: checkoutItem.mode,
     line_items: lineItems,
     ...(checkoutItem.mode === 'payment'
-      ? { automatic_payment_methods: { enabled: true } }
+      ? { payment_method_types: resolvedPaymentMethods }
       : { payment_method_types: resolvedPaymentMethods }),
     success_url: successUrl,
     cancel_url: cancelUrl,
