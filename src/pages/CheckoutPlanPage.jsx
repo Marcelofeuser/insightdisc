@@ -445,12 +445,14 @@ export default function CheckoutPlanPage() {
             mode: 'payment',
             billing: 'one_time',
             provider: 'STRIPE',
+            paymentMethod: selectedMethod,
             orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
           }
         : {
             plan: checkoutPlanKey,
             billing: 'monthly',
             provider: 'STRIPE',
+            paymentMethod: 'card',
             orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
             whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
           };

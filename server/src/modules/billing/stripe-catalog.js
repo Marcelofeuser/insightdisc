@@ -391,7 +391,7 @@ export function getRecurringCreditsByPlan(plan = '') {
   return 0;
 }
 
-export function resolveStripePaymentMethods(mode = 'payment', currency = 'brl') {
+export function resolveStripePaymentMethods(mode = 'payment', currency = 'brl', preferredMethod = null) {
   const normalizedMode = normalizeMode(mode);
   const normalizedCurrency = String(currency || '').trim().toLowerCase();
 
@@ -399,9 +399,11 @@ export function resolveStripePaymentMethods(mode = 'payment', currency = 'brl') 
     return ['card'];
   }
 
-  if (normalizedCurrency === 'brl') {
-    return ['card', 'pix'];
-  }
+  const available = normalizedCurrency === 'brl' ? ['card', 'pix'] : ['card'];
 
-  return ['card'];
+  const preferred = String(preferredMethod || '').trim().toLowerCase();
+  if (preferred === 'pix' && available.includes('pix')) return ['pix'];
+  if (preferred === 'card') return ['card'];
+
+  return available;
 }

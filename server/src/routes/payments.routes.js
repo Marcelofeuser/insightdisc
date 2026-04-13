@@ -92,6 +92,7 @@ function buildCheckoutInputFromLegacyPayload(input = {}) {
     workspaceId: input.workspaceId,
     orderBumpAdvancedAnalysis: input.orderBumpAdvancedAnalysis,
     whiteLabelAddon: input.whiteLabelAddon,
+    paymentMethod: input.paymentMethod,
   };
 }
 
@@ -116,6 +117,7 @@ const createCheckoutSchema = z.object({
   workspaceId: z.string().trim().optional(),
   orderBumpAdvancedAnalysis: z.boolean().optional(),
   whiteLabelAddon: z.boolean().optional(),
+  paymentMethod: z.enum(['card', 'pix']).optional(),
   giftToken: z.string().optional(),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
@@ -130,14 +132,22 @@ const PUBLIC_CHECKOUT_ALLOWED_PLANS = new Set([
   'diamond_consulting',
 ]);
 
+// product types that are valid without a recognized plan
+const PUBLIC_CHECKOUT_ALLOWED_PRODUCT_TYPES = new Set([
+  'single_assessment',
+]);
+
 router.post('/create-checkout-public', async (req, res) => {
   try {
     const input = createCheckoutSchema.parse(req.body || {});
     const checkoutInput = buildCheckoutInputFromLegacyPayload(input);
     const normalizedPlan = normalizePlan(checkoutInput.planId || checkoutInput.plan || checkoutInput.product || '');
+    const isAllowedProductType = PUBLIC_CHECKOUT_ALLOWED_PRODUCT_TYPES.has(
+      String(input.productType || '').trim().toLowerCase(),
+    );
     const requestOrigin = resolveRequestOrigin(req);
 
-    if (!PUBLIC_CHECKOUT_ALLOWED_PLANS.has(normalizedPlan)) {
+    if (!isAllowedProductType && !PUBLIC_CHECKOUT_ALLOWED_PLANS.has(normalizedPlan)) {
       const error = new Error('Plano não disponível para checkout público.');
       error.code = 'INVALID_CHECKOUT_PRODUCT';
       throw error;

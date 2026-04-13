@@ -1068,10 +1068,13 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
     });
   }
 
+  const preferredMethod = String(input?.paymentMethod || '').trim().toLowerCase() || null;
+  const resolvedPaymentMethods = resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency, preferredMethod);
+
   const stripePayload = {
     mode: checkoutItem.mode,
     line_items: lineItems,
-    payment_method_types: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
+    payment_method_types: resolvedPaymentMethods,
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata,
@@ -1079,7 +1082,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
     billing_address_collection: 'auto',
   };
 
-  if (checkoutItem.mode === 'payment') {
+  if (checkoutItem.mode === 'payment' && resolvedPaymentMethods.includes('pix')) {
     stripePayload.payment_method_options = {
       pix: {
         expires_after_seconds: 60 * 60,
@@ -1101,7 +1104,7 @@ export async function createPublicBillingCheckoutSession({ input = {} } = {}) {
     checkoutUrl: String(session?.url || '').trim(),
     sessionId: session.id,
     mode: checkoutItem.mode,
-    paymentMethods: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
+    paymentMethods: resolvedPaymentMethods,
     item: {
       id: checkoutItem.id,
       type: checkoutItem.type,
@@ -1276,10 +1279,13 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     });
   }
 
+  const preferredMethod = String(input?.paymentMethod || '').trim().toLowerCase() || null;
+  const resolvedPaymentMethods = resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency, preferredMethod);
+
   const stripePayload = {
     mode: checkoutItem.mode,
     line_items: lineItems,
-    payment_method_types: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
+    payment_method_types: resolvedPaymentMethods,
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: userId,
@@ -1293,7 +1299,7 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     stripePayload.customer_email = userEmail;
   }
 
-  if (checkoutItem.mode === 'payment') {
+  if (checkoutItem.mode === 'payment' && resolvedPaymentMethods.includes('pix')) {
     stripePayload.payment_method_options = {
       pix: {
         expires_after_seconds: 60 * 60,
@@ -1346,27 +1352,27 @@ export async function createBillingCheckoutSession({ userId, user = null, input 
     checkoutUrl: String(session?.url || '').trim(),
     sessionId: session.id,
     mode: checkoutItem.mode,
-    paymentMethods: resolveStripePaymentMethods(checkoutItem.mode, checkoutItem.currency),
-      item: {
-        id: checkoutItem.id,
-        type: checkoutItem.type,
-        creditsToGrant: checkoutItem.creditsToGrant,
-        planTarget: checkoutItem.planTarget || null,
-        currency: checkoutItem.currency,
-        priceId: checkoutItem.priceId,
-        orderBump: orderBumpItem
-          ? {
-              id: orderBumpItem.id,
-              priceId: orderBumpItem.priceId,
-            }
-          : null,
-        whiteLabelAddon: whiteLabelAddonItem
-          ? {
-              id: whiteLabelAddonItem.id,
-              priceId: whiteLabelAddonItem.priceId,
-            }
-          : null,
-      },
+    paymentMethods: resolvedPaymentMethods,
+    item: {
+      id: checkoutItem.id,
+      type: checkoutItem.type,
+      creditsToGrant: checkoutItem.creditsToGrant,
+      planTarget: checkoutItem.planTarget || null,
+      currency: checkoutItem.currency,
+      priceId: checkoutItem.priceId,
+      orderBump: orderBumpItem
+        ? {
+            id: orderBumpItem.id,
+            priceId: orderBumpItem.priceId,
+          }
+        : null,
+      whiteLabelAddon: whiteLabelAddonItem
+        ? {
+            id: whiteLabelAddonItem.id,
+            priceId: whiteLabelAddonItem.priceId,
+          }
+        : null,
+    },
   };
 }
 

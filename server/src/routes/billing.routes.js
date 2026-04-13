@@ -76,6 +76,7 @@ const createCheckoutSchema = z
     cancelUrl: z.string().url().optional(),
     workspaceId: z.string().trim().optional(),
     orderBumpAdvancedAnalysis: booleanLikeSchema.optional(),
+    paymentMethod: z.enum(['card', 'pix']).optional(),
   })
   .refine(
     (value) =>
