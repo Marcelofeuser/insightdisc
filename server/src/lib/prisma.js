@@ -43,6 +43,8 @@ const TRANSIENT_CONNECTION_PATTERNS = [
   'connection terminated unexpectedly',
   'connection closed',
   'connection is closed',
+  'kind: closed',
+  'error in postgresql connection',
   "can't reach database server",
   'connection reset by peer',
   'timed out fetching a new connection',
@@ -62,6 +64,12 @@ export function isTransientPrismaConnectionError(error) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resetPrismaConnection() {
+  await prisma.$disconnect().catch(() => {});
+  await prisma.$connect();
+  await prisma.$queryRawUnsafe('SELECT 1');
 }
 
 export function logPrismaConnectionSummary() {
@@ -102,7 +110,14 @@ export async function disconnectPrisma() {
   await prisma.$disconnect();
 }
 
-export async function withPrismaRetry(operation, { retries = 1 } = {}) {
+export async function withPrismaRetry(
+  operation,
+  {
+    retries = 1,
+    initialDelayMs = 150,
+    onRetry = null,
+  } = {},
+) {
   let attempts = 0;
   let lastError = null;
   const maxAttempts = Math.max(0, Number(retries || 0)) + 1;
@@ -116,8 +131,44 @@ export async function withPrismaRetry(operation, { retries = 1 } = {}) {
       if (!isTransientPrismaConnectionError(error) || attempts >= maxAttempts) {
         throw error;
       }
+
+       let reconnectError = null;
+       try {
+         await resetPrismaConnection();
+       } catch (connectionResetError) {
+         reconnectError = connectionResetError;
+       }
+
+       if (typeof onRetry === 'function') {
+         await onRetry({
+           attempt: attempts,
+           maxAttempts,
+           error,
+           reconnectError,
+         });
+       }
+
+       await sleep(initialDelayMs * attempts);
     }
   }
 
   throw lastError || new Error('PRISMA_OPERATION_FAILED');
+}
+
+export async function withPrismaTransactionRetry(
+  operation,
+  {
+    retries = 1,
+    initialDelayMs = 150,
+    onRetry = null,
+  } = {},
+) {
+  return withPrismaRetry(
+    () => prisma.$transaction((tx) => operation(tx)),
+    {
+      retries,
+      initialDelayMs,
+      onRetry,
+    },
+  );
 }
