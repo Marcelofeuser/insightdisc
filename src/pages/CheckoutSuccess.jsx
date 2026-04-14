@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { apiRequest, getApiBaseUrl, getApiToken, getApiUserEmail, resolveApiRequestUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
+import { sanitizeNextPath } from '@/modules/auth/next-path';
 import { buildAssessmentReportPath } from '@/modules/reports';
 import { trackEvent } from '@/lib/analytics';
 import {
@@ -150,6 +151,7 @@ function resolveCheckoutItemKey(searchParams) {
 }
 
 export default function CheckoutSuccess() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { access: authAccess, isAuthenticated } = useAuth();
   const checkoutCompletedTrackRef = useRef('');
@@ -194,6 +196,10 @@ export default function CheckoutSuccess() {
   const checkoutItemLabel = useMemo(() => resolveCheckoutItemLabel(searchParams), [searchParams]);
   const upsellOffer = useMemo(() => resolveCheckoutUpsellOffer(checkoutItemKey), [checkoutItemKey]);
   const sessionId = String(searchParams.get('session_id') || '').trim();
+  const returnTo = useMemo(
+    () => sanitizeNextPath(searchParams.get('returnTo'), ''),
+    [searchParams],
+  );
   const checkoutSummary = useMemo(() => {
     const subscription = isSubscriptionCheckoutItem(checkoutItemKey);
     const intentIsMatch = matchesCheckoutIntent(checkoutIntent?.planKey, checkoutItemKey);
@@ -517,6 +523,18 @@ export default function CheckoutSuccess() {
 
     processCheckout();
   }, [searchParams, apiBaseUrl, requestedReportType, isAuthenticated]);
+
+  useEffect(() => {
+    if (!paymentConfirmed || !returnTo || isGiftFlow) return undefined;
+
+    const timer = window.setTimeout(() => {
+      navigate(returnTo, { replace: true });
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isGiftFlow, navigate, paymentConfirmed, returnTo]);
 
   const openReportHref = (() => {
     const isCandidateFlow = flow === 'candidate' || Boolean(candidateToken);
@@ -843,6 +861,11 @@ export default function CheckoutSuccess() {
               </div>
 
               <div className="cta-row">
+                {returnTo ? (
+                  <Link to={returnTo} className="btn primary" style={{ width: 'auto', padding: '14px 22px' }}>
+                    Continuar na Synapsys
+                  </Link>
+                ) : null}
                 <Link to={openReportHref} className="btn primary" style={{ width: 'auto', padding: '14px 22px' }}>
                   {assessmentId || candidateToken ? 'Ir para meu relatório' : 'Ir para meu painel'}
                 </Link>
@@ -878,7 +901,11 @@ export default function CheckoutSuccess() {
                 </div>
                 <div className="mini-card">
                   <strong>Próximo passo</strong>
-                  <div className="fine" style={{ marginTop: 8 }}>Entrar no painel e continuar de onde parou.</div>
+                  <div className="fine" style={{ marginTop: 8 }}>
+                    {returnTo
+                      ? 'Abrir o destino configurado e continuar a experiência da Synapsys.'
+                      : 'Entrar no painel e continuar de onde parou.'}
+                  </div>
                 </div>
                 <div className="mini-card">
                   <strong>Suporte</strong>

@@ -1,0 +1,651 @@
+.synapsys-neural-root,
+.synapsys-neural-root * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.synapsys-neural-root {
+  background: #030a12;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  position: relative;
+}
+
+.synapsys-neural-root textarea,
+.synapsys-neural-root button {
+  font: inherit;
+}
+
+.synapsys-neural-root .left-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: rgba(5, 15, 28, 0.92);
+  border-right: 0.5px solid rgba(80, 200, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.synapsys-neural-root .ls-header {
+  padding: 16px 16px 12px;
+  border-bottom: 0.5px solid rgba(80, 200, 255, 0.08);
+}
+
+.synapsys-neural-root .ls-title {
+  font-size: 11px;
+  color: rgba(80, 180, 220, 0.4);
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.synapsys-neural-root .ls-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.synapsys-neural-root .ls-textarea {
+  background: rgba(8, 35, 65, 0.9);
+  border: 0.5px solid rgba(80, 200, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #c8eeff;
+  outline: none;
+  resize: none;
+  height: 60px;
+}
+
+.synapsys-neural-root .ls-textarea:focus {
+  border-color: rgba(80, 200, 255, 0.8);
+}
+
+.synapsys-neural-root .ls-textarea::placeholder {
+  color: rgba(150, 210, 255, 0.3);
+}
+
+.synapsys-neural-root .ls-send {
+  background: rgba(20, 80, 140, 0.7);
+  border: 0.5px solid rgba(80, 200, 255, 0.45);
+  border-radius: 7px;
+  color: #80d8ff;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.synapsys-neural-root .ls-send:hover {
+  background: rgba(30, 110, 190, 0.85);
+}
+
+.synapsys-neural-root .ls-send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.synapsys-neural-root .ls-section {
+  padding: 10px 14px 6px;
+  font-size: 10px;
+  color: rgba(80, 180, 220, 0.3);
+  letter-spacing: 0.09em;
+}
+
+.synapsys-neural-root .ls-flow {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+  scrollbar-width: none;
+}
+
+.synapsys-neural-root .ls-flow::-webkit-scrollbar {
+  display: none;
+}
+
+.synapsys-neural-root .flow-item {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 7px;
+  border: 0.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  appearance: none;
+  text-align: left;
+}
+
+.synapsys-neural-root .flow-item:hover {
+  background: rgba(20, 80, 140, 0.2);
+  border-color: rgba(80, 200, 255, 0.15);
+}
+
+.synapsys-neural-root .flow-item.active {
+  background: rgba(20, 80, 140, 0.3);
+  border-color: rgba(80, 200, 255, 0.3);
+}
+
+.synapsys-neural-root .fi-label {
+  font-size: 11px;
+  color: rgba(150, 210, 255, 0.7);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.synapsys-neural-root .fi-text {
+  font-size: 11px;
+  color: rgba(100, 160, 200, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.synapsys-neural-root .fi-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.synapsys-neural-root .center {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.synapsys-neural-root #neural-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.synapsys-neural-root #nodes-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.synapsys-neural-root .hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: rgba(80, 160, 200, 0.2);
+  letter-spacing: 0.07em;
+  pointer-events: none;
+}
+
+.synapsys-neural-root .right-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: rgba(5, 15, 28, 0.92);
+  border-left: 0.5px solid rgba(80, 200, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding: 14px 12px;
+  gap: 6px;
+}
+
+.synapsys-neural-root .new-brain-btn {
+  background: linear-gradient(135deg, rgba(80, 140, 220, 0.22), rgba(30, 200, 160, 0.18));
+  border: 0.5px solid rgba(80, 200, 255, 0.45);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+  appearance: none;
+  width: 100%;
+  text-align: left;
+}
+
+.synapsys-neural-root .new-brain-btn:hover {
+  border-color: rgba(80, 200, 255, 0.7);
+  background: linear-gradient(135deg, rgba(80, 140, 220, 0.32), rgba(30, 200, 160, 0.26));
+}
+
+.synapsys-neural-root .brain-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #0d1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px 4px rgba(80, 200, 255, 0.3);
+}
+
+.synapsys-neural-root .brain-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #50c8ff;
+  box-shadow: 0 0 8px 3px rgba(80, 200, 255, 0.7);
+  animation: synapsys-core-pulse 2.2s infinite;
+}
+
+@keyframes synapsys-core-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+.synapsys-neural-root .nb-label {
+  font-size: 12px;
+  color: #80d8ff;
+  font-weight: 500;
+}
+
+.synapsys-neural-root .nb-sub {
+  font-size: 10px;
+  color: rgba(80, 160, 200, 0.45);
+}
+
+.synapsys-neural-root .rs-section {
+  font-size: 10px;
+  color: rgba(80, 180, 220, 0.3);
+  letter-spacing: 0.09em;
+  padding: 8px 2px 4px;
+}
+
+.synapsys-neural-root .rs-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 0.5px solid transparent;
+  appearance: none;
+  background: transparent;
+  text-align: left;
+}
+
+.synapsys-neural-root .rs-item:hover {
+  background: rgba(20, 80, 140, 0.2);
+  border-color: rgba(80, 200, 255, 0.12);
+}
+
+.synapsys-neural-root .rs-icon {
+  font-size: 13px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.synapsys-neural-root .rs-label {
+  font-size: 12px;
+  color: rgba(130, 195, 230, 0.65);
+}
+
+.synapsys-neural-root .rs-divider {
+  height: 0.5px;
+  background: rgba(80, 200, 255, 0.07);
+  margin: 8px 0;
+}
+
+.synapsys-neural-root .recent-item {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 0.5px solid transparent;
+  margin-bottom: 3px;
+  appearance: none;
+  background: transparent;
+  text-align: left;
+}
+
+.synapsys-neural-root .recent-item:hover {
+  background: rgba(20, 80, 140, 0.2);
+  border-color: rgba(80, 200, 255, 0.1);
+}
+
+.synapsys-neural-root .ri-name {
+  font-size: 11px;
+  color: rgba(120, 190, 225, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.synapsys-neural-root .ri-date {
+  font-size: 10px;
+  color: rgba(80, 140, 180, 0.35);
+  margin-top: 1px;
+}
+
+.synapsys-neural-root .node-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: all;
+  transition: opacity 2s ease;
+}
+
+.synapsys-neural-root .node-glow {
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.synapsys-neural-root .node-core {
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: synapsys-core-pulse 2.5s infinite;
+}
+
+.synapsys-neural-root .node-text {
+  position: absolute;
+  width: 190px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c8eeff;
+  text-align: left;
+  transform: translateX(-50%);
+  left: 50%;
+  padding: 10px 12px;
+  background: rgba(5, 22, 42, 0.88);
+  border: 0.5px solid rgba(80, 200, 255, 0.22);
+  border-radius: 10px;
+  pointer-events: all;
+  transition: opacity 2s ease;
+}
+
+.synapsys-neural-root .node-text.above {
+  bottom: calc(100% + 12px);
+}
+
+.synapsys-neural-root .node-text.below {
+  top: calc(100% + 12px);
+}
+
+.synapsys-neural-root .node-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 0.5px solid rgba(80, 200, 255, 0.12);
+}
+
+.synapsys-neural-root .na-btn {
+  background: none;
+  border: 0.5px solid rgba(80, 200, 255, 0.2);
+  border-radius: 5px;
+  color: rgba(100, 180, 220, 0.6);
+  font-size: 10px;
+  padding: 3px 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.synapsys-neural-root .na-btn:hover {
+  background: rgba(20, 80, 140, 0.3);
+  color: #80d8ff;
+  border-color: rgba(80, 200, 255, 0.4);
+}
+
+.synapsys-neural-root .na-btn.active-pos {
+  color: #30f0c0;
+  border-color: #30f0c0;
+}
+
+.synapsys-neural-root .na-btn.active-neg {
+  color: #f05050;
+  border-color: #f05050;
+}
+
+.synapsys-neural-root .na-btn.copied {
+  color: #30f0c0;
+  border-color: #30f0c0;
+}
+
+.synapsys-neural-root .node-q-text {
+  position: absolute;
+  width: 180px;
+  font-size: 11px;
+  color: rgba(100, 170, 210, 0.65);
+  font-style: italic;
+  text-align: center;
+  transform: translateX(-50%);
+  left: 50%;
+  pointer-events: none;
+  transition: opacity 2s ease;
+}
+
+.synapsys-neural-root .node-q-text.above {
+  bottom: calc(100% + 10px);
+}
+
+.synapsys-neural-root .node-q-text.below {
+  top: calc(100% + 10px);
+}
+
+.synapsys-neural-root .node-input-wrap {
+  position: absolute;
+  width: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.synapsys-neural-root .node-input-wrap.above {
+  bottom: calc(100% + 12px);
+}
+
+.synapsys-neural-root .node-input-wrap.below {
+  top: calc(100% + 12px);
+}
+
+.synapsys-neural-root .node-input {
+  width: 100%;
+  background: rgba(8, 35, 65, 0.9);
+  border: 0.5px solid rgba(80, 200, 255, 0.4);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #c8eeff;
+  outline: none;
+  resize: none;
+  height: 54px;
+}
+
+.synapsys-neural-root .node-input:focus {
+  border-color: rgba(80, 200, 255, 0.85);
+}
+
+.synapsys-neural-root .node-input::placeholder {
+  color: rgba(150, 210, 255, 0.3);
+}
+
+.synapsys-neural-root .node-send {
+  background: rgba(20, 80, 140, 0.75);
+  border: 0.5px solid rgba(80, 200, 255, 0.5);
+  border-radius: 8px;
+  color: #80d8ff;
+  font-size: 11px;
+  padding: 5px 14px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+}
+
+.synapsys-neural-root .node-send:hover {
+  background: rgba(30, 110, 190, 0.85);
+}
+
+.synapsys-neural-root .node-send:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.synapsys-neural-root .synapse-flash {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: synapsys-flash-out 0.65s forwards;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes synapsys-flash-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+}
+
+.synapsys-neural-root .thinking-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1.5px solid rgba(80, 200, 255, 0.55);
+  transform: translate(-50%, -50%);
+  animation: synapsys-ring-expand 1.1s infinite;
+}
+
+@keyframes synapsys-ring-expand {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.6);
+  }
+}
+
+.synapsys-neural-root .guard-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(3, 10, 18, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.synapsys-neural-root .guard-card {
+  width: min(460px, 100%);
+  border-radius: 16px;
+  border: 0.5px solid rgba(80, 200, 255, 0.2);
+  background: rgba(5, 22, 42, 0.94);
+  padding: 22px 22px 18px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.38);
+}
+
+.synapsys-neural-root .guard-title {
+  font-size: 22px;
+  line-height: 1.2;
+  color: #dff7ff;
+}
+
+.synapsys-neural-root .guard-copy {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(200, 238, 255, 0.72);
+}
+
+.synapsys-neural-root .guard-meta {
+  margin-top: 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(80, 200, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.synapsys-neural-root .guard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.synapsys-neural-root .guard-btn {
+  appearance: none;
+  border-radius: 10px;
+  border: 0.5px solid rgba(80, 200, 255, 0.24);
+  background: rgba(20, 80, 140, 0.26);
+  color: #bfeeff;
+  font-size: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.synapsys-neural-root .guard-btn:hover {
+  background: rgba(30, 110, 190, 0.36);
+  border-color: rgba(80, 200, 255, 0.42);
+}
+
+.synapsys-neural-root .guard-btn.primary {
+  background: linear-gradient(135deg, rgba(80, 140, 220, 0.34), rgba(30, 200, 160, 0.22));
+  color: #e8fbff;
+}
+
+@media (max-width: 1100px) {
+  .synapsys-neural-root {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .synapsys-neural-root .left-sidebar,
+  .synapsys-neural-root .right-sidebar {
+    width: 100%;
+    height: auto;
+  }
+
+  .synapsys-neural-root .center {
+    min-height: 60vh;
+  }
+}

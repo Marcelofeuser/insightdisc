@@ -1,0 +1,142 @@
+import { useEffect, useState } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Sparkles, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/AuthContext';
+import { analyzeWithSynapsys } from '@/lib/synapsysApi';
+import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
+import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
+import SynapsysChatExperience from '@/modules/synapsys/components/SynapsysChatExperience';
+import SynapsysSiteShell from '@/modules/synapsys/components/SynapsysSiteShell';
+import {
+  buildSynapsysPricingPath,
+  buildSynapsysSignupPath,
+} from '@/modules/synapsys/routes';
+import {
+  consumeSynapsysFreeMessage,
+  grantSynapsysRewardedBonus,
+  persistSynapsysIntent,
+  readSynapsysUsage,
+  resolveSynapsysUserKey,
+} from '@/modules/synapsys/session';
+
+export default function SynapsysChatApp() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoadingAuth, user, access } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedPlan = String(searchParams.get('plan') || 'free').trim().toLowerCase();
+  const resolvedPlan = resolvePlanFromAccess(access);
+  const isPremium = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.AI_LAB);
+  const tier = isPremium ? 'premium' : 'free';
+  const userKey = resolveSynapsysUserKey(user, access);
+  const [usageState, setUsageState] = useState(() => readSynapsysUsage(userKey, tier));
+
+  useEffect(() => {
+    persistSynapsysIntent(requestedPlan === 'premium' ? 'premium' : 'free');
+  }, [requestedPlan]);
+
+  useEffect(() => {
+    setUsageState(readSynapsysUsage(userKey, tier));
+  }, [userKey, tier]);
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#02040b]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-cyan-200" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        replace
+        to={buildSynapsysSignupPath({
+          intent: requestedPlan === 'premium' ? 'premium' : 'free',
+          next: `/chat/app?plan=${encodeURIComponent(requestedPlan === 'premium' ? 'premium' : 'free')}`,
+        })}
+      />
+    );
+  }
+
+  const handleConsumeMessage = () => {
+    if (tier === 'premium') {
+      return { allowed: true, state: usageState };
+    }
+
+    const result = consumeSynapsysFreeMessage(userKey);
+    setUsageState(result.state);
+    return result;
+  };
+
+  const handleRewardedUnlock = () => {
+    if (tier === 'premium') return;
+    const nextState = grantSynapsysRewardedBonus(userKey);
+    setUsageState(nextState);
+  };
+
+  const heroSlot = requestedPlan === 'premium' && !isPremium ? (
+    <section className="rounded-[30px] border border-amber-300/18 bg-amber-300/10 p-5 shadow-[0_20px_60px_rgba(2,8,24,0.22)] backdrop-blur-xl">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-amber-100/74">
+            Premium ainda não liberado
+          </p>
+          <h1 className="mt-3 text-2xl font-semibold text-white">
+            Você já está dentro da Synapsys. Falta só destravar a camada completa.
+          </h1>
+          <p className="mt-2 text-sm leading-7 text-white/70">
+            O chat continua funcionando no modo gratuito com limite diário. Ao assinar, esta mesma interface libera contexto maior, modos completos e uso contínuo.
+          </p>
+        </div>
+
+        <Link to={buildSynapsysPricingPath({ plan: 'premium' })}>
+          <Button className="rounded-full bg-white text-slate-950 hover:bg-cyan-50">
+            <Zap className="mr-2 h-4 w-4" />
+            Ver oferta premium
+          </Button>
+        </Link>
+      </div>
+    </section>
+  ) : tier === 'free' ? (
+    <section className="rounded-[30px] border border-cyan-300/14 bg-cyan-300/10 p-5 shadow-[0_20px_60px_rgba(2,8,24,0.22)] backdrop-blur-xl">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-100/74">
+            Camada gratuita ativa
+          </p>
+          <h1 className="mt-3 text-2xl font-semibold text-white">
+            Você já pode conversar com a Synapsys sem passar pelo painel do InsightDISC.
+          </h1>
+          <p className="mt-2 text-sm leading-7 text-white/70">
+            A mesma base neural já está rodando aqui. O limite diário e o paywall premium entram apenas para controlar acesso e upgrade.
+          </p>
+        </div>
+
+        <Link to={buildSynapsysPricingPath({ plan: 'premium' })}>
+          <Button className="rounded-full bg-white text-slate-950 hover:bg-cyan-50">
+            <Sparkles className="mr-2 h-4 w-4" />
+            Destravar premium
+          </Button>
+        </Link>
+      </div>
+    </section>
+  ) : null;
+
+  return (
+    <SynapsysSiteShell compact heroSlot={heroSlot}>
+      <SynapsysChatExperience
+        tier={tier}
+        planLabel={tier === 'premium' ? 'premium' : 'grátis'}
+        storageKey={`synapsys.chat.history.v1:${userKey}`}
+        historyLimit={tier === 'premium' ? 96 : 20}
+        usageState={usageState}
+        onConsumeMessage={handleConsumeMessage}
+        onUpgradeRequest={() => navigate(buildSynapsysPricingPath({ plan: 'premium' }))}
+        onRewardedUnlock={handleRewardedUnlock}
+        rewardedReady={false}
+        analyze={analyzeWithSynapsys}
+      />
+    </SynapsysSiteShell>
+  );
+}

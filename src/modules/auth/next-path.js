@@ -1,4 +1,4 @@
-import { createPageUrl } from '@/utils';
+import { createPageUrl } from '../../utils/index.js';
 
 export const DEFAULT_NEXT_PATH = '/';
 
@@ -16,6 +16,7 @@ const KNOWN_TOP_LEVEL_SEGMENTS = new Set([
   'brandingsettings',
   'c',
   'candidateonboarding',
+  'chat',
   'checkout',
   'checkoutsuccess',
   'compare-profiles',
@@ -86,6 +87,8 @@ export function isAuthEntryPath(pathname = '') {
   return (
     normalized === '/login' ||
     normalized.startsWith('/login/') ||
+    normalized === '/chat/signup' ||
+    normalized.startsWith('/chat/signup/') ||
     normalized === '/auth/callback' ||
     normalized.startsWith('/auth/callback/') ||
     normalized === '/signup' ||

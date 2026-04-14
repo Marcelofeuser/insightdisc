@@ -7,6 +7,11 @@ import PanelArchetypes from './pages/PanelArchetypes';
 import PanelCoach from './pages/PanelCoach';
 import PanelAiLab from './pages/PanelAiLab';
 import SynapsysAI from './pages/SynapsysAI';
+import SynapsysChatApp from './pages/synapsys/SynapsysChatApp';
+import SynapsysChatEntry from './pages/synapsys/SynapsysChatEntry';
+import SynapsysChatSignup from './pages/synapsys/SynapsysChatSignup';
+import SynapsysPricingPage from './pages/synapsys/SynapsysPricingPage';
+import SynapsysSubscribePage from './pages/synapsys/SynapsysSubscribePage';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -55,6 +60,8 @@ import AdminAssessments from './pages/admin/AdminAssessments';
 import AdminBilling from './pages/admin/AdminBilling';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports/routes';
+import { isSynapsysRuntime } from '@/modules/synapsys/runtime';
+import { hasSynapsysRouteContext } from '@/modules/synapsys/session';
 
 const { Pages, Layout } = pagesConfig;
 const PublicReportPage = Pages.PublicReport;
@@ -118,6 +125,25 @@ function CheckoutPlanLegacyRedirect() {
     return <Navigate to="/planos" replace />;
   }
   return <Navigate to={`/checkout/plan/${encodeURIComponent(normalized)}`} replace />;
+}
+
+function RootRouteElement() {
+  return <Home />;
+}
+
+function SynapsysPricingRouteElement() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search || '');
+  const shouldUseSynapsysPricing =
+    isSynapsysRuntime() ||
+    searchParams.get('source') === 'synapsys' ||
+    hasSynapsysRouteContext();
+
+  if (shouldUseSynapsysPricing) {
+    return <SynapsysPricingPage />;
+  }
+
+  return <Navigate to="/Pricing" replace />;
 }
 
 function renderProtectedPage(path, pageName, PageComponent) {
@@ -322,7 +348,12 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/Checkout" element={<Navigate to="/checkout" replace />} />
-      <Route caseSensitive path="/pricing" element={<Navigate to="/Pricing" replace />} />
+      <Route path="/chat" element={<Navigate to="/chat/entry" replace />} />
+      <Route path="/chat/entry" element={<SynapsysChatEntry />} />
+      <Route path="/chat/signup" element={<SynapsysChatSignup />} />
+      <Route path="/chat/app" element={<SynapsysChatApp />} />
+      <Route path="/subscribe" element={<SynapsysSubscribePage />} />
+      <Route caseSensitive path="/pricing" element={<SynapsysPricingRouteElement />} />
       <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
       <Route caseSensitive path="/comparison-report" element={<Navigate to="/compare-profiles" replace />} />
       <Route caseSensitive path="/profile-compatibility" element={<Navigate to="/compare-profiles" replace />} />
@@ -557,7 +588,7 @@ const AuthenticatedApp = () => {
 
       <Route
         path="/"
-        element={<Home />}
+        element={<RootRouteElement />}
       />
       <Route path="/Home" element={<Navigate to="/" replace />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
@@ -598,6 +629,20 @@ const AuthenticatedApp = () => {
 };
 
 function RouteAwareChatWidget() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search || '');
+  const hideWidget =
+    location.pathname.startsWith('/chat') ||
+    location.pathname === '/subscribe' ||
+    (location.pathname === '/pricing' &&
+      (isSynapsysRuntime() ||
+        searchParams.get('source') === 'synapsys' ||
+        hasSynapsysRouteContext()));
+
+  if (hideWidget) {
+    return null;
+  }
+
   return <InsightChatWidget />;
 }
 

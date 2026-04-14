@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import { apiRequest, getApiToken, getApiUserEmail } from '@/lib/apiClient';
 import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
 import { useAuth } from '@/lib/AuthContext';
 import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
+import { sanitizeNextPath } from '@/modules/auth/next-path';
 import '@/styles/checkout-approved.css';
 
 const CHECKOUT_INTENT_STORAGE_KEY = 'insightdisc_checkout_intent_v21';
@@ -322,6 +323,7 @@ function resolveCheckoutPlanKey(planSlug = '', fallbackPlanKey = '') {
 export default function CheckoutPlanPage() {
   const location = useLocation();
   const { planSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const { access, user } = useAuth();
   const plan = resolveCheckoutPlan(planSlug);
   const checkoutPlanKey = useMemo(
@@ -359,6 +361,10 @@ export default function CheckoutPlanPage() {
   const planIncludesWhiteLabel =
     (checkoutPlanKey === 'business_corporation' || checkoutPlanKey === 'diamond_consulting');
   const isOneTimeCheckout = checkoutPlanKey === 'disc_individual';
+  const returnTo = useMemo(
+    () => sanitizeNextPath(searchParams.get('returnTo'), ''),
+    [searchParams],
+  );
 
   useEffect(() => {
     const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
@@ -439,6 +445,11 @@ export default function CheckoutPlanPage() {
         totalTodayBrl,
       });
 
+      const successUrl =
+        typeof window !== 'undefined' && returnTo
+          ? `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}&returnTo=${encodeURIComponent(returnTo)}`
+          : undefined;
+
       const checkoutPayload = isOneTimeCheckout
         ? {
             productType: 'single_assessment',
@@ -447,6 +458,7 @@ export default function CheckoutPlanPage() {
             provider: 'STRIPE',
             paymentMethod: selectedMethod,
             orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
+            successUrl,
           }
         : {
             plan: checkoutPlanKey,
@@ -455,6 +467,7 @@ export default function CheckoutPlanPage() {
             paymentMethod: 'card',
             orderBumpAdvancedAnalysis: canOfferAiOrderBump ? orderBumpEnabled : false,
             whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
+            successUrl,
           };
 
       const hasAuthSession = Boolean(getApiToken()) || Boolean(getApiUserEmail());
