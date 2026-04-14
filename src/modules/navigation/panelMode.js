@@ -1,5 +1,6 @@
 import { EXPERIENCE_ROLE, resolveExperienceRole } from '@/modules/dashboard/experience-role';
 import { isSuperAdminAccess } from '@/modules/auth/access-control';
+import { resolvePanelModeFromPlan } from '@/modules/navigation/panelModePlanResolver';
 
 export const PANEL_MODE = Object.freeze({
   BUSINESS: 'business',
@@ -68,6 +69,10 @@ export function resolveAutoPanelMode(access) {
   const role = resolveExperienceRole(access);
   if (role === EXPERIENCE_ROLE.PLATFORM_ADMIN) {
     return PANEL_MODE.BUSINESS;
+  }
+  const planMode = resolvePanelModeFromPlan(access);
+  if (planMode !== PANEL_MODE.PERSONAL) {
+    return planMode;
   }
   if (role === EXPERIENCE_ROLE.PROFESSIONAL) {
     return PANEL_MODE.PROFESSIONAL;

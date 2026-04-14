@@ -6,7 +6,7 @@ import { evaluateFeatureAccess, FEATURE_KEYS } from '../../src/modules/billing/p
 test('resolvePlanFromAccess normaliza planos legados para camada SaaS', () => {
   assert.equal(resolvePlanFromAccess({ plan: 'free' }), 'personal');
   assert.equal(resolvePlanFromAccess({ plan: 'premium' }), 'professional');
-  assert.equal(resolvePlanFromAccess({ plan: 'enterprise' }), 'business');
+  assert.equal(resolvePlanFromAccess({ plan: 'enterprise' }), 'corporation');
 });
 
 test('evaluateFeatureAccess bloqueia team map para plano personal', () => {
