@@ -75,6 +75,10 @@ const PAGE_TITLES = {
     title: 'AI Lab',
     subtitle: 'Laboratório de prompts e hipóteses aplicado aos seus relatórios DISC',
   },
+  SynapsysAI: {
+    title: 'Synapsys AI',
+    subtitle: 'Chat premium com visual neural, modos cognitivos e respostas em fluxo vivo',
+  },
   PanelCoach: {
     title: 'Coach',
     subtitle: 'Assistente com IA contextualizado em relatórios reais selecionados',

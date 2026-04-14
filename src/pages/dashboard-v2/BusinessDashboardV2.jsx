@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowRight,
-  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
   CreditCard,
   FileBarChart2,
-  Radar,
-  Send,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -53,20 +49,6 @@ function KpiCard({ icon: Icon, label, value, accent = 'indigo' }) {
   );
 }
 
-function QuickLink({ icon: Icon, label, to }) {
-  return (
-    <Link to={to}>
-      <span className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors group">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors flex-shrink-0">
-          <Icon className="w-3.5 h-3.5" />
-        </span>
-        {label}
-        <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity ml-auto" />
-      </span>
-    </Link>
-  );
-}
-
 export default function BusinessDashboardV2() {
   const navigate = useNavigate();
   const { access, user } = useAuth();
@@ -83,7 +65,7 @@ export default function BusinessDashboardV2() {
   const predominantLabel = data.predominantFactor && dashboardFactorLabels[data.predominantFactor]
     ? `${data.predominantFactor} — ${dashboardFactorLabels[data.predominantFactor]}`
     : '—';
-  const credits = isSuperAdmin ? 'Ilimitado' : (data.creditsBalance ?? 0);
+  const credits = isSuperAdmin ? 'Ilimitado' : Number(access?.creditsBalance ?? 0);
   const intelligentActions = [
     {
       label: 'Plano de desenvolvimento',
@@ -142,6 +124,9 @@ export default function BusinessDashboardV2() {
           <Badge variant="outline" className="rounded-full px-3 text-xs">
             Créditos disponíveis: {credits}
           </Badge>
+          <Link to="/app/credits">
+            <Button variant="outline" className="rounded-xl">Adquirir créditos</Button>
+          </Link>
           <Button
             className="bg-indigo-600 hover:bg-indigo-700 rounded-xl"
             onClick={handleStart}
@@ -205,8 +190,8 @@ export default function BusinessDashboardV2() {
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5">
+      <div className="grid gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">Resumo executivo</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl bg-slate-50 p-3">
@@ -226,18 +211,6 @@ export default function BusinessDashboardV2() {
               <p className="mt-1 text-2xl font-semibold text-slate-900">{data.teamsMonitored}</p>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Navegar para</p>
-          <QuickLink icon={ClipboardList} label="Avaliações"      to="/MyAssessments"    />
-          <QuickLink icon={FileBarChart2} label="Relatórios"       to="/MyAssessments#reports" />
-          <QuickLink icon={Users}         label="Equipe"           to="/team-map"         />
-          <QuickLink icon={Building2}      label="Organização"      to="/organization-report" />
-          <QuickLink icon={Sparkles}      label="Arquétipos"       to="/painel/arquetipos" />
-          <QuickLink icon={Radar}         label="Comparador"       to="/compare-profiles" />
-          <QuickLink icon={Send}          label="Enviar convite"   to="/SendAssessment"   />
-          <QuickLink icon={ClipboardList} label="Dossiê"           to={dossierPath}       />
         </div>
       </div>
 

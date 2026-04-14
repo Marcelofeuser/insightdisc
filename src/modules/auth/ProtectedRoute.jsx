@@ -11,7 +11,23 @@ import {
   hasPermission,
   isAuthenticatedAccess,
 } from '@/modules/auth/access-control';
+import { isPlanAtLeast, resolvePlanFromAccess } from '@/modules/billing/planConfig';
+import { hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
 import { buildLoginRedirectUrl } from '@/modules/auth/next-path';
+
+function evaluatePlanFallback(access, policy = {}) {
+  if (!policy?.minimumPlan && !policy?.requiredFeature) {
+    return false;
+  }
+
+  const plan = resolvePlanFromAccess(access);
+  const meetsMinimumPlan = policy.minimumPlan ? isPlanAtLeast(plan, policy.minimumPlan) : true;
+  const meetsFeatureAccess = policy.requiredFeature
+    ? hasFeatureAccessByPlan(plan, policy.requiredFeature)
+    : true;
+
+  return meetsMinimumPlan && meetsFeatureAccess;
+}
 
 function evaluatePolicy(access, policy) {
   if (!policy) return { allowed: true };
@@ -28,6 +44,8 @@ function evaluatePolicy(access, policy) {
     }
   }
 
+  const allowedByPlan = evaluatePlanFallback(access, policy);
+
   const globalRoles = policy.anyGlobalRoles || [];
   const tenantRoles = policy.anyTenantRoles || [];
   const hasRoleConstraint = globalRoles.length > 0 || tenantRoles.length > 0;
@@ -35,14 +53,18 @@ function evaluatePolicy(access, policy) {
   if (hasRoleConstraint) {
     const allowedByGlobalRole = hasAnyGlobalRole(access, globalRoles);
     const allowedByTenantRole = hasAnyTenantRole(access, tenantRoles);
-    if (!allowedByGlobalRole && !allowedByTenantRole) {
+    if (!allowedByGlobalRole && !allowedByTenantRole && !allowedByPlan) {
       return { allowed: false, reason: 'role' };
     }
   }
 
   const requiredPermissions = policy.permissions || [];
   const permissionOk = requiredPermissions.every((permission) => hasPermission(access, permission));
-  if (!permissionOk) {
+  if (!permissionOk && !allowedByPlan) {
+    return { allowed: false, reason: 'permission' };
+  }
+
+  if (!hasRoleConstraint && requiredPermissions.length === 0 && !allowedByPlan && (policy.minimumPlan || policy.requiredFeature)) {
     return { allowed: false, reason: 'permission' };
   }
 

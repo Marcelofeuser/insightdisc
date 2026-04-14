@@ -47,3 +47,13 @@ test('mapeia diamond consulting para modo business', () => {
     'business',
   );
 });
+
+test('mapeia corporation para modo business', () => {
+  assert.equal(
+    resolvePanelModeFromPlan({
+      plan: 'corporation',
+      lifecycleStatus: 'customer_active',
+    }),
+    'business',
+  );
+});

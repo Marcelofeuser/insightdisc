@@ -6,6 +6,7 @@ import PaletteTest from './pages/PaletteTest';
 import PanelArchetypes from './pages/PanelArchetypes';
 import PanelCoach from './pages/PanelCoach';
 import PanelAiLab from './pages/PanelAiLab';
+import SynapsysAI from './pages/SynapsysAI';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -410,12 +411,23 @@ const AuthenticatedApp = () => {
       <Route path="/painel" element={DashboardHomeRouteElement} />
       <Route path="/Dashboard" element={DashboardHomeRouteElement} />
       <Route path="/ai-lab" element={<Navigate to="/painel/ai-lab" replace />} />
+      <Route path="/synapsys-ai" element={<Navigate to="/painel/synapsys" replace />} />
       <Route
         path="/painel/ai-lab"
         element={
           <ProtectedRoute pageName="PanelAiLab" policy={getPagePolicy('PanelAiLab')}>
             <LayoutWrapper currentPageName="PanelAiLab">
               <PanelAiLab />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/painel/synapsys"
+        element={
+          <ProtectedRoute pageName="SynapsysAI" policy={getPagePolicy('SynapsysAI')}>
+            <LayoutWrapper currentPageName="SynapsysAI">
+              <SynapsysAI />
             </LayoutWrapper>
           </ProtectedRoute>
         }

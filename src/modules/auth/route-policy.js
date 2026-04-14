@@ -1,6 +1,8 @@
 import { PERMISSIONS } from '@/modules/auth/permissions';
 import { USER_LIFECYCLE } from '@/modules/auth/access-control';
 import { GLOBAL_ROLES, TENANT_ROLES } from '@/modules/auth/roles';
+import { PLANS } from '@/modules/billing/planConfig';
+import { FEATURE_KEYS } from '@/modules/billing/planGuard';
 
 const PREMIUM_LIFECYCLE = Object.freeze([
   USER_LIFECYCLE.CUSTOMER_ACTIVE,
@@ -51,6 +53,7 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiredFeature: FEATURE_KEYS.DOSSIER,
   },
   MyAssessments: {
     requiresAuth: true,
@@ -58,6 +61,9 @@ const PAGE_POLICIES = Object.freeze({
     redirectTo: '/Pricing?unlock=1',
   },
   PanelAiLab: {
+    requiresAuth: true,
+  },
+  SynapsysAI: {
     requiresAuth: true,
   },
   PanelCoach: {
@@ -69,9 +75,11 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiredFeature: FEATURE_KEYS.ARCHETYPES,
   },
   JobMatching: {
     requiresAuth: true,
+    requiredFeature: FEATURE_KEYS.JOB_MATCHING,
   },
   LeadsDashboard: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -86,6 +94,7 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN],
     permissions: [PERMISSIONS.CREDIT_VIEW],
+    minimumPlan: PLANS.PROFESSIONAL,
   },
   BrandingSettings: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -115,6 +124,7 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_CREATE],
+    minimumPlan: PLANS.PROFESSIONAL,
   },
   TeamMapping: {
     requiresAuth: true,
@@ -125,9 +135,11 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiredFeature: FEATURE_KEYS.ADVANCED_COMPARISON,
   },
   TeamMap: {
     requiresAuth: true,
+    requiredFeature: FEATURE_KEYS.TEAM_MAP,
   },
   OrganizationalReport: {
     allowedLifecycle: PREMIUM_LIFECYCLE,
@@ -135,6 +147,7 @@ const PAGE_POLICIES = Object.freeze({
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN, GLOBAL_ROLES.PLATFORM_ADMIN],
     anyTenantRoles: [TENANT_ROLES.TENANT_ADMIN, TENANT_ROLES.TENANT_USER],
     permissions: [PERMISSIONS.ASSESSMENT_VIEW_TENANT],
+    requiredFeature: FEATURE_KEYS.ORGANIZATIONAL_REPORT,
   },
   SuperAdminDashboard: {
     anyGlobalRoles: [GLOBAL_ROLES.SUPER_ADMIN],

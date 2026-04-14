@@ -263,15 +263,26 @@ export function canAccessDossier(access, { notify = false } = {}) {
     return true;
   }
 
-  const plan = normalizePlan(
+  const rawPlan = String(
     access?.plan ||
       access?.user?.plan ||
       access?.user?.workspace_plan ||
-      access?.user?.subscription_plan
-  );
+      access?.user?.subscription_plan ||
+      ''
+  )
+    .trim()
+    .toLowerCase();
+  const plan = normalizePlan(rawPlan);
 
   const hasPlanAccess = DOSSIER_PREMIUM_PLANS.has(plan);
   if (hasPlanAccess) return true;
+
+  if (rawPlan) {
+    if (notify) {
+      showUpgradeModal('Dossiê Comportamental é um recurso premium.');
+    }
+    return false;
+  }
 
   if (plan === 'starter' || plan === 'free') {
     if (notify) {

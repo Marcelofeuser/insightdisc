@@ -98,7 +98,7 @@ export default function UserDashboardV2() {
             </h3>
             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
               <CreditCard className="h-3.5 w-3.5" />
-              Créditos disponíveis: {Number(data.creditsBalance || 0)}
+              Créditos disponíveis: {Number(access?.creditsBalance ?? 0)}
             </div>
           </div>
 
@@ -111,8 +111,8 @@ export default function UserDashboardV2() {
             >
               {isStarting ? 'Iniciando...' : 'Fazer minha avaliação'}
             </Button>
-            <Link to="/checkout">
-              <Button variant="outline">Comprar créditos</Button>
+            <Link to="/app/credits">
+              <Button variant="outline">Adquirir créditos</Button>
             </Link>
             <Link to="/painel/meu-desenvolvimento">
               <Button variant="outline">Meu Desenvolvimento</Button>

@@ -13,33 +13,34 @@ import { Button } from '@/components/ui/button';
 import StatsGrid from '@/components/ui/StatsGrid';
 import { getApiBaseUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/AuthContext';
-import { PERMISSIONS, hasPermission } from '@/modules/auth/access-control';
 import ActivityFeedPanel from '@/modules/dashboard/components/ActivityFeedPanel';
 import DashboardHero from '@/modules/dashboard/components/DashboardHero';
 import InsightPanel from '@/modules/dashboard/components/InsightPanel';
-import QuickActionsPanel from '@/modules/dashboard/components/QuickActionsPanel';
 import {
   BehaviorInsightsPanel,
   DiscDistributionChart,
   DiscTrendsChart,
   DominantProfilesPanel,
 } from '@/modules/analytics/components';
+import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
+import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
 import { DashboardErrorState, DashboardLoadingState } from '@/modules/dashboard/components/DashboardStates';
 import { dashboardFactorLabels, useDashboardData } from '@/modules/dashboard/useDashboardData';
-import { buildDossierPath } from '@/modules/dossier/routes';
 import { startSelfAssessment } from '@/utils/assessmentFlow';
 
 export default function ProfessionalDashboardV2() {
   const navigate = useNavigate();
   const { access, user } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
-  const dossierPath = buildDossierPath();
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const data = useDashboardData({ access, user });
-  const canCreateAssessment = hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
-  const creditsAvailable = Number(data.creditsBalance || 0);
+  const resolvedPlan = resolvePlanFromAccess(access);
+  const isInsiderPlan = resolvedPlan === 'insider';
+  const creditsAvailable = Number(access?.creditsBalance ?? 0);
+  const canUseAiLab = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.AI_LAB);
+  const canUseCoach = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.COACH);
 
   const stats = useMemo(
     () => [
@@ -88,51 +89,6 @@ export default function ProfessionalDashboardV2() {
     ],
     [data]
   );
-
-  const toolActions = [
-    {
-      label: 'Avaliações',
-      to: '/MyAssessments',
-      icon: ClipboardList,
-      description: 'Acompanhe convites enviados, status e andamento operacional.',
-    },
-    {
-      label: 'Convites',
-      to: '/SendAssessment',
-      icon: Users,
-      description: 'Envie convites e opere a base de respondentes.',
-    },
-    {
-      label: 'Dossiê',
-      to: dossierPath,
-      icon: Sparkles,
-      description: 'Acesse leitura aprofundada por avaliado para devolutiva.',
-    },
-    {
-      label: 'Relatórios',
-      to: '/MyAssessments#reports',
-      icon: FileBarChart2,
-      description: 'Consulte entregas finais e histórico concluído.',
-    },
-    {
-      label: 'Comparador',
-      to: '/compare-profiles',
-      icon: Radar,
-      description: 'Confronte perfis para ganho de precisão analítica.',
-    },
-    {
-      label: 'Mapa Organizacional',
-      to: '/team-map',
-      icon: Users,
-      description: 'Analise equilíbrio comportamental de equipes e lacunas de composição.',
-    },
-    {
-      label: 'Arquétipos',
-      to: '/painel/arquetipos',
-      icon: Sparkles,
-      description: 'Interprete arquétipos com base em relatórios concluídos.',
-    },
-  ];
 
   const intelligentActions = [
     {
@@ -189,9 +145,17 @@ export default function ProfessionalDashboardV2() {
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8" data-testid="dashboard-professional-v2">
       <DashboardHero
-        label="Dashboard Professional"
-        title="Produtividade analítica para especialistas DISC"
-        subtitle="Organize atendimento, interpretação comportamental e entrega de relatórios com visão técnica clara."
+        label={isInsiderPlan ? 'Dashboard Insider' : 'Dashboard Professional'}
+        title={
+          isInsiderPlan
+            ? 'Profundidade individual com AI Lab e Coach sempre à mão'
+            : 'Produtividade analítica para especialistas DISC'
+        }
+        subtitle={
+          isInsiderPlan
+            ? 'Uma camada avançada para leitura comportamental, raciocínio assistido e respostas aplicadas com inteligência contextual.'
+            : 'Organize atendimento, interpretação comportamental e entrega de relatórios com visão técnica clara.'
+        }
         badge={(
           <Badge variant="outline" className="rounded-full">
             Créditos disponíveis: {creditsAvailable}
@@ -207,18 +171,19 @@ export default function ProfessionalDashboardV2() {
             >
               {isStarting ? 'Iniciando...' : 'Fazer minha avaliação'}
             </Button>
-            <Link to="/SendAssessment">
-              <Button variant="outline">Convites</Button>
+            <Link to="/app/credits">
+              <Button variant="outline">Adquirir créditos</Button>
             </Link>
-            <Link to={dossierPath}>
-              <Button variant="outline">Dossiê</Button>
-            </Link>
-            <Link to="/compare-profiles">
-              <Button variant="outline">Comparador</Button>
-            </Link>
-            <Link to="/MyAssessments#reports">
-              <Button variant="outline">Relatórios</Button>
-            </Link>
+            {isInsiderPlan && canUseAiLab ? (
+              <Link to="/painel/ai-lab">
+                <Button variant="outline">AI Lab</Button>
+              </Link>
+            ) : null}
+            {isInsiderPlan && canUseCoach ? (
+              <Link to="/painel/coach">
+                <Button variant="outline">Coach</Button>
+              </Link>
+            ) : null}
           </>
         )}
       />
@@ -242,6 +207,31 @@ export default function ProfessionalDashboardV2() {
         <>
           <StatsGrid items={stats} />
 
+          {isInsiderPlan ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Camada Insider</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Painel focado em profundidade, clareza estratégica e apoio conversacional com IA.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {canUseAiLab ? (
+                    <Link to="/painel/ai-lab">
+                      <Button variant="outline">Abrir AI Lab</Button>
+                    </Link>
+                  ) : null}
+                  {canUseCoach ? (
+                    <Link to="/painel/coach">
+                      <Button variant="outline">Abrir Coach</Button>
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="grid gap-4 lg:grid-cols-2">
             <DiscDistributionChart
               title="Distribuição DISC"
@@ -257,12 +247,6 @@ export default function ProfessionalDashboardV2() {
               sampleSize={data.kpis.profilesAnalyzed}
             />
           </section>
-
-          <QuickActionsPanel
-            title="Ferramentas de trabalho"
-            subtitle="Acesse rapidamente os módulos mais usados na rotina profissional de análise DISC."
-            actions={toolActions}
-          />
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">

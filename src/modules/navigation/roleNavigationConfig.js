@@ -22,7 +22,7 @@ import {
   hasFeatureAccess,
   hasFeatureAccessByPlan,
 } from '@/modules/billing/planGuard';
-import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
+import { PLANS, isPlanAtLeast, resolvePlanFromAccess } from '@/modules/billing/planConfig';
 import { DOSSIER_BASE_PATH } from '@/modules/dossier/routes';
 import { PANEL_MODE, normalizePanelMode, resolveAutoPanelMode } from '@/modules/navigation/panelMode';
 
@@ -33,21 +33,29 @@ function makeItem(icon, label, page, to, section = 'Principal', options = {}) {
 function resolveCapabilities(access) {
   const canAccessPremium = canAccessPremiumSaas(access);
   const plan = resolvePlanFromAccess(access);
+  const hasOperationalPlan = isPlanAtLeast(plan, PLANS.PROFESSIONAL);
+  const hasAnalyticalPlan = isPlanAtLeast(plan, PLANS.INSIDER);
   const canManageAssessments =
-    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE);
+    canAccessPremium && (hasPermission(access, PERMISSIONS.ASSESSMENT_CREATE) || hasOperationalPlan);
   const canViewAssessments =
     canAccessPremium &&
     (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT) ||
-      hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF));
+      hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF) ||
+      hasAnalyticalPlan);
   const canViewTenantData =
-    canAccessPremium && hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT);
+    canAccessPremium && (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_TENANT) || hasAnalyticalPlan);
   const canViewOwnData =
     canAccessPremium &&
-    (hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF) || canViewAssessments);
+    (
+      hasPermission(access, PERMISSIONS.ASSESSMENT_VIEW_SELF) ||
+      canViewAssessments ||
+      plan === PLANS.PERSONAL ||
+      plan === PLANS.DISC_INDIVIDUAL
+    );
   const canAccessSuperAdminConsole = hasAnyGlobalRole(access, [GLOBAL_ROLES.SUPER_ADMIN]);
   const canUseAdvancedComparison =
     canAccessPremium && hasFeatureAccess(access, FEATURE_KEYS.ADVANCED_COMPARISON, { plan });
-  const canUseDossier = canViewTenantData && canAccessDossier(access);
+  const canUseDossier = (canViewTenantData || hasOperationalPlan) && canAccessDossier(access);
   const canUseAiLab = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.AI_LAB);
   const canUseCoach = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.COACH);
   const canUseTeamMapByPlan = hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.TEAM_MAP);
@@ -70,6 +78,10 @@ function resolveCapabilities(access) {
   };
 }
 
+function resolveProfessionalDashboardLabel(plan) {
+  return plan === 'insider' ? 'Dashboard Insider' : 'Dashboard Profissional';
+}
+
 function buildBusinessNavigation(capabilities) {
   const items = [
     makeItem(LayoutDashboard, 'Dashboard Business', 'Dashboard', '/painel', 'Visão Geral'),
@@ -83,6 +95,9 @@ function buildBusinessNavigation(capabilities) {
             );
           },
         })
+      : null,
+    capabilities.canManageAssessments
+      ? makeItem(Building2, 'Enviar convite', 'SendAssessment', '/SendAssessment', 'Operação')
       : null,
     capabilities.canUseTeamMapByPlan
       ? makeItem(Building2, 'Equipe', 'TeamMap', '/team-map', 'Operação')
@@ -100,6 +115,9 @@ function buildBusinessNavigation(capabilities) {
             );
           },
         })
+      : null,
+    capabilities.canUseTeamMapByPlan
+      ? makeItem(Building2, 'Organização', 'OrganizationalReport', '/organization-report', 'Resultado')
       : null,
     capabilities.canViewTenantData && capabilities.canUseAdvancedComparison
       ? makeItem(Radar, 'Comparador', 'CompareProfiles', '/compare-profiles', 'Análises')
@@ -133,7 +151,13 @@ function buildBusinessNavigation(capabilities) {
 
 function buildProfessionalNavigation(capabilities) {
   const items = [
-    makeItem(LayoutDashboard, 'Dashboard Profissional', 'Dashboard', '/painel', 'Visão Geral'),
+    makeItem(
+      LayoutDashboard,
+      resolveProfessionalDashboardLabel(capabilities.plan),
+      'Dashboard',
+      '/painel',
+      'Visão Geral',
+    ),
     capabilities.canViewAssessments
       ? makeItem(Users, 'Avaliações', 'MyAssessments', '/MyAssessments', 'Operação', {
           activeMatch: ({ currentPageName, currentPath }) => {
@@ -146,7 +170,7 @@ function buildProfessionalNavigation(capabilities) {
         })
       : null,
     capabilities.canManageAssessments
-      ? makeItem(Building2, 'Convites', 'SendAssessment', '/SendAssessment', 'Operação')
+      ? makeItem(Building2, 'Enviar convite', 'SendAssessment', '/SendAssessment', 'Operação')
       : null,
     capabilities.canUseDossier
       ? makeItem(BookOpen, 'Dossiê', 'Dossier', DOSSIER_BASE_PATH, 'Operação')
@@ -250,5 +274,13 @@ export function getDashboardHeaderByRole(access, options = {}) {
   const requestedMode = normalizePanelMode(options?.panelMode);
   const autoMode = resolveAutoPanelMode(access);
   const mode = requestedMode || autoMode;
+
+  if (mode === PANEL_MODE.PROFESSIONAL && resolvePlanFromAccess(access) === 'insider') {
+    return {
+      title: 'Dashboard Insider',
+      subtitle: 'Leitura avançada com AI Lab e Coach para aprofundar contexto, clareza e ação',
+    };
+  }
+
   return getDashboardHeaderByPanelMode(mode);
 }
