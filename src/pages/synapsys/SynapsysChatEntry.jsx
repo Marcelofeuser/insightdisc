@@ -1,6 +1,8 @@
 import { BrainCircuit, CheckCircle2, Crown, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/AuthContext';
+import { hasSynapsysAccess, resolveSynapsysTier } from '@/modules/synapsys/access';
 import SynapsysSiteShell from '@/modules/synapsys/components/SynapsysSiteShell';
 import {
   buildSynapsysAppPath,
@@ -53,6 +55,20 @@ function FeatureList({ items }) {
 }
 
 export default function SynapsysChatEntry() {
+  const { isAuthenticated, access } = useAuth();
+  const tier = resolveSynapsysTier(access);
+  const canUseSynapsys = hasSynapsysAccess(access);
+  const freeCtaTarget = canUseSynapsys
+    ? buildSynapsysAppPath({ plan: tier === 'premium' ? 'premium' : 'free' })
+    : buildSynapsysSignupPath({
+      intent: 'free',
+      next: buildSynapsysAppPath({ plan: 'free' }),
+    });
+  const premiumCtaTarget =
+    isAuthenticated && tier === 'premium'
+      ? buildSynapsysAppPath({ plan: 'premium' })
+      : buildSynapsysPricingPath({ plan: 'premium' });
+
   return (
     <SynapsysSiteShell>
       <section className="relative overflow-hidden rounded-[36px] border border-white/10 bg-white/[0.04] p-6 shadow-[0_40px_120px_rgba(2,8,24,0.34)] backdrop-blur-xl sm:p-8 lg:p-10">
@@ -75,10 +91,7 @@ export default function SynapsysChatEntry() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                to={buildSynapsysSignupPath({
-                  intent: 'free',
-                  next: buildSynapsysAppPath({ plan: 'free' }),
-                })}
+                to={freeCtaTarget}
                 onClick={() => persistSynapsysIntent('free')}
               >
                 <Button className="h-14 rounded-full bg-white px-7 text-base font-semibold text-slate-950 hover:bg-cyan-50">
@@ -86,7 +99,7 @@ export default function SynapsysChatEntry() {
                 </Button>
               </Link>
               <Link
-                to={buildSynapsysPricingPath({ plan: 'premium' })}
+                to={premiumCtaTarget}
                 onClick={() => persistSynapsysIntent('premium')}
               >
                 <Button
@@ -134,7 +147,7 @@ export default function SynapsysChatEntry() {
 
             <div className="mt-6 flex flex-col gap-3">
               <Link
-                to={buildSynapsysPricingPath({ plan: 'premium' })}
+                to={premiumCtaTarget}
                 onClick={() => persistSynapsysIntent('premium')}
               >
                 <Button className="h-12 w-full rounded-full bg-white text-slate-950 hover:bg-cyan-50">
@@ -142,10 +155,7 @@ export default function SynapsysChatEntry() {
                 </Button>
               </Link>
               <Link
-                to={buildSynapsysSignupPath({
-                  intent: 'free',
-                  next: buildSynapsysAppPath({ plan: 'free' }),
-                })}
+                to={freeCtaTarget}
                 onClick={() => persistSynapsysIntent('free')}
               >
                 <Button
@@ -271,7 +281,7 @@ export default function SynapsysChatEntry() {
 
           <div className="flex w-full max-w-sm flex-col gap-3">
             <Link
-              to={buildSynapsysPricingPath({ plan: 'premium' })}
+              to={premiumCtaTarget}
               onClick={() => persistSynapsysIntent('premium')}
             >
               <Button className="h-14 w-full rounded-full bg-white text-slate-950 hover:bg-cyan-50">
@@ -279,10 +289,7 @@ export default function SynapsysChatEntry() {
               </Button>
             </Link>
             <Link
-              to={buildSynapsysSignupPath({
-                intent: 'free',
-                next: buildSynapsysAppPath({ plan: 'free' }),
-              })}
+              to={freeCtaTarget}
               onClick={() => persistSynapsysIntent('free')}
             >
               <Button

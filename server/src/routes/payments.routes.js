@@ -87,6 +87,8 @@ function buildCheckoutInputFromLegacyPayload(input = {}) {
     assessmentId: input.assessmentId,
     token: input.token,
     giftToken: input.giftToken,
+    productKey: input.productKey,
+    productTier: input.productTier,
     successUrl: input.successUrl,
     cancelUrl: input.cancelUrl,
     workspaceId: input.workspaceId,
@@ -119,6 +121,8 @@ const createCheckoutSchema = z.object({
   whiteLabelAddon: z.boolean().optional(),
   paymentMethod: z.enum(['card', 'pix']).optional(),
   giftToken: z.string().optional(),
+  productKey: z.string().trim().optional(),
+  productTier: z.enum(['free', 'premium']).optional(),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
 });

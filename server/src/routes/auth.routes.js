@@ -18,8 +18,8 @@ import {
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
 import { getUserCreditsBalance } from '../modules/auth/user-credits.js';
 import { markPromoAccountActivated } from '../modules/campaigns/campaign.service.js';
-import { normalizePlan, mapPlanForFeatures } from '../lib/plan-normalize.js';
 import { resolveUserPlan as resolveUserPlanModule } from '../modules/plans/feature-access.js';
+import { resolveSynapsysAccessFromUser } from '../modules/product-access/product-access.service.js';
 
 const router = Router();
 
@@ -48,6 +48,17 @@ const superAdminLoginSchema = z.object({
 const SUPER_ADMIN_RATE_WINDOW_MS = 15 * 60 * 1000;
 const SUPER_ADMIN_MAX_ATTEMPTS = 9999;
 const superAdminAttempts = new Map();
+const AUTH_USER_INCLUDE = Object.freeze({
+  credits: true,
+  memberships: true,
+  organizationsOwned: true,
+  productAccesses: true,
+  payments: {
+    where: { status: 'PAID' },
+    select: { id: true },
+    take: 1,
+  },
+});
 
 function parseClientIp(req) {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
@@ -159,6 +170,7 @@ function normalizeUserPayload(user = {}) {
           : [],
     plan,
     credits: creditsBalance,
+    synapsys_access: resolveSynapsysAccessFromUser(user),
   };
 }
 
@@ -260,16 +272,7 @@ async function loadAuthUserById(userId = '') {
   if (!userId) return null;
   return prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      credits: true,
-      memberships: true,
-      organizationsOwned: true,
-      payments: {
-        where: { status: 'PAID' },
-        select: { id: true },
-        take: 1,
-      },
-    },
+    include: AUTH_USER_INCLUDE,
   });
 }
 
@@ -314,16 +317,7 @@ router.post('/register', async (req, res) => {
 
       return tx.user.findUnique({
         where: { id: createdUser.id },
-        include: {
-          credits: true,
-          memberships: true,
-          organizationsOwned: true,
-          payments: {
-            where: { status: 'PAID' },
-            select: { id: true },
-            take: 1,
-          },
-        },
+        include: AUTH_USER_INCLUDE,
       });
     });
 
@@ -365,16 +359,7 @@ router.post('/login', async (req, res) => {
       () =>
         prisma.user.findUnique({
           where: { email: input.email.toLowerCase() },
-          include: {
-            credits: true,
-            memberships: true,
-            organizationsOwned: true,
-            payments: {
-              where: { status: 'PAID' },
-              select: { id: true },
-              take: 1,
-            },
-          },
+          include: AUTH_USER_INCLUDE,
         }),
       { retries: 1 },
     );
@@ -461,16 +446,7 @@ router.post('/oauth/exchange', async (req, res) => {
       () =>
         prisma.user.findUnique({
           where: { email },
-          include: {
-            credits: true,
-            memberships: true,
-            organizationsOwned: true,
-            payments: {
-              where: { status: 'PAID' },
-              select: { id: true },
-              take: 1,
-            },
-          },
+          include: AUTH_USER_INCLUDE,
         }),
       { retries: 1 },
     );
@@ -489,16 +465,7 @@ router.post('/oauth/exchange', async (req, res) => {
           () =>
             prisma.user.findUnique({
               where: { email },
-              include: {
-                credits: true,
-                memberships: true,
-                organizationsOwned: true,
-                payments: {
-                  where: { status: 'PAID' },
-                  select: { id: true },
-                  take: 1,
-                },
-              },
+              include: AUTH_USER_INCLUDE,
             }),
           { retries: 1 },
         );
@@ -600,16 +567,7 @@ if (process.env.NODE_ENV !== 'development' && entry.count >= SUPER_ADMIN_MAX_ATT
       () =>
         prisma.user.findUnique({
           where: { email: normalizedEmail },
-          include: {
-            credits: true,
-            memberships: true,
-            organizationsOwned: true,
-            payments: {
-              where: { status: 'PAID' },
-              select: { id: true },
-              take: 1,
-            },
-          },
+          include: AUTH_USER_INCLUDE,
         }),
       { retries: 1 },
     );
@@ -721,16 +679,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.auth.userId },
-      include: {
-        credits: true,
-        memberships: true,
-        organizationsOwned: true,
-        payments: {
-          where: { status: 'PAID' },
-          select: { id: true },
-          take: 1,
-        },
-      },
+      include: AUTH_USER_INCLUDE,
     });
 
     if (!user) {
@@ -755,16 +704,7 @@ router.get('/super-admin/me', requireAuth, attachUser, requireSuperAdmin, async 
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.auth.userId },
-      include: {
-        credits: true,
-        memberships: true,
-        organizationsOwned: true,
-        payments: {
-          where: { status: 'PAID' },
-          select: { id: true },
-          take: 1,
-        },
-      },
+      include: AUTH_USER_INCLUDE,
     });
 
     if (!user) {

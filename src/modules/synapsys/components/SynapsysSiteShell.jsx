@@ -9,6 +9,7 @@ import {
   buildSynapsysPricingPath,
   buildSynapsysSignupPath,
 } from '@/modules/synapsys/routes';
+import { hasSynapsysAccess as hasSynapsysProductAccess } from '@/modules/synapsys/access';
 import { markSynapsysRouteContext, resolveSynapsysTier } from '@/modules/synapsys/session';
 
 const NAV_ITEMS = Object.freeze([
@@ -35,11 +36,21 @@ function SynapsysAmbientLayer() {
   );
 }
 
-function resolvePrimaryAction({ isAuthenticated, tier }) {
-  if (isAuthenticated) {
+function resolvePrimaryAction({ isAuthenticated, tier, hasSynapsysAccess }) {
+  if (isAuthenticated && hasSynapsysAccess) {
     return {
       label: tier === 'premium' ? 'Abrir chat premium' : 'Abrir chat grátis',
       to: buildSynapsysAppPath({ plan: tier }),
+    };
+  }
+
+  if (isAuthenticated) {
+    return {
+      label: 'Ativar acesso grátis',
+      to: buildSynapsysSignupPath({
+        intent: 'free',
+        next: buildSynapsysAppPath({ plan: 'free' }),
+      }),
     };
   }
 
@@ -57,7 +68,8 @@ export default function SynapsysSiteShell({ children, heroSlot = null, compact =
   const { isAuthenticated, access, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const tier = resolveSynapsysTier(access);
-  const primaryAction = resolvePrimaryAction({ isAuthenticated, tier });
+  const hasSynapsysAccess = hasSynapsysProductAccess(access);
+  const primaryAction = resolvePrimaryAction({ isAuthenticated, tier, hasSynapsysAccess });
 
   useEffect(() => {
     markSynapsysRouteContext();
@@ -111,7 +123,11 @@ export default function SynapsysSiteShell({ children, heroSlot = null, compact =
               <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-white/70">
                 <span className="inline-flex items-center gap-2">
                   <Zap className="h-3.5 w-3.5 text-cyan-100" />
-                  {tier === 'premium' ? 'Camada premium pronta' : 'Camada grátis com limite diário'}
+                  {tier === 'premium'
+                    ? 'Camada premium pronta'
+                    : hasSynapsysAccess
+                      ? 'Camada grátis com limite diário'
+                      : 'Acesso Synapsys ainda não ativado'}
                 </span>
               </div>
 

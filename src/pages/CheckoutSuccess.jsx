@@ -153,7 +153,7 @@ function resolveCheckoutItemKey(searchParams) {
 export default function CheckoutSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { access: authAccess, isAuthenticated } = useAuth();
+  const { access: authAccess, isAuthenticated, checkAppState } = useAuth();
   const checkoutCompletedTrackRef = useRef('');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -528,13 +528,24 @@ export default function CheckoutSuccess() {
     if (!paymentConfirmed || !returnTo || isGiftFlow) return undefined;
 
     const timer = window.setTimeout(() => {
-      navigate(returnTo, { replace: true });
+      const goToReturnPath = async () => {
+        if (returnTo.startsWith('/chat/')) {
+          try {
+            await checkAppState();
+          } catch {
+            // ignore refresh errors and let the route decide the next step
+          }
+        }
+        navigate(returnTo, { replace: true });
+      };
+
+      void goToReturnPath();
     }, 2200);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [isGiftFlow, navigate, paymentConfirmed, returnTo]);
+  }, [checkAppState, isGiftFlow, navigate, paymentConfirmed, returnTo]);
 
   const openReportHref = (() => {
     const isCandidateFlow = flow === 'candidate' || Boolean(candidateToken);

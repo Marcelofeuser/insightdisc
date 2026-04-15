@@ -1,11 +1,11 @@
-import { resolvePlanFromAccess } from '../billing/planConfig.js';
-import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '../billing/planGuard.js';
 import { SYNAPSYS_FREE_DAILY_LIMIT, SYNAPSYS_REWARDED_BONUS } from './runtime.js';
 import {
   SYNAPSYS_ROUTE_CONTEXT_KEY,
   buildSynapsysAppPath,
+  buildSynapsysEntryPath,
   buildSynapsysPricingPath,
 } from './routes.js';
+import { getSynapsysAccess, hasSynapsysAccess as hasSynapsysProductAccess, resolveSynapsysTier as resolveAccessTier } from './access.js';
 
 const SYNAPSYS_INTENT_KEY = 'synapsys.intent.v1';
 const SYNAPSYS_USAGE_KEY = 'synapsys.usage.v1';
@@ -18,9 +18,14 @@ export function normalizeSynapsysIntent(value = '') {
 export function resolveSynapsysAuthDestination(intent = 'free', access = null) {
   const normalizedIntent = normalizeSynapsysIntent(intent);
   const tier = resolveSynapsysTier(access);
+  const hasAccess = hasSynapsysProductAccess(access);
 
   if (normalizedIntent === 'premium' && tier !== 'premium') {
     return buildSynapsysPricingPath({ plan: 'premium' });
+  }
+
+  if (!hasAccess) {
+    return buildSynapsysEntryPath();
   }
 
   return buildSynapsysAppPath({
@@ -54,8 +59,15 @@ export function hasSynapsysRouteContext() {
 }
 
 export function resolveSynapsysTier(access = null) {
-  const plan = resolvePlanFromAccess(access);
-  return hasFeatureAccessByPlan(plan, PRODUCT_FEATURES.AI_LAB) ? 'premium' : 'free';
+  return resolveAccessTier(access);
+}
+
+export function getCurrentSynapsysAccess(access = null) {
+  return getSynapsysAccess(access);
+}
+
+export function hasSynapsysAccess(access = null) {
+  return hasSynapsysProductAccess(access);
 }
 
 export function resolveSynapsysUserKey(user = null, access = null) {

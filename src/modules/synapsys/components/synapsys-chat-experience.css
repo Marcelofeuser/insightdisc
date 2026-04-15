@@ -649,3 +649,39 @@
     min-height: 60vh;
   }
 }
+
+/* ── FEED Q&A PAIRS ── */
+.synapsys-neural-root .ls-feed { flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding: 10px 10px 6px; gap: 6px; scrollbar-width: thin; scrollbar-color: rgba(80,200,255,0.1) transparent; }
+.synapsys-neural-root .ls-feed::-webkit-scrollbar { width: 3px; }
+.synapsys-neural-root .ls-feed::-webkit-scrollbar-thumb { background: rgba(80,200,255,0.12); border-radius: 2px; }
+.synapsys-neural-root .feed-pair { display: flex; flex-direction: column; gap: 4px; }
+.synapsys-neural-root .feed-item { padding: 8px 10px; border-radius: 8px; font-size: 11px; line-height: 1.55; border: 0.5px solid transparent; flex-shrink: 0; }
+.synapsys-neural-root .feed-item.q { background: rgba(26,80,160,0.2); border-color: rgba(80,160,255,0.22); color: rgba(120,190,255,0.88); }
+.synapsys-neural-root .feed-item.a { background: rgba(170,130,10,0.14); border-color: rgba(220,180,40,0.22); color: rgba(230,200,90,0.82); }
+.synapsys-neural-root .feed-expand { font-size: 10px; color: rgba(80,160,200,0.4); cursor: pointer; display: inline-block; margin-top: 3px; background: none; border: none; padding: 0; }
+.synapsys-neural-root .feed-expand:hover { color: rgba(80,200,255,0.7); }
+.synapsys-neural-root .node-ellipsis { color: rgba(80,160,200,0.45); font-size: 10px; display: block; margin-top: 2px; }
+.synapsys-neural-root .recent-action { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.25); }
+.synapsys-neural-root .recent-action:hover { background: rgba(124,58,237,0.16); border-color: rgba(124,58,237,0.4); }
+.synapsys-neural-root .recent-action .ri-name { color: rgba(167,139,250,0.8); }
+.synapsys-neural-root .recent-action .ri-date { color: rgba(124,58,237,0.5); }
+.synapsys-neural-root .rs-spacer { flex: 1; }
+.synapsys-neural-root .login-area { border-top: 0.5px solid rgba(80,200,255,0.08); padding: 10px 0 0; position: relative; }
+.synapsys-neural-root .login-btn { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; border: 0.5px solid transparent; width: 100%; background: none; appearance: none; text-align: left; }
+.synapsys-neural-root .login-btn:hover { background: rgba(20,80,140,0.2); border-color: rgba(80,200,255,0.12); }
+.synapsys-neural-root .login-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; background: rgba(26,80,160,0.4); border: 0.5px solid rgba(80,200,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #80d8ff; font-weight: 500; }
+.synapsys-neural-root .login-info { flex: 1; text-align: left; min-width: 0; }
+.synapsys-neural-root .login-name { font-size: 12px; color: rgba(130,195,230,0.7); }
+.synapsys-neural-root .login-email { font-size: 10px; color: rgba(80,140,180,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.synapsys-neural-root .login-arrow { font-size: 10px; color: rgba(80,160,200,0.3); }
+.synapsys-neural-root .login-menu { position: absolute; bottom: calc(100% + 4px); left: 0; right: 0; background: rgba(8,22,40,0.98); border: 0.5px solid rgba(80,200,255,0.18); border-radius: 10px; padding: 8px 0; display: none; z-index: 100; box-shadow: 0 -8px 32px rgba(0,0,0,0.4); }
+.synapsys-neural-root .login-menu.open { display: block; }
+.synapsys-neural-root .lm-user { padding: 10px 14px 8px; border-bottom: 0.5px solid rgba(80,200,255,0.08); margin-bottom: 4px; }
+.synapsys-neural-root .lm-name { font-size: 12px; color: rgba(130,195,230,0.8); font-weight: 500; }
+.synapsys-neural-root .lm-email { font-size: 10px; color: rgba(80,140,180,0.45); margin-top: 1px; }
+.synapsys-neural-root .lm-item { display: flex; align-items: center; gap: 9px; padding: 7px 14px; font-size: 12px; color: rgba(120,185,225,0.6); cursor: pointer; transition: background 0.12s; appearance: none; background: none; border: none; width: 100%; text-align: left; }
+.synapsys-neural-root .lm-item:hover { background: rgba(20,80,140,0.2); color: rgba(130,195,230,0.9); }
+.synapsys-neural-root .lm-icon { font-size: 13px; width: 18px; text-align: center; }
+.synapsys-neural-root .lm-divider { height: 0.5px; background: rgba(80,200,255,0.07); margin: 4px 0; }
+.synapsys-neural-root .lm-item.danger { color: rgba(220,90,90,0.6); }
+.synapsys-neural-root .lm-item.danger:hover { background: rgba(200,50,50,0.1); color: rgba(240,120,120,0.9); }

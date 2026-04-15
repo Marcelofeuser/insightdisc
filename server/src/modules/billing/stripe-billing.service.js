@@ -16,6 +16,10 @@ import {
   resolveStripePaymentMethods,
 } from './stripe-catalog.js';
 import { resolvePlanFromPrice } from './stripe-price-map.js';
+import {
+  PRODUCT_KEYS,
+  syncSynapsysAccessFromCheckout,
+} from '../product-access/product-access.service.js';
 
 function createError(code = 'BILLING_ERROR', message = 'Erro de billing.') {
   const error = new Error(message);
@@ -664,6 +668,8 @@ async function processCheckoutSessionEvent(eventType, session) {
   ).trim();
   const checkoutMode = String(metadata?.checkoutMode || session?.mode || '').trim().toLowerCase();
   const isSubscriptionCheckout = checkoutMode === 'subscription';
+  const productKey = String(metadata?.productKey || metadata?.product_key || '').trim().toLowerCase();
+  const isSynapsysProduct = productKey === PRODUCT_KEYS.SYNAPSYS;
   const planTarget = isSubscriptionCheckout
     ? normalizePlanId(resolvePlanFromPrice(stripeCheckoutPriceId))
     : normalizePlanId(rawPlanTarget);
@@ -805,7 +811,7 @@ async function processCheckoutSessionEvent(eventType, session) {
       }
 
       const resolvedUserId = payment.userId;
-      if (paid && planTarget) {
+      if (paid && planTarget && !isSynapsysProduct) {
         await applyPlan(tx, resolvedUserId, planTarget);
       }
 
@@ -823,7 +829,7 @@ async function processCheckoutSessionEvent(eventType, session) {
         });
       }
 
-      if (stripeSubscriptionId) {
+      if (stripeSubscriptionId && !isSynapsysProduct) {
         await upsertSubscription(tx, {
           userId: resolvedUserId,
           plan: planTarget || rawPlanTarget,
@@ -834,7 +840,15 @@ async function processCheckoutSessionEvent(eventType, session) {
         });
       }
 
-      if (isSubscriptionCheckout) {
+      if (paid && isSynapsysProduct) {
+        await syncSynapsysAccessFromCheckout(tx, {
+          userId: resolvedUserId,
+          metadata,
+          paid,
+        });
+      }
+
+      if (isSubscriptionCheckout && !isSynapsysProduct) {
         await syncSubscriptionAccess(tx, resolvedUserId, {
           plan: planTarget || rawPlanTarget || 'personal',
           stripeCustomerId,
@@ -842,7 +856,7 @@ async function processCheckoutSessionEvent(eventType, session) {
           subscriptionStatus: paid ? 'active' : failed ? 'past_due' : 'incomplete',
           whiteLabelEnabled: shouldEnableWhiteLabel,
         });
-      } else if (paid && shouldEnableWhiteLabel) {
+      } else if (paid && shouldEnableWhiteLabel && !isSynapsysProduct) {
         await applyStripeIdentity(tx, resolvedUserId, {
           subscriptionStatus: 'active',
           whiteLabelEnabled: true,
@@ -1438,6 +1452,8 @@ export function buildStripeCheckoutMetadata({
     whiteLabelAddonPriceId: String(whiteLabelAddon?.priceId || ''),
     workspaceId: String(resolvedWorkspaceId || ''),
     accountId: String(resolvedWorkspaceId || ''),
+    productKey: String(input.productKey || ''),
+    productTier: String(input.productTier || ''),
   };
 }
 

@@ -123,6 +123,8 @@ export default function SynapsysNeuralChat({
   const [thinkingList, setThinkingList] = useState([]);
   const [highlightNodeId, setHighlightNodeId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [feedPairs, setFeedPairs] = useState([]);
+  const [loginMenuOpen, setLoginMenuOpen] = useState(false);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -246,6 +248,12 @@ export default function SynapsysNeuralChat({
       },
       ...prev.slice(0, 7),
     ]);
+  }
+
+  function addFeedPair(question, answer) {
+    const plain = answer.replace(/<[^>]+>/g, '');
+    const preview = plain.length > 160 ? plain.slice(0, 160).trimEnd() : plain;
+    setFeedPairs(prev => [{ id: uid(), question, answer: plain, preview, expanded: false }, ...prev]);
   }
 
   async function runAnalyze(question) {
@@ -523,6 +531,7 @@ export default function SynapsysNeuralChat({
       };
       const nextInput = newInputNode(nextPos.x, nextPos.y);
 
+      addFeedPair(question, answerHtml);
       setConnections((prev) => [
         ...prev,
         { id: uid(), x1: qPos.x, y1: qPos.y, x2: aPos.x, y2: aPos.y, col: '13,158,120' },
@@ -598,26 +607,20 @@ export default function SynapsysNeuralChat({
           </div>
         </div>
 
-        <div className="ls-section">HISTÓRICO</div>
-        <div className="ls-flow" id="ls-flow">
-          {history.map((item, index) => {
-            const colors = ['#50c8ff', '#30f0c0', '#a78bfa'];
-            const dot = colors[index % colors.length];
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className="flow-item active"
-                onClick={() => focusNode(item.nodeId)}
-              >
-                <div className="fi-label">
-                  <span className="fi-dot" style={{ background: dot }} />
-                  pergunta {index + 1}
-                </div>
-                <div className="fi-text">{item.text}</div>
-              </button>
-            );
-          })}
+        <div className="ls-feed" id="ls-feed">
+          {feedPairs.map((pair) => (
+            <div className="feed-pair" key={pair.id}>
+              <div className="feed-item q">{pair.question}</div>
+              <div className="feed-item a">
+                {pair.expanded ? pair.answer : pair.preview}
+                {pair.answer.length > 160 && (
+                  <button className="feed-expand" onClick={() =>
+                    setFeedPairs(prev => prev.map(p => p.id === pair.id ? {...p, expanded: !p.expanded} : p))
+                  }>{pair.expanded ? 'recolher' : 'ver tudo'}</button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -817,9 +820,40 @@ export default function SynapsysNeuralChat({
           {recents.map((item) => (
             <div className="recent-item" key={item.id}>
               <div className="ri-name">{item.name}</div>
-              <div                className="ri-date">{item.date}</div>
+              <div className="ri-date">{item.date}</div>
             </div>
           ))}
+        </div>
+
+        <div className="rs-spacer" />
+
+        <div className="login-area">
+          <div className={`login-menu${loginMenuOpen ? ' open' : ''}`}>
+            <div className="lm-user">
+              <div className="lm-name">{user?.name || user?.full_name || 'Usuário'}</div>
+              <div className="lm-email">{user?.email || ''}</div>
+            </div>
+            <button type="button" className="lm-item"><span className="lm-icon">⚙️</span>Configurações</button>
+            <button type="button" className="lm-item"><span className="lm-icon">❓</span>Receber ajuda</button>
+            <div className="lm-divider" />
+            <button type="button" className="lm-item" onClick={onUpgradeRequest || (() => {})}>
+              <span className="lm-icon">📋</span>Ver planos
+            </button>
+            <div className="lm-divider" />
+            <button type="button" className="lm-item danger" onClick={() => { setLoginMenuOpen(false); }}>
+              <span className="lm-icon">↪</span>Sair
+            </button>
+          </div>
+          <button type="button" className="login-btn" onClick={() => setLoginMenuOpen(v => !v)}>
+            <div className="login-avatar">
+              {(user?.name || user?.full_name || 'U').slice(0,2).toUpperCase()}
+            </div>
+            <div className="login-info">
+              <div className="login-name">{user?.name || user?.full_name || 'Usuário'}</div>
+              <div className="login-email">{user?.email || ''}</div>
+            </div>
+            <span className="login-arrow">⌃</span>
+          </button>
         </div>
       </div>
     </div>

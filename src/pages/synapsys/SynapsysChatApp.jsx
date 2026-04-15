@@ -1,41 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { analyzeWithSynapsys } from '@/lib/synapsysApi';
-import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
-import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
+import {
+  buildSynapsysUsageState,
+  getSynapsysAccess,
+  hasSynapsysAccess,
+  mergeSynapsysAccessIntoUser,
+  resolveSynapsysTier,
+} from '@/modules/synapsys/access';
 import SynapsysNeuralChat from '@/modules/synapsys/components/SynapsysNeuralChat';
 import {
+  buildSynapsysEntryPath,
   buildSynapsysPricingPath,
   buildSynapsysSignupPath,
 } from '@/modules/synapsys/routes';
-import {
-  consumeSynapsysFreeMessage,
-  grantSynapsysRewardedBonus,
-  persistSynapsysIntent,
-  readSynapsysUsage,
-  resolveSynapsysUserKey,
-} from '@/modules/synapsys/session';
+import { persistSynapsysIntent } from '@/modules/synapsys/session';
+
+function buildAccessErrorResponse(error) {
+  const message = String(
+    error?.message ||
+      'A Synapsys não conseguiu continuar a conversa com este nível de acesso.',
+  ).trim();
+  return `<strong>Fluxo interrompido.</strong><br />${message}`;
+}
 
 export default function SynapsysChatApp() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoadingAuth, user, access } = useAuth();
+  const { isAuthenticated, isLoadingAuth, user, access, applyAuthenticatedUser } = useAuth();
   const [searchParams] = useSearchParams();
 
   const requestedPlan = String(searchParams.get('plan') || 'free').trim().toLowerCase();
-  const resolvedPlan = resolvePlanFromAccess(access);
-  const isPremium = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.AI_LAB);
-  const tier = isPremium ? 'premium' : 'free';
-  const userKey = resolveSynapsysUserKey(user, access);
-  const [usageState, setUsageState] = useState(() => readSynapsysUsage(userKey, tier));
+  const synapsysAccess = getSynapsysAccess(access);
+  const tier = resolveSynapsysTier(access);
+  const usageState = useMemo(() => buildSynapsysUsageState(access), [access]);
 
   useEffect(() => {
     persistSynapsysIntent(requestedPlan === 'premium' ? 'premium' : 'free');
   }, [requestedPlan]);
-
-  useEffect(() => {
-    setUsageState(readSynapsysUsage(userKey, tier));
-  }, [userKey, tier]);
 
   if (isLoadingAuth) {
     return (
@@ -57,31 +59,66 @@ export default function SynapsysChatApp() {
     );
   }
 
+  if (!hasSynapsysAccess(user, access)) {
+    return (
+      <Navigate
+        replace
+        to={requestedPlan === 'premium' ? buildSynapsysPricingPath({ plan: 'premium' }) : buildSynapsysEntryPath()}
+      />
+    );
+  }
+
   const handleConsumeMessage = () => {
     if (tier === 'premium') {
       return { allowed: true, state: usageState };
     }
 
-    const result = consumeSynapsysFreeMessage(userKey);
-    setUsageState(result.state);
-    return result;
+    return {
+      allowed: Number(usageState.remaining || 0) > 0,
+      state: usageState,
+    };
   };
 
-  const handleRewardedUnlock = () => {
-    if (tier === 'premium') return;
-    const nextState = grantSynapsysRewardedBonus(userKey);
-    setUsageState(nextState);
+  const handleAnalyze = async (payload) => {
+    try {
+      const result = await analyzeWithSynapsys(payload);
+
+      if (result?.synapsysAccess && user) {
+        applyAuthenticatedUser(mergeSynapsysAccessIntoUser(user, result.synapsysAccess));
+      }
+
+      return result;
+    } catch (error) {
+      if (error?.synapsysAccess && user) {
+        applyAuthenticatedUser(mergeSynapsysAccessIntoUser(user, error.synapsysAccess));
+      }
+
+      const accessErrorCode = String(error?.code || '').trim().toUpperCase();
+      if (
+        accessErrorCode === 'SYNAPSYS_DAILY_LIMIT_REACHED' ||
+        accessErrorCode === 'SYNAPSYS_ACCESS_REQUIRED' ||
+        accessErrorCode === 'SYNAPSYS_ACCESS_BLOCKED'
+      ) {
+        return {
+          ok: false,
+          response: buildAccessErrorResponse(error),
+          synapsysAccess: error?.synapsysAccess || synapsysAccess,
+        };
+      }
+
+      throw error;
+    }
   };
 
   return (
     <SynapsysNeuralChat
-      tier={tier}
+      tier={tier === 'premium' ? 'premium' : 'free'}
       usageState={usageState}
       onConsumeMessage={handleConsumeMessage}
       onUpgradeRequest={() => navigate(buildSynapsysPricingPath({ plan: 'premium' }))}
-      onRewardedUnlock={handleRewardedUnlock}
+      onRewardedUnlock={null}
       rewardedReady={false}
-      analyze={analyzeWithSynapsys}
+      analyze={handleAnalyze}
     />
   );
 }

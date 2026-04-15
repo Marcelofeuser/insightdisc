@@ -2,6 +2,7 @@ import { ArrowRight, BrainCircuit, CheckCircle2, Crown, ShieldCheck, Sparkles, S
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
+import { hasSynapsysAccess, resolveSynapsysTier } from '@/modules/synapsys/access';
 import SynapsysSiteShell from '@/modules/synapsys/components/SynapsysSiteShell';
 import {
   buildSynapsysAppPath,
@@ -13,7 +14,7 @@ import {
   SYNAPSYS_PREMIUM_PRICE_INTRO,
   SYNAPSYS_PREMIUM_PRICE_RENEWAL,
 } from '@/modules/synapsys/runtime';
-import { persistSynapsysIntent, resolveSynapsysTier } from '@/modules/synapsys/session';
+import { persistSynapsysIntent } from '@/modules/synapsys/session';
 
 const PREMIUM_BULLETS = Object.freeze([
   'Acesso à experiência premium completa',
@@ -93,6 +94,22 @@ export default function SynapsysPricingPage() {
   const { isAuthenticated, access } = useAuth();
   const tier = resolveSynapsysTier(access);
   const isPremium = tier === 'premium';
+  const canUseFreeTier = hasSynapsysAccess(access);
+
+  const freePrimaryCta = canUseFreeTier
+    ? {
+        label: tier === 'premium' ? 'Abrir chat premium' : 'Abrir chat com acesso limitado',
+        to: buildSynapsysAppPath({ plan: tier === 'premium' ? 'premium' : 'free' }),
+        onClick: () => persistSynapsysIntent('free'),
+      }
+    : {
+        label: 'Começar grátis com acesso limitado',
+        to: buildSynapsysSignupPath({
+          intent: 'free',
+          next: buildSynapsysAppPath({ plan: 'free' }),
+        }),
+        onClick: () => persistSynapsysIntent('free'),
+      };
 
   const premiumPrimaryCta = isPremium
     ? {
@@ -191,14 +208,7 @@ export default function SynapsysPricingPage() {
           price={`${SYNAPSYS_FREE_DAILY_LIMIT} mensagens por dia`}
           description="A entrada gratuita mantém a identidade da Synapsys viva e elegante, mas com limites claros de uso e gatilho de upgrade preparado."
           bullets={FREE_BULLETS}
-          cta={{
-            label: 'Começar grátis com acesso limitado',
-            to: buildSynapsysSignupPath({
-              intent: 'free',
-              next: buildSynapsysAppPath({ plan: 'free' }),
-            }),
-            onClick: () => persistSynapsysIntent('free'),
-          }}
+          cta={freePrimaryCta}
           secondaryCta={{
             label: 'Ir para a landing de entrada',
             to: '/chat/entry',
@@ -216,12 +226,9 @@ export default function SynapsysPricingPage() {
           highlight
           cta={premiumPrimaryCta}
           secondaryCta={{
-            label: 'Começar grátis com acesso limitado',
-            to: buildSynapsysSignupPath({
-              intent: 'free',
-              next: buildSynapsysAppPath({ plan: 'free' }),
-            }),
-            onClick: () => persistSynapsysIntent('free'),
+            label: freePrimaryCta.label,
+            to: freePrimaryCta.to,
+            onClick: freePrimaryCta.onClick,
           }}
         />
       </section>

@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { resolvePlanFromAccess } from '@/modules/billing/planConfig';
-import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
 import { sanitizeNextPath } from '@/modules/auth/next-path';
+import { resolveSynapsysTier } from '@/modules/synapsys/access';
 import { resolveSynapsysCheckoutTarget } from '@/modules/synapsys/runtime';
 import {
   buildSynapsysAppPath,
@@ -18,8 +17,7 @@ export default function SynapsysSubscribePage() {
     searchParams.get('returnTo'),
     buildSynapsysAppPath({ plan: 'premium' }),
   );
-  const resolvedPlan = resolvePlanFromAccess(access);
-  const alreadyPremium = hasFeatureAccessByPlan(resolvedPlan, PRODUCT_FEATURES.AI_LAB);
+  const alreadyPremium = resolveSynapsysTier(access) === 'premium';
   const checkoutTarget = resolveSynapsysCheckoutTarget({ returnTo });
 
   useEffect(() => {

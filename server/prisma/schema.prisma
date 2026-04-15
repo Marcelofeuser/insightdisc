@@ -35,6 +35,7 @@ model User {
   memberships                 OrganizationMember[]
   organizationsOwned          Organization[]               @relation("OrganizationOwner")
   payments                    Payment[]
+  productAccesses             ProductAccess[]
   promoAccountBatchesCreated  PromoAccountBatch[]          @relation("PromoAccountBatchCreator")
   promoAccountSecretsRevealed PromoAccountDeliverySecret[] @relation("PromoAccountSecretRevealer")
   promoAccountProvisions      PromoAccountProvision?       @relation("PromoAccountUser")
@@ -240,6 +241,25 @@ model Payment {
   @@index([stripePaymentIntent])
   @@index([stripeSubscriptionId])
   @@map("payments")
+}
+
+model ProductAccess {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  productKey        String   @map("product_key")
+  tier              String
+  status            String
+  dailyMessageLimit Int?     @map("daily_message_limit")
+  dailyMessagesUsed Int      @default(0) @map("daily_messages_used")
+  usageDate         DateTime? @map("usage_date")
+  trialEndsAt       DateTime? @map("trial_ends_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productKey])
+  @@index([productKey, status])
+  @@map("product_access")
 }
 
 model BillingSubscription {

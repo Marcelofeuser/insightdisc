@@ -6,6 +6,7 @@ import { resolveCheckoutPlan } from '@/modules/marketing/plansCatalog';
 import { useAuth } from '@/lib/AuthContext';
 import { getCheckoutPreviewState, requiresCheckoutPreview } from '@/modules/checkout/funnel';
 import { sanitizeNextPath } from '@/modules/auth/next-path';
+import { buildSynapsysSignupPath } from '@/modules/synapsys/routes';
 import '@/styles/checkout-approved.css';
 
 const CHECKOUT_INTENT_STORAGE_KEY = 'insightdisc_checkout_intent_v21';
@@ -365,6 +366,16 @@ export default function CheckoutPlanPage() {
     () => sanitizeNextPath(searchParams.get('returnTo'), ''),
     [searchParams],
   );
+  const checkoutSource = useMemo(
+    () => String(searchParams.get('source') || '').trim().toLowerCase(),
+    [searchParams],
+  );
+  const isSynapsysCheckout = checkoutSource === 'synapsys';
+  const hasAuthSession = Boolean(getApiToken()) || Boolean(getApiUserEmail());
+  const synapsysCheckoutNext = useMemo(
+    () => `${location.pathname}${location.search || ''}`,
+    [location.pathname, location.search],
+  );
 
   useEffect(() => {
     const refreshPreviewState = () => setPreviewState(getCheckoutPreviewState());
@@ -412,6 +423,18 @@ export default function CheckoutPlanPage() {
 
   if (!plan) {
     return <Navigate to="/planos" replace />;
+  }
+
+  if (isSynapsysCheckout && !hasAuthSession) {
+    return (
+      <Navigate
+        replace
+        to={buildSynapsysSignupPath({
+          intent: 'premium',
+          next: synapsysCheckoutNext,
+        })}
+      />
+    );
   }
 
   const handleFinalizePayment = async () => {
@@ -469,12 +492,15 @@ export default function CheckoutPlanPage() {
             whiteLabelAddon: canOfferWhiteLabelAddon ? whiteLabelAddonEnabled : false,
             successUrl,
           };
-
-      const hasAuthSession = Boolean(getApiToken()) || Boolean(getApiUserEmail());
       const shouldUsePublicCheckout = !hasAuthSession;
       const checkoutEndpoint = shouldUsePublicCheckout
         ? '/payments/create-checkout-public'
         : '/payments/create-checkout';
+
+      if (isSynapsysCheckout) {
+        checkoutPayload.productKey = 'synapsys';
+        checkoutPayload.productTier = 'premium';
+      }
 
       const response = await apiRequest(checkoutEndpoint, {
         method: 'POST',

@@ -31,9 +31,22 @@ test('normaliza intent desconhecido para free', () => {
   assert.equal(normalizeSynapsysIntent('qualquer'), 'free');
 });
 
-test('destino pos-auth cai no chat gratis quando intent eh free', () => {
+test('destino pos-auth cai na entrada quando usuario ainda nao tem acesso synapsys', () => {
   assert.equal(
     resolveSynapsysAuthDestination('free', { plan: 'personal' }),
+    '/chat/entry',
+  );
+});
+
+test('destino pos-auth cai no chat gratis quando acesso free existe', () => {
+  assert.equal(
+    resolveSynapsysAuthDestination('free', {
+      synapsys_access: {
+        tier: 'free',
+        status: 'trial',
+        has_access: true,
+      },
+    }),
     buildSynapsysAppPath({ plan: 'free' }),
   );
 });

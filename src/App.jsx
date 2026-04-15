@@ -12,6 +12,7 @@ import SynapsysChatEntry from './pages/synapsys/SynapsysChatEntry';
 import SynapsysChatSignup from './pages/synapsys/SynapsysChatSignup';
 import SynapsysPricingPage from './pages/synapsys/SynapsysPricingPage';
 import SynapsysSubscribePage from './pages/synapsys/SynapsysSubscribePage';
+import SynapsysAccessGuard from '@/modules/synapsys/SynapsysAccessGuard';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -351,7 +352,14 @@ const AuthenticatedApp = () => {
       <Route path="/chat" element={<Navigate to="/chat/entry" replace />} />
       <Route path="/chat/entry" element={<SynapsysChatEntry />} />
       <Route path="/chat/signup" element={<SynapsysChatSignup />} />
-      <Route path="/chat/app" element={<SynapsysChatApp />} />
+      <Route
+        path="/chat/app"
+        element={
+          <SynapsysAccessGuard>
+            <SynapsysChatApp />
+          </SynapsysAccessGuard>
+        }
+      />
       <Route path="/subscribe" element={<SynapsysSubscribePage />} />
       <Route caseSensitive path="/pricing" element={<SynapsysPricingRouteElement />} />
       <Route caseSensitive path="/compare" element={<Navigate to="/compare-profiles" replace />} />
