@@ -14,6 +14,35 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function normalizePlan(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getPlanFromSource(source = null) {
+  return normalizePlan(
+    source?.plan ||
+    source?.billingPlan ||
+    source?.subscriptionPlan ||
+    source?.account?.plan ||
+    source?.user?.plan ||
+    source?.user?.billingPlan ||
+    source?.user?.subscriptionPlan
+  );
+}
+
+function hasPlanBasedSynapsysPremium(source = null) {
+  const plan = getPlanFromSource(source);
+
+  return [
+    'insider',
+    'professional',
+    'business',
+    'corporation',
+    'diamond_consulting',
+    'diamond-consulting',
+  ].includes(plan);
+}
+
 export function normalizeSynapsysAccess(rawAccess = null) {
   if (!rawAccess || typeof rawAccess !== 'object') return null;
 
@@ -34,11 +63,12 @@ export function normalizeSynapsysAccess(rawAccess = null) {
     tier === SYNAPSYS_TIERS.PREMIUM
       ? Infinity
       : Math.max(
-        0,
-        explicitRemaining == null
-          ? dailyMessageLimit - dailyMessagesUsed
-          : toNumber(explicitRemaining, 0),
-      );
+          0,
+          explicitRemaining == null
+            ? dailyMessageLimit - dailyMessagesUsed
+            : toNumber(explicitRemaining, 0),
+        );
+
   const hasAccess =
     Boolean(rawAccess.has_access ?? rawAccess.hasAccess) ||
     (SYNAPSYS_STATUSES_WITH_ACCESS.has(status) &&
@@ -75,12 +105,15 @@ export function getSynapsysAccess(source = null) {
 
 export function hasSynapsysAccess(user = null, accessState = null) {
   const resolved = getSynapsysAccess(accessState || user);
-  return Boolean(resolved?.hasAccess);
+  if (resolved?.hasAccess) return true;
+
+  return hasPlanBasedSynapsysPremium(accessState) || hasPlanBasedSynapsysPremium(user);
 }
 
 export function resolveSynapsysTier(source = null) {
   const resolved = getSynapsysAccess(source);
   if (resolved?.isPremium) return SYNAPSYS_TIERS.PREMIUM;
+  if (hasPlanBasedSynapsysPremium(source)) return SYNAPSYS_TIERS.PREMIUM;
   if (resolved?.hasAccess) return SYNAPSYS_TIERS.FREE;
   return 'locked';
 }
@@ -89,6 +122,17 @@ export function buildSynapsysUsageState(source = null) {
   const resolved = getSynapsysAccess(source);
 
   if (!resolved) {
+    if (hasPlanBasedSynapsysPremium(source)) {
+      return {
+        tier: SYNAPSYS_TIERS.PREMIUM,
+        limit: null,
+        totalLimit: null,
+        used: 0,
+        remaining: Infinity,
+        status: 'active',
+      };
+    }
+
     return {
       tier: 'locked',
       limit: 0,
@@ -99,7 +143,7 @@ export function buildSynapsysUsageState(source = null) {
     };
   }
 
-  if (resolved.isPremium) {
+  if (resolved.isPremium || hasPlanBasedSynapsysPremium(source)) {
     return {
       tier: SYNAPSYS_TIERS.PREMIUM,
       limit: null,
