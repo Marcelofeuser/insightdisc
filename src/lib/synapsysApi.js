@@ -1,10 +1,40 @@
-import { apiRequest } from '@/lib/apiClient';
+import { apiRequest, getApiBaseUrl } from './apiClient.js';
 
-export const SYNAPSYS_API_URL = String(
-  import.meta.env.VITE_SYNAPSYS_API_URL || 'https://api.synapsys.insightdisc.com',
-)
-  .trim()
-  .replace(/\/$/, '');
+const CANONICAL_SYNAPSYS_API_URL = 'https://insightdisc-production.up.railway.app';
+const metaEnv =
+  typeof import.meta !== 'undefined' && import.meta?.env ? import.meta.env : {};
+
+function normalizeBaseUrl(value = '') {
+  return String(value || '')
+    .trim()
+    .replace(/\/$/, '');
+}
+
+function appendUniqueUrl(target, value) {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized || target.includes(normalized)) return;
+  target.push(normalized);
+}
+
+export function resolveSynapsysApiBaseCandidates({
+  apiBaseUrl = '',
+  configuredSynapsysApiUrl = '',
+} = {}) {
+  const candidates = [];
+  appendUniqueUrl(candidates, apiBaseUrl);
+  appendUniqueUrl(candidates, configuredSynapsysApiUrl);
+  appendUniqueUrl(candidates, CANONICAL_SYNAPSYS_API_URL);
+  return candidates;
+}
+
+export function getSynapsysApiBaseCandidates() {
+  return resolveSynapsysApiBaseCandidates({
+    apiBaseUrl: getApiBaseUrl(),
+    configuredSynapsysApiUrl: metaEnv.VITE_SYNAPSYS_API_URL || '',
+  });
+}
+
+export const SYNAPSYS_API_URL = getSynapsysApiBaseCandidates()[0] || CANONICAL_SYNAPSYS_API_URL;
 
 function toText(value = '') {
   return String(value || '').trim();
@@ -46,11 +76,51 @@ function extractResponseText(payload = null, fallbackText = '') {
 }
 
 function buildSynapsysApiOptions(options = {}) {
+  const baseUrl = normalizeBaseUrl(options.baseUrl || SYNAPSYS_API_URL) || CANONICAL_SYNAPSYS_API_URL;
   return {
-    baseUrl: SYNAPSYS_API_URL,
-    runtimeOrigin: SYNAPSYS_API_URL,
+    baseUrl,
+    runtimeOrigin: baseUrl,
+    retry: options.retry ?? 1,
+    retryDelayMs: options.retryDelayMs ?? 200,
     ...options,
   };
+}
+
+function shouldRetryOnAlternateBase(error) {
+  const status = Number(error?.status || 0);
+  const code = String(error?.code || error?.payload?.error || '').trim().toUpperCase();
+
+  if (status === 404 || status >= 500) return true;
+
+  return (
+    code === 'NETWORK_ERROR' ||
+    code === 'REQUEST_TIMEOUT' ||
+    code === 'INVALID_JSON_RESPONSE'
+  );
+}
+
+export async function requestSynapsysApi(path, options = {}) {
+  const candidates = Array.isArray(options.baseUrls) && options.baseUrls.length > 0
+    ? options.baseUrls.map((value) => normalizeBaseUrl(value)).filter(Boolean)
+    : getSynapsysApiBaseCandidates();
+
+  let lastError = null;
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const baseUrl = candidates[index];
+
+    try {
+      return await apiRequest(path, buildSynapsysApiOptions({ ...options, baseUrl }));
+    } catch (error) {
+      lastError = error;
+
+      if (index >= candidates.length - 1 || !shouldRetryOnAlternateBase(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('Synapsys indisponível no momento.');
 }
 
 function createSynapsysApiError(error, fallbackMessage = '') {
@@ -69,12 +139,12 @@ function createSynapsysApiError(error, fallbackMessage = '') {
 
 export async function getSynapsysAccessState() {
   try {
-    const payload = await apiRequest(
+    const payload = await requestSynapsysApi(
       '/synapsys/access',
-      buildSynapsysApiOptions({
+      {
         method: 'GET',
         requireAuth: true,
-      }),
+      },
     );
 
     return {
@@ -89,12 +159,12 @@ export async function getSynapsysAccessState() {
 
 export async function provisionSynapsysFreeAccess() {
   try {
-    const payload = await apiRequest(
+    const payload = await requestSynapsysApi(
       '/synapsys/access/free',
-      buildSynapsysApiOptions({
+      {
         method: 'POST',
         requireAuth: true,
-      }),
+      },
     );
 
     return {
@@ -116,16 +186,16 @@ export async function analyzeWithSynapsys(payload = {}) {
   }
 
   try {
-    const parsed = await apiRequest(
+    const parsed = await requestSynapsysApi(
       '/synapsys/analyze',
-      buildSynapsysApiOptions({
+      {
         method: 'POST',
         requireAuth: true,
         body: {
           input,
           mode,
         },
-      }),
+      },
     );
 
     if (parsed && parsed.success === false) {

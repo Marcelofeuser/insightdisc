@@ -61,8 +61,8 @@ import AdminAssessments from './pages/admin/AdminAssessments';
 import AdminBilling from './pages/admin/AdminBilling';
 import { buildAssessmentResultPath } from '@/modules/assessmentResult/routes';
 import { buildAssessmentReportPath } from '@/modules/reports/routes';
-import { isSynapsysRuntime } from '@/modules/synapsys/runtime';
-import { hasSynapsysRouteContext } from '@/modules/synapsys/session';
+import { buildSynapsysEntryPath } from '@/modules/synapsys/routes';
+import { shouldUseSynapsysStandaloneMode } from '@/modules/synapsys/route-mode';
 
 const { Pages, Layout } = pagesConfig;
 const PublicReportPage = Pages.PublicReport;
@@ -129,16 +129,20 @@ function CheckoutPlanLegacyRedirect() {
 }
 
 function RootRouteElement() {
+  const location = useLocation();
+
+  if (shouldUseSynapsysStandaloneMode({ search: location.search })) {
+    return <Navigate to={buildSynapsysEntryPath()} replace />;
+  }
+
   return <Home />;
 }
 
 function SynapsysPricingRouteElement() {
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search || '');
-  const shouldUseSynapsysPricing =
-    isSynapsysRuntime() ||
-    searchParams.get('source') === 'synapsys' ||
-    hasSynapsysRouteContext();
+  const shouldUseSynapsysPricing = shouldUseSynapsysStandaloneMode({
+    search: location.search,
+  });
 
   if (shouldUseSynapsysPricing) {
     return <SynapsysPricingPage />;
@@ -163,6 +167,16 @@ function renderProtectedPage(path, pageName, PageComponent) {
       }
     />
   );
+}
+
+function NotFoundRouteElement() {
+  const location = useLocation();
+
+  if (shouldUseSynapsysStandaloneMode({ search: location.search })) {
+    return <Navigate to={buildSynapsysEntryPath()} replace />;
+  }
+
+  return <PageNotFound />;
 }
 
 const AuthenticatedApp = () => {
@@ -631,21 +645,18 @@ const AuthenticatedApp = () => {
       ) : null}
 
       <Route path="/palette-test" element={<PaletteTest />} />
-      <Route path="*" element={<PageNotFound />} />
+      <Route path="*" element={<NotFoundRouteElement />} />
     </Routes>
   );
 };
 
 function RouteAwareChatWidget() {
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search || '');
   const hideWidget =
     location.pathname.startsWith('/chat') ||
     location.pathname === '/subscribe' ||
     (location.pathname === '/pricing' &&
-      (isSynapsysRuntime() ||
-        searchParams.get('source') === 'synapsys' ||
-        hasSynapsysRouteContext()));
+      shouldUseSynapsysStandaloneMode({ search: location.search }));
 
   if (hideWidget) {
     return null;

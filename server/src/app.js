@@ -30,6 +30,7 @@ import anamnesisRoutes from './routes/anamnesis.routes.js';
 import { handleStripeWebhook } from './routes/stripe-webhooks.routes.js';
 import stripeWebhookRoutes from './routes/stripe-webhook.routes.js';
 import saasRouter from './saas/index.js';
+import synapsysGeneralRoutes from "./routes/synapsys-general.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -289,5 +290,6 @@ export function createApp() {
     });
   });
 
+  app.use("/api", synapsysGeneralRoutes);
   return app;
 }

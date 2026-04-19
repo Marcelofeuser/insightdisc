@@ -1,3 +1,4 @@
+import { sendToSynapsys } from "@/modules/synapsys/api/synapsysClient";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './synapsys-chat-experience.css';
 
@@ -256,21 +257,28 @@ export default function SynapsysNeuralChat({
     setFeedPairs(prev => [{ id: uid(), question, answer: plain, preview, expanded: false }, ...prev]);
   }
 
-  async function runAnalyze(question) {
-    if (typeof analyze !== 'function') return fallbackResponse();
-
-    try {
-      const result = await analyze({
-        input: question,
-        message: question,
-        prompt: question,
-        mode: 'builder',
-      });
-      return responseFromResult(result) || fallbackResponse();
-    } catch {
-      return fallbackResponse();
+ async function runAnalyze(question) {
+  try {
+    const result = await sendToSynapsys(question);
+    return responseFromResult(result) || fallbackResponse();
+  } catch {
+    if (typeof analyze === 'function') {
+      try {
+        const result = await analyze({
+          input: question,
+          message: question,
+          prompt: question,
+          mode: 'builder',
+        });
+        return responseFromResult(result) || fallbackResponse();
+      } catch {
+        return fallbackResponse();
+      }
     }
+
+    return fallbackResponse();
   }
+}
 
   function resetBrain() {
     resize();

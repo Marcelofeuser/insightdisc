@@ -10,7 +10,7 @@ const allowDevEmailAuth =
     .trim()
     .toLowerCase() === 'true';
 const aiApiUrl = String(process.env.AI_API_URL || '').trim();
-const aiProvider = String(process.env.AI_PROVIDER || 'groq')
+const aiProvider = String(process.env.AI_PROVIDER || 'openai')
   .trim()
   .toLowerCase();
 const groqApiKey = String(process.env.GROQ_API_KEY || '').trim();
