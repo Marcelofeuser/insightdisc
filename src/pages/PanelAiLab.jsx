@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
-import { analyzeWithSynapsys } from '@/lib/synapsysApi';
 import { useAuth } from '@/lib/AuthContext';
 import { UpgradePrompt } from '@/modules/billing';
 import { PRODUCT_FEATURES, hasFeatureAccessByPlan } from '@/modules/billing/planGuard';
@@ -323,84 +322,6 @@ function renderStrategicResult(moduleKey, data = {}) {
   );
 }
 
-function formatContextBlock(title, rows = []) {
-  const normalizedRows = rows.map((row) => toText(row)).filter(Boolean);
-  if (!normalizedRows.length) return '';
-
-  return `${title}:\n${normalizedRows.join('\n')}`;
-}
-
-function formatListBlock(title, items = []) {
-  const rows = toList(items, 10);
-  if (!rows.length) return '';
-
-  return `${title}:\n${rows.map((item) => `- ${item}`).join('\n')}`;
-}
-
-function buildAiLabSynapsysInput({
-  moduleMeta,
-  segment,
-  context,
-  compareContext = null,
-  jobContext = null,
-} = {}) {
-  const segmentLabel = AI_SEGMENTS.find((item) => item.value === segment)?.label || segment;
-
-  return [
-    'Objetivo: gerar um insight estratégico do InsightDISC a partir de relatório DISC real.',
-    '',
-    `Módulo solicitado: ${toText(moduleMeta?.label) || 'Insight estratégico'}`,
-    `Descrição do módulo: ${toText(moduleMeta?.description) || 'Não informada'}`,
-    `Segmento de análise: ${toText(segmentLabel) || 'Não informado'}`,
-    '',
-    formatContextBlock('Perfil principal', [
-      `Nome: ${toText(context?.respondentName) || 'Participante'}`,
-      `E-mail: ${toText(context?.candidateEmail) || 'Não informado'}`,
-      `Tipo de relatório: ${formatReportTypeLabel(context?.reportType)}`,
-      `Perfil DISC: ${toText(context?.profileCode) || 'Não informado'}`,
-      `Fator dominante: ${toText(context?.dominantFactor) || 'Não informado'}`,
-      `Fator secundário: ${toText(context?.secondaryFactor) || 'Não informado'}`,
-      `Pontuações DISC: D ${context?.scores?.D ?? 0}% | I ${context?.scores?.I ?? 0}% | S ${context?.scores?.S ?? 0}% | C ${context?.scores?.C ?? 0}%`,
-    ]),
-    toText(context?.summary) ? `Resumo do perfil principal:\n${toText(context.summary)}` : '',
-    formatListBlock('Pontos fortes do perfil principal', context?.strengths),
-    formatListBlock('Limitações do perfil principal', context?.limitations),
-    toText(context?.riskProfile) ? `Leitura de risco do perfil principal:\n${toText(context.riskProfile)}` : '',
-    formatListBlock('Sinais de risco do perfil principal', context?.riskSignals),
-    formatListBlock('Recomendações de desenvolvimento do perfil principal', context?.developmentRecommendations),
-    compareContext
-      ? formatContextBlock('Perfil de comparação', [
-          `Nome: ${toText(compareContext?.respondentName) || 'Participante'}`,
-          `E-mail: ${toText(compareContext?.candidateEmail) || 'Não informado'}`,
-          `Tipo de relatório: ${formatReportTypeLabel(compareContext?.reportType)}`,
-          `Perfil DISC: ${toText(compareContext?.profileCode) || 'Não informado'}`,
-          `Fator dominante: ${toText(compareContext?.dominantFactor) || 'Não informado'}`,
-          `Fator secundário: ${toText(compareContext?.secondaryFactor) || 'Não informado'}`,
-          `Pontuações DISC: D ${compareContext?.scores?.D ?? 0}% | I ${compareContext?.scores?.I ?? 0}% | S ${compareContext?.scores?.S ?? 0}% | C ${compareContext?.scores?.C ?? 0}%`,
-        ])
-      : '',
-    compareContext?.summary ? `Resumo do perfil de comparação:\n${toText(compareContext.summary)}` : '',
-    compareContext ? formatListBlock('Pontos fortes do perfil de comparação', compareContext?.strengths) : '',
-    compareContext ? formatListBlock('Limitações do perfil de comparação', compareContext?.limitations) : '',
-    jobContext
-      ? formatContextBlock('Contexto da vaga', [
-          `Cargo alvo: ${toText(jobContext?.roleTitle) || 'Não informado'}`,
-          `Senioridade: ${toText(jobContext?.seniority) || 'Não informada'}`,
-          `Escopo de equipe: ${toText(jobContext?.teamScope) || 'Não informado'}`,
-          `Objetivo de negócio: ${toText(jobContext?.businessGoal) || 'Não informado'}`,
-        ])
-      : '',
-    '',
-    'Instruções para a resposta:',
-    '- Responda em português do Brasil.',
-    '- Seja executivo, objetivo e prático.',
-    '- Use apenas o contexto fornecido.',
-    '- Entregue recomendações acionáveis coerentes com o módulo solicitado.',
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
 export default function PanelAiLab() {
   const { access, plan } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
@@ -523,13 +444,21 @@ export default function PanelAiLab() {
     setResultExpanded(false);
 
     try {
-      const payload = await analyzeWithSynapsys({
-        mode: 'architect',
-        input: buildAiLabSynapsysInput({
-          moduleMeta: selectedModuleMeta,
+      const payload = await apiRequest('/ai/strategic-insights', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          module: selectedModule,
           segment: selectedSegment,
-          context: selectedContext,
-          compareContext: selectedCompareContext,
+          context: {
+            ...selectedContext,
+          },
+          compareContext: needsCompareProfile && selectedCompareContext
+            ? {
+                ...selectedCompareContext,
+              }
+            : undefined,
+          history: [],
           jobContext: needsJobContext
             ? {
                 roleTitle: jobRoleTitle,
@@ -537,18 +466,18 @@ export default function PanelAiLab() {
                 teamScope: jobScope,
                 businessGoal: jobGoal,
               }
-            : null,
-        }),
+            : undefined,
+        },
       });
 
       setResult({
-        module: selectedModule,
+        module: payload?.module || selectedModule,
         segment: payload?.segment || selectedSegment,
-        provider: payload?.provider || 'synapsys',
+        provider: payload?.provider || 'ai_provider',
         model: payload?.model || '',
-        source: payload?.source || 'synapsys',
+        source: payload?.source || 'ai_provider',
         durationMs: payload?.durationMs,
-        data: {
+        data: payload?.data || {
           rawResponse: payload?.response || '',
         },
       });

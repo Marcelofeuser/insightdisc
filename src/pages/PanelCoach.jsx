@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest, getApiBaseUrl, getApiToken } from '@/lib/apiClient';
-import { analyzeWithSynapsys } from '@/lib/synapsysApi';
 import { useAuth } from '@/lib/AuthContext';
 import EmptyState from '@/components/ui/EmptyState';
 import PanelState from '@/components/ui/PanelState';
@@ -150,50 +149,6 @@ function buildHistoryEntry(payload, prompt) {
   };
 }
 
-function formatContextList(title, items = []) {
-  const rows = Array.isArray(items) ? items.map((item) => toText(item)).filter(Boolean) : [];
-  if (!rows.length) return '';
-
-  return `${title}:\n${rows.map((item) => `- ${item}`).join('\n')}`;
-}
-
-function buildCoachSynapsysInput({ context, segment, prompt }) {
-  const segmentLabel = COACH_SEGMENTS.find((item) => item.value === segment)?.label || segment;
-
-  return [
-    'Objetivo: responder uma pergunta de coach comportamental com base em um relatório DISC real.',
-    '',
-    'Pergunta do usuário:',
-    prompt,
-    '',
-    `Segmento de análise: ${segmentLabel}`,
-    '',
-    'Contexto do participante:',
-    `Nome: ${toText(context?.respondentName) || 'Participante'}`,
-    `E-mail: ${toText(context?.candidateEmail) || 'Não informado'}`,
-    `Tipo de relatório: ${formatReportTypeLabel(context?.reportType)}`,
-    `Perfil DISC: ${toText(context?.profileCode) || 'Não informado'}`,
-    `Fator dominante: ${toText(context?.dominantFactor) || 'Não informado'}`,
-    `Fator secundário: ${toText(context?.secondaryFactor) || 'Não informado'}`,
-    `Pontuações DISC: D ${context?.scores?.D ?? 0}% | I ${context?.scores?.I ?? 0}% | S ${context?.scores?.S ?? 0}% | C ${context?.scores?.C ?? 0}%`,
-    '',
-    toText(context?.summary) ? `Resumo comportamental:\n${toText(context.summary)}` : '',
-    formatContextList('Pontos fortes', context?.strengths),
-    formatContextList('Limitações', context?.limitations),
-    toText(context?.riskProfile) ? `Perfil de risco:\n${toText(context.riskProfile)}` : '',
-    formatContextList('Sinais de risco', context?.riskSignals),
-    formatContextList('Recomendações de desenvolvimento', context?.developmentRecommendations),
-    '',
-    'Instruções para a resposta:',
-    '- Responda em português do Brasil.',
-    '- Seja objetivo, prático e acionável.',
-    '- Considere apenas o contexto informado.',
-    '- Organize a resposta com orientação aplicada à situação descrita.',
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
 export default function PanelCoach() {
   const { access, plan } = useAuth();
   const apiBaseUrl = getApiBaseUrl();
@@ -273,13 +228,24 @@ export default function PanelCoach() {
     setErrorMessage('');
 
     try {
-      const payload = await analyzeWithSynapsys({
-        mode: 'architect',
-        input: buildCoachSynapsysInput({
-          context: selectedContext,
+      const payload = await apiRequest('/ai/coach-answer', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          mode: selectedContext.reportType,
+          nome: selectedContext.respondentName,
+          cargo: '',
+          empresa: '',
+          D: selectedContext.scores.D,
+          I: selectedContext.scores.I,
+          S: selectedContext.scores.S,
+          C: selectedContext.scores.C,
+          question: prompt,
           segment: selectedSegment,
-          prompt,
-        }),
+          context: {
+            ...selectedContext,
+          },
+        },
       });
 
       const entry = buildHistoryEntry(payload, prompt);

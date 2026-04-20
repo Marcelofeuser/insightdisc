@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, FileText, Loader2 } from 'lucide-react';
-import { getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
-import { analyzeWithSynapsys } from '@/lib/synapsysApi';
+import { apiRequest, getApiBaseUrl, resolveApiRequestUrl } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -67,38 +66,36 @@ function extractHighlightLines(text = '', maxItems = 8) {
     .slice(0, maxItems);
 }
 
-function buildAiDiscLabInput(form) {
-  return [
-    'Objetivo: gerar uma leitura DISC com insights aplicados para preview do InsightDISC.',
-    '',
-    `Modo do relatório: ${toText(form.mode)}`,
-    `Nome: ${toText(form.nome)}`,
-    `Cargo: ${toText(form.cargo) || 'Não informado'}`,
-    `Empresa: ${toText(form.empresa) || 'Não informada'}`,
-    `Pontuações DISC: D ${Number(form.D) || 0}% | I ${Number(form.I) || 0}% | S ${Number(form.S) || 0}% | C ${Number(form.C) || 0}%`,
-    '',
-    'Instruções:',
-    '- Responda em português do Brasil.',
-    '- Traga uma síntese prática do perfil.',
-    '- Destaque pontos fortes, riscos de atenção e sugestões de desenvolvimento.',
-    '- Considere o contexto profissional informado.',
-  ].join('\n');
-}
-
 function normalizeAiDiscLabResult(payload) {
-  const responseText = toText(payload?.response);
+  const responseText = toText(
+    payload?.preview?.summary ||
+    payload?.content?.summary ||
+    payload?.preview?.executiveSummary ||
+    payload?.content?.executiveSummary ||
+    payload?.response,
+  );
   const highlights = extractHighlightLines(responseText, 8);
+  const strengths = Array.isArray(payload?.preview?.strengths)
+    ? payload.preview.strengths
+    : Array.isArray(payload?.content?.strengths)
+      ? payload.content.strengths
+      : highlights.slice(0, 4);
+  const developmentRecommendations = Array.isArray(payload?.preview?.developmentRecommendations)
+    ? payload.preview.developmentRecommendations
+    : Array.isArray(payload?.content?.developmentRecommendations)
+      ? payload.content.developmentRecommendations
+      : highlights.slice(4, 8);
 
   return {
-    provider: toText(payload?.provider || 'synapsys'),
-    source: toText(payload?.source || 'synapsys'),
-    usedFallback: false,
-    mode: toText(payload?.mode || 'builder'),
-    raw: payload?.raw || null,
+    provider: toText(payload?.provider || 'ai_provider'),
+    source: toText(payload?.source || 'ai_provider'),
+    usedFallback: Boolean(payload?.usedFallback),
+    mode: toText(payload?.meta?.mode || payload?.mode || 'builder'),
+    raw: payload,
     content: {
       summary: responseText,
-      strengths: highlights.slice(0, 4),
-      developmentRecommendations: highlights.slice(4, 8),
+      strengths,
+      developmentRecommendations,
     },
   };
 }
@@ -116,9 +113,13 @@ export default function AiDiscLab() {
     setError('');
 
     try {
-      const payload = await analyzeWithSynapsys({
-        mode: 'builder',
-        input: buildAiDiscLabInput(form),
+      const payload = await apiRequest('/ai/report-preview', {
+        method: 'POST',
+        requireAuth: true,
+        body: {
+          ...form,
+          includeMeta: true,
+        },
       });
       setResult(normalizeAiDiscLabResult(payload));
     } catch (requestError) {
