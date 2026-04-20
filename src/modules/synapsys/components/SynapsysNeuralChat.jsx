@@ -257,9 +257,13 @@ export default function SynapsysNeuralChat({
     setFeedPairs(prev => [{ id: uid(), question, answer: plain, preview, expanded: false }, ...prev]);
   }
 
- async function runAnalyze(question) {
+async function runAnalyze(question) {
+  const SYSTEM_INSTRUCTION = `Responda de forma direta e objetiva em 1-3 frases. 
+Não use numeração, estrutura de tópicos, nem seções como "Pontos principais" ou "Próxima ação". 
+Apenas responda a pergunta. Se o usuário pedir explicação, texto longo ou análise detalhada, aí pode expandir.`;
+
   try {
-    const result = await sendToSynapsys(question);
+    const result = await sendToSynapsys(question, SYSTEM_INSTRUCTION);
     return responseFromResult(result) || fallbackResponse();
   } catch {
     if (typeof analyze === 'function') {
@@ -269,12 +273,16 @@ export default function SynapsysNeuralChat({
           message: question,
           prompt: question,
           mode: 'builder',
+          systemInstruction: SYSTEM_INSTRUCTION,
         });
         return responseFromResult(result) || fallbackResponse();
       } catch {
         return fallbackResponse();
       }
     }
+    return fallbackResponse();
+  }
+}
 
     return fallbackResponse();
   }
@@ -402,7 +410,7 @@ export default function SynapsysNeuralChat({
   function shoot(x1, y1, x2, y2, col) {
     const n = 14;
     for (let i = 0; i < n; i += 1) {
-      const delay = i * (1100 / n);
+      const delay = i * (550 / n);
       const jx = (Math.random() - 0.5) * 50;
       const jy = (Math.random() - 0.5) * 50;
       stateRef.current.particles.push({
@@ -524,7 +532,7 @@ export default function SynapsysNeuralChat({
     const startAt = Date.now();
     const answerHtml = await runAnalyze(question);
     const elapsed = Date.now() - startAt;
-    const waitMore = Math.max(0, 850 - elapsed);
+    const waitMore = Math.max(0, 400 - elapsed);
 
     window.setTimeout(() => {
       removeThinking(thinkingId);

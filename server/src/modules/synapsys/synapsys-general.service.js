@@ -18,15 +18,12 @@ async function duckSearch(query) {
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
       { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 10000 }
     );
-
     const $ = cheerio.load(data);
     const results = [];
-
     $("a.result__a").each((i, el) => {
       if (i >= 5) return false;
       const rawLink = $(el).attr("href") || "";
       let cleanLink = rawLink;
-
       try {
         if (rawLink.startsWith("//duckduckgo.com/l/?")) {
           const url = new URL("https:" + rawLink);
@@ -38,13 +35,8 @@ async function duckSearch(query) {
           cleanLink = "https:" + rawLink;
         }
       } catch {}
-
-      results.push({
-        title: $(el).text().trim(),
-        link: cleanLink,
-      });
+      results.push({ title: $(el).text().trim(), link: cleanLink });
     });
-
     return results;
   } catch {
     return [];
@@ -53,32 +45,27 @@ async function duckSearch(query) {
 
 export async function runSynapsysGeneral({ input, forceWebSearch = false }) {
   const useWeb = forceWebSearch || shouldSearchWeb(input);
-
   let sources = [];
-  if (useWeb) {
-    sources = await duckSearch(input);
-  }
+  if (useWeb) sources = await duckSearch(input);
 
   const context = sources.length
     ? sources.map((s,i)=>`FONTE ${i+1}\n${s.title}\n${s.link}`).join("\n\n")
-    : "Sem fontes externas confiáveis.";
+    : "Sem fontes externas.";
 
-  const prompt = `
-PERGUNTA:
-${input}
+  const systemMessage = `Você é a Synapsys, assistente de inteligência comportamental DISC.
+Responda sempre de forma direta e objetiva em 1 a 3 frases curtas.
+Não use numeração, tópicos, seções ou estrutura como "Pontos principais" ou "Próxima ação".
+Apenas responda a pergunta de forma clara e precisa.
+Se o usuário pedir explicitamente uma explicação detalhada, análise completa ou texto longo, aí pode expandir.`;
 
-FONTES:
-${context}
-
-Responda de forma prática e estruturada:
-1. Resposta
-2. Pontos principais
-3. Próxima ação
-`;
+  const userPrompt = sources.length
+    ? `PERGUNTA: ${input}\n\nFONTES DE CONTEXTO:\n${context}\n\nResponda com base nas fontes se relevante.`
+    : input;
 
   const res = await client.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-    input: prompt,
+    instructions: systemMessage,
+    input: userPrompt,
   });
 
   return {
