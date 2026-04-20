@@ -13,6 +13,8 @@ const aiApiUrl = String(process.env.AI_API_URL || '').trim();
 const aiProvider = String(process.env.AI_PROVIDER || 'openai')
   .trim()
   .toLowerCase();
+const openaiApiKey = String(process.env.OPENAI_API_KEY || '').trim();
+const openaiModel = String(process.env.OPENAI_MODEL || 'gpt-4.1-mini').trim();
 const groqApiKey = String(process.env.GROQ_API_KEY || '').trim();
 const groqModel = String(process.env.GROQ_MODEL || 'llama3-70b-8192').trim();
 const aiFallback1 = String(process.env.AI_FALLBACK_1 || '')
@@ -81,6 +83,8 @@ export const env = {
   allowDevEmailAuth,
   aiApiUrl,
   aiProvider,
+  openaiApiKey,
+  openaiModel,
   groqApiKey,
   groqModel,
   aiFallback1,

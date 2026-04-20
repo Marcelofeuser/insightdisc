@@ -14,6 +14,7 @@ import {
   requestStrategicInsights,
 } from '../modules/ai/ai-http-client.js';
 import { parseProviderJsonSafely } from '../modules/ai/json-utils.js';
+import { generateWithOpenAI } from '../modules/ai/openai-provider.js';
 import { generateWithGroq } from '../modules/ai/groq-provider.js';
 import { generateWithGemini } from '../modules/ai/gemini-provider.js';
 import { isSuperAdminUser } from '../modules/auth/super-admin-access.js';
@@ -127,6 +128,7 @@ function toText(value) {
 }
 
 const LOCAL_PROMPT_PROVIDER_RUNNERS = {
+  openai: generateWithOpenAI,
   groq: generateWithGroq,
   gemini: generateWithGemini,
 };
@@ -138,6 +140,7 @@ function toNumber(value, fallback = 0) {
 
 function resolvePromptProviderModel(providerName = '') {
   const normalized = toText(providerName).toLowerCase();
+  if (normalized === 'openai') return toText(env.openaiModel) || 'unknown';
   if (normalized === 'groq') return toText(env.groqModel) || 'unknown';
   if (normalized === 'gemini') return toText(env.geminiModel) || 'unknown';
   if (normalized === 'ai_api_url' || normalized === 'ai_http') return 'ai_api_url';

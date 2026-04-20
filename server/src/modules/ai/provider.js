@@ -1,5 +1,9 @@
 import { env } from '../../config/env.js';
 import { generateHttpDiscInsights } from './ai-http-provider.js';
+import {
+  generateOpenAiDiscInsights as generateStructuredDiscInsightsWithOpenAI,
+  generateOpenAiCoachAnswer,
+} from './openai-provider.js';
 import { generateGroqDiscInsights as generateStructuredDiscInsightsWithGroq } from './groq-provider.js';
 import { generateGroqCoachAnswer } from './groq-provider.js';
 import {
@@ -18,6 +22,14 @@ const httpProvider = {
 const PROVIDERS = {
   ai_api_url: httpProvider,
   ai_http: httpProvider,
+  openai: {
+    name: 'openai',
+    getModel() {
+      return env.openaiModel;
+    },
+    generateStructuredDiscInsights: generateStructuredDiscInsightsWithOpenAI,
+    generateCoachAnswer: generateOpenAiCoachAnswer,
+  },
   groq: {
     name: 'groq',
     getModel() {
@@ -43,6 +55,10 @@ function isProviderConfigured(providerName = '') {
 
   if (normalized === 'ai_api_url' || normalized === 'ai_http') {
     return Boolean(env.aiApiUrl);
+  }
+
+  if (normalized === 'openai') {
+    return Boolean(env.openaiApiKey);
   }
 
   if (normalized === 'groq') {
