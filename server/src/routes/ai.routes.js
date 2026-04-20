@@ -1179,7 +1179,7 @@ router.post('/strategic-insights', requireAuth, attachUser, requireAiFeature('ai
     const aiRequest = {
       systemPrompt,
       userPrompt,
-      maxTokens: 1700,
+      maxTokens: 800,
       temperature: 0.24,
       responseFormat: 'json_object',
       logLabel: `strategic:${moduleKey}:${segment}`,
