@@ -10,7 +10,7 @@ const SUPER_ADMIN_EMAIL_KEY = 'insightdisc_super_admin_email';
 
 const CANONICAL_PRODUCTION_API_URL = 'https://insightdisc-production.up.railway.app';
 const LOCAL_DEV_API_URL = 'http://localhost:4000';
-const DEFAULT_API_TIMEOUT_MS = 10_000;
+const DEFAULT_API_TIMEOUT_MS = 30_000;
 const DEFAULT_API_RETRY_DELAY_MS = 350;
 const DEFAULT_HEALTHCHECK_TIMEOUT_MS = 2_500;
 const DEFAULT_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
