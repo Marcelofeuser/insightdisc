@@ -89,7 +89,7 @@ export function createApp() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-insight-user-email'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-insight-user-email', 'x-client-info', 'apikey'],
     optionsSuccessStatus: 204,
     maxAge: 600,
   };
