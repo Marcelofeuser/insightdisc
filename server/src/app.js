@@ -125,7 +125,7 @@ export function createApp() {
     }),
   );
   app.use(cors(corsOptions));
-  app.options(/.*/, cors(corsOptions));
+  app.options("*", cors(corsOptions));
   app.use('/auth', authLimiter);
   app.use('/auth/login', authLoginLimiter);
   app.use('/auth/super-admin-login', authLoginLimiter);
