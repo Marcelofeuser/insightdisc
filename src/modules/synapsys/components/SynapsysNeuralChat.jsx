@@ -11,7 +11,7 @@ const FALLBACK_RESPONSES = [
   'Em negociação, perfis D/I têm vantagem natural na abertura. O risco é fechar antes de ouvir — <strong>a pergunta certa vale mais que o argumento certo</strong>.',
 ];
 
-const OVERLAP_DIST = 200;
+const OVERLAP_DIST = 300;
 
 function uid() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -160,7 +160,7 @@ export default function SynapsysNeuralChat({
 
   function directedPos(fromX, fromY, existingNodes) {
     const { W, H } = stateRef.current;
-    const minDist = 190;
+    const minDist = 280;
     const spreadAngle = Math.PI / 2.5;
 
     for (let a = 0; a < 100; a += 1) {
