@@ -32,3 +32,8 @@ server/uploads/
 # Assets Policy
 !assets/
 !public/logos/
+playwright-report-live/
+
+playwright-report-live/
+*.webm
+server/ai lab .code-search
