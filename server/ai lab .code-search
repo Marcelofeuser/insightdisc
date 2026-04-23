@@ -1,0 +1,80 @@
+# Query: ai lab 
+# ContextLines: 1
+
+19 results - 9 files
+
+playwright-report-live/data/13d89d0cc9cc7ab2a17731c1218f26d92dcd40ea.md:
+  116              - generic [ref=e176]:
+  117:               - paragraph [ref=e177]: AI Lab bloqueado no plano atual
+  118:               - paragraph [ref=e178]: AI Lab está disponível a partir do plano Profissional.
+  119                - paragraph [ref=e179]: "Plano recomendado: Professional"
+
+server/src/shared/frontend/pages/PanelAiLab.jsx:
+  187      } catch (error) {
+  188:       setErrorMessage(error?.message || 'Não foi possível gerar análise no AI Lab agora.');
+  189      } finally {
+
+  209            title="Falha ao carregar relatórios"
+  210:           description="Não foi possível carregar relatórios para o AI Lab neste momento."
+  211          />
+
+src/modules/checkout/funnel.js:
+  105        copy:
+  106:         'Ative Team Map, Coach e AI Lab avançado com condição exclusiva pós-compra.',
+  107        ctaLabel: 'Quero Business com desconto',
+
+src/modules/marketing/plansCatalog.js:
+  75        'Direcionamentos comportamentais para decisões de pessoas',
+  76:       'AI Lab para análises mais profundas (preview)',
+  77        'Exportação em PDF profissional',
+
+src/modules/navigation/roleNavigationConfig.js:
+  280        title: 'Dashboard Insider',
+  281:       subtitle: 'Leitura avançada com AI Lab e Coach para aprofundar contexto, clareza e ação',
+  282      };
+
+src/pages/PanelAiLab.jsx:
+  501          <UpgradePrompt
+  502:           title="AI Lab bloqueado no plano atual"
+  503:           description="AI Lab está disponível a partir do plano Professional."
+  504            requiredPlanLabel="Professional"
+
+  543            >
+  544:             AI Lab Enterprise
+  545            </div>
+
+  615                  {toText(reportsQuery.error?.message) === 'AI_LAB_API_MODE_REQUIRED'
+  616:                   ? 'O AI Lab exige backend real autenticado (API mode).'
+  617                    : 'Falha ao carregar relatorios.'}
+
+src/pages/dashboard-v2/ProfessionalDashboardV2.jsx:
+  150            isInsiderPlan
+  151:             ? 'Profundidade individual com AI Lab e Coach sempre à mão'
+  152              : 'Produtividade analítica para especialistas DISC'
+
+tests/e2e/plan-feature-gating.spec.js:
+  16      await expect(page.getByTestId('panel-ai-lab-page')).toBeVisible();
+  17:     await expect(page.getByText(/AI Lab bloqueado no plano atual/i)).toHaveCount(0);
+  18  
+
+  29  
+  30:   test('professional acessa AI Lab e Coach, mas recebe upgrade em Team Map e Criador de Vagas', async ({ page }) => {
+  31      await loginAsProfessional(page);
+
+  35      await expect(page.getByTestId('panel-ai-lab-page')).toBeVisible();
+  36:     await expect(page.getByText(/AI Lab bloqueado no plano atual/i)).toHaveCount(0);
+  37  
+
+  58      await waitForApp(page);
+  59:     await expect(page.getByText(/AI Lab bloqueado no plano atual/i)).toBeVisible();
+  60  
+
+tests/e2e/tmp-ai-lab-live.spec.js:
+  12  
+  13: test.describe('AI Lab live check', () => {
+  14:   test('painel AI Lab usa strategic-insights e nao bloqueio da Synapsys', async ({ page }) => {
+  15      test.skip(!hasCreds(), 'Missing super admin credentials');
+
+  67      await expect(page.locator('body')).not.toContainText(
+  68:       /Falha ao carregar relatorios|O AI Lab exige backend real autenticado/i,
+  69      );
