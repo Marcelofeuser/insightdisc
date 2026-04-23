@@ -284,9 +284,6 @@ Apenas responda a pergunta. Se o usuário pedir explicação, texto longo ou an�
   }
 }
 
-    return fallbackResponse();
-  }
-}
 
   function resetBrain() {
     resize();
