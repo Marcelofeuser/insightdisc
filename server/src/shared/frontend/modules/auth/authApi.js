@@ -45,7 +45,7 @@ export function mapAuthRequestError(error, { apiBaseUrl = '', path = '' } = {}) 
   }
 
   if (code === 'REQUEST_TIMEOUT') {
-    return 'Tempo de resposta excedido.';
+    return 'A IA demorou mais que o esperado. Tente novamente em alguns segundos.';
   }
 
   if (code === 'INVALID_CREDENTIALS') {

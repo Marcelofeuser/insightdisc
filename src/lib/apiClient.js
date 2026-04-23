@@ -10,7 +10,7 @@ const SUPER_ADMIN_EMAIL_KEY = 'insightdisc_super_admin_email';
 
 const CANONICAL_PRODUCTION_API_URL = 'https://insightdisc-production.up.railway.app';
 const LOCAL_DEV_API_URL = 'http://localhost:4000';
-const DEFAULT_API_TIMEOUT_MS = 30_000;
+const DEFAULT_API_TIMEOUT_MS = 45_000;
 const DEFAULT_API_RETRY_DELAY_MS = 350;
 const DEFAULT_HEALTHCHECK_TIMEOUT_MS = 2_500;
 const DEFAULT_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
@@ -334,7 +334,7 @@ export function getApiErrorMessage(error, { apiBaseUrl = '', fallback = '' } = {
 
   if (code === 'API_BASE_URL_NOT_CONFIGURED') return 'API não configurada para este ambiente.';
   if (code === 'API_AUTH_MISSING') return 'Sessão ausente para esta requisição autenticada.';
-  if (code === 'REQUEST_TIMEOUT') return 'Tempo de resposta excedido.';
+  if (code === 'REQUEST_TIMEOUT') return 'A IA demorou mais que o esperado. Tente novamente em alguns segundos.';
   if (code === 'NETWORK_ERROR') {
     return requestUrl
       ? `Não foi possível conectar com a API em ${requestUrl}.`
