@@ -1,17 +1,13 @@
 name: CI
-
 on:
   push:
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   quality-and-e2e:
     runs-on: ubuntu-latest
@@ -43,53 +39,50 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Install backend dependencies
         run: npm --prefix server ci
-
       - name: Prepare backend database
         run: |
           npm --prefix server run prisma:generate
           npm --prefix server run prisma:push
           npm --prefix server run seed:super-admin
-
       - name: Install Playwright (Chromium)
         run: npx playwright install --with-deps chromium
-
       - name: Typecheck
         run: npm run typecheck
-
       - name: Lint
         run: npm run lint
-
       - name: Build
         run: npm run build
-
+      - name: Start backend
+        run: npm --prefix server run start &
+        env:
+          NODE_ENV: test
+          PORT: 4000
+      - name: Start frontend
+        run: npm run preview -- --port 5173 --host 127.0.0.1 &
+      - name: Wait for services
+        run: npx wait-on http://127.0.0.1:4000/health http://127.0.0.1:5173 --timeout 30000
       - name: Run E2E (core)
         run: npm run test:e2e
         env:
           CI: true
           PW_ENABLE_API_MODE: "false"
-
       - name: Run E2E (auth/api)
         run: npx playwright test tests/e2e/audit-api-authorization.spec.js tests/e2e/audit-auth-routes.spec.js tests/e2e/public-report.spec.js --workers=1
         env:
           CI: true
           PW_ENABLE_API_MODE: "true"
-
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,7 +91,6 @@ jobs:
           path: playwright-report
           if-no-files-found: ignore
           retention-days: 14
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
